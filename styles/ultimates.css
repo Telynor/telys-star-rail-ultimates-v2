@@ -505,3 +505,52 @@
 }
 .tsru-energy-ability-score:focus { border-color: #20e6ff !important; box-shadow: 0 0 5px rgba(32,230,255,.55); outline: 0; }
 .tsru-energy-ability-score:disabled { cursor: not-allowed; opacity: .7; }
+
+.tsru-aha-widget {
+  position: fixed;
+  z-index: 10010;
+  width: var(--tsru-aha-size, 128px);
+  padding: 15px 9px 23px;
+  color: var(--tsru-aha-color, #ff4fd8);
+  text-align: center;
+  user-select: none;
+}
+.tsru-aha-button {
+  position: relative;
+  display: block;
+  width: var(--tsru-aha-size, 128px);
+  height: var(--tsru-aha-size, 128px);
+  padding: 0;
+  overflow: hidden;
+  border: 4px solid var(--tsru-aha-color, #ff4fd8);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--tsru-aha-color) 35%, #09070d);
+  box-shadow: inset 0 0 22px color-mix(in srgb, var(--tsru-aha-color) 55%, transparent), 0 0 18px var(--tsru-aha-color);
+  cursor: pointer;
+}
+.tsru-aha-button img { width: 100%; height: 100%; border: 0; border-radius: 50%; object-fit: cover; opacity: .72; }
+.tsru-aha-button:hover { filter: brightness(1.2); transform: scale(1.025); }
+.tsru-aha-label { margin-top: 5px; font-size: max(12px, calc(var(--tsru-aha-size) * .12)); font-weight: 900; text-shadow: 0 1px 3px #000, 0 0 8px var(--tsru-aha-color); }
+.tsru-aha-drag { position: absolute; z-index: 3; top: 0; left: 50%; width: 45px; height: 18px; transform: translateX(-50%); cursor: grab; }
+.tsru-aha-close { position: absolute; z-index: 3; top: 8px; right: -5px; width: 22px; height: 22px; padding: 0; border-radius: 50%; background: rgba(8,8,12,.9); color: white; font-size: 11px; line-height: 20px; }
+.tsru-aha-resize { position: absolute; right: 0; bottom: 7px; width: 18px; height: 18px; border-right: 3px solid currentColor; border-bottom: 3px solid currentColor; cursor: nwse-resize; opacity: .65; }
+
+.tsru-aha-overlay {
+  position: fixed;
+  z-index: 50;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  pointer-events: none;
+}
+.tsru-aha-overlay video { width: 100vw; height: 100vh; border: 0; object-fit: contain; background: transparent; }
+
+.tsru-aha-config-form { display: flex; flex-direction: column; gap: 12px; padding: 10px; }
+.tsru-aha-config-form header { padding-bottom: 8px; border-bottom: 1px solid rgba(229,200,120,.45); }
+.tsru-aha-config-form h2, .tsru-aha-config-form p { margin: 0 0 5px; }
+.tsru-aha-config-field { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(220px, 1.4fr); align-items: center; gap: 12px; }
+.tsru-aha-config-field label { display: flex; flex-direction: column; }
+.tsru-aha-config-field small { opacity: .72; }
+.tsru-aha-config-actions { display: flex; flex-wrap: wrap; gap: 7px; padding-top: 8px; border-top: 1px solid rgba(229,200,120,.3); }
+.tsru-aha-config-actions button { flex: 1 1 auto; }
