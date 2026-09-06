@@ -862,7 +862,11 @@ function rawDiceTotal(rolls) {
     if (!term || typeof term !== "object" || seen.has(term)) return;
     seen.add(term);
     if (Array.isArray(term.results) && (term.faces || term.number)) dice.push(term);
-    for (const key of ["dice", "terms", "rolls", "operands"]) for (const child of term[key] ?? []) visit(child);
+    for (const key of ["dice", "terms", "rolls", "operands", "roll", "damageRoll"]) {
+      const children = term[key];
+      if (Array.isArray(children)) children.forEach(visit);
+      else visit(children);
+    }
   };
   for (const roll of rolls ?? []) visit(roll);
   return dice.flatMap(die => die.results ?? []).filter(result => result?.active !== false && result?.discarded !== true)
@@ -870,8 +874,12 @@ function rawDiceTotal(rolls) {
 }
 
 function midiDamageRolls(workflow) {
-  const rolls = workflow?.damageRolls ?? workflow?.damageRoll ?? workflow?.damageRollArray ?? [];
-  return (Array.isArray(rolls) ? rolls : [rolls]).filter(roll => roll && typeof roll === "object");
+  const rolls = [];
+  for (const candidate of [workflow?.damageRolls, workflow?.damageRoll, workflow?.damageRollArray, workflow?.otherDamageRolls, workflow?.otherDamageRoll]) {
+    if (Array.isArray(candidate)) rolls.push(...candidate);
+    else if (candidate && typeof candidate === "object") rolls.push(candidate);
+  }
+  return [...new Set(rolls)];
 }
 
 function isDamageMessage(message) {
