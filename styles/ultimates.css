@@ -537,13 +537,15 @@
 
 .tsru-aha-overlay {
   position: fixed;
-  z-index: 50;
+  z-index: 2;
   inset: 0;
   display: grid;
   place-items: center;
   overflow: hidden;
   pointer-events: none;
 }
+#board > .tsru-aha-overlay,
+#canvas > .tsru-aha-overlay { z-index: 2; }
 .tsru-aha-overlay video { width: 100vw; height: 100vh; border: 0; object-fit: contain; background: transparent; }
 
 .tsru-aha-config-form { display: flex; flex-direction: column; gap: 12px; padding: 10px; }
