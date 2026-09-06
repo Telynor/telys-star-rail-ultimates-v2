@@ -464,3 +464,44 @@
   .tsru-field-toggle { grid-template-columns: 1fr 42px; }
   .tsru-sheet-actions { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* Energy Regen pseudo-ability, injected alongside the system ability cards. */
+.tsru-energy-ability {
+  position: relative;
+  box-sizing: border-box;
+  display: flex !important;
+  flex: 0 0 92px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 82px;
+  min-height: 70px;
+  padding: 7px 7px 5px;
+  border: 1px solid #596171;
+  clip-path: polygon(14% 0, 86% 0, 100% 18%, 100% 82%, 86% 100%, 14% 100%, 0 82%, 0 18%);
+  background: linear-gradient(180deg, #29303a, #171b22);
+  color: #eee9dc;
+  text-align: center;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,.7));
+}
+.tsru-energy-ability-label { color: #d8c89f; font-size: 9px; font-weight: 800; line-height: 1; white-space: nowrap; }
+.tsru-energy-ability-modifier { margin: 3px 0 2px; color: #f2f2f2; font-size: 20px; font-weight: 800; line-height: 1; }
+.tsru-energy-ability-score {
+  box-sizing: border-box !important;
+  width: 52px !important;
+  height: 22px !important;
+  min-height: 22px !important;
+  margin: 0 !important;
+  padding: 1px 4px !important;
+  border: 1px solid rgba(229,200,120,.45) !important;
+  border-radius: 3px !important;
+  background: rgba(0,0,0,.82) !important;
+  color: #eee9dc !important;
+  font-size: 13px !important;
+  font-weight: 700;
+  line-height: 20px !important;
+  text-align: center;
+  pointer-events: auto !important;
+}
+.tsru-energy-ability-score:focus { border-color: #20e6ff !important; box-shadow: 0 0 5px rgba(32,230,255,.55); outline: 0; }
+.tsru-energy-ability-score:disabled { cursor: not-allowed; opacity: .7; }
