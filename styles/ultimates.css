@@ -175,7 +175,7 @@
 
 .tsru-splash {
   position: fixed;
-  z-index: 100000;
+  z-index: 3;
   inset: 0;
   display: grid;
   place-items: center;
@@ -183,6 +183,8 @@
   pointer-events: none;
   transition: opacity .16s ease;
 }
+#board > .tsru-splash,
+#canvas > .tsru-splash { z-index: 3; }
 .tsru-splash.show { opacity: 1; }
 .tsru-splash-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, .72); }
 .tsru-splash-media { position: relative; width: 100vw; height: 100vh; overflow: hidden; transform: scale(1); transform-origin: center center; }
