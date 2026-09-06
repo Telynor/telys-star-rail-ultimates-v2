@@ -871,10 +871,13 @@ function isDamageMessage(message) {
   return type.includes("damage") || message.rolls?.some(roll => String(roll.options?.type ?? roll.options?.rollType ?? "").toLowerCase().includes("damage"));
 }
 
-async function applyToughnessDamage(attacker, targets, amount) {
+async function applyToughnessDamage(attacker, targets, amount, eventKey = "") {
   if (!isAuthority() || !attacker || amount <= 0) return;
+  const processedKey = eventKey ? `toughness:${eventKey}` : "";
+  if (processedKey && state.processedMessages.has(processedKey)) return;
   const elementId = getConfig(attacker).elementId;
   if (!elementId) return;
+  let applied = false;
   for (const target of targets) {
     const actor = target?.actor ?? target?.document?.actor ?? target;
     if (!actor || actor.type !== "npc") continue;
@@ -882,24 +885,40 @@ async function applyToughnessDamage(attacker, targets, amount) {
     if (!toughness.enabled || !toughness.weaknesses.includes(elementId) || toughness.current <= 0) continue;
     const next = clamp(toughness.current - amount, 0, toughness.max);
     await setToughness(actor, next);
+    applied = true;
     if (next === 0 && toughness.current > 0) ui.notifications.info(`${actor.name}'s Toughness was broken!`);
+  }
+  if (processedKey && applied) {
+    state.processedMessages.add(processedKey);
+    window.setTimeout(() => state.processedMessages.delete(processedKey), 120000);
   }
 }
 
 async function processCoreAttackMessage(message) {
-  if (!isAuthority() || game.modules.get("midi-qol")?.active) return;
+  if (!isAuthority()) return;
+  const midiActive = game.modules.get("midi-qol")?.active;
   const attackMessage = isAttackMessage(message);
   const damageMessage = isDamageMessage(message);
   if (!attackMessage && !damageMessage) return;
   if (state.processedMessages.has(message.id)) return;
   state.processedMessages.add(message.id);
   window.setTimeout(() => state.processedMessages.delete(message.id), 60000);
-  const attacker = game.actors.get(message.speaker?.actor) ?? canvas?.tokens?.get(message.speaker?.token)?.actor;
+  const midiWorkflowId = message.flags?.["midi-qol"]?.workflowId ?? message.flags?.["midi-qol"]?.workflowUuid ?? message.flags?.["midi-qol"]?.itemUuid;
+  const midiWorkflow = midiActive && midiWorkflowId ? globalThis.MidiQOL?.Workflow?.getWorkflow?.(midiWorkflowId) : null;
+  const attacker = midiWorkflow?.actor ?? game.actors.get(message.speaker?.actor) ?? canvas?.tokens?.get(message.speaker?.token)?.actor;
   let targetIds = targetActorIdsFromMessage(message);
+  if (!targetIds.size && midiWorkflow) {
+    const workflowTargets = midiWorkflow.hitTargets?.size ? midiWorkflow.hitTargets : midiWorkflow.targets;
+    for (const target of workflowTargets ?? []) {
+      const actor = target?.actor ?? target?.document?.actor;
+      if (actor) targetIds.add(actor.id);
+    }
+  }
   if (attackMessage && attacker) state.lastTargetsByActor.set(attacker.id, [...targetIds]);
   if (!targetIds.size && attacker) targetIds = new Set(state.lastTargetsByActor.get(attacker.id) ?? []);
   if (attackMessage && attacker) await addEnergy(attacker, energyGain(getConfig(attacker), "attack"), "attack");
-  if (damageMessage && attacker) await applyToughnessDamage(attacker, [...targetIds].map(id => game.actors.get(id)), rawDiceTotal(message.rolls));
+  if (damageMessage && attacker) await applyToughnessDamage(attacker, [...targetIds].map(id => game.actors.get(id)), rawDiceTotal(message.rolls), midiWorkflowId || message.id);
+  if (midiActive) return;
   if (!attackMessage) return;
   for (const actorId of targetIds) {
     const target = game.actors.get(actorId);
@@ -929,7 +948,7 @@ async function processMidiWorkflow(workflow) {
   if (diceDamage > 0 && !state.processedMessages.has(damageKey)) {
     state.processedMessages.add(damageKey);
     window.setTimeout(() => state.processedMessages.delete(damageKey), 120000);
-    await applyToughnessDamage(attacker, toughnessTargets, diceDamage);
+    await applyToughnessDamage(attacker, toughnessTargets, diceDamage, key);
   }
   for (const target of targets) {
     const actor = target.actor ?? target.document?.actor;
