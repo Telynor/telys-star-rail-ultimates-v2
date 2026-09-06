@@ -250,6 +250,8 @@
   overflow: auto;
   color: #eee9dc;
   pointer-events: auto;
+  container-type: inline-size;
+  container-name: tsru-config;
 }
 
 .tsru-config-panel {
@@ -413,7 +415,7 @@
   z-index: 3;
   bottom: 0;
   display: grid;
-  grid-template-columns: repeat(4, minmax(130px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(145px, 100%), 1fr));
   gap: 8px;
   padding: 12px;
   border: 1px solid rgba(229, 200, 120, .45);
@@ -458,13 +460,41 @@
   .tsru-title-square-two { left: -33px; top: calc(50% - 68px); width: 54px; height: 54px; }
 }
 
-.tsru-sheet-actions button { min-height: 36px; margin: 0; color: #f5f1e7; }
+.tsru-sheet-actions button { min-width: 0; min-height: 36px; margin: 0; padding: 6px 8px; overflow-wrap: anywhere; color: #f5f1e7; font-size: clamp(11px, 2.2cqw, 13px); line-height: 1.15; white-space: normal; }
 .tsru-sheet-actions .tsru-save-config { border-color: #23cfe7; background: linear-gradient(#246273, #173d49); color: white; font-weight: 800; }
 
 @media (max-width: 850px) {
   .tsru-field { grid-template-columns: 1fr; gap: 7px; }
   .tsru-field-toggle { grid-template-columns: 1fr 42px; }
   .tsru-sheet-actions { grid-template-columns: repeat(2, 1fr); }
+}
+
+@container tsru-config (max-width: 720px) {
+  .tsru-config-panel { gap: 10px; }
+  .tsru-config-heading { align-items: center; gap: 8px; }
+  .tsru-config-heading h2 { font-size: 20px; }
+  .tsru-field { grid-template-columns: minmax(0, 1fr) !important; gap: 7px; min-height: 0; padding: 10px 12px; }
+  .tsru-field-toggle { grid-template-columns: minmax(0, 1fr) 38px !important; }
+  .tsru-inherited-colors { justify-content: flex-start; }
+  .tsru-inherited-colors em { text-align: left; }
+  .tsru-sheet-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 8px; }
+}
+
+@container tsru-config (max-width: 460px) {
+  .dnd5e2 .tsru-sheet-tab,
+  .dnd5e2.sheet .tsru-sheet-tab,
+  .tsru-sheet-tab { padding: 10px 8px 24px; }
+  .tsru-config-heading { align-items: flex-start; }
+  .tsru-config-heading h2 { font-size: 17px; }
+  .tsru-config-heading p { font-size: 11px; }
+  .tsru-gm-badge { flex: 0 0 auto; font-size: 8px; }
+  .tsru-config-section h3 { padding: 8px 10px; font-size: 14px; }
+  .tsru-field { padding: 9px 10px; }
+  .tsru-file-control { display: grid; grid-template-columns: minmax(0, 1fr) repeat(2, 36px); }
+  .tsru-file-control button:only-of-type { grid-column: 2; }
+  .tsru-position-control { flex-wrap: wrap; }
+  .tsru-override-control { grid-template-columns: minmax(0, 1fr); }
+  .tsru-sheet-actions { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* Energy Regen pseudo-ability, injected alongside the system ability cards. */
