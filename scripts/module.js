@@ -44,7 +44,6 @@ const DEFAULT_AHA_CONFIG = Object.freeze({
   buttonImage: "icons/svg/explosion.svg",
   color: "#ff4fd8",
   initiativeEnabled: false,
-  initiativeValue: 0,
   combatantImage: "icons/svg/mystery-man.svg"
 });
 
@@ -245,9 +244,13 @@ async function ensureAhaCombatant(combat) {
     if (existing) await combat.deleteEmbeddedDocuments("Combatant", [existing.id]);
     return null;
   }
+  const rolledInitiatives = combat.combatants
+    .filter(combatant => !isAhaCombatant(combatant) && combatant.initiative !== null && Number.isFinite(Number(combatant.initiative)))
+    .map(combatant => Number(combatant.initiative));
+  if (!rolledInitiatives.length) return existing ?? null;
   const data = {
     name: "Aha Instant",
-    initiative: Number(config.initiativeValue) || 0,
+    initiative: Math.min(...rolledInitiatives) - 1,
     img: config.combatantImage || config.buttonImage || DEFAULT_AHA_CONFIG.combatantImage
   };
   if (existing) {
@@ -909,7 +912,6 @@ class AhaConfig extends FormApplication {
       buttonImage: formData.buttonImage || DEFAULT_AHA_CONFIG.buttonImage,
       color: formData.color || DEFAULT_AHA_CONFIG.color,
       initiativeEnabled: Boolean(formData.initiativeEnabled),
-      initiativeValue: Number(formData.initiativeValue) || 0,
       combatantImage: formData.combatantImage || DEFAULT_AHA_CONFIG.combatantImage
     });
     refreshAhaButton();
