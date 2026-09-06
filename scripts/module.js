@@ -1193,7 +1193,7 @@ Hooks.on("updateCombat", async combat => {
   if (!isAuthority()) return;
   if (!combat.combatants.find(isAhaCombatant)) await maybeEnsureAhaCombatant(combat);
   const current = combat.combatant;
-  if (isAhaCombatant(current)) {
+  if (combat.started && isAhaCombatant(current)) {
     const turnKey = `${combat.id}:${combat.round}:${current.id}`;
     if (state.lastAhaTurnKey !== turnKey) {
       state.lastAhaTurnKey = turnKey;
