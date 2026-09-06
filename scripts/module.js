@@ -266,6 +266,18 @@ async function syncAhaCombatants() {
   for (const combat of game.combats ?? []) await ensureAhaCombatant(combat);
 }
 
+async function maybeEnsureAhaCombatant(combat, {force = false} = {}) {
+  if (!isAuthority() || !combat || !getAhaConfig().initiativeEnabled) return null;
+  const hasRolledInitiative = combat.combatants.some(combatant => !isAhaCombatant(combatant) && combatant.initiative !== null);
+  if (!force && !hasRolledInitiative) return null;
+  try { return await ensureAhaCombatant(combat); }
+  catch (error) {
+    console.error(`${MODULE_ID} | Could not add Aha Instant to combat`, error);
+    ui.notifications.error(`Could not add Aha Instant to initiative: ${error.message}`);
+    return null;
+  }
+}
+
 class AhaButton {
   constructor() { this.element = null; this.drag = null; this.resize = null; }
   render() {
@@ -885,6 +897,11 @@ class AhaConfig extends FormApplication {
     html.find("[data-color-for]").on("change", event => html.find(`[name="${event.currentTarget.dataset.colorFor}"]`).val(event.currentTarget.value));
     html.find("[data-action='preview-aha']").on("click", () => playAhaVideo({video: html.find('[name="video"]').val()}));
     html.find("[data-action='show-aha-button']").on("click", showAhaButton);
+    html.find("[data-action='sync-aha-initiative']").on("click", async () => {
+      if (!game.combat) return ui.notifications.warn("There is no active combat to add Aha Instant to.");
+      const combatant = await maybeEnsureAhaCombatant(game.combat, {force: true});
+      if (combatant) ui.notifications.info(`Aha Instant is in combat at initiative ${combatant.initiative}.`);
+    });
   }
   async _updateObject(_event, formData) {
     await game.settings.set(MODULE_ID, "ahaConfig", {
@@ -1174,6 +1191,7 @@ Hooks.on("deleteCombat", combat => {
 
 Hooks.on("updateCombat", async combat => {
   if (!isAuthority()) return;
+  if (!combat.combatants.find(isAhaCombatant)) await maybeEnsureAhaCombatant(combat);
   const current = combat.combatant;
   if (isAhaCombatant(current)) {
     const turnKey = `${combat.id}:${combat.round}:${current.id}`;
@@ -1193,5 +1211,12 @@ Hooks.on("updateCombat", async combat => {
 
 Hooks.on("updateCombatant", async (combatant, changed) => {
   if (!isAuthority() || isAhaCombatant(combatant) || !("initiative" in changed)) return;
-  await ensureAhaCombatant(combatant.parent);
+  await maybeEnsureAhaCombatant(combatant.parent);
 });
+
+Hooks.on("createCombatant", combatant => {
+  if (isAhaCombatant(combatant)) return;
+  window.setTimeout(() => maybeEnsureAhaCombatant(combatant.parent), 100);
+});
+
+Hooks.on("combatStart", combat => maybeEnsureAhaCombatant(combat, {force: true}));
