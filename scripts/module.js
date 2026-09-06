@@ -1310,6 +1310,22 @@ function refreshToughnessBars() {
   for (const token of canvas?.tokens?.placeables ?? []) renderToughnessBar(token);
 }
 
+function injectToughnessHeaderButton(app, html) {
+  const actor = app.actor ?? app.document;
+  if (!game.user?.isGM || actor?.documentName !== "Actor" || actor.type !== "npc") return;
+  const appElement = app.element?.jquery ? app.element : $(app.element ?? html);
+  const renderedElement = html?.jquery ? html : $(html);
+  const root = appElement.length ? appElement : renderedElement;
+  if (!root.length || root.find(".tsru-open-toughness").length) return;
+  const header = root.find(".window-header").first();
+  if (!header.length) return;
+  const button = $(`<button type="button" class="header-control icon tsru-open-toughness" data-tooltip="Configure Toughness" aria-label="Configure Toughness"><i class="fas fa-shield-halved"></i></button>`);
+  const controls = header.find(".window-controls").first();
+  if (controls.length) controls.prepend(button);
+  else header.find("button.close, [data-action='close']").first().before(button);
+  button.on("click.tsru", event => { event.preventDefault(); event.stopPropagation(); openToughnessConfig(actor); });
+}
+
 function addActorHeaderButton(app, buttons) {
   if (!game.user.isGM) return;
   if (app.actor?.type === "npc") {
@@ -1403,6 +1419,7 @@ Hooks.once("ready", () => {
 
 Hooks.on("renderActorSheet", injectUltimateTab);
 Hooks.on("renderCharacterActorSheet", injectUltimateTab);
+Hooks.on("renderActorSheet", injectToughnessHeaderButton);
 Hooks.on("renderApplicationV2", (app, html) => {
   const actor = app.actor ?? app.document;
   if (actor?.documentName === "Actor" && actor.type === "character") {
@@ -1410,6 +1427,7 @@ Hooks.on("renderApplicationV2", (app, html) => {
     injectEnergyAbility(app, html);
     injectCharacterBadges(app, html);
   }
+  if (actor?.documentName === "Actor" && actor.type === "npc") injectToughnessHeaderButton(app, html);
 });
 Hooks.on("renderActorSheet", injectEnergyAbility);
 Hooks.on("renderCharacterActorSheet", injectEnergyAbility);
