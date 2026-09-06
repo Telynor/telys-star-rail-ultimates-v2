@@ -2,7 +2,7 @@
   "id": "telys-star-rail-ultimates",
   "title": "Tely's Star Rail Ultimates",
   "description": "Honkai: Star Rail-inspired energy, floating Ultimate orbs, cinematic artwork, custom elements, and interrupt turns for D&D 5e.",
-  "version": "1.2.7",
+  "version": "1.2.8",
   "authors": [
     {
       "name": "Telynor"
@@ -37,7 +37,7 @@
     }
   ],
   "manifest": "https://raw.githubusercontent.com/Telynor/telys-star-rail-ultimates-v2/main/module.json",
-  "download": "https://github.com/Telynor/telys-star-rail-ultimates-v2/releases/download/v1.2.7/telys-star-rail-ultimates-v1.2.7.zip",
+  "download": "https://github.com/Telynor/telys-star-rail-ultimates-v2/releases/download/v1.2.8/telys-star-rail-ultimates-v1.2.8.zip",
   "license": "LICENSE",
   "readme": "README.md"
 }
