@@ -26,7 +26,7 @@ A Foundry Virtual Tabletop v14 module for D&D 5e that recreates Honkai: Star Rai
 
 Paste this manifest URL into Foundry's **Install Module** dialog:
 
-`https://raw.githubusercontent.com/Telynor/telys-star-rail-ultimates-v2/main/module.json`
+`https://github.com/Telynor/telys-star-rail-ultimates-v2/releases/latest/download/module.json`
 
 The GitHub repository is `telys-star-rail-ultimates-v2` under the `Telynor` account.
 
