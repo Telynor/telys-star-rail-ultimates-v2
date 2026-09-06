@@ -17,8 +17,9 @@ A Foundry Virtual Tabletop v14 module for D&D 5e that recreates Honkai: Star Rai
 - A one-second, world-wide cinematic artwork splash (duration is configurable).
 - Temporary interrupt turns inserted into the Combat Tracker.
 - GM-defined custom Elements with uploaded icons and colors.
+- GM-defined Paths with browseable or drag-and-drop icons; assigned Element and Path badges appear beside the character portrait.
 - Immediate GM-only manual Energy override on each character's Ultimate tab.
-- Optional Element badge on the Ultimate orb.
+- A per-character GM-only Ultimate script editor, replacing Ultimate Item selection and its attack prompt.
 - Midi-QOL support, with a core D&D 5e chat-message fallback.
 - GM-authoritative socket handling for player Ultimate requests.
 
@@ -43,9 +44,9 @@ The GitHub repository is `telys-star-rail-ultimates-v2` under the `Telynor` acco
 1. Enable the module in a D&D 5e world.
 2. As GM, open **Game Settings → Configure Settings → Module Settings → Manage Elements** and create the campaign's Elements.
 3. Open a player character sheet and select the GM-only **Ultimate** tab.
-4. Enable the character, set Energy values and gains, select an Ultimate Item, upload HUD and splash artwork, select colors, and assign an Element.
+4. Enable the character, set Energy values and gains, write its Ultimate script, upload HUD and splash artwork, and assign an Element and Path.
 5. Save. Owners of that actor receive an orb automatically. Use the HUD toggle in the Token Controls toolbar if an orb is closed.
-6. At full Energy, click the orb to trigger the splash, interrupt turn, and configured Ultimate Item.
+6. At full Energy, click the orb to trigger the splash, interrupt turn, and configured character script.
 
 ## Energy rules
 

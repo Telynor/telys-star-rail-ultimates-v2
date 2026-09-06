@@ -9,7 +9,7 @@ const DEFAULT_CONFIG = Object.freeze({
   attackGain: 10,
   attackedGain: 5,
   attackedMode: "hit",
-  ultimateItemId: "",
+  ultimateScript: "",
   splashImage: "",
   splashDuration: 1,
   ultimateName: "Ultimate",
@@ -24,7 +24,8 @@ const DEFAULT_CONFIG = Object.freeze({
   chargeColor: "#596171",
   readyColor: "#20e6ff",
   showPercent: true,
-  elementId: ""
+  elementId: "",
+  pathId: ""
 });
 
 const state = {
@@ -86,14 +87,14 @@ function regenModifier(config) {
   return Math.floor(((Number(config.regenScore) || 10) - 10) / 2);
 }
 
-function energyAbilityMarkup(actor) {
+function energyAbilityMarkup(actor, tagName = "div") {
   const config = getConfig(actor);
   const editable = game.user.isGM || actor.isOwner;
-  return `<div class="tsru-energy-ability ability-score" data-tsru-energy-ability data-actor-id="${actor.id}" title="Energy gained = base gain + Energy Regen modifier">
+  return `<${tagName} class="tsru-energy-ability ability-score" data-tsru-energy-ability data-actor-id="${actor.id}" title="Energy gained = base gain + Energy Regen modifier">
     <div class="tsru-energy-ability-label">ENERGY REGEN</div>
     <div class="tsru-energy-ability-modifier">${signedNumber(regenModifier(config))}</div>
     <input class="tsru-energy-ability-score" type="number" min="1" max="30" step="1" value="${Number(config.regenScore) || 10}" aria-label="Energy Regen ability score" ${editable ? "" : "disabled"}>
-  </div>`;
+  </${tagName}>`;
 }
 
 async function injectEnergyAbility(app, html) {
@@ -103,18 +104,22 @@ async function injectEnergyAbility(app, html) {
   if (!rootElement) return;
   const root = $(rootElement);
   if (root.find("[data-tsru-energy-ability]").length) return;
-  const candidates = root.find('[data-application-part="ability-scores"], .ability-scores, header .abilities, .sheet-header .abilities').toArray();
-  const abilityElement = candidates.find(element => {
+  const explicitCha = root.find('[data-ability="cha"], [data-ability-id="cha"], [data-key="cha"]').filter((_index, element) => {
     const rect = element.getBoundingClientRect();
-    const children = [...element.children].filter(child => child.getBoundingClientRect().width > 35);
-    if (children.length < 6) return false;
-    const tops = children.slice(0, 6).map(child => Math.round(child.getBoundingClientRect().top));
-    return rect.width >= 420 && rect.height <= 180 && Math.max(...tops) - Math.min(...tops) <= 30;
-  });
-  const abilities = abilityElement ? $(abilityElement) : $();
-  if (!abilities.length) return console.debug(`${MODULE_ID} | Ability-score container not found for`, actor.name);
-  abilities.append(energyAbilityMarkup(actor));
-  const card = abilities.find("[data-tsru-energy-ability]").last();
+    return rect.width >= 45 && rect.width <= 160 && rect.height >= 40 && rect.height <= 150 && /\bCHA\b/i.test(element.textContent);
+  }).first();
+  let chaCard = explicitCha;
+  if (!chaCard.length) {
+    chaCard = root.find("li, div").filter((_index, element) => {
+      const rect = element.getBoundingClientRect();
+      const text = element.textContent?.replace(/\s+/g, " ").trim() ?? "";
+      return rect.width >= 45 && rect.width <= 160 && rect.height >= 45 && rect.height <= 130 && /^CHA\b/i.test(text) && /[+-]\d/.test(text);
+    }).first();
+  }
+  if (!chaCard.length) return console.debug(`${MODULE_ID} | CHA ability card not found for`, actor.name);
+  const tagName = chaCard.prop("tagName")?.toLowerCase() || "div";
+  chaCard.after(energyAbilityMarkup(actor, tagName));
+  const card = chaCard.next("[data-tsru-energy-ability]");
   const score = card.find(".tsru-energy-ability-score");
   score.on("input.tsru", event => {
     event.stopPropagation();
@@ -381,6 +386,51 @@ function getElements() {
   }));
 }
 
+function getPaths() {
+  const stored = game.settings.get(MODULE_ID, "paths") ?? [];
+  return (Array.isArray(stored) ? stored : Object.values(stored)).filter(Boolean);
+}
+
+function droppedAssetPath(event) {
+  const transfer = event.originalEvent?.dataTransfer ?? event.dataTransfer;
+  const plain = transfer?.getData("text/plain") || transfer?.getData("text/uri-list") || "";
+  try {
+    const data = JSON.parse(plain);
+    return data.src || data.img || data.path || data.texture?.src || "";
+  } catch (_error) { return plain.trim(); }
+}
+
+function activateImageDrops(html) {
+  html.find(".tsru-drop-image").on("dragover", event => { event.preventDefault(); event.currentTarget.classList.add("is-dragover"); });
+  html.find(".tsru-drop-image").on("dragleave", event => event.currentTarget.classList.remove("is-dragover"));
+  html.find(".tsru-drop-image").on("drop", event => {
+    event.preventDefault(); event.currentTarget.classList.remove("is-dragover");
+    const path = droppedAssetPath(event);
+    if (path) $(event.currentTarget).val(path).trigger("change");
+  });
+}
+
+async function injectCharacterBadges(app, html) {
+  const actor = app.actor ?? app.document;
+  if (actor?.documentName !== "Actor" || actor.type !== "character") return;
+  const rootElement = html?.jquery ? html[0] : html instanceof HTMLElement ? html : app.element?.[0] ?? app.element;
+  if (!rootElement) return;
+  const root = $(rootElement);
+  root.find("[data-tsru-character-badges]").remove();
+  const config = getConfig(actor);
+  const element = getElements().find(entry => entry.id === config.elementId);
+  const path = getPaths().find(entry => entry.id === config.pathId);
+  if (!element?.icon && !path?.icon) return;
+  const portrait = root.find('img[data-edit="img"], img.profile, img.portrait, [data-application-part="portrait"] img').first();
+  if (!portrait.length) return;
+  const parent = portrait.parent();
+  parent.addClass("tsru-portrait-badge-host");
+  const badges = $(`<div class="tsru-character-badges" data-tsru-character-badges></div>`);
+  if (element?.icon) badges.append(`<div class="tsru-character-badge" title="Element: ${escapeHTML(element.name)}" style="--tsru-badge-color:${element.readyColor || element.color || "#fff"}"><img src="${escapeHTML(element.icon)}"></div>`);
+  if (path?.icon) badges.append(`<div class="tsru-character-badge" title="Path: ${escapeHTML(path.name)}"><img src="${escapeHTML(path.icon)}"></div>`);
+  parent.append(badges);
+}
+
 class UltimateOrb {
   constructor(actor) {
     this.actor = actor;
@@ -405,7 +455,6 @@ class UltimateOrb {
           <img class="tsru-orb-image">
           <span class="tsru-orb-fill"></span>
           <span class="tsru-orb-percent"></span>
-          <img class="tsru-orb-element" hidden>
         </button>
         <div class="tsru-ready-text">Ultimate Ready</div>
         <button type="button" class="tsru-orb-close" title="Hide orb"><i class="fas fa-xmark"></i></button>
@@ -430,13 +479,6 @@ class UltimateOrb {
     this.element.querySelector(".tsru-orb-percent").textContent = config.showPercent ? `${Math.round(percent)}%` : "";
     this.element.querySelector(".tsru-orb").disabled = !ready || state.ultimateLocks.has(this.actor.id);
     this.element.querySelector(".tsru-orb").title = ready ? `${this.actor.name}: Activate Ultimate` : `${this.actor.name}: ${config.current}/${config.max} Energy`;
-    const badge = this.element.querySelector(".tsru-orb-element");
-    if (element?.icon) {
-      badge.src = element.icon;
-      badge.title = element.name;
-      badge.style.setProperty("--tsru-element-color", element.color || "#ffffff");
-      badge.hidden = false;
-    } else badge.hidden = true;
     return this;
   }
 
@@ -592,7 +634,7 @@ async function showSplash({actorName, image, duration = 1, ultimateName = "Ultim
 async function requestUltimate(actor) {
   const config = getConfig(actor);
   if (!config.enabled || config.current < config.max) return ui.notifications.warn("This Ultimate is not ready.");
-  if (!config.ultimateItemId) return ui.notifications.warn("No Ultimate Item is configured for this character.");
+  if (!config.ultimateScript?.trim()) return ui.notifications.warn("No Ultimate script is configured for this character.");
   if (state.ultimateLocks.has(actor.id)) return;
   if (game.user.isGM && isAuthority()) return executeUltimate(actor.id, game.user.id);
   const gm = activeGM();
@@ -641,13 +683,14 @@ async function removeUltimateTurn(temporary) {
   state.suppressCombatHook = false;
 }
 
-async function useUltimateItem(actor) {
+async function runUltimateScript(actor) {
   const config = getConfig(actor);
-  const item = actor.items.get(config.ultimateItemId);
-  if (!item) throw new Error(`${actor.name}'s configured Ultimate Item could not be found.`);
-  if (typeof item.use === "function") return item.use();
-  if (typeof item.roll === "function") return item.roll();
-  throw new Error("The configured Ultimate Item cannot be used by this D&D 5e version.");
+  const script = config.ultimateScript?.trim();
+  if (!script) throw new Error(`${actor.name} has no configured Ultimate script.`);
+  const token = actor.getActiveTokens(true, true)?.[0] ?? null;
+  const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+  const execute = new AsyncFunction("actor", "token", "game", "canvas", "ui", "foundry", "Hooks", `"use strict";\n${script}`);
+  return execute(actor, token, game, canvas, ui, foundry, Hooks);
 }
 
 async function completeUltimate(actorId) {
@@ -671,8 +714,7 @@ async function executeUltimate(actorId, requestingUserId) {
   if (!actor || (!requester?.isGM && !actor.testUserPermission(requester, "OWNER"))) return;
   const config = getConfig(actor);
   if (!config.enabled || config.current < config.max) return;
-  const item = actor.items.get(config.ultimateItemId);
-  if (!item) return ui.notifications.warn(`${actor.name}'s configured Ultimate Item could not be found.`);
+  if (!config.ultimateScript?.trim()) return ui.notifications.warn(`${actor.name} has no configured Ultimate script.`);
 
   state.ultimateLocks.add(actorId);
   game.socket.emit(SOCKET, {type: "ultimateState", actorId, locked: true});
@@ -693,7 +735,7 @@ async function executeUltimate(actorId, requestingUserId) {
     };
     state.pendingUltimates.set(actorId, pending);
     if (requestingUserId === game.user.id) {
-      await useUltimateItem(actor);
+      await runUltimateScript(actor);
       await completeUltimate(actorId);
     } else {
       game.socket.emit(SOCKET, {type: "useUltimate", actorId, targetUserId: requestingUserId});
@@ -720,7 +762,7 @@ async function onSocket(payload) {
     const actor = game.actors.get(payload.actorId);
     try {
       if (!actor?.isOwner) throw new Error("You no longer own this character.");
-      await useUltimateItem(actor);
+      await runUltimateScript(actor);
       game.socket.emit(SOCKET, {type: "ultimateComplete", actorId: payload.actorId, userId: game.user.id});
     } catch (error) {
       console.error(`${MODULE_ID} | Player Ultimate failed`, error);
@@ -821,6 +863,7 @@ class ElementManager extends FormApplication {
   getData() { return {elements: foundry.utils.deepClone(getElements())}; }
   activateListeners(html) {
     super.activateListeners(html);
+    activateImageDrops(html);
     html.find(".tsru-add-element").on("click", async () => {
       const elements = this._readElements(html);
       elements.push({id: foundry.utils.randomID(), name: "New Element", icon: "icons/svg/aura.svg", chargeColor: "#596171", readyColor: "#20e6ff"});
@@ -875,11 +918,41 @@ class ElementManager extends FormApplication {
     await game.settings.set(MODULE_ID, "elements", elements);
     this._elementsOverride = null;
     refreshAllOrbs();
+    for (const app of Object.values(ui.windows ?? {})) if (app.actor?.type === "character") app.render(false);
   }
 }
 
 class ElementMenu extends FormApplication {
   render() { new ElementManager().render(true); return this; }
+}
+
+class PathManager extends FormApplication {
+  static get defaultOptions() {
+    return foundry.utils.mergeObject(super.defaultOptions, {id: "tsru-path-manager", title: "Tely's Star Rail Ultimates — Paths", template: `modules/${MODULE_ID}/templates/path-manager.hbs`, width: 560, height: "auto", closeOnSubmit: true});
+  }
+  getData() { return {paths: foundry.utils.deepClone(this._pathsOverride ?? getPaths())}; }
+  activateListeners(html) {
+    super.activateListeners(html);
+    activateImageDrops(html);
+    html.find(".tsru-add-path").on("click", () => { this._pathsOverride = this._readPaths(html); this._pathsOverride.push({id: foundry.utils.randomID(), name: "New Path", icon: "icons/svg/upgrade.svg"}); this.render(true); });
+    html.find(".tsru-remove-path").on("click", event => { const index = Number(event.currentTarget.closest(".tsru-path-row").dataset.index); this._pathsOverride = this._readPaths(html); this._pathsOverride.splice(index, 1); this.render(true); });
+  }
+  _readPaths(html) {
+    const data = new FormData(html[0]);
+    const expanded = foundry.utils.expandObject(Object.fromEntries(data.entries()));
+    return Object.values(expanded.paths ?? {}).map(entry => ({id: entry.id || foundry.utils.randomID(), name: entry.name?.trim() || "Path", icon: entry.icon || ""}));
+  }
+  async _updateObject(_event, formData) {
+    const expanded = foundry.utils.expandObject(formData);
+    const paths = Object.values(expanded.paths ?? {}).map(entry => ({id: entry.id, name: entry.name?.trim() || "Path", icon: entry.icon || ""}));
+    await game.settings.set(MODULE_ID, "paths", paths);
+    this._pathsOverride = null;
+    for (const app of Object.values(ui.windows ?? {})) if (app.actor?.type === "character") app.render(false);
+  }
+}
+
+class PathMenu extends FormApplication {
+  render() { new PathManager().render(true); return this; }
 }
 
 class AhaConfig extends FormApplication {
@@ -930,6 +1003,7 @@ class AhaMenu extends FormApplication {
 
 function registerSettings() {
   game.settings.register(MODULE_ID, "elements", {scope: "world", config: false, type: Array, default: []});
+  game.settings.register(MODULE_ID, "paths", {scope: "world", config: false, type: Array, default: []});
   game.settings.register(MODULE_ID, "elementsDraft", {scope: "client", config: false, type: Array, default: []});
   game.settings.register(MODULE_ID, "orbLayouts", {scope: "client", config: false, type: Object, default: {}});
   game.settings.register(MODULE_ID, "ahaConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_AHA_CONFIG)});
@@ -940,6 +1014,14 @@ function registerSettings() {
     hint: "Create Element names, icons, and colors for assignment on character sheets.",
     icon: "fas fa-sparkles",
     type: ElementMenu,
+    restricted: true
+  });
+  game.settings.registerMenu(MODULE_ID, "pathManager", {
+    name: "Manage Paths",
+    label: "Open Path Manager",
+    hint: "Create Path names and drag-and-drop or browse for their character-sheet icons.",
+    icon: "fas fa-route",
+    type: PathMenu,
     restricted: true
   });
   game.settings.registerMenu(MODULE_ID, "ahaInstant", {
@@ -970,10 +1052,11 @@ async function injectUltimateTab(app, html) {
   nav.append(`<a class="item control tsru-tab-control" data-action="tab" data-tab="tsru-ultimate" data-group="primary" data-tooltip="Ultimate Configuration" aria-label="Ultimate Configuration"><i class="fas fa-burst"></i><span class="tsru-tab-label">Ultimate</span></a>`);
   const config = getConfig(actor);
   const elements = getElements().map(entry => ({...entry, selected: entry.id === config.elementId}));
-  const items = actor.items.map(item => ({id: item.id, name: item.name, selected: item.id === config.ultimateItemId})).sort((a, b) => a.name.localeCompare(b.name));
+  const paths = getPaths().map(entry => ({...entry, selected: entry.id === config.pathId}));
   const content = await renderTemplate(`modules/${MODULE_ID}/templates/ultimate-tab.hbs`, {
-    config, elements, items,
+    config, elements, paths,
     selectedElement: elements.find(entry => entry.selected),
+    selectedPath: paths.find(entry => entry.selected),
     titleAlignLeft: config.titleAlign === "left",
     titleAlignCenter: config.titleAlign === "center",
     titleAlignRight: config.titleAlign === "right",
@@ -1015,10 +1098,11 @@ function addSheetConfigFallback(app, root, actor) {
 async function openUltimateConfig(actor, sheetApp = null) {
   const config = getConfig(actor);
   const elements = getElements().map(entry => ({...entry, selected: entry.id === config.elementId}));
-  const items = actor.items.map(item => ({id: item.id, name: item.name, selected: item.id === config.ultimateItemId})).sort((a, b) => a.name.localeCompare(b.name));
+  const paths = getPaths().map(entry => ({...entry, selected: entry.id === config.pathId}));
   const content = await renderTemplate(`modules/${MODULE_ID}/templates/ultimate-tab.hbs`, {
-    config, elements, items,
+    config, elements, paths,
     selectedElement: elements.find(entry => entry.selected),
+    selectedPath: paths.find(entry => entry.selected),
     titleAlignLeft: config.titleAlign === "left",
     titleAlignCenter: config.titleAlign === "center",
     titleAlignRight: config.titleAlign === "right",
@@ -1036,9 +1120,9 @@ async function openUltimateConfig(actor, sheetApp = null) {
 }
 
 function activateConfigListeners(actor, tab, app) {
-  tab.find("input, select, button").prop("disabled", false);
+  tab.find("input, select, textarea, button").prop("disabled", false);
   tab.find("input:not([readonly])").prop("readonly", false);
-  tab.on("input.tsru change.tsru", "input, select", event => event.stopPropagation());
+  tab.on("input.tsru change.tsru", "input, select, textarea", event => event.stopPropagation());
   tab.find("[data-action='save-config']").on("click", async event => {
     event.preventDefault();
     event.stopPropagation();
@@ -1148,7 +1232,8 @@ function registerApi() {
     showOrb,
     showAhaButton,
     triggerAhaInstant,
-    openElementManager: () => new ElementManager().render(true)
+    openElementManager: () => new ElementManager().render(true),
+    openPathManager: () => new PathManager().render(true)
   };
 }
 
@@ -1174,10 +1259,13 @@ Hooks.on("renderApplicationV2", (app, html) => {
   if (actor?.documentName === "Actor" && actor.type === "character") {
     injectUltimateTab(app, html);
     injectEnergyAbility(app, html);
+    injectCharacterBadges(app, html);
   }
 });
 Hooks.on("renderActorSheet", injectEnergyAbility);
 Hooks.on("renderCharacterActorSheet", injectEnergyAbility);
+Hooks.on("renderActorSheet", injectCharacterBadges);
+Hooks.on("renderCharacterActorSheet", injectCharacterBadges);
 Hooks.on("getActorSheetHeaderButtons", addActorHeaderButton);
 Hooks.on("getSceneControlButtons", addHudTool);
 Hooks.on("createChatMessage", processCoreAttackMessage);

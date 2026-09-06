@@ -72,21 +72,6 @@
   pointer-events: none;
 }
 
-.tsru-orb-element {
-  position: absolute;
-  right: 5%;
-  top: 5%;
-  width: 25%;
-  height: 25%;
-  padding: 2%;
-  border: 1px solid var(--tsru-element-color, white);
-  border-radius: 50%;
-  background: rgba(10, 12, 18, .82);
-  object-fit: contain;
-  filter: drop-shadow(0 0 4px var(--tsru-element-color, white));
-  pointer-events: none;
-}
-
 .tsru-ready-text {
   position: absolute;
   top: calc(var(--tsru-size) + 5px);
@@ -228,7 +213,54 @@
 .tsru-sheet-actions button, .tsru-manager-actions button { flex: 1 1 auto; }
 .tsru-element-preview { display: flex; align-items: center; gap: 8px; padding: 6px; border: 1px solid var(--element-color); border-radius: 5px; }
 .tsru-element-preview img { width: 30px; height: 30px; border: 0; object-fit: contain; filter: drop-shadow(0 0 4px var(--element-color)); }
+.tsru-path-preview { --element-color: rgba(229, 200, 120, .8); }
 .tsru-element-manager { padding: 8px; }
+.tsru-drop-image.is-dragover { outline: 2px solid var(--tsru-cyan); outline-offset: 2px; box-shadow: 0 0 8px rgba(32,230,255,.55); }
+
+.tsru-script-field { align-items: start; }
+.tsru-script-field textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 190px;
+  resize: vertical;
+  padding: 9px 10px;
+  border: 1px solid rgba(229,200,120,.38);
+  border-radius: 5px;
+  background: #171c27;
+  color: #eef1f7;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: normal;
+  tab-size: 2;
+}
+.tsru-script-field code { color: #86eaff; font-size: .9em; }
+
+.tsru-portrait-badge-host { position: relative !important; }
+.tsru-character-badges {
+  position: absolute;
+  z-index: 8;
+  right: 6px;
+  bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  pointer-events: none;
+}
+.tsru-character-badge {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  padding: 4px;
+  place-items: center;
+  border: 1px solid var(--tsru-badge-color, rgba(229,200,120,.85));
+  border-radius: 50%;
+  background: rgba(7,9,14,.84);
+  box-shadow: 0 2px 6px rgba(0,0,0,.8), 0 0 7px color-mix(in srgb, var(--tsru-badge-color, #e5c878) 55%, transparent);
+}
+.tsru-character-badge img { width: 100%; height: 100%; border: 0; object-fit: contain; filter: drop-shadow(0 0 3px var(--tsru-badge-color, rgba(255,255,255,.7))); }
 .tsru-elements-list { max-height: 620px; overflow-y: auto; padding-right: 4px; }
 .tsru-element-row .tsru-remove-element { color: #ff8c8c; }
 .tsru-tab-control { position: relative; }

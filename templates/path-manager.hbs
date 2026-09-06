@@ -1,0 +1,15 @@
+<form class="tsru-path-manager tsru-element-manager">
+  <p class="notes">Create Paths that GMs can assign to characters. Browse for an icon or drag an image asset onto its path field.</p>
+  <div class="tsru-elements-list">
+    {{#each paths}}
+    <fieldset class="tsru-path-row tsru-element-row" data-index="{{@index}}">
+      <legend>Path {{add @index 1}}</legend>
+      <div class="form-group"><label>Name</label><input type="text" name="paths.{{@index}}.name" value="{{this.name}}" required></div>
+      <div class="form-group"><label>Identifier</label><input type="text" name="paths.{{@index}}.id" value="{{this.id}}" readonly></div>
+      <div class="form-group"><label>Icon</label><div class="form-fields"><input class="tsru-drop-image" type="text" name="paths.{{@index}}.icon" value="{{this.icon}}" placeholder="Drop an image here"><button type="button" class="file-picker" data-type="image" data-target="paths.{{@index}}.icon" title="Browse Files"><i class="fas fa-file-import"></i></button></div></div>
+      <button type="button" class="tsru-remove-path"><i class="fas fa-trash"></i> Remove</button>
+    </fieldset>
+    {{/each}}
+  </div>
+  <div class="tsru-manager-actions"><button type="button" class="tsru-add-path"><i class="fas fa-plus"></i> Add Path</button><button type="submit"><i class="fas fa-save"></i> Save Paths</button></div>
+</form>
