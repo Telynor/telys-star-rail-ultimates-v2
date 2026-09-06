@@ -210,7 +210,10 @@ function playAhaVideo({video}) {
   const overlay = document.createElement("div");
   overlay.className = "tsru-aha-overlay";
   overlay.innerHTML = `<video src="${escapeHTML(video)}" autoplay playsinline></video>`;
-  document.body.appendChild(overlay);
+  const board = document.querySelector("#board");
+  const canvasLayer = document.querySelector("#canvas");
+  if (board instanceof HTMLCanvasElement) board.insertAdjacentElement("afterend", overlay);
+  else (board ?? canvasLayer ?? document.body).appendChild(overlay);
   const player = overlay.querySelector("video");
   const remove = () => overlay.remove();
   player.addEventListener("ended", remove, {once: true});
