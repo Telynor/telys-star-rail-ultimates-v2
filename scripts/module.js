@@ -197,6 +197,13 @@ function getAhaConfig() {
   return foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_AHA_CONFIG), game.settings.get(MODULE_ID, "ahaConfig") ?? {}, {inplace: false});
 }
 
+function appendToCanvasLayer(element) {
+  const board = document.querySelector("#board");
+  const canvasLayer = document.querySelector("#canvas");
+  if (board instanceof HTMLCanvasElement) board.insertAdjacentElement("afterend", element);
+  else (board ?? canvasLayer ?? document.body).appendChild(element);
+}
+
 function ahaLayout() {
   return foundry.utils.mergeObject({x: 220, y: 180, size: 128, visible: false}, game.settings.get(MODULE_ID, "ahaLayout") ?? {}, {inplace: false});
 }
@@ -213,10 +220,7 @@ function playAhaVideo({video}) {
   const overlay = document.createElement("div");
   overlay.className = "tsru-aha-overlay";
   overlay.innerHTML = `<video src="${escapeHTML(video)}" autoplay playsinline></video>`;
-  const board = document.querySelector("#board");
-  const canvasLayer = document.querySelector("#canvas");
-  if (board instanceof HTMLCanvasElement) board.insertAdjacentElement("afterend", overlay);
-  else (board ?? canvasLayer ?? document.body).appendChild(overlay);
+  appendToCanvasLayer(overlay);
   const player = overlay.querySelector("video");
   const remove = () => overlay.remove();
   player.addEventListener("ended", remove, {once: true});
@@ -577,7 +581,7 @@ async function showSplash({actorName, image, duration = 1, ultimateName = "Ultim
   splash.style.setProperty("--tsru-subtitle-font", subtitleFontFamily);
   splash.style.setProperty("--tsru-title-align", align);
   splash.innerHTML = `<div class="tsru-splash-backdrop"></div><div class="tsru-splash-media">${isVideo ? `<video src="${escapeHTML(image)}" autoplay muted playsinline></video>` : `<img src="${escapeHTML(image)}" alt="${escapeHTML(actorName)} Ultimate">`}<div class="tsru-title-card tsru-align-${align}"><i class="tsru-title-square tsru-title-square-one"></i><i class="tsru-title-square tsru-title-square-two"></i><div class="tsru-title-copy"><div class="tsru-title-name">${escapeHTML(ultimateName || actorName || "Ultimate")}</div><div class="tsru-title-bar">${ultimateSubtitle ? `<div class="tsru-title-subtitle">${escapeHTML(ultimateSubtitle)}</div>` : ""}</div></div></div></div>`;
-  document.body.appendChild(splash);
+  appendToCanvasLayer(splash);
   requestAnimationFrame(() => splash.classList.add("show"));
   window.setTimeout(() => {
     splash.classList.remove("show");
