@@ -847,9 +847,22 @@ function targetActorIdsFromMessage(message) {
 }
 
 function rawDiceTotal(rolls) {
-  return (rolls ?? []).flatMap(roll => roll?.dice ?? []).flatMap(die => die?.results ?? [])
-    .filter(result => result?.active !== false && result?.discarded !== true)
+  const seen = new Set();
+  const dice = [];
+  const visit = term => {
+    if (!term || typeof term !== "object" || seen.has(term)) return;
+    seen.add(term);
+    if (Array.isArray(term.results) && (term.faces || term.number)) dice.push(term);
+    for (const key of ["dice", "terms", "rolls", "operands"]) for (const child of term[key] ?? []) visit(child);
+  };
+  for (const roll of rolls ?? []) visit(roll);
+  return dice.flatMap(die => die.results ?? []).filter(result => result?.active !== false && result?.discarded !== true)
     .reduce((total, result) => total + (Number(result?.result) || 0), 0);
+}
+
+function midiDamageRolls(workflow) {
+  const rolls = workflow?.damageRolls ?? workflow?.damageRoll ?? workflow?.damageRollArray ?? [];
+  return (Array.isArray(rolls) ? rolls : [rolls]).filter(roll => roll && typeof roll === "object");
 }
 
 function isDamageMessage(message) {
@@ -898,19 +911,26 @@ async function processCoreAttackMessage(message) {
 
 async function processMidiWorkflow(workflow) {
   if (!isAuthority()) return;
-  const key = workflow?.uuid ?? workflow?.id ?? workflow?.itemCardId;
-  if (key && state.processedMessages.has(key)) return;
-  if (key) {
-    state.processedMessages.add(key);
-    window.setTimeout(() => state.processedMessages.delete(key), 60000);
-  }
+  const key = workflow?.uuid ?? workflow?.id ?? workflow?.itemCardId ?? foundry.utils.randomID();
   const attacker = workflow?.actor;
-  if (attacker) await addEnergy(attacker, energyGain(getConfig(attacker), "attack"), "attack");
+  const attackKey = `midi-attack:${key}`;
+  if (attacker && !state.processedMessages.has(attackKey)) {
+    state.processedMessages.add(attackKey);
+    window.setTimeout(() => state.processedMessages.delete(attackKey), 120000);
+    await addEnergy(attacker, energyGain(getConfig(attacker), "attack"), "attack");
+  }
   const targets = workflow?.targets ?? new Set();
   const hitTargets = workflow?.hitTargets ?? new Set();
   const toughnessTargets = hitTargets.size ? hitTargets : targets;
-  const damageRolls = workflow?.damageRolls ?? (workflow?.damageRoll ? [workflow.damageRoll] : []);
-  await applyToughnessDamage(attacker, toughnessTargets, rawDiceTotal(damageRolls));
+  const damageRolls = midiDamageRolls(workflow);
+  const diceDamage = rawDiceTotal(damageRolls);
+  const targetKey = [...toughnessTargets].map(target => target?.id ?? target?.document?.id ?? target?.actor?.id ?? "target").sort().join(",");
+  const damageKey = `midi-damage:${key}:${targetKey}:${diceDamage}`;
+  if (diceDamage > 0 && !state.processedMessages.has(damageKey)) {
+    state.processedMessages.add(damageKey);
+    window.setTimeout(() => state.processedMessages.delete(damageKey), 120000);
+    await applyToughnessDamage(attacker, toughnessTargets, diceDamage);
+  }
   for (const target of targets) {
     const actor = target.actor ?? target.document?.actor;
     if (!actor) continue;
@@ -1415,6 +1435,7 @@ Hooks.once("ready", () => {
   refreshAhaButton();
   registerAhaToolbarFallback();
   if (game.modules.get("midi-qol")?.active) Hooks.on("midi-qol.RollComplete", processMidiWorkflow);
+  if (game.modules.get("midi-qol")?.active) Hooks.on("midi-qol.DamageRollComplete", processMidiWorkflow);
 });
 
 Hooks.on("renderActorSheet", injectUltimateTab);
