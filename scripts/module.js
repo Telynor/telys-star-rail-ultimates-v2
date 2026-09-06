@@ -35,6 +35,7 @@ const state = {
   ultimateLocks: new Set(),
   pendingUltimates: new Map(),
   lastTargetsByActor: new Map(),
+  recentToughness: new Map(),
   suppressCombatHook: false,
   lastAhaTurnKey: ""
 };
@@ -890,12 +891,17 @@ function isDamageMessage(message) {
 
 async function applyToughnessDamage(attacker, targets, amount, eventKey = "") {
   if (!isAuthority() || !attacker || amount <= 0) return;
+  const targetList = [...targets].filter(Boolean);
+  const targetSignature = targetList.map(target => (target?.actor ?? target?.document?.actor ?? target)?.uuid ?? target?.id ?? "target").sort().join(",");
+  const signature = `${attacker.uuid}:${targetSignature}:${amount}`;
+  const now = Date.now();
+  if (now - (state.recentToughness.get(signature) ?? 0) < 1500) return;
   const processedKey = eventKey ? `toughness:${eventKey}` : "";
   if (processedKey && state.processedMessages.has(processedKey)) return;
   const elementId = getConfig(attacker).elementId;
   if (!elementId) return;
   let applied = false;
-  for (const target of targets) {
+  for (const target of targetList) {
     const actor = target?.actor ?? target?.document?.actor ?? target;
     if (!actor || actor.type !== "npc") continue;
     const toughness = getToughness(actor);
@@ -913,6 +919,26 @@ async function applyToughnessDamage(attacker, targets, amount, eventKey = "") {
     state.processedMessages.add(processedKey);
     window.setTimeout(() => state.processedMessages.delete(processedKey), 120000);
   }
+  if (applied) {
+    state.recentToughness.set(signature, now);
+    window.setTimeout(() => state.recentToughness.delete(signature), 2000);
+  }
+}
+
+async function processDnd5eDamageRolls(rolls, data = {}) {
+  const subject = data.subject;
+  const attacker = subject?.actor ?? subject?.item?.actor ?? subject?.parent?.actor ?? subject?.parent;
+  if (!attacker || attacker.documentName !== "Actor") return;
+  const amount = rawDiceTotal(Array.isArray(rolls) ? rolls : [rolls]);
+  if (amount <= 0) return;
+  const targets = [...(game.user?.targets ?? [])];
+  if (!targets.length) return;
+  const rollKey = (Array.isArray(rolls) ? rolls : [rolls]).map(roll => roll?.id ?? roll?._id ?? roll?.formula ?? "roll").join(":");
+  const eventKey = `dnd5e-damage:${attacker.uuid}:${rollKey}`;
+  if (isAuthority()) return applyToughnessDamage(attacker, targets, amount, eventKey);
+  if (!attacker.isOwner) return;
+  const targetUuids = targets.map(target => target.document?.uuid ?? target.actor?.uuid).filter(Boolean);
+  if (targetUuids.length) game.socket.emit(SOCKET, {type: "applyToughness", sourceUserId: game.user.id, attackerUuid: attacker.uuid, targetUuids, amount, eventKey});
 }
 
 async function processCoreAttackMessage(message) {
@@ -1496,6 +1522,7 @@ Hooks.once("ready", () => {
   registerAhaToolbarFallback();
   if (game.modules.get("midi-qol")?.active) Hooks.on("midi-qol.RollComplete", processMidiWorkflow);
   if (game.modules.get("midi-qol")?.active) Hooks.on("midi-qol.damageRollComplete", processMidiWorkflow);
+  Hooks.on("dnd5e.rollDamageV2", processDnd5eDamageRolls);
 });
 
 Hooks.on("renderActorSheet", injectUltimateTab);
