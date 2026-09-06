@@ -36,6 +36,8 @@ const state = {
   suppressCombatHook: false
 };
 
+let ahaToolbarOpening = false;
+
 const DEFAULT_AHA_CONFIG = Object.freeze({
   video: "",
   buttonImage: "icons/svg/explosion.svg",
@@ -286,6 +288,30 @@ function refreshAhaButton() {
 }
 
 async function showAhaButton() { await saveAhaLayout({visible: true}); refreshAhaButton(); }
+
+function openAhaInstantControls() {
+  if (!game.user.isGM || ahaToolbarOpening) return;
+  ahaToolbarOpening = true;
+  window.setTimeout(() => { ahaToolbarOpening = false; }, 350);
+  try { new AhaConfig().render(true); }
+  catch (error) {
+    console.error(`${MODULE_ID} | Could not open Aha Instant configuration`, error);
+    ui.notifications.error(`Could not open Aha Instant configuration: ${error.message}`);
+  }
+  showAhaButton().catch(error => {
+    console.error(`${MODULE_ID} | Could not show Aha Instant button`, error);
+    ui.notifications.error(`Could not show the Aha Instant button: ${error.message}`);
+  });
+}
+
+function registerAhaToolbarFallback() {
+  if (document.documentElement.dataset.tsruAhaToolbarListener) return;
+  document.documentElement.dataset.tsruAhaToolbarListener = "true";
+  document.addEventListener("click", event => {
+    const control = event.target.closest?.('[data-tool="tsru-aha-instant"], [data-control="tsru-aha-instant"], [data-action="tsru-aha-instant"]');
+    if (control) openAhaInstantControls();
+  }, true);
+}
 
 function getElements() {
   return (game.settings.get(MODULE_ID, "elements") ?? []).map(element => ({
@@ -1034,17 +1060,8 @@ function addHudTool(controls) {
     order: 91,
     button: true,
     visible: game.user.isGM,
-    onChange: () => {
-      try { new AhaConfig().render(true); }
-      catch (error) {
-        console.error(`${MODULE_ID} | Could not open Aha Instant configuration`, error);
-        ui.notifications.error(`Could not open Aha Instant configuration: ${error.message}`);
-      }
-      showAhaButton().catch(error => {
-        console.error(`${MODULE_ID} | Could not show Aha Instant button`, error);
-        ui.notifications.error(`Could not show the Aha Instant button: ${error.message}`);
-      });
-    }
+    onClick: openAhaInstantControls,
+    onChange: openAhaInstantControls
   };
   if (Array.isArray(token.tools)) token.tools.push(ahaTool);
   else token.tools.tsruAhaInstant = ahaTool;
@@ -1079,6 +1096,7 @@ Hooks.once("ready", () => {
   registerApi();
   refreshAllOrbs();
   refreshAhaButton();
+  registerAhaToolbarFallback();
   if (game.modules.get("midi-qol")?.active) Hooks.on("midi-qol.RollComplete", processMidiWorkflow);
 });
 
