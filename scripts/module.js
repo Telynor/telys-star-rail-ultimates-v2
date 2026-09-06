@@ -49,7 +49,7 @@ const DEFAULT_AHA_CONFIG = Object.freeze({
   combatantImage: "icons/svg/mystery-man.svg"
 });
 
-const DEFAULT_TOUGHNESS = Object.freeze({enabled: true, current: 100, max: 100, weaknesses: []});
+const DEFAULT_TOUGHNESS = Object.freeze({enabled: true, current: 100, max: 100, weaknesses: [], discoveredWeaknesses: []});
 
 function activeGM() {
   return game.users?.find(user => user.active && user.isGM);
@@ -92,6 +92,7 @@ function getToughness(actor) {
   config.max = Math.max(1, Number(config.max) || 100);
   config.current = clamp(config.current, 0, config.max);
   config.weaknesses = Array.isArray(config.weaknesses) ? config.weaknesses : [];
+  config.discoveredWeaknesses = Array.isArray(config.discoveredWeaknesses) ? config.discoveredWeaknesses : [];
   return config;
 }
 
@@ -892,7 +893,11 @@ async function applyToughnessDamage(attacker, targets, amount, eventKey = "") {
     const toughness = getToughness(actor);
     if (!toughness.enabled || !toughness.weaknesses.includes(elementId) || toughness.current <= 0) continue;
     const next = clamp(toughness.current - amount, 0, toughness.max);
-    await setToughness(actor, next);
+    const discoveredWeaknesses = [...new Set([...toughness.discoveredWeaknesses, elementId])];
+    await actor.update({
+      [`flags.${MODULE_ID}.toughness.current`]: next,
+      [`flags.${MODULE_ID}.toughness.discoveredWeaknesses`]: discoveredWeaknesses
+    });
     applied = true;
     if (next === 0 && toughness.current > 0) ui.notifications.info(`${actor.name}'s Toughness was broken!`);
   }
@@ -903,11 +908,11 @@ async function applyToughnessDamage(attacker, targets, amount, eventKey = "") {
 }
 
 async function processCoreAttackMessage(message) {
-  if (!isAuthority()) return;
   const midiActive = game.modules.get("midi-qol")?.active;
   const attackMessage = isAttackMessage(message);
   const damageMessage = isDamageMessage(message);
-  if (!attackMessage && !damageMessage) return;
+  const macroDamageMessage = Boolean(message.rolls?.length) && message.user?.id === game.user.id && /attack|damage|weapon|spell/i.test(String(message.flavor ?? message.content ?? ""));
+  if (!attackMessage && !damageMessage && !macroDamageMessage) return;
   if (state.processedMessages.has(message.id)) return;
   state.processedMessages.add(message.id);
   window.setTimeout(() => state.processedMessages.delete(message.id), 60000);
@@ -924,8 +929,17 @@ async function processCoreAttackMessage(message) {
   }
   if (attackMessage && attacker) state.lastTargetsByActor.set(attacker.id, [...targetIds]);
   if (!targetIds.size && attacker) targetIds = new Set(state.lastTargetsByActor.get(attacker.id) ?? []);
+  if (!isAuthority()) {
+    if (attacker?.isOwner && (damageMessage || macroDamageMessage)) {
+      const ownedTargets = [...(game.user.targets ?? [])];
+      const targetUuids = ownedTargets.map(target => target.document?.uuid ?? target.actor?.uuid).filter(Boolean);
+      const amount = rawDiceTotal(message.rolls);
+      if (amount > 0 && targetUuids.length) game.socket.emit(SOCKET, {type: "applyToughness", sourceUserId: game.user.id, attackerUuid: attacker.uuid, targetUuids, amount, eventKey: midiWorkflowId || `chat:${message.id}`});
+    }
+    return;
+  }
   if (attackMessage && attacker) await addEnergy(attacker, energyGain(getConfig(attacker), "attack"), "attack");
-  if (damageMessage && attacker) await applyToughnessDamage(attacker, [...targetIds].map(id => game.actors.get(id)), rawDiceTotal(message.rolls), midiWorkflowId || message.id);
+  if ((damageMessage || macroDamageMessage) && attacker) await applyToughnessDamage(attacker, [...targetIds].map(id => game.actors.get(id)), rawDiceTotal(message.rolls), midiWorkflowId || message.id);
   if (midiActive) return;
   if (!attackMessage) return;
   for (const actorId of targetIds) {
@@ -1303,13 +1317,17 @@ function openToughnessConfig(actor) {
   const dialog = new Dialog({title: `${actor.name} — Toughness`, content, buttons: {
     save: {icon: '<i class="fas fa-save"></i>', label: "Save", callback: async html => {
       const max = Math.max(1, Number(html.find('[name="max"]').val()) || 100);
-      const data = {enabled: html.find('[name="enabled"]').prop("checked"), max, current: clamp(html.find('[name="current"]').val(), 0, max), weaknesses: html.find('[name="weakness"]:checked').map((_i, field) => field.value).get()};
+      const data = {enabled: html.find('[name="enabled"]').prop("checked"), max, current: clamp(html.find('[name="current"]').val(), 0, max), weaknesses: html.find('[name="weakness"]:checked').map((_i, field) => field.value).get(), discoveredWeaknesses: config.discoveredWeaknesses};
       await actor.setFlag(MODULE_ID, "toughness", data);
       refreshToughnessBars();
     }},
     refill: {icon: '<i class="fas fa-shield"></i>', label: "Refill", callback: async html => {
       const max = Math.max(1, Number(html.find('[name="max"]').val()) || config.max);
       await actor.setFlag(MODULE_ID, "toughness", {...config, current: max, max});
+      refreshToughnessBars();
+    }},
+    hideWeaknesses: {icon: '<i class="fas fa-eye-slash"></i>', label: "Reset Discoveries", callback: async () => {
+      await actor.update({[`flags.${MODULE_ID}.toughness.discoveredWeaknesses`]: []});
       refreshToughnessBars();
     }}
   }, default: "save"}, {width: 540, classes: ["tsru-toughness-dialog"]});
@@ -1328,7 +1346,7 @@ function drawToughnessRect(graphics, x, y, width, height, color, alpha = 1, radi
 
 function renderToughnessBar(token) {
   token?.children?.filter?.(child => child.name === "tsru-toughness-bar").forEach(child => child.destroy({children: true}));
-  if (!game.user?.isGM || !token?.actor || token.actor.type !== "npc" || !game.combat?.combatants?.some(c => c.tokenId === token.document.id)) return;
+  if (!token?.actor || token.actor.type !== "npc" || !game.combat?.combatants?.some(c => c.tokenId === token.document.id)) return;
   const config = getToughness(token.actor);
   if (!config.enabled) return;
   const PIXIRef = globalThis.PIXI;
@@ -1346,7 +1364,8 @@ function renderToughnessBar(token) {
   const fill = width * clamp(config.current / config.max, 0, 1);
   if (fill > 0) drawToughnessRect(graphics, x, y, fill, height, 0xaeb4bd, 1, 2);
   container.addChild(graphics);
-  const weaknesses = getElements().filter(element => config.weaknesses.includes(element.id));
+  const visibleWeaknesses = game.user?.isGM ? config.weaknesses : config.discoveredWeaknesses;
+  const weaknesses = getElements().filter(element => visibleWeaknesses.includes(element.id));
   const dotSize = Math.max(7, Math.min(11, token.w * .055));
   weaknesses.forEach((element, index) => {
     const dot = new PIXIRef.Graphics();

@@ -22,6 +22,8 @@ A Foundry Virtual Tabletop v14 module for D&D 5e that recreates Honkai: Star Rai
 - A per-character GM-only Ultimate script editor, replacing Ultimate Item selection and its attack prompt.
 - GM-only enemy Toughness bars with configurable maximum/current values and Element weaknesses.
 - Matching player Elements automatically deal Toughness damage equal to the attack's raw dice results, excluding flat modifiers.
+- Players can see enemy Toughness bars, but weakness dots remain hidden until that Element successfully deals Toughness damage.
+- Player-owned character attacks launched from hotbar macros can transmit their raw damage dice and selected targets to the GM-authoritative Toughness system.
 - Midi-QOL support, with a core D&D 5e chat-message fallback.
 - GM-authoritative socket handling for player Ultimate requests.
 
