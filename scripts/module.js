@@ -74,6 +74,45 @@ function regenModifier(config) {
   return Math.floor(((Number(config.regenScore) || 10) - 10) / 2);
 }
 
+function energyAbilityMarkup(actor) {
+  const config = getConfig(actor);
+  const editable = game.user.isGM || actor.isOwner;
+  return `<div class="tsru-energy-ability ability-score" data-tsru-energy-ability data-actor-id="${actor.id}" title="Energy gained = base gain + Energy Regen modifier">
+    <div class="tsru-energy-ability-label">ENERGY REGEN</div>
+    <div class="tsru-energy-ability-modifier">${signedNumber(regenModifier(config))}</div>
+    <input class="tsru-energy-ability-score" type="number" min="1" max="30" step="1" value="${Number(config.regenScore) || 10}" aria-label="Energy Regen ability score" ${editable ? "" : "disabled"}>
+  </div>`;
+}
+
+async function injectEnergyAbility(app, html) {
+  const actor = app.actor ?? app.document;
+  if (actor?.documentName !== "Actor" || actor.type !== "character") return;
+  const rootElement = html?.jquery ? html[0] : html instanceof HTMLElement ? html : app.element?.[0] ?? app.element;
+  if (!rootElement) return;
+  const root = $(rootElement);
+  if (root.find("[data-tsru-energy-ability]").length) return;
+  const abilities = root.find('[data-application-part="ability-scores"], .ability-scores, .abilities').filter((_index, element) => $(element).find('[data-ability], .ability-score').length >= 3).first();
+  if (!abilities.length) return console.debug(`${MODULE_ID} | Ability-score container not found for`, actor.name);
+  abilities.append(energyAbilityMarkup(actor));
+  const card = abilities.find("[data-tsru-energy-ability]").last();
+  const score = card.find(".tsru-energy-ability-score");
+  score.on("input.tsru", event => {
+    event.stopPropagation();
+    const value = clamp(event.currentTarget.value, 1, 30);
+    card.find(".tsru-energy-ability-modifier").text(signedNumber(Math.floor((value - 10) / 2)));
+  });
+  score.on("change.tsru", async event => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!(game.user.isGM || actor.isOwner)) return;
+    const value = clamp(event.currentTarget.value, 1, 30);
+    event.currentTarget.value = value;
+    await actor.update({[`flags.${MODULE_ID}.ultimate.regenScore`]: value});
+    card.find(".tsru-energy-ability-modifier").text(signedNumber(Math.floor((value - 10) / 2)));
+    ui.notifications.info(`${actor.name}'s Energy Regen is now ${value} (${signedNumber(Math.floor((value - 10) / 2))}).`);
+  });
+}
+
 function energyGain(config, kind) {
   const base = kind === "attack" ? config.attackGain : config.attackedGain;
   return Math.max(0, (Number(base) || 0) + regenModifier(config));
@@ -857,8 +896,13 @@ Hooks.on("renderActorSheet", injectUltimateTab);
 Hooks.on("renderCharacterActorSheet", injectUltimateTab);
 Hooks.on("renderApplicationV2", (app, html) => {
   const actor = app.actor ?? app.document;
-  if (actor?.documentName === "Actor" && actor.type === "character") injectUltimateTab(app, html);
+  if (actor?.documentName === "Actor" && actor.type === "character") {
+    injectUltimateTab(app, html);
+    injectEnergyAbility(app, html);
+  }
 });
+Hooks.on("renderActorSheet", injectEnergyAbility);
+Hooks.on("renderCharacterActorSheet", injectEnergyAbility);
 Hooks.on("getActorSheetHeaderButtons", addActorHeaderButton);
 Hooks.on("getSceneControlButtons", addHudTool);
 Hooks.on("createChatMessage", processCoreAttackMessage);
