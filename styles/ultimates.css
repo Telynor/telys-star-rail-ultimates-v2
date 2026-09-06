@@ -556,3 +556,6 @@
 .tsru-aha-config-field small { opacity: .72; }
 .tsru-aha-config-actions { display: flex; flex-wrap: wrap; gap: 7px; padding-top: 8px; border-top: 1px solid rgba(229,200,120,.3); }
 .tsru-aha-config-actions button { flex: 1 1 auto; }
+.tsru-aha-initiative-settings { display: flex; flex-direction: column; gap: 10px; padding: 10px 12px; border: 1px solid rgba(229,200,120,.42); border-radius: 7px; background: rgba(8,10,15,.55); }
+.tsru-aha-initiative-settings h3 { margin: 0; padding-bottom: 7px; border-bottom: 1px solid rgba(229,200,120,.28); color: #f0cf85; }
+.tsru-aha-initiative-settings input[type="checkbox"] { justify-self: end; width: 22px; height: 22px; }
