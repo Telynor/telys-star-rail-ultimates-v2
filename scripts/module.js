@@ -120,6 +120,7 @@ async function injectEnergyAbility(app, html) {
   const tagName = chaCard.prop("tagName")?.toLowerCase() || "div";
   chaCard.after(energyAbilityMarkup(actor, tagName));
   const card = chaCard.next("[data-tsru-energy-ability]");
+  card.parent().addClass("tsru-seven-ability-row");
   const score = card.find(".tsru-energy-ability-score");
   score.on("input.tsru", event => {
     event.stopPropagation();
