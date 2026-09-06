@@ -72,3 +72,4 @@ When publishing a new version, change `version` and the release filename in `mod
 - Cinematic Ultimate title cards with configurable title/subtitle placement, custom TTF/OTF/WOFF fonts, geometric accents, and live preview
 - Title-card squares and underline automatically inherit the assigned Element's charging color
 - Editable Energy Regen ability card beside the six standard character abilities; all automatic Energy gains use its D&amp;D-style modifier
+- GM-only Aha Instant floating button with configurable artwork, color, and synchronized WebM playback beneath the Foundry interface
