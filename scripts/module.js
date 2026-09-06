@@ -33,7 +33,8 @@ const state = {
   processedMessages: new Set(),
   ultimateLocks: new Set(),
   pendingUltimates: new Map(),
-  suppressCombatHook: false
+  suppressCombatHook: false,
+  lastAhaTurnKey: ""
 };
 
 let ahaToolbarOpening = false;
@@ -41,7 +42,10 @@ let ahaToolbarOpening = false;
 const DEFAULT_AHA_CONFIG = Object.freeze({
   video: "",
   buttonImage: "icons/svg/explosion.svg",
-  color: "#ff4fd8"
+  color: "#ff4fd8",
+  initiativeEnabled: false,
+  initiativeValue: 0,
+  combatantImage: "icons/svg/mystery-man.svg"
 });
 
 function activeGM() {
@@ -227,6 +231,39 @@ function triggerAhaInstant() {
   if (!config.video) return ui.notifications.warn("Configure an Aha Instant WebM first.");
   playAhaVideo(config);
   game.socket.emit(SOCKET, {type: "showAhaVideo", sourceUserId: game.user.id, video: config.video});
+}
+
+function isAhaCombatant(combatant) {
+  return Boolean(combatant?.getFlag(MODULE_ID, "ahaInstantCombatant"));
+}
+
+async function ensureAhaCombatant(combat) {
+  if (!isAuthority() || !combat) return null;
+  const config = getAhaConfig();
+  const existing = combat.combatants.find(isAhaCombatant);
+  if (!config.initiativeEnabled) {
+    if (existing) await combat.deleteEmbeddedDocuments("Combatant", [existing.id]);
+    return null;
+  }
+  const data = {
+    name: "Aha Instant",
+    initiative: Number(config.initiativeValue) || 0,
+    img: config.combatantImage || config.buttonImage || DEFAULT_AHA_CONFIG.combatantImage
+  };
+  if (existing) {
+    await existing.update(data);
+    return existing;
+  }
+  const [created] = await combat.createEmbeddedDocuments("Combatant", [{
+    ...data,
+    flags: {[MODULE_ID]: {ahaInstantCombatant: true}}
+  }]);
+  return created ?? null;
+}
+
+async function syncAhaCombatants() {
+  if (!isAuthority()) return;
+  for (const combat of game.combats ?? []) await ensureAhaCombatant(combat);
 }
 
 class AhaButton {
@@ -853,9 +890,13 @@ class AhaConfig extends FormApplication {
     await game.settings.set(MODULE_ID, "ahaConfig", {
       video: formData.video || "",
       buttonImage: formData.buttonImage || DEFAULT_AHA_CONFIG.buttonImage,
-      color: formData.color || DEFAULT_AHA_CONFIG.color
+      color: formData.color || DEFAULT_AHA_CONFIG.color,
+      initiativeEnabled: Boolean(formData.initiativeEnabled),
+      initiativeValue: Number(formData.initiativeValue) || 0,
+      combatantImage: formData.combatantImage || DEFAULT_AHA_CONFIG.combatantImage
     });
     refreshAhaButton();
+    await syncAhaCombatants();
     ui.notifications.info("Aha Instant configuration saved.");
   }
 }
@@ -1132,10 +1173,25 @@ Hooks.on("deleteCombat", combat => {
 });
 
 Hooks.on("updateCombat", async combat => {
-  if (!isAuthority() || state.suppressCombatHook) return;
-  const temporary = combat.combatant;
+  if (!isAuthority()) return;
+  const current = combat.combatant;
+  if (isAhaCombatant(current)) {
+    const turnKey = `${combat.id}:${combat.round}:${current.id}`;
+    if (state.lastAhaTurnKey !== turnKey) {
+      state.lastAhaTurnKey = turnKey;
+      triggerAhaInstant();
+    }
+    return;
+  }
+  if (state.suppressCombatHook) return;
+  const temporary = current;
   if (!temporary?.getFlag(MODULE_ID, "temporaryUltimate")) return;
   const actor = temporary.actor;
   if (!actor || state.ultimateLocks.has(actor.id)) return;
   await removeUltimateTurn(temporary);
+});
+
+Hooks.on("updateCombatant", async (combatant, changed) => {
+  if (!isAuthority() || isAhaCombatant(combatant) || !("initiative" in changed)) return;
+  await ensureAhaCombatant(combatant.parent);
 });
