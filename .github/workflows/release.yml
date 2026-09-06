@@ -1,0 +1,43 @@
+name: Build Foundry Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Read manifest version
+        id: version
+        shell: bash
+        run: |
+          manifest_version="$(jq -r '.version' module.json)"
+          echo "version=$manifest_version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$manifest_version" >> "$GITHUB_OUTPUT"
+
+      - name: Create Foundry module ZIP
+        shell: bash
+        run: |
+          zip -r "telys-star-rail-ultimates-v${{ steps.version.outputs.version }}.zip" \
+            module.json README.md LICENSE lang scripts styles templates
+
+      - name: Create or update GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          tag="${{ steps.version.outputs.tag }}"
+          asset="telys-star-rail-ultimates-v${{ steps.version.outputs.version }}.zip"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "$asset" --clobber
+          else
+            gh release create "$tag" "$asset" --title "$tag" --generate-notes --target main
+          fi
