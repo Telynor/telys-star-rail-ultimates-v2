@@ -8,6 +8,7 @@
     <div class="tsru-aha-config-field"><label><strong>Add Aha Instant to initiative</strong><small>Creates one Aha Instant combatant when initiative is rolled.</small></label><input type="checkbox" name="initiativeEnabled" {{checked config.initiativeEnabled}}></div>
     <div class="tsru-aha-config-field"><label><strong>Initiative value</strong><small>The initiative assigned to the Aha Instant combatant.</small></label><input type="number" name="initiativeValue" step="0.01" value="{{config.initiativeValue}}"></div>
     <div class="tsru-aha-config-field"><label><strong>Initiative image</strong><small>Custom portrait shown for Aha Instant in the combat tracker.</small></label><div class="tsru-file-control"><input type="text" name="combatantImage" value="{{config.combatantImage}}" placeholder="Choose an image"><button type="button" class="file-picker" data-type="image" data-target="combatantImage" title="Browse Files"><i class="fas fa-file-import"></i></button></div></div>
+    <button type="button" data-action="sync-aha-initiative"><i class="fas fa-rotate"></i> Add/Refresh Aha Combatant Now</button>
   </section>
   <div class="tsru-aha-config-actions"><button type="button" data-action="preview-aha"><i class="fas fa-eye"></i> Preview Locally</button><button type="button" data-action="show-aha-button"><i class="fas fa-circle"></i> Show Floating Button</button><button type="submit"><i class="fas fa-save"></i> Save</button></div>
 </form>
