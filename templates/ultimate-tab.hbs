@@ -1,0 +1,54 @@
+<section class="tsru-sheet-tab tab" data-group="primary" data-tab="tsru-ultimate">
+  <div class="tsru-config-panel">
+    <header class="tsru-config-heading"><div><h2><i class="fas fa-burst"></i> Ultimate Configuration</h2><p>Configure this character's Energy, Ultimate artwork, and floating orb.</p></div><span class="tsru-gm-badge">GM ONLY</span></header>
+
+    <div class="tsru-config-section">
+      <h3><i class="fas fa-battery-three-quarters"></i> Energy</h3>
+      <div class="tsru-field tsru-field-toggle"><span class="tsru-field-label"><strong>Enable Ultimate system</strong><small>Allows this character to gain Energy and display an orb.</small></span><input type="checkbox" name="enabled" {{checked config.enabled}}></div>
+      <div class="tsru-field"><label><strong>Current Energy</strong><small>The amount currently stored.</small></label><input type="number" name="current" min="0" value="{{config.current}}"></div>
+      <div class="tsru-field"><label><strong>Maximum Energy</strong><small>The amount required to make the Ultimate ready.</small></label><input type="number" name="max" min="1" value="{{config.max}}"></div>
+      <div class="tsru-field"><label><strong>Energy Regen score</strong><small>Uses the normal D&amp;D ability-score modifier calculation.</small></label><div class="tsru-field-control"><input type="number" name="regenScore" value="{{config.regenScore}}"><span class="tsru-modifier">Modifier: {{modifierSigned}}</span></div></div>
+      <div class="tsru-field"><label><strong>Energy gained when attacking</strong><small>Base gain before the Energy Regen modifier.</small></label><input type="number" name="attackGain" min="0" value="{{config.attackGain}}"></div>
+      <div class="tsru-field"><label><strong>Energy gained when attacked</strong><small>Base gain before the Energy Regen modifier.</small></label><input type="number" name="attackedGain" min="0" value="{{config.attackedGain}}"></div>
+      <div class="tsru-field"><label><strong>Count as attacked when</strong><small>Choose whether targeting alone is enough.</small></label><select name="attackedMode"><option value="hit" {{#if modeHit}}selected{{/if}}>The attack hits</option><option value="targeted" {{#if modeTargeted}}selected{{/if}}>The character is targeted</option></select></div>
+    </div>
+
+    <div class="tsru-config-section tsru-energy-override">
+      <h3><i class="fas fa-gauge-high"></i> Manual Energy Override</h3>
+      <div class="tsru-field tsru-field-wide"><label><strong>Set current Energy immediately</strong><small>Overrides this character's current Energy without changing any other settings.</small></label><div class="tsru-override-control"><input type="number" class="tsru-energy-override-value" min="0" max="{{config.max}}" value="{{config.current}}"><button type="button" data-action="set-energy"><i class="fas fa-check"></i> Set Energy</button></div></div>
+    </div>
+
+    <div class="tsru-config-section">
+      <h3><i class="fas fa-wand-magic-sparkles"></i> Ultimate &amp; Splash Artwork</h3>
+      <div class="tsru-field tsru-field-wide"><label><strong>Ultimate Item</strong><small>The item Foundry uses when the charged orb is clicked.</small></label><select name="ultimateItemId"><option value="">— Select an Item —</option>{{#each items}}<option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.name}}</option>{{/each}}</select></div>
+      <div class="tsru-field tsru-field-wide"><label><strong>Combat splash artwork</strong><small>Displayed briefly to every connected player.</small></label><div class="tsru-file-control"><input type="text" name="splashImage" value="{{config.splashImage}}" placeholder="Choose an image or video"><button type="button" class="file-picker" data-type="imagevideo" data-target="splashImage" title="Browse Files"><i class="fas fa-file-import"></i></button><button type="button" data-action="preview-splash" title="Preview Splash"><i class="fas fa-eye"></i></button></div></div>
+      <div class="tsru-field"><label><strong>Splash duration</strong><small>How long everyone sees the artwork.</small></label><div class="tsru-unit-control"><input type="number" name="splashDuration" min="0.1" max="30" step="0.1" value="{{config.splashDuration}}"><span>seconds</span></div></div>
+      <div class="tsru-field tsru-field-wide"><label><strong>Ultimate name</strong><small>The large English title displayed over the artwork.</small></label><input type="text" name="ultimateName" value="{{config.ultimateName}}" placeholder="Ultimate name"></div>
+      <div class="tsru-field tsru-field-wide"><label><strong>Secondary title</strong><small>Optional smaller text beneath the Ultimate name.</small></label><input type="text" name="ultimateSubtitle" value="{{config.ultimateSubtitle}}" placeholder="Optional translated or stylized title"></div>
+      <div class="tsru-field tsru-field-wide"><label><strong>Custom title font</strong><small>Upload or select a TTF, OTF, WOFF, or WOFF2 font stored in Foundry.</small></label><div class="tsru-file-control"><input type="text" name="fontFile" value="{{config.fontFile}}" placeholder="Choose a font file"><button type="button" class="file-picker" data-type="any" data-target="fontFile" title="Browse Files"><i class="fas fa-file-import"></i></button></div></div>
+      <div class="tsru-field"><label><strong>Title position</strong><small>X and Y are percentages of the screen.</small></label><div class="tsru-position-control"><span>X</span><input type="number" name="titleX" min="0" max="100" value="{{config.titleX}}"><span>Y</span><input type="number" name="titleY" min="0" max="100" value="{{config.titleY}}"></div></div>
+      <div class="tsru-field"><label><strong>Title appearance</strong><small>Font size and horizontal alignment.</small></label><div class="tsru-position-control"><input type="number" name="titleSize" min="16" max="140" value="{{config.titleSize}}"><span>px</span><select name="titleAlign"><option value="left" {{#if titleAlignLeft}}selected{{/if}}>Left</option><option value="center" {{#if titleAlignCenter}}selected{{/if}}>Center</option><option value="right" {{#if titleAlignRight}}selected{{/if}}>Right</option></select></div></div>
+      <div class="tsru-field tsru-field-wide"><label><strong>Title-card preview</strong><small>Uses the current unsaved values and the assigned Element's charging color.</small></label><button type="button" data-action="preview-splash"><i class="fas fa-play"></i> Preview Full Splash</button></div>
+    </div>
+
+    <div class="tsru-config-section">
+      <h3><i class="fas fa-circle"></i> Floating Ultimate Orb</h3>
+      <div class="tsru-field tsru-field-wide"><label><strong>Orb artwork</strong><small>Cropped into the circular Energy display.</small></label><div class="tsru-file-control"><input type="text" name="orbImage" value="{{config.orbImage}}" placeholder="Choose an image"><button type="button" class="file-picker" data-type="image" data-target="orbImage" title="Browse Files"><i class="fas fa-file-import"></i></button></div></div>
+      <div class="tsru-field"><label><strong>Orb colors</strong><small>Charging and Ultimate Ready colors are inherited from the assigned Element.</small></label><div class="tsru-inherited-colors">{{#if selectedElement}}<span style="--swatch: {{selectedElement.chargeColor}}"><i></i> Charging</span><span style="--swatch: {{selectedElement.readyColor}}"><i></i> Ready</span>{{else}}<em>Assign an Element below to choose the orb colors.</em>{{/if}}</div></div>
+      <div class="tsru-field tsru-field-toggle"><span class="tsru-field-label"><strong>Show percentage inside orb</strong><small>Displays the current charge as a number.</small></span><input type="checkbox" name="showPercent" {{checked config.showPercent}}></div>
+    </div>
+
+    <div class="tsru-config-section">
+      <h3><i class="fas fa-fire-flame-curved"></i> Element</h3>
+      <div class="tsru-field tsru-field-wide"><label><strong>Assigned Element</strong><small>Elements are created from the module settings.</small></label><select name="elementId"><option value="">— None —</option>{{#each elements}}<option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.name}}</option>{{/each}}</select></div>
+      {{#if selectedElement}}<div class="tsru-element-preview" style="--element-color: {{selectedElement.color}}"><img src="{{selectedElement.icon}}"><span>{{selectedElement.name}}</span></div>{{/if}}
+    </div>
+
+    <footer class="tsru-sheet-actions">
+      <button type="button" data-action="reset-energy"><i class="fas fa-battery-empty"></i> Empty Energy</button>
+      <button type="button" data-action="fill-energy"><i class="fas fa-battery-full"></i> Fill Energy</button>
+      <button type="button" data-action="show-orb"><i class="fas fa-circle"></i> Show Orb</button>
+      <button type="button" class="tsru-save-config" data-action="save-config"><i class="fas fa-save"></i> Save Configuration</button>
+    </footer>
+  </div>
+</section>
