@@ -34,6 +34,7 @@ const state = {
   processedMessages: new Set(),
   ultimateLocks: new Set(),
   pendingUltimates: new Map(),
+  lastTargetsByActor: new Map(),
   suppressCombatHook: false,
   lastAhaTurnKey: ""
 };
@@ -47,6 +48,8 @@ const DEFAULT_AHA_CONFIG = Object.freeze({
   initiativeEnabled: false,
   combatantImage: "icons/svg/mystery-man.svg"
 });
+
+const DEFAULT_TOUGHNESS = Object.freeze({enabled: true, current: 100, max: 100, weaknesses: []});
 
 function activeGM() {
   return game.users?.find(user => user.active && user.isGM);
@@ -81,6 +84,21 @@ function getConfig(actor) {
   config.max = Math.max(1, Number(config.max) || 100);
   config.current = clamp(config.current, 0, config.max);
   return config;
+}
+
+function getToughness(actor) {
+  const stored = actor?.getFlag(MODULE_ID, "toughness") ?? {};
+  const config = foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_TOUGHNESS), stored, {inplace: false, insertKeys: true, overwrite: true});
+  config.max = Math.max(1, Number(config.max) || 100);
+  config.current = clamp(config.current, 0, config.max);
+  config.weaknesses = Array.isArray(config.weaknesses) ? config.weaknesses : [];
+  return config;
+}
+
+async function setToughness(actor, value) {
+  if (!actor || !game.user.isGM) return;
+  const config = getToughness(actor);
+  await actor.update({[`flags.${MODULE_ID}.toughness.current`]: clamp(value, 0, config.max)});
 }
 
 function regenModifier(config) {
@@ -821,17 +839,56 @@ function targetActorIdsFromMessage(message) {
       if (actor) ids.add(actor.id);
     }
   }
+  if (!ids.size) {
+    const messageUser = game.users.get(message.user?.id ?? message.user);
+    for (const target of messageUser?.targets ?? []) if (target.actor) ids.add(target.actor.id);
+  }
   return ids;
 }
 
+function rawDiceTotal(rolls) {
+  return (rolls ?? []).flatMap(roll => roll?.dice ?? []).flatMap(die => die?.results ?? [])
+    .filter(result => result?.active !== false && result?.discarded !== true)
+    .reduce((total, result) => total + (Number(result?.result) || 0), 0);
+}
+
+function isDamageMessage(message) {
+  const dnd = message.flags?.dnd5e ?? {};
+  const type = String(dnd.roll?.type ?? dnd.type ?? message.rolls?.[0]?.options?.type ?? "").toLowerCase();
+  return type.includes("damage") || message.rolls?.some(roll => String(roll.options?.type ?? roll.options?.rollType ?? "").toLowerCase().includes("damage"));
+}
+
+async function applyToughnessDamage(attacker, targets, amount) {
+  if (!isAuthority() || !attacker || amount <= 0) return;
+  const elementId = getConfig(attacker).elementId;
+  if (!elementId) return;
+  for (const target of targets) {
+    const actor = target?.actor ?? target?.document?.actor ?? target;
+    if (!actor || actor.type !== "npc") continue;
+    const toughness = getToughness(actor);
+    if (!toughness.enabled || !toughness.weaknesses.includes(elementId) || toughness.current <= 0) continue;
+    const next = clamp(toughness.current - amount, 0, toughness.max);
+    await setToughness(actor, next);
+    if (next === 0 && toughness.current > 0) ui.notifications.info(`${actor.name}'s Toughness was broken!`);
+  }
+}
+
 async function processCoreAttackMessage(message) {
-  if (!isAuthority() || game.modules.get("midi-qol")?.active || !isAttackMessage(message)) return;
+  if (!isAuthority() || game.modules.get("midi-qol")?.active) return;
+  const attackMessage = isAttackMessage(message);
+  const damageMessage = isDamageMessage(message);
+  if (!attackMessage && !damageMessage) return;
   if (state.processedMessages.has(message.id)) return;
   state.processedMessages.add(message.id);
   window.setTimeout(() => state.processedMessages.delete(message.id), 60000);
   const attacker = game.actors.get(message.speaker?.actor) ?? canvas?.tokens?.get(message.speaker?.token)?.actor;
-  if (attacker) await addEnergy(attacker, energyGain(getConfig(attacker), "attack"), "attack");
-  for (const actorId of targetActorIdsFromMessage(message)) {
+  let targetIds = targetActorIdsFromMessage(message);
+  if (attackMessage && attacker) state.lastTargetsByActor.set(attacker.id, [...targetIds]);
+  if (!targetIds.size && attacker) targetIds = new Set(state.lastTargetsByActor.get(attacker.id) ?? []);
+  if (attackMessage && attacker) await addEnergy(attacker, energyGain(getConfig(attacker), "attack"), "attack");
+  if (damageMessage && attacker) await applyToughnessDamage(attacker, [...targetIds].map(id => game.actors.get(id)), rawDiceTotal(message.rolls));
+  if (!attackMessage) return;
+  for (const actorId of targetIds) {
     const target = game.actors.get(actorId);
     if (!target) continue;
     const config = getConfig(target);
@@ -851,6 +908,9 @@ async function processMidiWorkflow(workflow) {
   if (attacker) await addEnergy(attacker, energyGain(getConfig(attacker), "attack"), "attack");
   const targets = workflow?.targets ?? new Set();
   const hitTargets = workflow?.hitTargets ?? new Set();
+  const toughnessTargets = hitTargets.size ? hitTargets : targets;
+  const damageRolls = workflow?.damageRolls ?? (workflow?.damageRoll ? [workflow.damageRoll] : []);
+  await applyToughnessDamage(attacker, toughnessTargets, rawDiceTotal(damageRolls));
   for (const target of targets) {
     const actor = target.actor ?? target.document?.actor;
     if (!actor) continue;
@@ -1177,8 +1237,86 @@ function activateConfigListeners(actor, tab, app) {
   tab.find("[name='regenScore']").on("input", event => tab.find(".tsru-modifier").text(`Modifier: ${signedNumber(Math.floor(((Number(event.currentTarget.value) || 10) - 10) / 2))}`));
 }
 
+function openToughnessConfig(actor) {
+  const config = getToughness(actor);
+  const elements = getElements();
+  const weaknessRows = elements.map(element => `<label class="tsru-weakness-choice"><input type="checkbox" name="weakness" value="${escapeHTML(element.id)}" ${config.weaknesses.includes(element.id) ? "checked" : ""}><img src="${escapeHTML(element.icon || "icons/svg/aura.svg")}"><span>${escapeHTML(element.name)}</span></label>`).join("");
+  const content = `<form class="tsru-toughness-form">
+    <p>Configure this enemy's Star Rail Toughness and elemental weaknesses. Only GMs can see its token display.</p>
+    <label class="tsru-toughness-toggle"><span><strong>Enable Toughness</strong><small>Show and process Toughness while this NPC is in combat.</small></span><input type="checkbox" name="enabled" ${config.enabled ? "checked" : ""}></label>
+    <div class="tsru-toughness-numbers"><label><strong>Current</strong><input type="number" name="current" min="0" value="${config.current}"></label><label><strong>Maximum</strong><input type="number" name="max" min="1" value="${config.max}"></label></div>
+    <fieldset><legend>Elemental Weaknesses</legend><div class="tsru-weakness-grid">${weaknessRows || "<em>Create Elements in Module Settings first.</em>"}</div></fieldset>
+  </form>`;
+  const dialog = new Dialog({title: `${actor.name} — Toughness`, content, buttons: {
+    save: {icon: '<i class="fas fa-save"></i>', label: "Save", callback: async html => {
+      const max = Math.max(1, Number(html.find('[name="max"]').val()) || 100);
+      const data = {enabled: html.find('[name="enabled"]').prop("checked"), max, current: clamp(html.find('[name="current"]').val(), 0, max), weaknesses: html.find('[name="weakness"]:checked').map((_i, field) => field.value).get()};
+      await actor.setFlag(MODULE_ID, "toughness", data);
+      refreshToughnessBars();
+    }},
+    refill: {icon: '<i class="fas fa-shield"></i>', label: "Refill", callback: async html => {
+      const max = Math.max(1, Number(html.find('[name="max"]').val()) || config.max);
+      await actor.setFlag(MODULE_ID, "toughness", {...config, current: max, max});
+      refreshToughnessBars();
+    }}
+  }, default: "save"}, {width: 540, classes: ["tsru-toughness-dialog"]});
+  dialog.render(true);
+}
+
+function drawToughnessRect(graphics, x, y, width, height, color, alpha = 1, radius = 0) {
+  if (typeof graphics.roundRect === "function" && typeof graphics.fill === "function") {
+    graphics.roundRect(x, y, width, height, radius).fill({color, alpha});
+  } else {
+    graphics.beginFill(color, alpha);
+    radius ? graphics.drawRoundedRect(x, y, width, height, radius) : graphics.drawRect(x, y, width, height);
+    graphics.endFill();
+  }
+}
+
+function renderToughnessBar(token) {
+  token?.children?.filter?.(child => child.name === "tsru-toughness-bar").forEach(child => child.destroy({children: true}));
+  if (!game.user?.isGM || !token?.actor || token.actor.type !== "npc" || !game.combat?.combatants?.some(c => c.tokenId === token.document.id)) return;
+  const config = getToughness(token.actor);
+  if (!config.enabled) return;
+  const PIXIRef = globalThis.PIXI;
+  if (!PIXIRef?.Container || !PIXIRef?.Graphics) return;
+  const container = new PIXIRef.Container();
+  container.name = "tsru-toughness-bar";
+  container.eventMode = "none";
+  const graphics = new PIXIRef.Graphics();
+  const width = Math.max(54, token.w * .82);
+  const height = Math.max(7, Math.min(12, token.h * .055));
+  const x = (token.w - width) / 2;
+  const y = token.h - height - 15;
+  drawToughnessRect(graphics, x - 2, y - 2, width + 4, height + 4, 0x111318, .92, 3);
+  drawToughnessRect(graphics, x, y, width, height, 0x3c4149, 1, 2);
+  const fill = width * clamp(config.current / config.max, 0, 1);
+  if (fill > 0) drawToughnessRect(graphics, x, y, fill, height, 0xaeb4bd, 1, 2);
+  container.addChild(graphics);
+  const weaknesses = getElements().filter(element => config.weaknesses.includes(element.id));
+  const dotSize = Math.max(7, Math.min(11, token.w * .055));
+  weaknesses.forEach((element, index) => {
+    const dot = new PIXIRef.Graphics();
+    const hex = Number.parseInt(String(element.readyColor || element.color || "#ffffff").replace("#", ""), 16) || 0xffffff;
+    const dx = x + index * (dotSize + 3);
+    if (typeof dot.circle === "function" && typeof dot.fill === "function") dot.circle(dx + dotSize / 2, y - dotSize / 2 - 4, dotSize / 2).fill({color: hex});
+    else { dot.beginFill(hex); dot.drawCircle(dx + dotSize / 2, y - dotSize / 2 - 4, dotSize / 2); dot.endFill(); }
+    container.addChild(dot);
+  });
+  token.addChild(container);
+}
+
+function refreshToughnessBars() {
+  for (const token of canvas?.tokens?.placeables ?? []) renderToughnessBar(token);
+}
+
 function addActorHeaderButton(app, buttons) {
-  if (!game.user.isGM || app.actor?.type !== "character") return;
+  if (!game.user.isGM) return;
+  if (app.actor?.type === "npc") {
+    buttons.unshift({label: "Toughness", class: "tsru-open-toughness", icon: "fas fa-shield-halved", onclick: () => openToughnessConfig(app.actor)});
+    return;
+  }
+  if (app.actor?.type !== "character") return;
   buttons.unshift({
     label: "Ultimate",
     class: "tsru-open-config",
@@ -1280,10 +1418,11 @@ Hooks.on("renderCharacterActorSheet", injectCharacterBadges);
 Hooks.on("getActorSheetHeaderButtons", addActorHeaderButton);
 Hooks.on("getSceneControlButtons", addHudTool);
 Hooks.on("createChatMessage", processCoreAttackMessage);
-Hooks.on("updateActor", actor => refreshOrb(actor));
+Hooks.on("updateActor", actor => { refreshOrb(actor); refreshToughnessBars(); });
+Hooks.on("updateToken", () => refreshToughnessBars());
 Hooks.on("deleteActor", actor => state.orbs.get(actor.id)?.destroy());
 Hooks.on("updateUser", user => { if (user.id === game.user.id) refreshAllOrbs(); });
-Hooks.on("canvasReady", refreshAllOrbs);
+Hooks.on("canvasReady", () => { refreshAllOrbs(); refreshToughnessBars(); });
 Hooks.on("canvasReady", refreshAhaButton);
 
 Hooks.on("deleteCombat", combat => {
@@ -1295,6 +1434,7 @@ Hooks.on("deleteCombat", combat => {
 });
 
 Hooks.on("updateCombat", async combat => {
+  refreshToughnessBars();
   if (!isAuthority()) return;
   if (!combat.combatants.find(isAhaCombatant)) await maybeEnsureAhaCombatant(combat);
   const current = combat.combatant;
@@ -1320,8 +1460,10 @@ Hooks.on("updateCombatant", async (combatant, changed) => {
 });
 
 Hooks.on("createCombatant", combatant => {
+  window.setTimeout(refreshToughnessBars, 150);
   if (isAhaCombatant(combatant)) return;
   window.setTimeout(() => maybeEnsureAhaCombatant(combatant.parent), 100);
 });
 
 Hooks.on("combatStart", combat => maybeEnsureAhaCombatant(combat, {force: true}));
+Hooks.on("deleteCombatant", () => window.setTimeout(refreshToughnessBars, 100));

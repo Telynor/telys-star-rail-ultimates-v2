@@ -20,6 +20,8 @@ A Foundry Virtual Tabletop v14 module for D&D 5e that recreates Honkai: Star Rai
 - GM-defined Paths with browseable or drag-and-drop icons; assigned Element and Path badges appear beside the character portrait.
 - Immediate GM-only manual Energy override on each character's Ultimate tab.
 - A per-character GM-only Ultimate script editor, replacing Ultimate Item selection and its attack prompt.
+- GM-only enemy Toughness bars with configurable maximum/current values and Element weaknesses.
+- Matching player Elements automatically deal Toughness damage equal to the attack's raw dice results, excluding flat modifiers.
 - Midi-QOL support, with a core D&D 5e chat-message fallback.
 - GM-authoritative socket handling for player Ultimate requests.
 
