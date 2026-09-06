@@ -831,6 +831,10 @@ class AhaConfig extends FormApplication {
   }
 }
 
+class AhaMenu extends FormApplication {
+  render() { new AhaConfig().render(true); return this; }
+}
+
 function registerSettings() {
   game.settings.register(MODULE_ID, "elements", {scope: "world", config: false, type: Array, default: []});
   game.settings.register(MODULE_ID, "elementsDraft", {scope: "client", config: false, type: Array, default: []});
@@ -843,6 +847,14 @@ function registerSettings() {
     hint: "Create Element names, icons, and colors for assignment on character sheets.",
     icon: "fas fa-sparkles",
     type: ElementMenu,
+    restricted: true
+  });
+  game.settings.registerMenu(MODULE_ID, "ahaInstant", {
+    name: "Aha Instant Configuration",
+    label: "Configure Aha Instant",
+    hint: "Choose the GM-only floating button artwork, color, and WebM shown to connected players.",
+    icon: "fas fa-masks-theater",
+    type: AhaMenu,
     restricted: true
   });
 }
@@ -1022,9 +1034,16 @@ function addHudTool(controls) {
     order: 91,
     button: true,
     visible: game.user.isGM,
-    onChange: async () => {
-      await showAhaButton();
-      new AhaConfig().render(true);
+    onChange: () => {
+      try { new AhaConfig().render(true); }
+      catch (error) {
+        console.error(`${MODULE_ID} | Could not open Aha Instant configuration`, error);
+        ui.notifications.error(`Could not open Aha Instant configuration: ${error.message}`);
+      }
+      showAhaButton().catch(error => {
+        console.error(`${MODULE_ID} | Could not show Aha Instant button`, error);
+        ui.notifications.error(`Could not show the Aha Instant button: ${error.message}`);
+      });
     }
   };
   if (Array.isArray(token.tools)) token.tools.push(ahaTool);
