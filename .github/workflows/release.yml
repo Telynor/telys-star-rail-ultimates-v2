@@ -37,7 +37,7 @@ jobs:
           tag="${{ steps.version.outputs.tag }}"
           asset="telys-star-rail-ultimates-v${{ steps.version.outputs.version }}.zip"
           if gh release view "$tag" >/dev/null 2>&1; then
-            gh release upload "$tag" "$asset" --clobber
+            gh release upload "$tag" "$asset" module.json --clobber
           else
-            gh release create "$tag" "$asset" --title "$tag" --generate-notes --target main
+            gh release create "$tag" "$asset" module.json --title "$tag" --generate-notes --target main
           fi
