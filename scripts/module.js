@@ -778,6 +778,14 @@ async function executeUltimate(actorId, requestingUserId) {
 
 async function onSocket(payload) {
   if (!payload?.type) return;
+  if (payload.type === "applyToughness" && isAuthority()) {
+    const requestingUser = game.users.get(payload.sourceUserId);
+    const attacker = await actorFromUuid(payload.attackerUuid);
+    if (!attacker || (!requestingUser?.isGM && !attacker.testUserPermission(requestingUser, "OWNER"))) return;
+    const targets = (await Promise.all((payload.targetUuids ?? []).map(actorFromUuid))).filter(Boolean);
+    await applyToughnessDamage(attacker, targets, Number(payload.amount) || 0, payload.eventKey);
+    return;
+  }
   if (payload.type === "showAhaVideo") {
     if (payload.sourceUserId !== game.user.id) playAhaVideo(payload);
     return;
@@ -929,20 +937,26 @@ async function processCoreAttackMessage(message) {
 }
 
 async function processMidiWorkflow(workflow) {
-  if (!isAuthority()) return;
   const key = workflow?.uuid ?? workflow?.id ?? workflow?.itemCardId ?? foundry.utils.randomID();
   const attacker = workflow?.actor;
+  const targets = workflow?.targets ?? new Set();
+  const hitTargets = workflow?.hitTargets ?? new Set();
+  const toughnessTargets = hitTargets.size ? hitTargets : targets;
+  const damageRolls = midiDamageRolls(workflow);
+  const diceDamage = rawDiceTotal(damageRolls);
+  if (!isAuthority()) {
+    if (attacker && diceDamage > 0 && toughnessTargets.size !== 0) {
+      const targetUuids = [...toughnessTargets].map(target => target?.document?.uuid ?? target?.actor?.uuid).filter(Boolean);
+      game.socket.emit(SOCKET, {type: "applyToughness", sourceUserId: game.user.id, attackerUuid: attacker.uuid, targetUuids, amount: diceDamage, eventKey: key});
+    }
+    return;
+  }
   const attackKey = `midi-attack:${key}`;
   if (attacker && !state.processedMessages.has(attackKey)) {
     state.processedMessages.add(attackKey);
     window.setTimeout(() => state.processedMessages.delete(attackKey), 120000);
     await addEnergy(attacker, energyGain(getConfig(attacker), "attack"), "attack");
   }
-  const targets = workflow?.targets ?? new Set();
-  const hitTargets = workflow?.hitTargets ?? new Set();
-  const toughnessTargets = hitTargets.size ? hitTargets : targets;
-  const damageRolls = midiDamageRolls(workflow);
-  const diceDamage = rawDiceTotal(damageRolls);
   const targetKey = [...toughnessTargets].map(target => target?.id ?? target?.document?.id ?? target?.actor?.id ?? "target").sort().join(",");
   const damageKey = `midi-damage:${key}:${targetKey}:${diceDamage}`;
   if (diceDamage > 0 && !state.processedMessages.has(damageKey)) {
@@ -1454,7 +1468,7 @@ Hooks.once("ready", () => {
   refreshAhaButton();
   registerAhaToolbarFallback();
   if (game.modules.get("midi-qol")?.active) Hooks.on("midi-qol.RollComplete", processMidiWorkflow);
-  if (game.modules.get("midi-qol")?.active) Hooks.on("midi-qol.DamageRollComplete", processMidiWorkflow);
+  if (game.modules.get("midi-qol")?.active) Hooks.on("midi-qol.damageRollComplete", processMidiWorkflow);
 });
 
 Hooks.on("renderActorSheet", injectUltimateTab);
