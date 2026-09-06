@@ -19,6 +19,7 @@ const DEFAULT_CONFIG = Object.freeze({
   titleSize: 48,
   titleAlign: "left",
   fontFile: "",
+  subtitleFontFile: "",
   orbImage: "",
   chargeColor: "#596171",
   readyColor: "#20e6ff",
@@ -318,15 +319,18 @@ async function loadSplashFont(fontFile) {
   return `"${family}", Arial, sans-serif`;
 }
 
-async function showSplash({actorName, image, duration = 1, ultimateName = "Ultimate", ultimateSubtitle = "", titleX = 17, titleY = 78, titleSize = 48, titleAlign = "left", fontFile = "", color = DEFAULT_CONFIG.chargeColor}) {
+async function showSplash({actorName, image, duration = 1, ultimateName = "Ultimate", ultimateSubtitle = "", titleX = 17, titleY = 78, titleSize = 48, titleAlign = "left", fontFile = "", subtitleFontFile = "", color = DEFAULT_CONFIG.chargeColor}) {
   if (!image) return;
   document.querySelectorAll(".tsru-splash").forEach(element => element.remove());
   const splash = document.createElement("div");
   splash.className = "tsru-splash";
   const isVideo = /\.(webm|mp4|m4v)(\?.*)?$/i.test(image);
   let fontFamily = "Arial, sans-serif";
+  let subtitleFontFamily = "Arial, sans-serif";
   try { fontFamily = await loadSplashFont(fontFile); }
   catch (error) { console.warn(`${MODULE_ID} | Could not load splash font`, error); }
+  try { subtitleFontFamily = await loadSplashFont(subtitleFontFile || fontFile); }
+  catch (error) { console.warn(`${MODULE_ID} | Could not load subtitle font`, error); }
   const x = clamp(titleX, 0, 100);
   const y = clamp(titleY, 0, 100);
   const size = clamp(titleSize, 16, 140);
@@ -336,6 +340,7 @@ async function showSplash({actorName, image, duration = 1, ultimateName = "Ultim
   splash.style.setProperty("--tsru-title-y", `${y}%`);
   splash.style.setProperty("--tsru-title-size", `${size}px`);
   splash.style.setProperty("--tsru-title-font", fontFamily);
+  splash.style.setProperty("--tsru-subtitle-font", subtitleFontFamily);
   splash.style.setProperty("--tsru-title-align", align);
   splash.innerHTML = `<div class="tsru-splash-backdrop"></div><div class="tsru-splash-media">${isVideo ? `<video src="${escapeHTML(image)}" autoplay muted playsinline></video>` : `<img src="${escapeHTML(image)}" alt="${escapeHTML(actorName)} Ultimate">`}<div class="tsru-title-card tsru-align-${align}"><i class="tsru-title-square tsru-title-square-one"></i><i class="tsru-title-square tsru-title-square-two"></i><div class="tsru-title-copy"><div class="tsru-title-name">${escapeHTML(ultimateName || actorName || "Ultimate")}</div>${ultimateSubtitle ? `<div class="tsru-title-subtitle">${escapeHTML(ultimateSubtitle)}</div>` : ""}<div class="tsru-title-bar"></div></div></div></div>`;
   document.body.appendChild(splash);
@@ -436,7 +441,7 @@ async function executeUltimate(actorId, requestingUserId) {
   refreshOrb(actor);
   try {
     const element = getElements().find(entry => entry.id === config.elementId);
-    const splash = {actorName: actor.name, image: config.splashImage, duration: config.splashDuration, ultimateName: config.ultimateName, ultimateSubtitle: config.ultimateSubtitle, titleX: config.titleX, titleY: config.titleY, titleSize: config.titleSize, titleAlign: config.titleAlign, fontFile: config.fontFile, color: element?.chargeColor || DEFAULT_CONFIG.chargeColor};
+    const splash = {actorName: actor.name, image: config.splashImage, duration: config.splashDuration, ultimateName: config.ultimateName, ultimateSubtitle: config.ultimateSubtitle, titleX: config.titleX, titleY: config.titleY, titleSize: config.titleSize, titleAlign: config.titleAlign, fontFile: config.fontFile, subtitleFontFile: config.subtitleFontFile, color: element?.chargeColor || DEFAULT_CONFIG.chargeColor};
     showSplash(splash);
     game.socket.emit(SOCKET, {type: "showSplash", sourceUserId: game.user.id, ...splash});
     const temporary = await insertUltimateTurn(actor);
@@ -760,7 +765,7 @@ function activateConfigListeners(actor, tab, app) {
   tab.find("input[data-color-for]").on("change", event => tab.find(`[name="${event.currentTarget.dataset.colorFor}"]`).val(event.currentTarget.value));
   tab.find("[data-action='preview-splash']").on("click", () => {
     const element = getElements().find(entry => entry.id === tab.find("[name='elementId']").val());
-    showSplash({actorName: actor.name, image: tab.find("[name='splashImage']").val(), duration: Number(tab.find("[name='splashDuration']").val()) || 1, ultimateName: tab.find("[name='ultimateName']").val(), ultimateSubtitle: tab.find("[name='ultimateSubtitle']").val(), titleX: Number(tab.find("[name='titleX']").val()), titleY: Number(tab.find("[name='titleY']").val()), titleSize: Number(tab.find("[name='titleSize']").val()), titleAlign: tab.find("[name='titleAlign']").val(), fontFile: tab.find("[name='fontFile']").val(), color: element?.chargeColor || DEFAULT_CONFIG.chargeColor});
+    showSplash({actorName: actor.name, image: tab.find("[name='splashImage']").val(), duration: Number(tab.find("[name='splashDuration']").val()) || 1, ultimateName: tab.find("[name='ultimateName']").val(), ultimateSubtitle: tab.find("[name='ultimateSubtitle']").val(), titleX: Number(tab.find("[name='titleX']").val()), titleY: Number(tab.find("[name='titleY']").val()), titleSize: Number(tab.find("[name='titleSize']").val()), titleAlign: tab.find("[name='titleAlign']").val(), fontFile: tab.find("[name='fontFile']").val(), subtitleFontFile: tab.find("[name='subtitleFontFile']").val(), color: element?.chargeColor || DEFAULT_CONFIG.chargeColor});
   });
   tab.find("[data-action='set-energy']").on("click", async event => {
     event.preventDefault();
