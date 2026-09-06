@@ -51,11 +51,14 @@
   bottom: 0;
   height: var(--tsru-fill);
   background: color-mix(in srgb, var(--tsru-color) 72%, transparent);
-  border-top: 2px solid color-mix(in srgb, var(--tsru-color) 82%, white);
-  box-shadow: 0 -3px 12px var(--tsru-color), inset 0 8px 14px rgba(255, 255, 255, .12);
+  border-top: 0;
+  box-shadow: none;
   mix-blend-mode: screen;
   transition: height .55s cubic-bezier(.2, .8, .2, 1), background-color .25s ease;
   pointer-events: none;
+}
+.tsru-orb-widget.has-energy .tsru-orb-fill {
+  box-shadow: 0 -3px 12px var(--tsru-color), inset 0 8px 14px rgba(255, 255, 255, .12);
 }
 
 .tsru-orb-percent {
@@ -239,6 +242,7 @@
 .tsru-script-field code { color: #86eaff; font-size: .9em; }
 
 .tsru-portrait-badge-host { position: relative !important; }
+.tsru-species-badge-host { position: relative !important; padding-right: 92px !important; }
 .tsru-character-badges {
   position: absolute;
   z-index: 8;
@@ -249,6 +253,7 @@
   gap: 5px;
   pointer-events: none;
 }
+.tsru-species-badge-host > .tsru-character-badges { right: 10px; bottom: 50%; transform: translateY(50%); }
 .tsru-character-badge {
   display: grid;
   width: 38px;

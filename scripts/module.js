@@ -421,14 +421,23 @@ async function injectCharacterBadges(app, html) {
   const element = getElements().find(entry => entry.id === config.elementId);
   const path = getPaths().find(entry => entry.id === config.pathId);
   if (!element?.icon && !path?.icon) return;
-  const portrait = root.find('img[data-edit="img"], img.profile, img.portrait, [data-application-part="portrait"] img').first();
-  if (!portrait.length) return;
-  const parent = portrait.parent();
-  parent.addClass("tsru-portrait-badge-host");
+  const typeName = String(actor.system?.details?.type?.value || actor.system?.details?.type || "").trim();
+  const speciesCandidates = root.find('.species, [class*="species"], [data-action*="species"], section, div').filter((_index, node) => {
+    const rect = node.getBoundingClientRect();
+    const text = node.textContent?.replace(/\s+/g, " ").trim() ?? "";
+    const matchesType = typeName && text.toLocaleLowerCase().startsWith(typeName.toLocaleLowerCase());
+    return rect.width >= 150 && rect.width <= 500 && rect.height >= 38 && rect.height <= 100 && (matchesType || /^Humanoid\b/i.test(text));
+  }).toArray().sort((a, b) => (a.getBoundingClientRect().width * a.getBoundingClientRect().height) - (b.getBoundingClientRect().width * b.getBoundingClientRect().height));
+  let host = speciesCandidates.length ? $(speciesCandidates[0]) : $();
+  if (!host.length) {
+    const portrait = root.find('img[data-edit="img"], img.profile, img.portrait, [data-application-part="portrait"] img').first();
+    if (!portrait.length) return;
+    host = portrait.parent().addClass("tsru-portrait-badge-host");
+  } else host.addClass("tsru-species-badge-host");
   const badges = $(`<div class="tsru-character-badges" data-tsru-character-badges></div>`);
   if (element?.icon) badges.append(`<div class="tsru-character-badge" title="Element: ${escapeHTML(element.name)}" style="--tsru-badge-color:${element.readyColor || element.color || "#fff"}"><img src="${escapeHTML(element.icon)}"></div>`);
   if (path?.icon) badges.append(`<div class="tsru-character-badge" title="Path: ${escapeHTML(path.name)}"><img src="${escapeHTML(path.icon)}"></div>`);
-  parent.append(badges);
+  host.append(badges);
 }
 
 class UltimateOrb {
@@ -474,6 +483,7 @@ class UltimateOrb {
     this.element.style.setProperty("--tsru-size", `${clamp(layout.size, 72, 360)}px`);
     this.element.style.setProperty("--tsru-fill", `${percent}%`);
     this.element.style.setProperty("--tsru-color", color || DEFAULT_CONFIG.chargeColor);
+    this.element.classList.toggle("has-energy", percent > 0 && !ready);
     this.element.classList.toggle("is-ready", ready);
     this.element.querySelector(".tsru-orb-image").src = config.orbImage || this.actor.img || "icons/svg/mystery-man.svg";
     this.element.querySelector(".tsru-orb-percent").textContent = config.showPercent ? `${Math.round(percent)}%` : "";
