@@ -91,7 +91,15 @@ async function injectEnergyAbility(app, html) {
   if (!rootElement) return;
   const root = $(rootElement);
   if (root.find("[data-tsru-energy-ability]").length) return;
-  const abilities = root.find('[data-application-part="ability-scores"], .ability-scores, .abilities').filter((_index, element) => $(element).find('[data-ability], .ability-score').length >= 3).first();
+  const candidates = root.find('[data-application-part="ability-scores"], .ability-scores, header .abilities, .sheet-header .abilities').toArray();
+  const abilityElement = candidates.find(element => {
+    const rect = element.getBoundingClientRect();
+    const children = [...element.children].filter(child => child.getBoundingClientRect().width > 35);
+    if (children.length < 6) return false;
+    const tops = children.slice(0, 6).map(child => Math.round(child.getBoundingClientRect().top));
+    return rect.width >= 420 && rect.height <= 180 && Math.max(...tops) - Math.min(...tops) <= 30;
+  });
+  const abilities = abilityElement ? $(abilityElement) : $();
   if (!abilities.length) return console.debug(`${MODULE_ID} | Ability-score container not found for`, actor.name);
   abilities.append(energyAbilityMarkup(actor));
   const card = abilities.find("[data-tsru-energy-ability]").last();
