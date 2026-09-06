@@ -546,7 +546,7 @@
 }
 #board > .tsru-aha-overlay,
 #canvas > .tsru-aha-overlay { z-index: 2; }
-.tsru-aha-overlay video { width: 100vw; height: 100vh; border: 0; object-fit: contain; background: transparent; }
+.tsru-aha-overlay video { width: 100vw; height: 100vh; border: 0; object-fit: fill; background: transparent; }
 
 .tsru-aha-config-form { display: flex; flex-direction: column; gap: 12px; padding: 10px; }
 .tsru-aha-config-form header { padding-bottom: 8px; border-bottom: 1px solid rgba(229,200,120,.45); }
