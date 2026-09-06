@@ -1,0 +1,44 @@
+<form class="tsru-element-manager">
+  <p class="notes">Create the Elements that GMs can assign to characters. Icons may use any Foundry-accessible image path.</p>
+  <div class="tsru-elements-list">
+    {{#each elements}}
+    <fieldset class="tsru-element-row" data-index="{{@index}}">
+      <legend>Element {{add @index 1}}</legend>
+      <div class="form-group">
+        <label>Name</label>
+        <input type="text" name="elements.{{@index}}.name" value="{{this.name}}" required>
+      </div>
+      <div class="form-group">
+        <label>Identifier</label>
+        <input type="text" name="elements.{{@index}}.id" value="{{this.id}}" readonly>
+      </div>
+      <div class="form-group">
+        <label>Icon</label>
+        <div class="form-fields">
+          <input type="text" name="elements.{{@index}}.icon" value="{{this.icon}}" data-dtype="String">
+          <button type="button" class="file-picker" data-type="image" data-target="elements.{{@index}}.icon" title="Browse Files"><i class="fas fa-file-import"></i></button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Charging Color</label>
+        <div class="form-fields">
+          <input type="color" name="elements.{{@index}}.chargeColor" value="{{this.chargeColor}}">
+          <input type="text" value="{{this.chargeColor}}" data-color-index="{{@index}}" data-color-kind="chargeColor">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Ultimate Ready Color</label>
+        <div class="form-fields">
+          <input type="color" name="elements.{{@index}}.readyColor" value="{{this.readyColor}}">
+          <input type="text" value="{{this.readyColor}}" data-color-index="{{@index}}" data-color-kind="readyColor">
+        </div>
+      </div>
+      <button type="button" class="tsru-remove-element"><i class="fas fa-trash"></i> Remove</button>
+    </fieldset>
+    {{/each}}
+  </div>
+  <div class="tsru-manager-actions">
+    <button type="button" class="tsru-add-element"><i class="fas fa-plus"></i> Add Element</button>
+    <button type="submit"><i class="fas fa-save"></i> Save Elements</button>
+  </div>
+</form>
