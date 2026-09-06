@@ -29,11 +29,18 @@ const DEFAULT_CONFIG = Object.freeze({
 
 const state = {
   orbs: new Map(),
+  ahaButton: null,
   processedMessages: new Set(),
   ultimateLocks: new Set(),
   pendingUltimates: new Map(),
   suppressCombatHook: false
 };
+
+const DEFAULT_AHA_CONFIG = Object.freeze({
+  video: "",
+  buttonImage: "icons/svg/explosion.svg",
+  color: "#ff4fd8"
+});
 
 function activeGM() {
   return game.users?.find(user => user.active && user.isGM);
@@ -180,6 +187,105 @@ async function saveLayout(actorId, changes) {
   layouts[actorId] = foundry.utils.mergeObject(layouts[actorId] ?? {}, changes, {inplace: false});
   await game.settings.set(MODULE_ID, "orbLayouts", layouts);
 }
+
+function getAhaConfig() {
+  return foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_AHA_CONFIG), game.settings.get(MODULE_ID, "ahaConfig") ?? {}, {inplace: false});
+}
+
+function ahaLayout() {
+  return foundry.utils.mergeObject({x: 220, y: 180, size: 128, visible: false}, game.settings.get(MODULE_ID, "ahaLayout") ?? {}, {inplace: false});
+}
+
+async function saveAhaLayout(changes) {
+  const layout = foundry.utils.mergeObject(ahaLayout(), changes, {inplace: false});
+  await game.settings.set(MODULE_ID, "ahaLayout", layout);
+  return layout;
+}
+
+function playAhaVideo({video}) {
+  if (!video) return;
+  document.querySelectorAll(".tsru-aha-overlay").forEach(element => element.remove());
+  const overlay = document.createElement("div");
+  overlay.className = "tsru-aha-overlay";
+  overlay.innerHTML = `<video src="${escapeHTML(video)}" autoplay playsinline></video>`;
+  document.body.appendChild(overlay);
+  const player = overlay.querySelector("video");
+  const remove = () => overlay.remove();
+  player.addEventListener("ended", remove, {once: true});
+  player.addEventListener("error", remove, {once: true});
+  window.setTimeout(remove, 300000);
+}
+
+function triggerAhaInstant() {
+  if (!game.user.isGM) return;
+  const config = getAhaConfig();
+  if (!config.video) return ui.notifications.warn("Configure an Aha Instant WebM first.");
+  playAhaVideo(config);
+  game.socket.emit(SOCKET, {type: "showAhaVideo", sourceUserId: game.user.id, video: config.video});
+}
+
+class AhaButton {
+  constructor() { this.element = null; this.drag = null; this.resize = null; }
+  render() {
+    if (!game.user.isGM) return this.destroy();
+    const layout = ahaLayout();
+    if (!layout.visible) return this.destroy();
+    const config = getAhaConfig();
+    if (!this.element) {
+      this.element = document.createElement("div");
+      this.element.className = "tsru-aha-widget";
+      this.element.innerHTML = `<div class="tsru-aha-drag" title="Drag Aha Instant"><i class="fas fa-grip-lines"></i></div><button type="button" class="tsru-aha-button" title="Play Aha Instant for everyone"><img></button><div class="tsru-aha-label">Aha Instant</div><button type="button" class="tsru-aha-close" title="Hide Aha Instant"><i class="fas fa-xmark"></i></button><div class="tsru-aha-resize" title="Resize"></div>`;
+      document.body.appendChild(this.element);
+      this.activateListeners();
+    }
+    this.element.style.left = `${clamp(layout.x, 0, window.innerWidth - 40)}px`;
+    this.element.style.top = `${clamp(layout.y, 0, window.innerHeight - 40)}px`;
+    this.element.style.setProperty("--tsru-aha-size", `${clamp(layout.size, 72, 360)}px`);
+    this.element.style.setProperty("--tsru-aha-color", config.color || DEFAULT_AHA_CONFIG.color);
+    this.element.querySelector("img").src = config.buttonImage || DEFAULT_AHA_CONFIG.buttonImage;
+    return this;
+  }
+  activateListeners() {
+    const drag = this.element.querySelector(".tsru-aha-drag");
+    const resize = this.element.querySelector(".tsru-aha-resize");
+    drag.addEventListener("pointerdown", event => {
+      event.preventDefault(); const rect = this.element.getBoundingClientRect();
+      this.drag = {dx: event.clientX - rect.left, dy: event.clientY - rect.top}; drag.setPointerCapture(event.pointerId);
+    });
+    drag.addEventListener("pointermove", event => {
+      if (!this.drag) return;
+      this.element.style.left = `${clamp(event.clientX - this.drag.dx, 0, window.innerWidth - 40)}px`;
+      this.element.style.top = `${clamp(event.clientY - this.drag.dy, 0, window.innerHeight - 40)}px`;
+    });
+    drag.addEventListener("pointerup", async event => {
+      if (!this.drag) return; this.drag = null; drag.releasePointerCapture(event.pointerId);
+      const rect = this.element.getBoundingClientRect(); await saveAhaLayout({x: Math.round(rect.left), y: Math.round(rect.top)});
+    });
+    resize.addEventListener("pointerdown", event => {
+      event.preventDefault(); const rect = this.element.getBoundingClientRect();
+      this.resize = {startX: event.clientX, startSize: rect.width}; resize.setPointerCapture(event.pointerId);
+    });
+    resize.addEventListener("pointermove", event => {
+      if (!this.resize) return;
+      this.element.style.setProperty("--tsru-aha-size", `${clamp(this.resize.startSize + event.clientX - this.resize.startX, 72, 360)}px`);
+    });
+    resize.addEventListener("pointerup", async event => {
+      if (!this.resize) return; const size = clamp(this.resize.startSize + event.clientX - this.resize.startX, 72, 360);
+      this.resize = null; resize.releasePointerCapture(event.pointerId); await saveAhaLayout({size: Math.round(size)});
+    });
+    this.element.querySelector(".tsru-aha-close").addEventListener("click", async () => { await saveAhaLayout({visible: false}); this.destroy(); });
+    this.element.querySelector(".tsru-aha-button").addEventListener("click", triggerAhaInstant);
+  }
+  destroy() { this.element?.remove(); this.element = null; if (state.ahaButton === this) state.ahaButton = null; }
+}
+
+function refreshAhaButton() {
+  if (!game.user.isGM || !ahaLayout().visible) { state.ahaButton?.destroy(); return; }
+  if (!state.ahaButton) state.ahaButton = new AhaButton();
+  state.ahaButton.render();
+}
+
+async function showAhaButton() { await saveAhaLayout({visible: true}); refreshAhaButton(); }
 
 function getElements() {
   return (game.settings.get(MODULE_ID, "elements") ?? []).map(element => ({
@@ -516,6 +622,10 @@ async function executeUltimate(actorId, requestingUserId) {
 
 async function onSocket(payload) {
   if (!payload?.type) return;
+  if (payload.type === "showAhaVideo") {
+    if (payload.sourceUserId !== game.user.id) playAhaVideo(payload);
+    return;
+  }
   if (payload.type === "activateUltimate" && isAuthority()) return executeUltimate(payload.actorId, payload.requestingUserId);
   if (payload.type === "showSplash") {
     if (payload.sourceUserId !== game.user.id) showSplash(payload);
@@ -687,10 +797,46 @@ class ElementMenu extends FormApplication {
   render() { new ElementManager().render(true); return this; }
 }
 
+class AhaConfig extends FormApplication {
+  static get defaultOptions() {
+    return foundry.utils.mergeObject(super.defaultOptions, {
+      id: "tsru-aha-config",
+      title: "Aha Instant",
+      template: `modules/${MODULE_ID}/templates/aha-config.hbs`,
+      width: 560,
+      height: "auto",
+      closeOnSubmit: true
+    });
+  }
+  getData() { return {config: getAhaConfig()}; }
+  activateListeners(html) {
+    super.activateListeners(html);
+    html.find(".file-picker").on("click", event => {
+      const button = event.currentTarget;
+      const target = button.dataset.target;
+      new FilePicker({type: button.dataset.type || "any", current: html.find(`[name="${target}"]`).val(), callback: path => html.find(`[name="${target}"]`).val(path)}).browse();
+    });
+    html.find("[data-color-for]").on("change", event => html.find(`[name="${event.currentTarget.dataset.colorFor}"]`).val(event.currentTarget.value));
+    html.find("[data-action='preview-aha']").on("click", () => playAhaVideo({video: html.find('[name="video"]').val()}));
+    html.find("[data-action='show-aha-button']").on("click", showAhaButton);
+  }
+  async _updateObject(_event, formData) {
+    await game.settings.set(MODULE_ID, "ahaConfig", {
+      video: formData.video || "",
+      buttonImage: formData.buttonImage || DEFAULT_AHA_CONFIG.buttonImage,
+      color: formData.color || DEFAULT_AHA_CONFIG.color
+    });
+    refreshAhaButton();
+    ui.notifications.info("Aha Instant configuration saved.");
+  }
+}
+
 function registerSettings() {
   game.settings.register(MODULE_ID, "elements", {scope: "world", config: false, type: Array, default: []});
   game.settings.register(MODULE_ID, "elementsDraft", {scope: "client", config: false, type: Array, default: []});
   game.settings.register(MODULE_ID, "orbLayouts", {scope: "client", config: false, type: Object, default: {}});
+  game.settings.register(MODULE_ID, "ahaConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_AHA_CONFIG)});
+  game.settings.register(MODULE_ID, "ahaLayout", {scope: "client", config: false, type: Object, default: {x: 220, y: 180, size: 128, visible: false}});
   game.settings.registerMenu(MODULE_ID, "elementManager", {
     name: "Manage Elements",
     label: "Open Element Manager",
@@ -869,6 +1015,20 @@ function addHudTool(controls) {
   };
   if (Array.isArray(token.tools)) token.tools.push(tool);
   else token.tools.tsruOrbs = tool;
+  const ahaTool = {
+    name: "tsru-aha-instant",
+    title: "Aha Instant",
+    icon: "fas fa-masks-theater",
+    order: 91,
+    button: true,
+    visible: game.user.isGM,
+    onChange: async () => {
+      await showAhaButton();
+      new AhaConfig().render(true);
+    }
+  };
+  if (Array.isArray(token.tools)) token.tools.push(ahaTool);
+  else token.tools.tsruAhaInstant = ahaTool;
 }
 
 function registerApi() {
@@ -883,6 +1043,8 @@ function registerApi() {
     showSplash,
     refreshOrbs: refreshAllOrbs,
     showOrb,
+    showAhaButton,
+    triggerAhaInstant,
     openElementManager: () => new ElementManager().render(true)
   };
 }
@@ -897,6 +1059,7 @@ Hooks.once("ready", () => {
   game.socket.on(SOCKET, onSocket);
   registerApi();
   refreshAllOrbs();
+  refreshAhaButton();
   if (game.modules.get("midi-qol")?.active) Hooks.on("midi-qol.RollComplete", processMidiWorkflow);
 });
 
@@ -918,6 +1081,7 @@ Hooks.on("updateActor", actor => refreshOrb(actor));
 Hooks.on("deleteActor", actor => state.orbs.get(actor.id)?.destroy());
 Hooks.on("updateUser", user => { if (user.id === game.user.id) refreshAllOrbs(); });
 Hooks.on("canvasReady", refreshAllOrbs);
+Hooks.on("canvasReady", refreshAhaButton);
 
 Hooks.on("deleteCombat", combat => {
   state.ultimateLocks.clear();
