@@ -71,3 +71,4 @@ The modifier is calculated like a D&D ability modifier:
 When publishing a new version, change `version` and the release filename in `module.json`, then create a matching GitHub release tag.
 - Cinematic Ultimate title cards with configurable title/subtitle placement, custom TTF/OTF/WOFF fonts, geometric accents, and live preview
 - Title-card squares and underline automatically inherit the assigned Element's charging color
+- Editable Energy Regen ability card beside the six standard character abilities; all automatic Energy gains use its D&amp;D-style modifier
