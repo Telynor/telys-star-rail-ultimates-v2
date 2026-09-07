@@ -12,6 +12,7 @@ const DEFAULT_CONFIG = Object.freeze({
   skillEnabled: true,
   skillScript: "",
   skillButtonImage: "",
+  punchlineGain: 1,
   ultimateScript: "",
   splashImage: "",
   splashDuration: 1,
@@ -39,6 +40,7 @@ const state = {
   pendingSkills: new Map(),
   skillSpendLock: false,
   ahaButton: null,
+  punchlineMeter: null,
   processedMessages: new Set(),
   ultimateLocks: new Set(),
   pendingUltimates: new Map(),
@@ -51,6 +53,10 @@ const state = {
 let ahaToolbarOpening = false;
 
 const DEFAULT_AHA_CONFIG = Object.freeze({
+  elationEnabled: false,
+  elationPathId: "",
+  punchlineIcon: "icons/svg/mask.svg",
+  punchlineFontFile: "",
   video: "",
   buttonImage: "icons/svg/explosion.svg",
   color: "#ff4fd8",
@@ -254,6 +260,103 @@ function getAhaConfig() {
   return foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_AHA_CONFIG), game.settings.get(MODULE_ID, "ahaConfig") ?? {}, {inplace: false});
 }
 
+function currentPunchline() {
+  return Math.max(0, Math.floor(Number(game.settings.get(MODULE_ID, "punchline")) || 0));
+}
+
+async function setPunchline(value, {broadcast = true} = {}) {
+  if (!isAuthority()) return currentPunchline();
+  const next = Math.max(0, Math.floor(Number(value) || 0));
+  await game.settings.set(MODULE_ID, "punchline", next);
+  if (broadcast) game.socket.emit(SOCKET, {type: "punchlineChanged", value: next, sourceUserId: game.user.id});
+  refreshPunchlineHUD();
+  Hooks.callAll("tsruPunchlineChanged", next);
+  return next;
+}
+
+async function addPunchline(amount = 1) {
+  if (!isAuthority()) throw new Error("Only the active GM can change Punchline directly.");
+  if (!getAhaConfig().elationEnabled) return currentPunchline();
+  return setPunchline(currentPunchline() + (Number(amount) || 0));
+}
+
+async function spendPunchline(amount = 1) {
+  if (!isAuthority()) throw new Error("Only the active GM can change Punchline directly.");
+  const cost = Math.max(0, Math.floor(Number(amount) || 0));
+  if (currentPunchline() < cost) return false;
+  await setPunchline(currentPunchline() - cost);
+  return true;
+}
+
+function punchlineScriptHelpers(actor) {
+  const request = (operation, amount) => {
+    if (isAuthority()) {
+      if (operation === "add") return addPunchline(amount);
+      if (operation === "spend") return spendPunchline(amount);
+      if (operation === "set") return setPunchline(amount);
+    }
+    game.socket.emit(SOCKET, {type: "changePunchline", operation, amount: Number(amount) || 0, actorUuid: actor?.uuid, sourceUserId: game.user.id});
+    return Promise.resolve(true);
+  };
+  return Object.freeze({
+    get: currentPunchline,
+    add: amount => request("add", amount),
+    spend: amount => request("spend", amount),
+    set: amount => request("set", amount)
+  });
+}
+
+function punchlineLayout() {
+  return foundry.utils.mergeObject({x: 580, y: 145, size: 54, visible: true}, game.settings.get(MODULE_ID, "punchlineLayout") ?? {}, {inplace: false});
+}
+
+async function savePunchlineLayout(changes) {
+  const layout = foundry.utils.mergeObject(punchlineLayout(), changes, {inplace: false});
+  await game.settings.set(MODULE_ID, "punchlineLayout", layout);
+  return layout;
+}
+
+class PunchlineMeter {
+  constructor() { this.element = null; this.drag = null; this.resize = null; }
+  render() {
+    const config = getAhaConfig();
+    const layout = punchlineLayout();
+    if (!config.elationEnabled || !layout.visible) return this.destroy();
+    if (!this.element) {
+      this.element = document.createElement("div");
+      this.element.className = "tsru-punchline-meter";
+      this.element.innerHTML = `<div class="tsru-punchline-drag" title="Move Punchline counter"><i class="fas fa-grip-lines"></i></div><img class="tsru-punchline-icon"><div class="tsru-punchline-number"></div><button type="button" class="tsru-punchline-close" title="Hide Punchline counter"><i class="fas fa-xmark"></i></button><div class="tsru-punchline-resize" title="Resize"></div>`;
+      document.body.appendChild(this.element);
+      this.activateListeners();
+    }
+    this.element.style.left = `${clamp(layout.x, 0, window.innerWidth - 40)}px`;
+    this.element.style.top = `${clamp(layout.y, 0, window.innerHeight - 40)}px`;
+    this.element.style.setProperty("--tsru-punchline-size", `${clamp(layout.size, 30, 160)}px`);
+    this.element.style.setProperty("--tsru-punchline-color", config.color || DEFAULT_AHA_CONFIG.color);
+    this.element.querySelector(".tsru-punchline-icon").src = config.punchlineIcon || DEFAULT_AHA_CONFIG.punchlineIcon;
+    this.element.querySelector(".tsru-punchline-number").textContent = `+${currentPunchline()}`;
+    loadSplashFont(config.punchlineFontFile).then(font => this.element?.style.setProperty("--tsru-punchline-font", font)).catch(error => console.warn(`${MODULE_ID} | Could not load Punchline font`, error));
+    return this;
+  }
+  activateListeners() {
+    const drag = this.element.querySelector(".tsru-punchline-drag"); const resize = this.element.querySelector(".tsru-punchline-resize");
+    drag.addEventListener("pointerdown", event => { event.preventDefault(); const rect = this.element.getBoundingClientRect(); this.drag = {dx: event.clientX - rect.left, dy: event.clientY - rect.top}; drag.setPointerCapture(event.pointerId); });
+    drag.addEventListener("pointermove", event => { if (!this.drag) return; this.element.style.left = `${clamp(event.clientX - this.drag.dx, 0, window.innerWidth - 40)}px`; this.element.style.top = `${clamp(event.clientY - this.drag.dy, 0, window.innerHeight - 40)}px`; });
+    drag.addEventListener("pointerup", async event => { if (!this.drag) return; this.drag = null; drag.releasePointerCapture(event.pointerId); const rect = this.element.getBoundingClientRect(); await savePunchlineLayout({x: Math.round(rect.left), y: Math.round(rect.top)}); });
+    resize.addEventListener("pointerdown", event => { event.preventDefault(); this.resize = {startX: event.clientX, startSize: punchlineLayout().size}; resize.setPointerCapture(event.pointerId); });
+    resize.addEventListener("pointermove", event => { if (!this.resize) return; this.element.style.setProperty("--tsru-punchline-size", `${clamp(this.resize.startSize + event.clientX - this.resize.startX, 30, 160)}px`); });
+    resize.addEventListener("pointerup", async event => { if (!this.resize) return; const size = clamp(this.resize.startSize + event.clientX - this.resize.startX, 30, 160); this.resize = null; resize.releasePointerCapture(event.pointerId); await savePunchlineLayout({size: Math.round(size)}); this.render(); });
+    this.element.querySelector(".tsru-punchline-close").addEventListener("click", async () => { await savePunchlineLayout({visible: false}); this.destroy(); });
+  }
+  destroy() { this.element?.remove(); this.element = null; if (state.punchlineMeter === this) state.punchlineMeter = null; }
+}
+
+function refreshPunchlineHUD() {
+  if (!getAhaConfig().elationEnabled || !punchlineLayout().visible) { state.punchlineMeter?.destroy(); return; }
+  if (!state.punchlineMeter) state.punchlineMeter = new PunchlineMeter();
+  state.punchlineMeter.render();
+}
+
 function appendToCanvasLayer(element) {
   const board = document.querySelector("#board");
   const canvasLayer = document.querySelector("#canvas");
@@ -272,7 +375,7 @@ async function saveAhaLayout(changes) {
 }
 
 function playAhaVideo({video}) {
-  if (!video) return;
+  if (!getAhaConfig().elationEnabled || !video) return;
   document.querySelectorAll(".tsru-aha-overlay").forEach(element => element.remove());
   const overlay = document.createElement("div");
   overlay.className = "tsru-aha-overlay";
@@ -288,6 +391,7 @@ function playAhaVideo({video}) {
 function triggerAhaInstant() {
   if (!game.user.isGM) return;
   const config = getAhaConfig();
+  if (!config.elationEnabled) return ui.notifications.warn("Aha Instant is disabled because Elation is not on the team.");
   if (!config.video) return ui.notifications.warn("Configure an Aha Instant WebM first.");
   playAhaVideo(config);
   game.socket.emit(SOCKET, {type: "showAhaVideo", sourceUserId: game.user.id, video: config.video});
@@ -301,7 +405,7 @@ async function ensureAhaCombatant(combat) {
   if (!isAuthority() || !combat) return null;
   const config = getAhaConfig();
   const existing = combat.combatants.find(isAhaCombatant);
-  if (!config.initiativeEnabled) {
+  if (!config.elationEnabled || !config.initiativeEnabled) {
     if (existing) await combat.deleteEmbeddedDocuments("Combatant", [existing.id]);
     return null;
   }
@@ -331,7 +435,7 @@ async function syncAhaCombatants() {
 }
 
 async function maybeEnsureAhaCombatant(combat, {force = false} = {}) {
-  if (!isAuthority() || !combat || !getAhaConfig().initiativeEnabled) return null;
+  if (!isAuthority() || !combat || !getAhaConfig().elationEnabled || !getAhaConfig().initiativeEnabled) return null;
   const hasRolledInitiative = combat.combatants.some(combatant => !isAhaCombatant(combatant) && combatant.initiative !== null);
   if (!force && !hasRolledInitiative) return null;
   try { return await ensureAhaCombatant(combat); }
@@ -345,7 +449,7 @@ async function maybeEnsureAhaCombatant(combat, {force = false} = {}) {
 class AhaButton {
   constructor() { this.element = null; this.drag = null; this.resize = null; }
   render() {
-    if (!game.user.isGM) return this.destroy();
+    if (!game.user.isGM || !getAhaConfig().elationEnabled) return this.destroy();
     const layout = ahaLayout();
     if (!layout.visible) return this.destroy();
     const config = getAhaConfig();
@@ -398,12 +502,15 @@ class AhaButton {
 }
 
 function refreshAhaButton() {
-  if (!game.user.isGM || !ahaLayout().visible) { state.ahaButton?.destroy(); return; }
+  if (!game.user.isGM || !getAhaConfig().elationEnabled || !ahaLayout().visible) { state.ahaButton?.destroy(); return; }
   if (!state.ahaButton) state.ahaButton = new AhaButton();
   state.ahaButton.render();
 }
 
-async function showAhaButton() { await saveAhaLayout({visible: true}); refreshAhaButton(); }
+async function showAhaButton() {
+  if (!getAhaConfig().elationEnabled) return ui.notifications.warn("Enable ‘Elation on Team?’ before showing Aha Instant.");
+  await saveAhaLayout({visible: true}); refreshAhaButton();
+}
 
 function openAhaInstantControls() {
   if (!game.user.isGM || ahaToolbarOpening) return;
@@ -414,7 +521,7 @@ function openAhaInstantControls() {
     console.error(`${MODULE_ID} | Could not open Aha Instant configuration`, error);
     ui.notifications.error(`Could not open Aha Instant configuration: ${error.message}`);
   }
-  showAhaButton().catch(error => {
+  if (getAhaConfig().elationEnabled) showAhaButton().catch(error => {
     console.error(`${MODULE_ID} | Could not show Aha Instant button`, error);
     ui.notifications.error(`Could not show the Aha Instant button: ${error.message}`);
   });
@@ -910,8 +1017,8 @@ async function runUltimateScript(actor) {
   if (!script) throw new Error(`${actor.name} has no configured Ultimate script.`);
   const token = actor.getActiveTokens(true, true)?.[0] ?? null;
   const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
-  const execute = new AsyncFunction("actor", "token", "game", "canvas", "ui", "foundry", "Hooks", `"use strict";\n${script}`);
-  return execute(actor, token, game, canvas, ui, foundry, Hooks);
+  const execute = new AsyncFunction("actor", "token", "game", "canvas", "ui", "foundry", "Hooks", "punchline", `"use strict";\n${script}`);
+  return execute(actor, token, game, canvas, ui, foundry, Hooks, punchlineScriptHelpers(actor));
 }
 
 async function runSkillScript(actor) {
@@ -919,8 +1026,8 @@ async function runSkillScript(actor) {
   if (!script) throw new Error(`${actor.name} has no configured Skill script.`);
   const token = actor.getActiveTokens(true, true)?.[0] ?? null;
   const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
-  const execute = new AsyncFunction("actor", "token", "game", "canvas", "ui", "foundry", "Hooks", `"use strict";\n${script}`);
-  return execute(actor, token, game, canvas, ui, foundry, Hooks);
+  const execute = new AsyncFunction("actor", "token", "game", "canvas", "ui", "foundry", "Hooks", "punchline", `"use strict";\n${script}`);
+  return execute(actor, token, game, canvas, ui, foundry, Hooks, punchlineScriptHelpers(actor));
 }
 
 async function requestSkill(actor) {
@@ -1028,6 +1135,16 @@ async function executeUltimate(actorId, requestingUserId) {
 
 async function onSocket(payload) {
   if (!payload?.type) return;
+  if (payload.type === "punchlineChanged") { refreshPunchlineHUD(); return; }
+  if (payload.type === "changePunchline" && isAuthority()) {
+    const requester = game.users.get(payload.sourceUserId);
+    const actor = await actorFromUuid(payload.actorUuid);
+    if (!getAhaConfig().elationEnabled || !actor || (!requester?.isGM && !actor.testUserPermission(requester, "OWNER"))) return;
+    if (payload.operation === "add") await addPunchline(payload.amount);
+    else if (payload.operation === "spend") await spendPunchline(payload.amount);
+    else if (payload.operation === "set") await setPunchline(payload.amount);
+    return;
+  }
   if (payload.type === "skillPointsChanged") { refreshSkillUI(); return; }
   if (payload.type === "activateSkill" && isAuthority()) return executeSkill(payload.actorId, payload.requestingUserId);
   if (payload.type === "useSkill" && payload.targetUserId === game.user.id) {
@@ -1185,6 +1302,19 @@ async function processAppliedDamage(target, amount, options = {}) {
 
   const targetActor = target?.actor ?? target?.document?.actor ?? target;
   const damageEventId = origin?.id ?? options.midi?.workflowId ?? "unknown";
+
+  if (attacker.type === "character" && Number(amount) > 0 && getAhaConfig().elationEnabled) {
+    const punchlineKey = `punchline-damage:${damageEventId}:${targetActor.uuid}`;
+    if (!state.processedMessages.has(punchlineKey)) {
+      state.processedMessages.add(punchlineKey);
+      window.setTimeout(() => state.processedMessages.delete(punchlineKey), 120000);
+      const ahaConfig = getAhaConfig();
+      const actorConfig = getConfig(attacker);
+      const isElation = Boolean(ahaConfig.elationPathId) && actorConfig.pathId === ahaConfig.elationPathId;
+      const gain = isElation ? Math.max(0, Math.floor(Number(actorConfig.punchlineGain) || 0)) : 1;
+      if (gain > 0) await addPunchline(gain);
+    }
+  }
 
   if (targetActor?.type === "character" && Number(amount) > 0) {
     const energyKey = `applied-energy:${damageEventId}:${targetActor.uuid}`;
@@ -1454,7 +1584,10 @@ class AhaConfig extends FormApplication {
       closeOnSubmit: true
     });
   }
-  getData() { return {config: getAhaConfig()}; }
+  getData() {
+    const config = getAhaConfig();
+    return {config, punchline: currentPunchline(), paths: getPaths().map(path => ({...path, selected: path.id === config.elationPathId}))};
+  }
   activateListeners(html) {
     super.activateListeners(html);
     html.find(".file-picker").on("click", event => {
@@ -1465,6 +1598,7 @@ class AhaConfig extends FormApplication {
     html.find("[data-color-for]").on("change", event => html.find(`[name="${event.currentTarget.dataset.colorFor}"]`).val(event.currentTarget.value));
     html.find("[data-action='preview-aha']").on("click", () => playAhaVideo({video: html.find('[name="video"]').val()}));
     html.find("[data-action='show-aha-button']").on("click", showAhaButton);
+    html.find("[data-action='show-punchline']").on("click", async () => { await savePunchlineLayout({visible: true}); refreshPunchlineHUD(); });
     html.find("[data-action='sync-aha-initiative']").on("click", async () => {
       if (!game.combat) return ui.notifications.warn("There is no active combat to add Aha Instant to.");
       const combatant = await maybeEnsureAhaCombatant(game.combat, {force: true});
@@ -1473,14 +1607,21 @@ class AhaConfig extends FormApplication {
   }
   async _updateObject(_event, formData) {
     await game.settings.set(MODULE_ID, "ahaConfig", {
+      elationEnabled: Boolean(formData.elationEnabled),
+      elationPathId: formData.elationPathId || "",
+      punchlineIcon: formData.punchlineIcon || DEFAULT_AHA_CONFIG.punchlineIcon,
+      punchlineFontFile: formData.punchlineFontFile || "",
       video: formData.video || "",
       buttonImage: formData.buttonImage || DEFAULT_AHA_CONFIG.buttonImage,
       color: formData.color || DEFAULT_AHA_CONFIG.color,
       initiativeEnabled: Boolean(formData.initiativeEnabled),
       combatantImage: formData.combatantImage || DEFAULT_AHA_CONFIG.combatantImage
     });
+    await setPunchline(formData.punchline);
     refreshAhaButton();
+    refreshPunchlineHUD();
     await syncAhaCombatants();
+    for (const app of Object.values(ui.windows ?? {})) if (app.actor?.type === "character") app.render(false);
     ui.notifications.info("Aha Instant configuration saved.");
   }
 }
@@ -1544,6 +1685,8 @@ function registerSettings() {
   game.settings.register(MODULE_ID, "orbLayouts", {scope: "client", config: false, type: Object, default: {}});
   game.settings.register(MODULE_ID, "ahaConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_AHA_CONFIG)});
   game.settings.register(MODULE_ID, "ahaLayout", {scope: "client", config: false, type: Object, default: {x: 220, y: 180, size: 128, visible: false}});
+  game.settings.register(MODULE_ID, "punchline", {scope: "world", config: false, type: Number, default: 0});
+  game.settings.register(MODULE_ID, "punchlineLayout", {scope: "client", config: false, type: Object, default: {x: 580, y: 145, size: 54, visible: true}});
   game.settings.register(MODULE_ID, "skillPointConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_SKILL_POINT_CONFIG)});
   game.settings.register(MODULE_ID, "skillPoints", {scope: "world", config: false, type: Number, default: DEFAULT_SKILL_POINT_CONFIG.starting});
   game.settings.register(MODULE_ID, "skillMeterLayout", {scope: "client", config: false, type: Object, default: {x: 420, y: 80, size: 42, visible: true}});
@@ -1603,6 +1746,7 @@ async function injectUltimateTab(app, html) {
   const paths = getPaths().map(entry => ({...entry, selected: entry.id === config.pathId}));
   const content = await renderTemplate(`modules/${MODULE_ID}/templates/ultimate-tab.hbs`, {
     config, elements, paths,
+    elationEnabled: getAhaConfig().elationEnabled,
     selectedElement: elements.find(entry => entry.selected),
     selectedPath: paths.find(entry => entry.selected),
     titleAlignLeft: config.titleAlign === "left",
@@ -1649,6 +1793,7 @@ async function openUltimateConfig(actor, sheetApp = null) {
   const paths = getPaths().map(entry => ({...entry, selected: entry.id === config.pathId}));
   const content = await renderTemplate(`modules/${MODULE_ID}/templates/ultimate-tab.hbs`, {
     config, elements, paths,
+    elationEnabled: getAhaConfig().elationEnabled,
     selectedElement: elements.find(entry => entry.selected),
     selectedPath: paths.find(entry => entry.selected),
     titleAlignLeft: config.titleAlign === "left",
@@ -1674,11 +1819,11 @@ function activateConfigListeners(actor, tab, app) {
   tab.find("[data-action='save-config']").on("click", async event => {
     event.preventDefault();
     event.stopPropagation();
-    const data = {};
+    const data = foundry.utils.deepClone(getConfig(actor));
     tab.find("[name]").each((_index, field) => {
       data[field.name] = field.type === "checkbox" ? field.checked : field.value;
     });
-    for (const key of ["current", "max", "regenScore", "attackGain", "attackedGain", "splashDuration", "titleX", "titleY", "titleSize"]) data[key] = Number(data[key]);
+    for (const key of ["current", "max", "regenScore", "attackGain", "attackedGain", "punchlineGain", "splashDuration", "titleX", "titleY", "titleSize"]) data[key] = Number(data[key]);
     for (const key of ["enabled", "showPercent", "skillEnabled"]) data[key] = Boolean(data[key]);
     data.max = Math.max(1, data.max || 100);
     data.current = clamp(data.current, 0, data.max);
@@ -1892,6 +2037,10 @@ function registerApi() {
     getSkillPoints: currentSkillPoints,
     setSkillPoints,
     showSkillUI,
+    getPunchline: currentPunchline,
+    setPunchline,
+    addPunchline,
+    spendPunchline,
     showSplash,
     refreshOrbs: refreshAllOrbs,
     showOrb,
@@ -1913,6 +2062,7 @@ Hooks.once("ready", () => {
   registerApi();
   refreshAllOrbs();
   refreshAhaButton();
+  refreshPunchlineHUD();
   refreshSkillUI();
   registerAhaToolbarFallback();
   if (game.modules.get("midi-qol")?.active) Hooks.on("midi-qol.RollComplete", processMidiWorkflow);
@@ -1944,8 +2094,15 @@ Hooks.on("updateActor", actor => { refreshOrb(actor); refreshSkillUI(); refreshT
 Hooks.on("updateToken", () => refreshToughnessBars());
 Hooks.on("deleteActor", actor => { state.orbs.get(actor.id)?.destroy(); state.skillButtons.get(actor.id)?.destroy(); });
 Hooks.on("updateUser", user => { if (user.id === game.user.id) { refreshAllOrbs(); refreshSkillUI(); } });
-Hooks.on("updateSetting", setting => { if (setting?.key?.startsWith(`${MODULE_ID}.skillPoint`)) refreshSkillUI(); });
-Hooks.on("canvasReady", () => { refreshAllOrbs(); refreshSkillUI(); refreshToughnessBars(); });
+Hooks.on("updateSetting", setting => {
+  if (setting?.key?.startsWith(`${MODULE_ID}.skillPoint`)) refreshSkillUI();
+  if (setting?.key === `${MODULE_ID}.ahaConfig` || setting?.key === `${MODULE_ID}.punchline`) {
+    if (!getAhaConfig().elationEnabled) document.querySelectorAll(".tsru-aha-overlay").forEach(element => element.remove());
+    refreshAhaButton();
+    refreshPunchlineHUD();
+  }
+});
+Hooks.on("canvasReady", () => { refreshAllOrbs(); refreshSkillUI(); refreshPunchlineHUD(); refreshToughnessBars(); });
 Hooks.on("canvasReady", refreshAhaButton);
 
 Hooks.on("deleteCombat", combat => {

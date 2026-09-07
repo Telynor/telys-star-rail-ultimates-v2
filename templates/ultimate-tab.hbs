@@ -16,10 +16,18 @@
     <div class="tsru-config-section tsru-skill-config-section">
       <h3><i class="fas fa-hand-sparkles"></i> Skill</h3>
       <div class="tsru-field tsru-field-toggle"><span class="tsru-field-label"><strong>Enable Skill button</strong><small>Shows this character's movable Skill button to its owner and the GM.</small></span><input type="checkbox" name="skillEnabled" {{checked config.skillEnabled}}></div>
-      <div class="tsru-field tsru-field-wide tsru-script-field"><label><strong>Skill Script</strong><small>Runs after the shared party pool successfully spends 1 Skill Point. Available variables: <code>actor</code>, <code>token</code>, <code>game</code>, <code>canvas</code>, <code>ui</code>, <code>foundry</code>, and <code>Hooks</code>.</small></label><textarea name="skillScript" rows="10" spellcheck="false" placeholder="// Write this character's Skill here.">{{config.skillScript}}</textarea></div>
+      <div class="tsru-field tsru-field-wide tsru-script-field"><label><strong>Skill Script</strong><small>Runs after the shared party pool successfully spends 1 Skill Point. Available variables: <code>actor</code>, <code>token</code>, <code>game</code>, <code>canvas</code>, <code>ui</code>, <code>foundry</code>, <code>Hooks</code>, and <code>punchline</code>.</small></label><textarea name="skillScript" rows="10" spellcheck="false" placeholder="// Write this character's Skill here.">{{config.skillScript}}</textarea></div>
       <div class="tsru-field tsru-field-wide"><label><strong>Skill button artwork</strong><small>Displayed inside this character's free-floating circular Skill button. Defaults to the actor portrait.</small></label><div class="tsru-file-control"><input type="text" name="skillButtonImage" value="{{config.skillButtonImage}}" placeholder="Use actor portrait"><button type="button" class="file-picker" data-type="image" data-target="skillButtonImage" title="Browse Files"><i class="fas fa-file-import"></i></button></div></div>
       <div class="tsru-field tsru-field-wide"><label><strong>Floating Skill button</strong><small>The party must have at least 1 shared Skill Point before it can be pressed.</small></label><button type="button" data-action="show-skill-button"><i class="fas fa-hand-sparkles"></i> Show Skill Button</button></div>
     </div>
+
+    {{#if elationEnabled}}
+    <div class="tsru-config-section tsru-punchline-character-section">
+      <h3><i class="fas fa-masks-theater"></i> Elation &amp; Punchline</h3>
+      <div class="tsru-field"><label><strong>Punchline Gain</strong><small>If this character has the configured Elation Path, this many Punchlines are gained whenever they inflict damage. Characters on other Paths always generate +1.</small></label><input type="number" name="punchlineGain" min="0" step="1" value="{{config.punchlineGain}}"></div>
+      <div class="tsru-field tsru-field-wide"><label><strong>Script access</strong><small>Skill and Ultimate scripts can use <code>punchline.get()</code>, <code>await punchline.add(amount)</code>, <code>await punchline.spend(amount)</code>, and <code>await punchline.set(amount)</code>.</small></label><div class="tsru-script-access-note">Shared Punchline: controlled by the active GM</div></div>
+    </div>
+    {{/if}}
 
     <div class="tsru-config-section tsru-energy-override">
       <h3><i class="fas fa-gauge-high"></i> Manual Energy Override</h3>
@@ -28,7 +36,7 @@
 
     <div class="tsru-config-section">
       <h3><i class="fas fa-wand-magic-sparkles"></i> Ultimate &amp; Splash Artwork</h3>
-      <div class="tsru-field tsru-field-wide tsru-script-field"><label><strong>Ultimate Script</strong><small>Runs when this character activates a fully charged Ultimate. Available variables: <code>actor</code>, <code>token</code>, <code>game</code>, <code>canvas</code>, <code>ui</code>, <code>foundry</code>, and <code>Hooks</code>.</small></label><textarea name="ultimateScript" rows="10" spellcheck="false" placeholder="// Write this character's Ultimate here.">{{config.ultimateScript}}</textarea></div>
+      <div class="tsru-field tsru-field-wide tsru-script-field"><label><strong>Ultimate Script</strong><small>Runs when this character activates a fully charged Ultimate. Available variables: <code>actor</code>, <code>token</code>, <code>game</code>, <code>canvas</code>, <code>ui</code>, <code>foundry</code>, <code>Hooks</code>, and <code>punchline</code>.</small></label><textarea name="ultimateScript" rows="10" spellcheck="false" placeholder="// Write this character's Ultimate here.">{{config.ultimateScript}}</textarea></div>
       <div class="tsru-field tsru-field-wide"><label><strong>Combat splash artwork</strong><small>Displayed briefly to every connected player.</small></label><div class="tsru-file-control"><input type="text" name="splashImage" value="{{config.splashImage}}" placeholder="Choose an image or video"><button type="button" class="file-picker" data-type="imagevideo" data-target="splashImage" title="Browse Files"><i class="fas fa-file-import"></i></button><button type="button" data-action="preview-splash" title="Preview Splash"><i class="fas fa-eye"></i></button></div></div>
       <div class="tsru-field"><label><strong>Splash duration</strong><small>How long everyone sees the artwork.</small></label><div class="tsru-unit-control"><input type="number" name="splashDuration" min="0.1" max="30" step="0.1" value="{{config.splashDuration}}"><span>seconds</span></div></div>
       <div class="tsru-field tsru-field-wide"><label><strong>Ultimate name</strong><small>The large English title displayed over the artwork.</small></label><input type="text" name="ultimateName" value="{{config.ultimateName}}" placeholder="Ultimate name"></div>

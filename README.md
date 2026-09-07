@@ -7,6 +7,13 @@
 - A movable and resizable meter plus per-character movable Skill buttons.
 - GM-authored per-character Skill scripts. The active GM authorizes and deducts each point before the owning player runs the script.
 
+## Elation and Punchline
+
+- A world-level “Elation on Team?” switch controls Punchline and every Aha Instant feature.
+- Choose a saved Path as the Elation Path. Matching characters generate their configured Punchline amount on damage; other player characters generate +1.
+- The shared movable Punchline counter supports custom mask artwork and a custom number font.
+- Skill and Ultimate scripts receive a `punchline` helper for reading, adding, spending, or setting the shared resource.
+
 A Foundry Virtual Tabletop v14 module for D&D 5e that recreates Honkai: Star Rail-style Ultimate energy and interrupt turns.
 
 ## Features
