@@ -343,7 +343,9 @@ class PunchlineMeter {
     this.element.style.setProperty("--tsru-punchline-icon-x", `${clamp(config.punchlineIconOffsetX, -100, 100)}px`);
     this.element.style.setProperty("--tsru-punchline-icon-y", `${clamp(config.punchlineIconOffsetY, -100, 100)}px`);
     this.element.style.setProperty("--tsru-punchline-color", config.color || DEFAULT_AHA_CONFIG.color);
-    this.element.querySelector(".tsru-punchline-icon").src = config.punchlineIcon || DEFAULT_AHA_CONFIG.punchlineIcon;
+    const icon = this.element.querySelector(".tsru-punchline-icon");
+    icon.src = config.punchlineIcon || DEFAULT_AHA_CONFIG.punchlineIcon;
+    icon.style.transform = `translate(${clamp(config.punchlineIconOffsetX, -100, 100)}px, ${clamp(config.punchlineIconOffsetY, -100, 100)}px)`;
     this.element.querySelector(".tsru-punchline-number").textContent = String(currentPunchline());
     loadSplashFont(config.punchlineFontFile).then(font => this.element?.style.setProperty("--tsru-punchline-font", font)).catch(error => console.warn(`${MODULE_ID} | Could not load Punchline font`, error));
     return this;
@@ -1244,6 +1246,12 @@ async function executeUltimate(actorId, requestingUserId) {
 
 async function onSocket(payload) {
   if (!payload?.type) return;
+  if (payload.type === "ahaConfigChanged") {
+    state.punchlineMeter?.destroy();
+    refreshAhaButton();
+    refreshPunchlineHUD();
+    return;
+  }
   if (payload.type === "punchlineChanged") { refreshPunchlineHUD(); return; }
   if (payload.type === "changePunchline" && isAuthority()) {
     const requester = game.users.get(payload.sourceUserId);
@@ -1741,7 +1749,7 @@ class AhaConfig extends FormApplication {
     });
   }
   async _updateObject(_event, formData) {
-    await game.settings.set(MODULE_ID, "ahaConfig", {
+    const savedConfig = {
       elationEnabled: Boolean(formData.elationEnabled),
       elationPathId: formData.elationPathId || "",
       punchlineIcon: formData.punchlineIcon || DEFAULT_AHA_CONFIG.punchlineIcon,
@@ -1754,10 +1762,13 @@ class AhaConfig extends FormApplication {
       color: formData.color || DEFAULT_AHA_CONFIG.color,
       initiativeEnabled: Boolean(formData.initiativeEnabled),
       combatantImage: formData.combatantImage || DEFAULT_AHA_CONFIG.combatantImage
-    });
+    };
+    await game.settings.set(MODULE_ID, "ahaConfig", savedConfig);
     await setPunchline(formData.punchline);
     refreshAhaButton();
+    state.punchlineMeter?.destroy();
     refreshPunchlineHUD();
+    game.socket.emit(SOCKET, {type: "ahaConfigChanged", sourceUserId: game.user.id});
     if (!getAhaConfig().elationEnabled && game.combat) await clearElationActionTurns(game.combat);
     await syncAhaCombatants();
     for (const app of Object.values(ui.windows ?? {})) if (app.actor?.type === "character") app.render(false);
