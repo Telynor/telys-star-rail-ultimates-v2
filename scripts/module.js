@@ -62,6 +62,7 @@ const DEFAULT_SKILL_POINT_CONFIG = Object.freeze({
   maximum: 5,
   starting: 3,
   pointsPerRow: 5,
+  pointSpacing: 1,
   illuminatedIcon: "icons/svg/sun.svg",
   emptyIcon: "icons/svg/circle.svg",
   numberFontFile: ""
@@ -434,6 +435,7 @@ function getSkillPointConfig() {
   config.maximum = Math.max(1, Math.floor(Number(config.maximum) || DEFAULT_SKILL_POINT_CONFIG.maximum));
   config.starting = clamp(Math.floor(Number(config.starting)), 0, config.maximum);
   config.pointsPerRow = clamp(Math.floor(Number(config.pointsPerRow)), 1, config.maximum);
+  config.pointSpacing = clamp(Number(config.pointSpacing), 0, 50);
   return config;
 }
 
@@ -501,6 +503,7 @@ class SkillPointMeter {
     }).join("");
     this.element.querySelector(".tsru-skill-pips").innerHTML = pips;
     this.element.querySelector(".tsru-skill-pips").style.setProperty("--tsru-skill-columns", String(config.pointsPerRow));
+    this.element.querySelector(".tsru-skill-pips").style.setProperty("--tsru-skill-point-gap", `${config.pointSpacing}px`);
     this.element.querySelector(".tsru-skill-point-number").textContent = String(current);
     loadSplashFont(config.numberFontFile).then(font => this.element?.style.setProperty("--tsru-skill-number-font", font)).catch(error => console.warn(`${MODULE_ID} | Could not load Skill Point font`, error));
     this.element.style.left = `${clamp(layout.x, 0, window.innerWidth - 40)}px`;
@@ -1518,6 +1521,7 @@ class SkillPointConfig extends FormApplication {
       maximum,
       starting: clamp(Math.floor(Number(formData.starting)), 0, maximum),
       pointsPerRow: clamp(Math.floor(Number(formData.pointsPerRow)), 1, maximum),
+      pointSpacing: clamp(Number(formData.pointSpacing), 0, 50),
       illuminatedIcon: formData.illuminatedIcon || DEFAULT_SKILL_POINT_CONFIG.illuminatedIcon,
       emptyIcon: formData.emptyIcon || DEFAULT_SKILL_POINT_CONFIG.emptyIcon,
       numberFontFile: formData.numberFontFile || ""

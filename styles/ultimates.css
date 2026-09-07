@@ -20,7 +20,7 @@
 .tsru-skill-meter-content { display: flex; align-items: center; gap: max(3px, calc(var(--tsru-skill-pip-size) * .08)); }
 .tsru-skill-point-number { flex: 0 0 auto; min-width: .72em; color: #fff; font-family: var(--tsru-skill-number-font); font-size: calc(var(--tsru-skill-pip-size) * .88); font-weight: 500; line-height: 1; text-align: right; text-shadow: 0 2px 4px #000; }
 .tsru-skill-point-separator { flex: 0 0 auto; width: max(3px, calc(var(--tsru-skill-pip-size) * .09)); height: calc(var(--tsru-skill-pip-size) * .8); margin: 0 calc(var(--tsru-skill-pip-size) * .03); background: linear-gradient(to bottom, rgba(255,255,255,.25), #fff 35%, #3fe9e2 36%, #189b9f 100%); clip-path: polygon(48% 0, 100% 0, 52% 100%, 0 100%); box-shadow: 0 0 6px rgba(45,225,221,.55); }
-.tsru-skill-pips { display: grid; grid-template-columns: repeat(var(--tsru-skill-columns), var(--tsru-skill-pip-size)); align-items: center; gap: max(1px, calc(var(--tsru-skill-pip-size) * .025)); }
+.tsru-skill-pips { display: grid; grid-template-columns: repeat(var(--tsru-skill-columns), var(--tsru-skill-pip-size)); align-items: center; gap: var(--tsru-skill-point-gap, 1px); }
 .tsru-skill-pip { box-sizing: border-box; width: var(--tsru-skill-pip-size); height: var(--tsru-skill-pip-size); border: 0; object-fit: contain; transition: filter .2s ease, opacity .2s ease, transform .2s ease; }
 .tsru-skill-pip.is-filled { opacity: 1; filter: drop-shadow(0 0 7px rgba(255,255,255,.75)); }
 .tsru-skill-pip.is-empty { opacity: .62; filter: grayscale(.55) brightness(.7); }
