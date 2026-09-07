@@ -900,7 +900,7 @@ function damageRollsFromAppliedMessage(message) {
   return rolls.filter(roll => !String(roll?.constructor?.name ?? "").toLowerCase().includes("d20roll"));
 }
 
-async function processAppliedDamage(target, _amount, options = {}) {
+async function processAppliedDamage(target, amount, options = {}) {
   if (!isAuthority() || !target) return;
   const origin = options.origin;
   const sourceUuid = options.midi?.sourceActorUuid;
@@ -910,12 +910,25 @@ async function processAppliedDamage(target, _amount, options = {}) {
   if (!attacker && origin?.speaker?.token) attacker = canvas?.tokens?.get(origin.speaker.token)?.actor;
   if (!attacker || attacker.documentName !== "Actor") return;
 
+  const targetActor = target?.actor ?? target?.document?.actor ?? target;
+  const damageEventId = origin?.id ?? options.midi?.workflowId ?? "unknown";
+
+  if (targetActor?.type === "character" && Number(amount) > 0) {
+    const energyKey = `applied-energy:${damageEventId}:${targetActor.uuid}`;
+    if (!state.processedMessages.has(energyKey)) {
+      state.processedMessages.add(energyKey);
+      window.setTimeout(() => state.processedMessages.delete(energyKey), 120000);
+      const config = getConfig(targetActor);
+      if (config.attackedMode === "targeted" || config.attackedMode === "hit") {
+        await addEnergy(targetActor, energyGain(config, "attacked"), "hit");
+      }
+    }
+  }
+
   const damageRolls = damageRollsFromAppliedMessage(origin);
   const diceDamage = rawDiceTotal(damageRolls);
   if (diceDamage <= 0) return;
-
-  const targetActor = target?.actor ?? target?.document?.actor ?? target;
-  const eventKey = `applied-damage:${origin?.id ?? options.midi?.workflowId ?? "unknown"}:${targetActor.uuid}:${diceDamage}`;
+  const eventKey = `applied-damage:${damageEventId}:${targetActor.uuid}:${diceDamage}`;
   await applyToughnessDamage(attacker, [targetActor], diceDamage, eventKey);
 }
 
