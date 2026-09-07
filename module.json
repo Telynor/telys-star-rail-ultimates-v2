@@ -2,7 +2,7 @@
   "id": "telys-star-rail-ultimates",
   "title": "Tely's Star Rail Ultimates",
   "description": "Honkai: Star Rail-inspired shared Skill Points, chat-card abilities, automated Talents, energy, cinematic Ultimates, custom elements and paths, Toughness, and interrupt turns for D&D 5e.",
-  "version": "2.9.0",
+  "version": "2.9.1",
   "authors": [
     {
       "name": "Telynor"
@@ -37,7 +37,7 @@
     }
   ],
   "manifest": "https://github.com/Telynor/telys-star-rail-ultimates-v2/releases/latest/download/module.json",
-  "download": "https://github.com/Telynor/telys-star-rail-ultimates-v2/releases/download/v2.9.0/telys-star-rail-ultimates-v2.9.0.zip",
+  "download": "https://github.com/Telynor/telys-star-rail-ultimates-v2/releases/download/v2.9.1/telys-star-rail-ultimates-v2.9.1.zip",
   "license": "LICENSE",
   "readme": "README.md"
 }

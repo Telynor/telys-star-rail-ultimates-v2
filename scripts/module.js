@@ -656,17 +656,34 @@ async function saveAhaLayout(changes) {
 }
 
 function playAhaVideo({video}) {
-  if (!getAhaConfig().elationEnabled || !video) return;
+  if (!video) return;
   document.querySelectorAll(".tsru-aha-overlay").forEach(element => element.remove());
   const overlay = document.createElement("div");
   overlay.className = "tsru-aha-overlay";
-  overlay.innerHTML = `<video src="${escapeHTML(video)}" autoplay playsinline></video>`;
+  overlay.innerHTML = `<video src="${escapeHTML(video)}" autoplay playsinline preload="auto"></video>`;
   appendToCanvasLayer(overlay);
   const player = overlay.querySelector("video");
-  const remove = () => overlay.remove();
+  let removed = false;
+  const failsafe = window.setTimeout(remove, 10000);
+  function remove() {
+    if (removed) return;
+    removed = true;
+    window.clearTimeout(failsafe);
+    try { player.pause(); } catch (_error) {}
+    player.removeAttribute("src");
+    player.load();
+    overlay.remove();
+  }
   player.addEventListener("ended", remove, {once: true});
   player.addEventListener("error", remove, {once: true});
-  window.setTimeout(remove, 300000);
+  const playback = player.play();
+  if (playback?.catch) playback.catch(() => {
+    player.muted = true;
+    player.play().catch(error => {
+      console.warn(`${MODULE_ID} | Aha Instant video could not autoplay on this client`, error);
+      remove();
+    });
+  });
 }
 
 function triggerAhaInstant() {
@@ -675,7 +692,7 @@ function triggerAhaInstant() {
   if (!config.elationEnabled) return ui.notifications.warn("Aha Instant is disabled because Elation is not on the team.");
   if (!config.video) return ui.notifications.warn("Configure an Aha Instant WebM first.");
   playAhaVideo(config);
-  game.socket.emit(SOCKET, {type: "showAhaVideo", sourceUserId: game.user.id, video: config.video});
+  game.socket.emit(SOCKET, {type: "showAhaVideo", sourceUserId: game.user.id, playbackId: foundry.utils.randomID(), video: config.video});
 }
 
 function isAhaCombatant(combatant) {
