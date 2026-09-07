@@ -63,7 +63,8 @@ const DEFAULT_SKILL_POINT_CONFIG = Object.freeze({
   starting: 3,
   pointsPerRow: 5,
   illuminatedIcon: "icons/svg/sun.svg",
-  emptyIcon: "icons/svg/circle.svg"
+  emptyIcon: "icons/svg/circle.svg",
+  numberFontFile: ""
 });
 
 const DEFAULT_TOUGHNESS = Object.freeze({enabled: true, current: 100, max: 100, weaknesses: [], discoveredWeaknesses: []});
@@ -480,7 +481,7 @@ class SkillPointMeter {
     if (!this.element) {
       this.element = document.createElement("div");
       this.element.className = "tsru-skill-meter";
-      this.element.innerHTML = `<div class="tsru-skill-meter-drag" title="Move Skill Point meter"><i class="fas fa-grip-lines"></i></div><div class="tsru-skill-pips"></div><div class="tsru-skill-meter-label">Skill Points</div><button type="button" class="tsru-skill-meter-close" title="Hide Skill Point meter"><i class="fas fa-xmark"></i></button><div class="tsru-skill-meter-resize" title="Resize"></div>`;
+      this.element.innerHTML = `<div class="tsru-skill-meter-drag" title="Move Skill Point meter"><i class="fas fa-grip-lines"></i></div><div class="tsru-skill-meter-content"><div class="tsru-skill-point-number"></div><div class="tsru-skill-point-separator" aria-hidden="true"></div><div class="tsru-skill-pips"></div></div><div class="tsru-skill-meter-underline"></div><button type="button" class="tsru-skill-meter-close" title="Hide Skill Point meter"><i class="fas fa-xmark"></i></button><div class="tsru-skill-meter-resize" title="Resize"></div>`;
       document.body.appendChild(this.element);
       this.activateListeners();
     }
@@ -500,7 +501,8 @@ class SkillPointMeter {
     }).join("");
     this.element.querySelector(".tsru-skill-pips").innerHTML = pips;
     this.element.querySelector(".tsru-skill-pips").style.setProperty("--tsru-skill-columns", String(config.pointsPerRow));
-    this.element.querySelector(".tsru-skill-meter-label").textContent = `Skill Points ${current}/${config.maximum}`;
+    this.element.querySelector(".tsru-skill-point-number").textContent = String(current);
+    loadSplashFont(config.numberFontFile).then(font => this.element?.style.setProperty("--tsru-skill-number-font", font)).catch(error => console.warn(`${MODULE_ID} | Could not load Skill Point font`, error));
     this.element.style.left = `${clamp(layout.x, 0, window.innerWidth - 40)}px`;
     this.element.style.top = `${clamp(layout.y, 0, window.innerHeight - 40)}px`;
     this.element.style.setProperty("--tsru-skill-pip-size", `${clamp(layout.size, 24, 100)}px`);
@@ -1501,7 +1503,7 @@ class SkillPointConfig extends FormApplication {
     html.find(".file-picker").on("click", event => {
       const button = event.currentTarget;
       const target = button.dataset.target;
-      new FilePicker({type: "image", current: html.find(`[name="${target}"]`).val(), callback: path => html.find(`[name="${target}"]`).val(path).trigger("change")}).browse();
+      new FilePicker({type: button.dataset.type || "image", current: html.find(`[name="${target}"]`).val(), callback: path => html.find(`[name="${target}"]`).val(path).trigger("change")}).browse();
     });
     activateImageDrops(html);
     html.find("[data-action='show-skill-ui']").on("click", showSkillUI);
@@ -1517,7 +1519,8 @@ class SkillPointConfig extends FormApplication {
       starting: clamp(Math.floor(Number(formData.starting)), 0, maximum),
       pointsPerRow: clamp(Math.floor(Number(formData.pointsPerRow)), 1, maximum),
       illuminatedIcon: formData.illuminatedIcon || DEFAULT_SKILL_POINT_CONFIG.illuminatedIcon,
-      emptyIcon: formData.emptyIcon || DEFAULT_SKILL_POINT_CONFIG.emptyIcon
+      emptyIcon: formData.emptyIcon || DEFAULT_SKILL_POINT_CONFIG.emptyIcon,
+      numberFontFile: formData.numberFontFile || ""
     };
     await game.settings.set(MODULE_ID, "skillPointConfig", config);
     await setSkillPoints(clamp(Math.floor(Number(formData.current)), 0, maximum));
