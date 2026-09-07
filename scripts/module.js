@@ -67,6 +67,7 @@ const state = {
 };
 
 let ahaToolbarOpening = false;
+let gmToolbarOpening = false;
 
 const DEFAULT_AHA_CONFIG = Object.freeze({
   elationEnabled: false,
@@ -854,18 +855,16 @@ function openAhaInstantControls() {
     console.error(`${MODULE_ID} | Could not open Aha Instant configuration`, error);
     ui.notifications.error(`Could not open Aha Instant configuration: ${error.message}`);
   }
-  if (getAhaConfig().elationEnabled) showAhaButton().catch(error => {
-    console.error(`${MODULE_ID} | Could not show Aha Instant button`, error);
-    ui.notifications.error(`Could not show the Aha Instant button: ${error.message}`);
-  });
 }
 
 function registerAhaToolbarFallback() {
   if (document.documentElement.dataset.tsruAhaToolbarListener) return;
   document.documentElement.dataset.tsruAhaToolbarListener = "true";
   document.addEventListener("click", event => {
-    const control = event.target.closest?.('[data-tool="tsru-aha-instant"], [data-control="tsru-aha-instant"], [data-action="tsru-aha-instant"]');
-    if (control) openAhaInstantControls();
+    const ahaControl = event.target.closest?.('[data-tool="tsru-aha-instant"], [data-control="tsru-aha-instant"], [data-action="tsru-aha-instant"]');
+    if (ahaControl) return openAhaInstantControls();
+    const gmControl = event.target.closest?.('[data-tool="tsru-gm-panel"], [data-control="tsru-gm-panel"], [data-action="tsru-gm-panel"]');
+    if (gmControl) openStarRailGMPanel();
   }, true);
 }
 
@@ -2317,8 +2316,16 @@ class StarRailGMPanel extends FormApplication {
 
 function openStarRailGMPanel() {
   if (!game.user.isGM) return ui.notifications.warn("Only a GM can open the Star Rail GM Panel.");
-  if (!state.gmPanel) state.gmPanel = new StarRailGMPanel();
-  state.gmPanel.render(true);
+  if (gmToolbarOpening) return;
+  gmToolbarOpening = true;
+  window.setTimeout(() => { gmToolbarOpening = false; }, 350);
+  try {
+    if (!state.gmPanel) state.gmPanel = new StarRailGMPanel();
+    state.gmPanel.render(true);
+  } catch (error) {
+    console.error(`${MODULE_ID} | Could not open Star Rail GM Panel`, error);
+    ui.notifications.error(`Could not open the Star Rail GM Panel: ${error.message}`);
+  }
 }
 
 function registerSettings() {
