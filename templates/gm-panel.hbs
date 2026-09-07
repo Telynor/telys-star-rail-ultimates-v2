@@ -23,7 +23,7 @@
         <div class="tsru-gm-weakness-actions"><button type="button" data-action="save-temporary-weaknesses"><i class="fas fa-save"></i> Save Temporary Weaknesses</button><button type="button" data-action="reset-temporary-weaknesses"><i class="fas fa-rotate-left"></i> Reset Weaknesses</button></div>
       </article>
       {{else}}
-      <p class="notes">No enemy tokens are present on the current Scene.</p>
+      <p class="notes">No enemy tokens on the current Scene are in the initiative order.</p>
       {{/each}}
     </div>
     <button type="button" data-action="reset-all-temporary-weaknesses"><i class="fas fa-rotate-left"></i> Reset Every Enemy to Main Weakness Selections</button>
@@ -44,7 +44,7 @@
         <label><span>Talent Points</span><div class="tsru-gm-paired-input"><input type="number" min="0" max="{{this.config.talentPointsMax}}" value="{{this.config.talentPointsCurrent}}" data-actor-id="{{this.actor.id}}" data-actor-field="talentPointsCurrent"><b>/</b><input type="number" min="0" value="{{this.config.talentPointsMax}}" data-actor-id="{{this.actor.id}}" data-actor-field="talentPointsMax"></div></label>
       </article>
       {{else}}
-      <p class="notes">No player-character actors were found.</p>
+      <p class="notes">No Main Party characters or character tokens are present on the current Scene.</p>
       {{/each}}
     </div>
   </section>

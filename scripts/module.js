@@ -2368,11 +2368,17 @@ class StarRailGMPanel extends FormApplication {
     });
   }
   getData() {
-    const characters = game.actors.filter(actor => actor.type === "character").map(actor => ({actor, config: getConfig(actor), modifier: signedNumber(regenModifier(getConfig(actor)))}));
-    const combatants = game.combat?.started ? game.combat.combatants.filter(entry => !isAhaCombatant(entry) && !isElationActionCombatant(entry) && !entry.getFlag(MODULE_ID, "temporaryUltimate") && !entry.getFlag(MODULE_ID, "actionAdvance")).map(entry => ({id: entry.id, name: entry.name, initiative: entry.initiative, img: entry.img})) : [];
+    const canvasCharacterIds = new Set((canvas?.tokens?.placeables ?? []).filter(token => token.actor?.type === "character").map(token => token.actor.id));
+    const characters = game.actors
+      .filter(actor => actor.type === "character" && (getConfig(actor).mainParty || canvasCharacterIds.has(actor.id)))
+      .map(actor => ({actor, config: getConfig(actor), modifier: signedNumber(regenModifier(getConfig(actor)))}));
+    const normalCombatants = game.combat?.combatants?.filter(entry => !isAhaCombatant(entry) && !isElationActionCombatant(entry) && !entry.getFlag(MODULE_ID, "temporaryUltimate") && !entry.getFlag(MODULE_ID, "actionAdvance")) ?? [];
+    const combatants = game.combat?.started ? normalCombatants.map(entry => ({id: entry.id, name: entry.name, initiative: entry.initiative, img: entry.img})) : [];
+    const initiativeTokenIds = new Set(normalCombatants.map(entry => entry.tokenId).filter(Boolean));
+    const initiativeActorUuids = new Set(normalCombatants.map(entry => entry.actor?.uuid).filter(Boolean));
     const elements = getElements();
     const targetedIds = new Set([...(game.user?.targets ?? [])].map(token => token.id));
-    const sceneEnemies = (canvas?.tokens?.placeables ?? []).filter(token => token.actor?.type === "npc").map(token => {
+    const sceneEnemies = (canvas?.tokens?.placeables ?? []).filter(token => token.actor?.type === "npc" && (initiativeTokenIds.has(token.id) || initiativeActorUuids.has(token.actor.uuid))).map(token => {
       const actor = token.actor;
       const config = getToughness(actor);
       const temporary = temporaryToughnessWeaknesses(token);
