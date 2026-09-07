@@ -888,10 +888,10 @@ async function injectCharacterBadges(app, html) {
   if (!rootElement) return;
   const root = $(rootElement);
   root.find("[data-tsru-character-badges]").remove();
+  root.find("[data-tsru-talent-counter]").remove();
   const config = getConfig(actor);
   const element = getElements().find(entry => entry.id === config.elementId);
   const path = getPaths().find(entry => entry.id === config.pathId);
-  if (!element?.icon && !path?.icon) return;
   const typeName = String(actor.system?.details?.type?.value || actor.system?.details?.type || "").trim();
   const speciesCandidates = root.find('.species, [class*="species"], [data-action*="species"], section, div').filter((_index, node) => {
     const rect = node.getBoundingClientRect();
@@ -900,15 +900,35 @@ async function injectCharacterBadges(app, html) {
     return rect.width >= 150 && rect.width <= 500 && rect.height >= 38 && rect.height <= 100 && (matchesType || /^Humanoid\b/i.test(text));
   }).toArray().sort((a, b) => (a.getBoundingClientRect().width * a.getBoundingClientRect().height) - (b.getBoundingClientRect().width * b.getBoundingClientRect().height));
   let host = speciesCandidates.length ? $(speciesCandidates[0]) : $();
+  const speciesHostFound = Boolean(host.length);
   if (!host.length) {
     const portrait = root.find('img[data-edit="img"], img.profile, img.portrait, [data-application-part="portrait"] img').first();
     if (!portrait.length) return;
     host = portrait.parent().addClass("tsru-portrait-badge-host");
   } else host.addClass("tsru-species-badge-host");
+  if (speciesHostFound) {
+    const talentMaximum = Math.max(0, Math.floor(Number(config.talentPointsMax) || 0));
+    const talentCurrent = clamp(config.talentPointsCurrent, 0, talentMaximum);
+    host.before(`<div class="tsru-sheet-talent-counter" data-tsru-talent-counter title="Talent Points reset to 0 when combat starts"><span><i class="fas fa-star"></i> Talent Points</span><strong><b data-tsru-talent-current>${talentCurrent}</b><i>/</i><b data-tsru-talent-max>${talentMaximum}</b></strong></div>`);
+  }
+  if (!element?.icon && !path?.icon) return;
   const badges = $(`<div class="tsru-character-badges" data-tsru-character-badges></div>`);
   if (element?.icon) badges.append(`<div class="tsru-character-badge" title="Element: ${escapeHTML(element.name)}" style="--tsru-badge-color:${element.readyColor || element.color || "#fff"}"><img src="${escapeHTML(element.icon)}"></div>`);
   if (path?.icon) badges.append(`<div class="tsru-character-badge" title="Path: ${escapeHTML(path.name)}"><img src="${escapeHTML(path.icon)}"></div>`);
   host.append(badges);
+}
+
+function refreshTalentCounter(actor) {
+  if (!actor) return;
+  const config = getConfig(actor);
+  const maximum = Math.max(0, Math.floor(Number(config.talentPointsMax) || 0));
+  const current = clamp(config.talentPointsCurrent, 0, maximum);
+  for (const app of Object.values(ui.windows ?? {})) {
+    if (app.actor?.id !== actor.id) continue;
+    const root = app.element?.jquery ? app.element : $(app.element ?? []);
+    root.find("[data-tsru-talent-current]").text(current);
+    root.find("[data-tsru-talent-max]").text(maximum);
+  }
 }
 
 class UltimateOrb {
@@ -2330,8 +2350,8 @@ Hooks.on("createChatMessage", processCoreAttackMessage);
 Hooks.on("tsruEnergyChanged", (actor, before, after, reason) => dispatchTalentEvent("energyChanged", {sourceActor: actor, before, after, amount: after - before, reason}));
 Hooks.on("tsruPunchlineChanged", value => dispatchTalentEvent("punchlineChanged", {value}));
 Hooks.on("tsruSkillPointsChanged", value => dispatchTalentEvent("skillPointsChanged", {value}));
-Hooks.on("tsruTalentPointsChanged", (actor, before, after) => dispatchTalentEvent("talentPointsChanged", {sourceActor: actor, before, after, amount: after - before}));
-Hooks.on("updateActor", actor => { refreshOrb(actor); refreshSkillUI(); refreshToughnessBars(); });
+Hooks.on("tsruTalentPointsChanged", (actor, before, after) => { refreshTalentCounter(actor); dispatchTalentEvent("talentPointsChanged", {sourceActor: actor, before, after, amount: after - before}); });
+Hooks.on("updateActor", actor => { refreshOrb(actor); refreshSkillUI(); refreshTalentCounter(actor); refreshToughnessBars(); });
 Hooks.on("updateToken", () => refreshToughnessBars());
 Hooks.on("deleteActor", actor => { state.orbs.get(actor.id)?.destroy(); state.skillButtons.get(actor.id)?.destroy(); });
 Hooks.on("updateUser", user => { if (user.id === game.user.id) { refreshAllOrbs(); refreshSkillUI(); } });
