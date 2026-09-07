@@ -18,6 +18,13 @@
 - Each temporary turn runs that character's GM-authored Elation Action script on its active owner. Once the awaited script finishes, the sequence advances automatically; after the final action, Punchline resets to zero, the temporary turns disappear, and the next normal round begins.
 - Skills, Ultimates, and Elation Actions remain usable when their script field is empty. The normal resource, animation, and turn behavior still resolves, with a “Script missing, no effect.” notification in place of a scripted effect.
 
+## Programmable Talents
+
+- Every character has a GM-authored Talent script plus editable current and maximum Talent Points.
+- Held Talent Points reset to zero whenever combat starts; the configured maximum is preserved.
+- Talent scripts receive event-driven conditions for combat, turns, damage, Energy, Skill Points, Punchline, Skills, Ultimates, Elation Actions, and Talent Point changes.
+- Scripts receive `event`, `punchline`, and actor-specific `talent.get/max/add/spend/set` helpers. Execution is GM-authoritative with recursion and duplicate-event protection.
+
 A Foundry Virtual Tabletop v14 module for D&D 5e that recreates Honkai: Star Rail-style Ultimate energy and interrupt turns.
 
 ## Features

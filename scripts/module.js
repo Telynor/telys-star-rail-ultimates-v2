@@ -12,6 +12,9 @@ const DEFAULT_CONFIG = Object.freeze({
   skillEnabled: true,
   skillScript: "",
   skillButtonImage: "",
+  talentPointsCurrent: 0,
+  talentPointsMax: 0,
+  talentScript: "",
   punchlineGain: 1,
   elationActionScript: "",
   ultimateScript: "",
@@ -50,6 +53,9 @@ const state = {
   pendingUltimates: new Map(),
   lastTargetsByActor: new Map(),
   recentToughness: new Map(),
+  activeTalents: new Set(),
+  talentEvents: new Set(),
+  lastTalentTurns: new Map(),
   suppressCombatHook: false,
   lastAhaTurnKey: ""
 };
@@ -324,6 +330,72 @@ function punchlineScriptHelpers(actor) {
     spend: amount => request("spend", amount),
     set: amount => request("set", amount)
   });
+}
+
+function currentTalentPoints(actor) {
+  const config = getConfig(actor);
+  return clamp(Math.floor(Number(config.talentPointsCurrent) || 0), 0, Math.max(0, Math.floor(Number(config.talentPointsMax) || 0)));
+}
+
+async function setTalentPoints(actor, value) {
+  if (!isAuthority() || actor?.type !== "character") return currentTalentPoints(actor);
+  const config = getConfig(actor);
+  const maximum = Math.max(0, Math.floor(Number(config.talentPointsMax) || 0));
+  const next = clamp(Math.floor(Number(value) || 0), 0, maximum);
+  const before = currentTalentPoints(actor);
+  if (next !== before) await actor.update({[`flags.${MODULE_ID}.ultimate.talentPointsCurrent`]: next});
+  Hooks.callAll("tsruTalentPointsChanged", actor, before, next);
+  return next;
+}
+
+function talentScriptHelpers(actor) {
+  return Object.freeze({
+    get: () => currentTalentPoints(actor),
+    max: () => Math.max(0, Math.floor(Number(getConfig(actor).talentPointsMax) || 0)),
+    set: value => setTalentPoints(actor, value),
+    add: amount => setTalentPoints(actor, currentTalentPoints(actor) + (Number(amount) || 0)),
+    spend: async amount => {
+      const cost = Math.max(0, Math.floor(Number(amount) || 0));
+      if (currentTalentPoints(actor) < cost) return false;
+      await setTalentPoints(actor, currentTalentPoints(actor) - cost);
+      return true;
+    }
+  });
+}
+
+async function runTalentScript(actor, event) {
+  const script = getConfig(actor).talentScript?.trim();
+  if (!script || state.activeTalents.has(actor.id)) return;
+  state.activeTalents.add(actor.id);
+  try {
+    const token = actor.getActiveTokens(true, true)?.[0] ?? null;
+    const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+    const execute = new AsyncFunction("actor", "token", "event", "game", "canvas", "ui", "foundry", "Hooks", "punchline", "talent", `"use strict";\n${script}`);
+    await execute(actor, token, event, game, canvas, ui, foundry, Hooks, punchlineScriptHelpers(actor), talentScriptHelpers(actor));
+  } catch (error) {
+    console.error(`${MODULE_ID} | ${actor.name} Talent failed during ${event.type}`, error);
+    ui.notifications.error(`${actor.name}'s Talent failed: ${error.message}`);
+  } finally { state.activeTalents.delete(actor.id); }
+}
+
+async function dispatchTalentEvent(type, detail = {}, eventKey = "") {
+  if (!isAuthority()) return;
+  const key = eventKey ? `talent:${type}:${eventKey}` : "";
+  if (key && state.talentEvents.has(key)) return;
+  if (key) {
+    state.talentEvents.add(key);
+    window.setTimeout(() => state.talentEvents.delete(key), 120000);
+  }
+  const event = Object.freeze({
+    type,
+    id: eventKey || foundry.utils.randomID(),
+    combat: detail.combat ?? game.combat ?? null,
+    round: detail.combat?.round ?? game.combat?.round ?? null,
+    turn: detail.combat?.turn ?? game.combat?.turn ?? null,
+    ...detail
+  });
+  const actors = game.actors.filter(actor => actor.type === "character" && Boolean(getConfig(actor).talentScript?.trim()));
+  for (const actor of actors) await runTalentScript(actor, event);
 }
 
 function punchlineLayout() {
@@ -1147,6 +1219,7 @@ async function executeElationAction(combatant) {
   const actor = combatant.actor;
   if (!actor) return completeElationAction(combatant.id);
   state.activeElationActions.add(combatant.id);
+  await dispatchTalentEvent("elationAction", {sourceActor: actor, combatant, combat: combatant.parent}, combatant.id);
   const owner = game.users.find(user => user.active && !user.isGM && actor.testUserPermission(user, "OWNER")) ?? activeGM();
   const pending = {combatId: combatant.parent.id, userId: owner?.id, timer: window.setTimeout(() => completeElationAction(combatant.id, owner?.id), 120000)};
   state.pendingElationActions.set(combatant.id, pending);
@@ -1192,6 +1265,7 @@ async function executeSkill(actorId, requestingUserId) {
   game.socket.emit(SOCKET, {type: "skillState", actorId, locked: true});
   try {
     await setSkillPoints(currentSkillPoints() - 1);
+    await dispatchTalentEvent("skillUsed", {sourceActor: actor, requestingUserId}, `${actor.id}:${Date.now()}`);
     const pending = {actorId, requestingUserId, timer: window.setTimeout(() => completeSkill(actorId), 120000)};
     state.pendingSkills.set(actorId, pending);
     if (requestingUserId === game.user.id) {
@@ -1230,6 +1304,7 @@ async function executeUltimate(actorId, requestingUserId) {
   game.socket.emit(SOCKET, {type: "ultimateState", actorId, locked: true});
   refreshOrb(actor);
   try {
+    await dispatchTalentEvent("ultimateUsed", {sourceActor: actor, requestingUserId}, `${actor.id}:${Date.now()}`);
     const element = getElements().find(entry => entry.id === config.elementId);
     const splash = {actorName: actor.name, image: config.splashImage, duration: config.splashDuration, ultimateName: config.ultimateName, ultimateSubtitle: config.ultimateSubtitle, titleX: config.titleX, titleY: config.titleY, titleSize: config.titleSize, titleAlign: config.titleAlign, fontFile: config.fontFile, subtitleFontFile: config.subtitleFontFile, color: element?.chargeColor || DEFAULT_CONFIG.chargeColor};
     showSplash(splash);
@@ -1446,6 +1521,12 @@ async function processAppliedDamage(target, amount, options = {}) {
 
   const targetActor = target?.actor ?? target?.document?.actor ?? target;
   const damageEventId = origin?.id ?? options.midi?.workflowId ?? "unknown";
+
+  if (Number(amount) > 0) {
+    const detail = {sourceActor: attacker, targetActor, amount: Number(amount), origin, midi: options.midi ?? null};
+    await dispatchTalentEvent("damageDealt", detail, `${damageEventId}:${targetActor.uuid}`);
+    await dispatchTalentEvent("damageTaken", detail, `${damageEventId}:${targetActor.uuid}`);
+  }
 
   if (targetActor?.type === "character" && Number(amount) > 0) {
     const energyKey = `applied-energy:${damageEventId}:${targetActor.uuid}`;
@@ -1977,10 +2058,12 @@ function activateConfigListeners(actor, tab, app) {
     tab.find("[name]").each((_index, field) => {
       data[field.name] = field.type === "checkbox" ? field.checked : field.value;
     });
-    for (const key of ["current", "max", "regenScore", "attackGain", "attackedGain", "punchlineGain", "splashDuration", "titleX", "titleY", "titleSize"]) data[key] = Number(data[key]);
+    for (const key of ["current", "max", "regenScore", "attackGain", "attackedGain", "talentPointsCurrent", "talentPointsMax", "punchlineGain", "splashDuration", "titleX", "titleY", "titleSize"]) data[key] = Number(data[key]);
     for (const key of ["enabled", "showPercent", "skillEnabled"]) data[key] = Boolean(data[key]);
     data.max = Math.max(1, data.max || 100);
     data.current = clamp(data.current, 0, data.max);
+    data.talentPointsMax = Math.max(0, Math.floor(data.talentPointsMax || 0));
+    data.talentPointsCurrent = clamp(Math.floor(data.talentPointsCurrent || 0), 0, data.talentPointsMax);
     await actor.setFlag(MODULE_ID, "ultimate", data);
     ui.notifications.info(`${actor.name}'s Ultimate configuration saved.`);
     refreshOrb(actor);
@@ -2244,6 +2327,10 @@ Hooks.on("renderCharacterActorSheet", injectCharacterBadges);
 Hooks.on("getActorSheetHeaderButtons", addActorHeaderButton);
 Hooks.on("getSceneControlButtons", addHudTool);
 Hooks.on("createChatMessage", processCoreAttackMessage);
+Hooks.on("tsruEnergyChanged", (actor, before, after, reason) => dispatchTalentEvent("energyChanged", {sourceActor: actor, before, after, amount: after - before, reason}));
+Hooks.on("tsruPunchlineChanged", value => dispatchTalentEvent("punchlineChanged", {value}));
+Hooks.on("tsruSkillPointsChanged", value => dispatchTalentEvent("skillPointsChanged", {value}));
+Hooks.on("tsruTalentPointsChanged", (actor, before, after) => dispatchTalentEvent("talentPointsChanged", {sourceActor: actor, before, after, amount: after - before}));
 Hooks.on("updateActor", actor => { refreshOrb(actor); refreshSkillUI(); refreshToughnessBars(); });
 Hooks.on("updateToken", () => refreshToughnessBars());
 Hooks.on("deleteActor", actor => { state.orbs.get(actor.id)?.destroy(); state.skillButtons.get(actor.id)?.destroy(); });
@@ -2259,7 +2346,9 @@ Hooks.on("updateSetting", setting => {
 Hooks.on("canvasReady", () => { refreshAllOrbs(); refreshSkillUI(); refreshPunchlineHUD(); refreshToughnessBars(); });
 Hooks.on("canvasReady", refreshAhaButton);
 
-Hooks.on("deleteCombat", combat => {
+Hooks.on("deleteCombat", async combat => {
+  await dispatchTalentEvent("combatEnd", {combat}, combat.id);
+  state.lastTalentTurns.delete(combat.id);
   state.ultimateLocks.clear();
   state.skillLocks.clear();
   for (const pending of state.pendingSkills.values()) if (pending?.timer) window.clearTimeout(pending.timer);
@@ -2279,6 +2368,15 @@ Hooks.on("updateCombat", async combat => {
   if (!isAuthority()) return;
   if (!combat.combatants.find(isAhaCombatant)) await maybeEnsureAhaCombatant(combat);
   const current = combat.combatant;
+  if (combat.started && current) {
+    const turnKey = `${combat.id}:${combat.round}:${current.id}`;
+    const previous = state.lastTalentTurns.get(combat.id);
+    if (previous?.key !== turnKey) {
+      if (previous) await dispatchTalentEvent("turnEnd", {combat, combatant: combat.combatants.get(previous.combatantId) ?? null, sourceActor: game.actors.get(previous.actorId) ?? null}, previous.key);
+      state.lastTalentTurns.set(combat.id, {key: turnKey, combatantId: current.id, actorId: current.actor?.id ?? null});
+      await dispatchTalentEvent("turnStart", {combat, combatant: current, sourceActor: current.actor ?? null}, turnKey);
+    }
+  }
   if (combat.started && isAhaCombatant(current)) {
     const turnKey = `${combat.id}:${combat.round}:${current.id}`;
     if (state.lastAhaTurnKey !== turnKey) {
@@ -2312,7 +2410,13 @@ Hooks.on("createCombatant", combatant => {
 });
 
 Hooks.on("combatStart", async combat => {
-  if (isAuthority()) await setSkillPoints(getSkillPointConfig().starting);
+  if (isAuthority()) {
+    await setSkillPoints(getSkillPointConfig().starting);
+    for (const actor of game.actors.filter(entry => entry.type === "character" && currentTalentPoints(entry) !== 0)) {
+      await actor.update({[`flags.${MODULE_ID}.ultimate.talentPointsCurrent`]: 0});
+    }
+    await dispatchTalentEvent("combatStart", {combat}, combat.id);
+  }
   await maybeEnsureAhaCombatant(combat, {force: true});
 });
 Hooks.on("deleteCombatant", combatant => {
