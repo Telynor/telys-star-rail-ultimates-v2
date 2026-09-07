@@ -631,6 +631,9 @@
   filter: drop-shadow(0 2px 2px rgba(0,0,0,.7));
 }
 .tsru-seven-ability-row { box-sizing: border-box; max-width: 100%; }
+.tsru-seven-ability-row .tsru-energy-ability { flex-shrink: 1 !important; }
+.tsru-break-ability { border-color: #b57b49; background: linear-gradient(180deg, #382f2a, #1d1917); }
+.tsru-break-ability .tsru-energy-ability-score:focus { border-color: #ffad5c !important; box-shadow: 0 0 5px rgba(255,173,92,.55); }
 .tsru-energy-ability-label { color: #d8c89f; font-size: 9px; font-weight: 800; line-height: 1; white-space: nowrap; }
 .tsru-energy-ability-modifier { margin: 3px 0 2px; color: #f2f2f2; font-size: 20px; font-weight: 800; line-height: 1; }
 .tsru-energy-ability-score {
@@ -809,6 +812,8 @@
 .tsru-gm-character-row > header { display: flex; align-items: center; gap: 8px; align-self: center; min-width: 0; }
 .tsru-gm-character-row > header img { width: 38px; height: 38px; border: 1px solid #8b7440; border-radius: 50%; object-fit: cover; }
 .tsru-gm-character-row > header strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tsru-gm-party-toggle { display: grid; justify-items: center; gap: 2px; margin-left: auto; color: #d8c582; font-size: .62rem; line-height: 1; white-space: nowrap; cursor: pointer; }
+.tsru-gm-party-toggle input { width: 16px !important; height: 16px; margin: 0; accent-color: #e4c466; }
 .tsru-gm-character-row label { display: grid; gap: 3px; min-width: 0; }
 .tsru-gm-character-row label > span { color: #b8b3a5; font-size: .72rem; white-space: nowrap; }
 .tsru-gm-character-row input { width: 100%; min-width: 0; text-align: center; }

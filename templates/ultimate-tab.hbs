@@ -3,6 +3,18 @@
     <header class="tsru-config-heading"><div><h2><i class="fas fa-burst"></i> Ultimate Configuration</h2><p>Configure this character's Energy, Ultimate artwork, and floating orb.</p></div><span class="tsru-gm-badge">GM ONLY</span></header>
 
     <div class="tsru-config-section">
+      <h3><i class="fas fa-users"></i> Party Membership</h3>
+      <div class="tsru-field tsru-field-toggle"><span class="tsru-field-label"><strong>Is in the Main Party?</strong><small>Main-party turns finish before queued Ultimates begin. Unchecked DMPCs are not treated as allied turns.</small></span><input type="checkbox" name="mainParty" {{checked config.mainParty}}></div>
+    </div>
+
+    <div class="tsru-config-section tsru-break-character-section">
+      <h3><i class="fas fa-hammer"></i> Break Character</h3>
+      <div class="tsru-field tsru-field-toggle"><span class="tsru-field-label"><strong>Is this a Break Character?</strong><small>Successful attacks deal 1 HP damage and redirect their full rolled damage to Toughness.</small></span><input type="checkbox" name="breakCharacter" {{checked config.breakCharacter}}></div>
+      <div class="tsru-field"><label><strong>Break Effect score</strong><small>Uses the standard D&amp;D ability-score modifier calculation.</small></label><div class="tsru-field-control"><input type="number" name="breakEffectScore" min="1" max="30" value="{{config.breakEffectScore}}"><span class="tsru-break-modifier">Modifier: {{breakModifierSigned}}</span></div></div>
+      <div class="tsru-field"><label><strong>Weakness Break damage</strong><small>When this character reduces Toughness to 0: dice roll × Break Effect modifier.</small></label><div class="tsru-position-control"><select name="breakDamageDice">{{#each breakDiceOptions}}<option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.value}}</option>{{/each}}</select><span>d</span><select name="breakDamageDie">{{#each breakDieOptions}}<option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.value}}</option>{{/each}}</select><span>× modifier</span></div></div>
+    </div>
+
+    <div class="tsru-config-section">
       <h3><i class="fas fa-battery-three-quarters"></i> Energy</h3>
       <div class="tsru-field tsru-field-toggle"><span class="tsru-field-label"><strong>Enable Ultimate system</strong><small>Allows this character to gain Energy and display an orb.</small></span><input type="checkbox" name="enabled" {{checked config.enabled}}></div>
       <div class="tsru-field"><label><strong>Current Energy</strong><small>The amount currently stored.</small></label><input type="number" name="current" min="0" value="{{config.current}}"></div>

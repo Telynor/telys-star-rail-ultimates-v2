@@ -9,6 +9,11 @@ const DEFAULT_CONFIG = Object.freeze({
   attackGain: 10,
   attackedGain: 5,
   attackedMode: "hit",
+  mainParty: false,
+  breakCharacter: false,
+  breakEffectScore: 10,
+  breakDamageDice: 1,
+  breakDamageDie: 6,
   skillEnabled: true,
   skillScript: "",
   skillText: "",
@@ -240,6 +245,12 @@ function regenModifier(config) {
   return Math.floor((score - 10) / 2);
 }
 
+function breakEffectModifier(config) {
+  const parsed = Number(config.breakEffectScore);
+  const score = Number.isFinite(parsed) ? clamp(parsed, 1, 30) : 10;
+  return Math.floor((score - 10) / 2);
+}
+
 function energyAbilityMarkup(actor, tagName = "div") {
   const config = getConfig(actor);
   const editable = game.user.isGM || actor.isOwner;
@@ -247,6 +258,16 @@ function energyAbilityMarkup(actor, tagName = "div") {
     <div class="tsru-energy-ability-label">ENERGY REGEN</div>
     <div class="tsru-energy-ability-modifier">${signedNumber(regenModifier(config))}</div>
     <input class="tsru-energy-ability-score" type="number" min="1" max="30" step="1" value="${Number.isFinite(Number(config.regenScore)) ? clamp(config.regenScore, 1, 30) : 10}" aria-label="Energy Regen ability score" ${editable ? "" : "disabled"}>
+  </${tagName}>`;
+}
+
+function breakAbilityMarkup(actor, tagName = "div") {
+  const config = getConfig(actor);
+  const editable = game.user.isGM || actor.isOwner;
+  return `<${tagName} class="tsru-energy-ability tsru-break-ability ability-score" data-tsru-break-ability data-actor-id="${actor.id}" title="Break damage multiplier uses the Break Effect modifier">
+    <div class="tsru-energy-ability-label">BREAK EFFECT</div>
+    <div class="tsru-energy-ability-modifier">${signedNumber(breakEffectModifier(config))}</div>
+    <input class="tsru-energy-ability-score" type="number" min="1" max="30" step="1" value="${Number.isFinite(Number(config.breakEffectScore)) ? clamp(config.breakEffectScore, 1, 30) : 10}" aria-label="Break Effect ability score" ${editable ? "" : "disabled"}>
   </${tagName}>`;
 }
 
@@ -280,7 +301,7 @@ async function injectEnergyAbility(app, html, attempt = 0) {
     return;
   }
   const tagName = chaCard.prop("tagName")?.toLowerCase() || "div";
-  chaCard.after(energyAbilityMarkup(actor, tagName));
+  chaCard.after(`${energyAbilityMarkup(actor, tagName)}${breakAbilityMarkup(actor, tagName)}`);
   const card = chaCard.next("[data-tsru-energy-ability]");
   card.parent().addClass("tsru-seven-ability-row");
   const score = card.find(".tsru-energy-ability-score");
@@ -300,6 +321,23 @@ async function injectEnergyAbility(app, html, attempt = 0) {
     await actor.setFlag(MODULE_ID, "ultimate", updatedConfig);
     card.find(".tsru-energy-ability-modifier").text(signedNumber(Math.floor((value - 10) / 2)));
     ui.notifications.info(`${actor.name}'s Energy Regen is now ${value} (${signedNumber(Math.floor((value - 10) / 2))}).`);
+  });
+  const breakCard = card.next("[data-tsru-break-ability]");
+  const breakScore = breakCard.find(".tsru-energy-ability-score");
+  breakScore.on("input.tsru", event => {
+    event.stopPropagation();
+    const value = clamp(event.currentTarget.value, 1, 30);
+    breakCard.find(".tsru-energy-ability-modifier").text(signedNumber(Math.floor((value - 10) / 2)));
+  });
+  breakScore.on("change.tsru", async event => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!(game.user.isGM || actor.isOwner)) return;
+    const value = clamp(event.currentTarget.value, 1, 30);
+    event.currentTarget.value = value;
+    await actor.update({[`flags.${MODULE_ID}.ultimate.breakEffectScore`]: value});
+    breakCard.find(".tsru-energy-ability-modifier").text(signedNumber(Math.floor((value - 10) / 2)));
+    ui.notifications.info(`${actor.name}'s Break Effect is now ${value} (${signedNumber(Math.floor((value - 10) / 2))}).`);
   });
 }
 
@@ -1586,12 +1624,14 @@ async function executeUltimate(actorId, requestingUserId) {
     }
     let queue = state.ultimateQueues.get(combat.id);
     if (!queue) {
-      queue = {resumeCombatantId: combat.combatant?.id ?? null, resumeRound: combat.round, activeActorId: null, requests: [], sequence: 0, startTimer: null};
+      const current = combat.combatant;
+      const waitsForAlly = Boolean(current?.actor?.type === "character" && getConfig(current.actor).mainParty && !current.getFlag(MODULE_ID, "temporaryUltimate"));
+      queue = {resumeCombatantId: waitsForAlly ? null : current?.id ?? null, resumeRound: combat.round, waitTurnId: waitsForAlly ? current.id : null, activeActorId: null, requests: [], sequence: 0, startTimer: null};
       state.ultimateQueues.set(combat.id, queue);
     }
     queue.requests.push({actorId, requestingUserId, initiative: ultimateInitiative(actor, combat), requestedAt: Date.now(), sequence: queue.sequence++});
     ui.notifications.info(`${actor.name}'s Ultimate was added to the interrupt queue.`);
-    if (!queue.activeActorId && !queue.startTimer) queue.startTimer = window.setTimeout(() => processUltimateQueue(combat.id), 225);
+    if (!queue.waitTurnId && !queue.activeActorId && !queue.startTimer) queue.startTimer = window.setTimeout(() => processUltimateQueue(combat.id), 225);
   } catch (error) {
     console.error(`${MODULE_ID} | Ultimate failed`, error);
     ui.notifications.error(`Ultimate failed: ${error.message}`);
@@ -1768,6 +1808,40 @@ function rawDiceTotal(rolls) {
     .reduce((total, result) => total + (Number(result?.result) || 0), 0);
 }
 
+function fullDamageTotal(rolls) {
+  return (rolls ?? []).reduce((total, roll) => total + Math.max(0, Number(roll?.total) || 0), 0);
+}
+
+async function limitBreakAttackHpDamage(attacker, target, amount, eventId, options = {}) {
+  if (!getConfig(attacker).breakCharacter || target?.type !== "npc" || Number(amount) <= 1) return;
+  const key = `break-hp-limit:${eventId}:${target.uuid}`;
+  if (state.processedMessages.has(key)) return;
+  state.processedMessages.add(key);
+  window.setTimeout(() => state.processedMessages.delete(key), 120000);
+  const initialHp = [options.midi?.oldHP, options.midi?.oldHp, options.midi?.oldHPValue, target.system?.attributes?.hp?.value]
+    .map(Number).find(Number.isFinite);
+  await new Promise(resolve => window.setTimeout(resolve, 100));
+  const hp = target.system?.attributes?.hp;
+  if (!hp || !Number.isFinite(initialHp)) return;
+  await target.update({"system.attributes.hp.value": Math.max(0, Math.min(Number(hp.max) || Infinity, initialHp - 1))});
+}
+
+async function applyWeaknessBreakDamage(attacker, target) {
+  const config = getConfig(attacker);
+  if (!config.breakCharacter) return 0;
+  const count = clamp(Math.floor(config.breakDamageDice), 1, 20);
+  const faces = [4, 6, 8, 10, 12, 20].includes(Number(config.breakDamageDie)) ? Number(config.breakDamageDie) : 6;
+  const modifier = breakEffectModifier(config);
+  const roll = await new Roll(`${count}d${faces}`).evaluate();
+  const damage = Math.max(0, Math.floor((Number(roll.total) || 0) * modifier));
+  if (damage > 0) {
+    const hp = target.system?.attributes?.hp;
+    if (hp && Number.isFinite(Number(hp.value))) await target.update({"system.attributes.hp.value": Math.max(0, Number(hp.value) - damage)});
+  }
+  await roll.toMessage({speaker: ChatMessage.getSpeaker({actor: attacker}), flavor: `${attacker.name} — Weakness Break (${count}d${faces} × ${signedNumber(modifier)})${damage ? `: ${damage} HP damage` : ": no HP damage"}`});
+  return damage;
+}
+
 function midiDamageRolls(workflow) {
   const rolls = [];
   for (const candidate of [workflow?.damageRolls, workflow?.damageRoll, workflow?.damageRollArray, workflow?.otherDamageRolls, workflow?.otherDamageRoll]) {
@@ -1813,6 +1887,8 @@ async function processAppliedDamage(target, amount, options = {}) {
     await dispatchTalentEvent("damageTaken", detail, `${damageEventId}:${targetActor.uuid}`);
   }
 
+  await limitBreakAttackHpDamage(attacker, targetActor, amount, damageEventId, options);
+
   if (targetActor?.type === "character" && Number(amount) > 0) {
     const energyKey = `applied-energy:${damageEventId}:${targetActor.uuid}`;
     if (!state.processedMessages.has(energyKey)) {
@@ -1826,10 +1902,10 @@ async function processAppliedDamage(target, amount, options = {}) {
   }
 
   const damageRolls = damageRollsFromAppliedMessage(origin);
-  const diceDamage = rawDiceTotal(damageRolls);
-  if (diceDamage <= 0) return;
-  const eventKey = `applied-damage:${damageEventId}:${targetActor.uuid}:${diceDamage}`;
-  await applyToughnessDamage(attacker, [targetActor], diceDamage, eventKey);
+  const toughnessDamage = getConfig(attacker).breakCharacter ? fullDamageTotal(damageRolls) : rawDiceTotal(damageRolls);
+  if (toughnessDamage <= 0) return;
+  const eventKey = `applied-damage:${damageEventId}:${targetActor.uuid}:${toughnessDamage}`;
+  await applyToughnessDamage(attacker, [targetActor], toughnessDamage, eventKey);
 }
 
 async function applyToughnessDamage(attacker, targets, amount, eventKey = "") {
@@ -1842,6 +1918,7 @@ async function applyToughnessDamage(attacker, targets, amount, eventKey = "") {
   const processedKey = eventKey ? `toughness:${eventKey}` : "";
   if (processedKey && state.processedMessages.has(processedKey)) return;
   const elementId = getConfig(attacker).elementId;
+  const breakCharacter = getConfig(attacker).breakCharacter;
   const freeForAll = game.actors.some(entry => entry.type === "character" && foundry.utils.getProperty(entry.getFlag(MODULE_ID, "scriptState") ?? {}, "lark.freeForAll.active"));
   if (!elementId && !freeForAll) return;
   let applied = false;
@@ -1849,15 +1926,19 @@ async function applyToughnessDamage(attacker, targets, amount, eventKey = "") {
     const actor = target?.actor ?? target?.document?.actor ?? target;
     if (!actor || actor.type !== "npc") continue;
     const toughness = getToughness(actor);
-    if (!toughness.enabled || (!freeForAll && !effectiveToughnessWeaknesses(target).includes(elementId)) || toughness.current <= 0) continue;
+    const matchesWeakness = Boolean(elementId && effectiveToughnessWeaknesses(target).includes(elementId));
+    if (!toughness.enabled || (!breakCharacter && !freeForAll && !matchesWeakness) || toughness.current <= 0) continue;
     const next = clamp(toughness.current - amount, 0, toughness.max);
-    const discoveredWeaknesses = elementId ? [...new Set([...toughness.discoveredWeaknesses, elementId])] : toughness.discoveredWeaknesses;
+    const discoveredWeaknesses = matchesWeakness ? [...new Set([...toughness.discoveredWeaknesses, elementId])] : toughness.discoveredWeaknesses;
     await actor.update({
       [`flags.${MODULE_ID}.toughness.current`]: next,
       [`flags.${MODULE_ID}.toughness.discoveredWeaknesses`]: discoveredWeaknesses
     });
     applied = true;
-    if (next === 0 && toughness.current > 0) ui.notifications.info(`${actor.name}'s Toughness was broken!`);
+    if (next === 0 && toughness.current > 0) {
+      ui.notifications.info(`${actor.name}'s Toughness was broken!`);
+      await applyWeaknessBreakDamage(attacker, actor);
+    }
   }
   if (processedKey && applied) {
     state.processedMessages.add(processedKey);
@@ -1873,7 +1954,8 @@ async function processDnd5eDamageRolls(rolls, data = {}) {
   const subject = data.subject;
   const attacker = subject?.actor ?? subject?.item?.actor ?? subject?.parent?.actor ?? subject?.parent;
   if (!attacker || attacker.documentName !== "Actor") return;
-  const amount = rawDiceTotal(Array.isArray(rolls) ? rolls : [rolls]);
+  const rollList = Array.isArray(rolls) ? rolls : [rolls];
+  const amount = getConfig(attacker).breakCharacter ? fullDamageTotal(rollList) : rawDiceTotal(rollList);
   if (amount <= 0) return;
   const targets = [...(game.user?.targets ?? [])];
   if (!targets.length) return;
@@ -1911,7 +1993,7 @@ async function processCoreAttackMessage(message) {
     if (attacker?.isOwner && (damageMessage || macroDamageMessage)) {
       const ownedTargets = [...(game.user.targets ?? [])];
       const targetUuids = ownedTargets.map(target => target.document?.uuid ?? target.actor?.uuid).filter(Boolean);
-      const amount = rawDiceTotal(message.rolls);
+      const amount = getConfig(attacker).breakCharacter ? fullDamageTotal(message.rolls) : rawDiceTotal(message.rolls);
       if (amount > 0 && targetUuids.length) game.socket.emit(SOCKET, {type: "applyToughness", sourceUserId: game.user.id, attackerUuid: attacker.uuid, targetUuids, amount, eventKey: midiWorkflowId || `chat:${message.id}`});
     }
     return;
@@ -1919,7 +2001,8 @@ async function processCoreAttackMessage(message) {
   if (attackMessage && attacker) await addEnergy(attacker, energyGain(getConfig(attacker), "attack"), "attack");
   if ((damageMessage || macroDamageMessage) && attacker) {
     if (!midiActive) await awardPunchlineForAttack(attacker, `chat:${message.id}`);
-    await applyToughnessDamage(attacker, [...targetIds].map(id => game.actors.get(id)), rawDiceTotal(message.rolls), midiWorkflowId || message.id);
+    const toughnessDamage = getConfig(attacker).breakCharacter ? fullDamageTotal(message.rolls) : rawDiceTotal(message.rolls);
+    await applyToughnessDamage(attacker, [...targetIds].map(id => game.actors.get(id)), toughnessDamage, midiWorkflowId || message.id);
   }
   if (midiActive) return;
   if (!attackMessage) return;
@@ -1936,9 +2019,10 @@ async function processMidiWorkflow(workflow) {
   const attacker = workflow?.actor;
   const targets = workflow?.targets ?? new Set();
   const hitTargets = workflow?.hitTargets ?? new Set();
-  const toughnessTargets = hitTargets.size ? hitTargets : targets;
+  const usedAttackRoll = Boolean(workflow?.attackRoll || workflow?.attackRolls?.length || workflow?.activity?.attack);
+  const toughnessTargets = usedAttackRoll ? hitTargets : (hitTargets.size ? hitTargets : targets);
   const damageRolls = midiDamageRolls(workflow);
-  const diceDamage = rawDiceTotal(damageRolls);
+  const diceDamage = getConfig(attacker).breakCharacter ? fullDamageTotal(damageRolls) : rawDiceTotal(damageRolls);
   if (!isAuthority()) {
     if (attacker && diceDamage > 0 && toughnessTargets.size !== 0) {
       const targetUuids = [...toughnessTargets].map(target => target?.document?.uuid ?? target?.actor?.uuid).filter(Boolean);
@@ -2300,7 +2384,11 @@ class StarRailGMPanel extends FormApplication {
       const input = event.currentTarget;
       const actor = game.actors.get(input.dataset.actorId);
       const field = input.dataset.actorField;
-      if (!actor || !["current", "max", "regenScore", "attackGain", "attackedGain", "punchlineGain", "talentPointsCurrent", "talentPointsMax"].includes(field)) return;
+      if (!actor || !["current", "max", "regenScore", "attackGain", "attackedGain", "punchlineGain", "talentPointsCurrent", "talentPointsMax", "mainParty"].includes(field)) return;
+      if (field === "mainParty") {
+        await actor.update({[`flags.${MODULE_ID}.ultimate.mainParty`]: input.checked});
+        return this.refreshLiveValues();
+      }
       let value = Number(input.value);
       if (!Number.isFinite(value)) value = 0;
       value = Math.floor(value);
@@ -2364,6 +2452,7 @@ class StarRailGMPanel extends FormApplication {
       root.find(`[data-actor-id="${actor.id}"][data-actor-field="max"]`).val(config.max);
       root.find(`[data-actor-id="${actor.id}"][data-actor-field="talentPointsCurrent"]`).val(config.talentPointsCurrent);
       root.find(`[data-actor-id="${actor.id}"][data-actor-field="talentPointsMax"]`).val(config.talentPointsMax);
+      root.find(`[data-actor-id="${actor.id}"][data-actor-field="mainParty"]`).prop("checked", config.mainParty);
       root.find(`[data-regen-modifier="${actor.id}"]`).text(signedNumber(regenModifier(config)));
     }
   }
@@ -2473,6 +2562,9 @@ async function injectUltimateTab(app, html) {
     titleAlignCenter: config.titleAlign === "center",
     titleAlignRight: config.titleAlign === "right",
     modifierSigned: signedNumber(regenModifier(config)),
+    breakModifierSigned: signedNumber(breakEffectModifier(config)),
+    breakDiceOptions: Array.from({length: 20}, (_value, index) => ({value: index + 1, selected: config.breakDamageDice === index + 1})),
+    breakDieOptions: [4, 6, 8, 10, 12, 20].map(value => ({value, selected: config.breakDamageDie === value})),
     modeHit: config.attackedMode === "hit",
     modeTargeted: config.attackedMode === "targeted"
   });
@@ -2520,6 +2612,9 @@ async function openUltimateConfig(actor, sheetApp = null) {
     titleAlignCenter: config.titleAlign === "center",
     titleAlignRight: config.titleAlign === "right",
     modifierSigned: signedNumber(regenModifier(config)),
+    breakModifierSigned: signedNumber(breakEffectModifier(config)),
+    breakDiceOptions: Array.from({length: 20}, (_value, index) => ({value: index + 1, selected: config.breakDamageDice === index + 1})),
+    breakDieOptions: [4, 6, 8, 10, 12, 20].map(value => ({value, selected: config.breakDamageDie === value})),
     modeHit: config.attackedMode === "hit",
     modeTargeted: config.attackedMode === "targeted"
   });
@@ -2543,8 +2638,8 @@ function activateConfigListeners(actor, tab, app) {
     tab.find("[name]").each((_index, field) => {
       data[field.name] = field.type === "checkbox" ? field.checked : field.value;
     });
-    for (const key of ["current", "max", "regenScore", "attackGain", "attackedGain", "talentPointsCurrent", "talentPointsMax", "punchlineGain", "splashDuration", "titleX", "titleY", "titleSize"]) data[key] = Number(data[key]);
-    for (const key of ["enabled", "showPercent", "skillEnabled"]) data[key] = Boolean(data[key]);
+    for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "talentPointsCurrent", "talentPointsMax", "punchlineGain", "splashDuration", "titleX", "titleY", "titleSize"]) data[key] = Number(data[key]);
+    for (const key of ["enabled", "showPercent", "skillEnabled", "mainParty", "breakCharacter"]) data[key] = Boolean(data[key]);
     data.max = Math.max(1, data.max || 100);
     data.current = clamp(data.current, 0, data.max);
     data.talentPointsMax = Math.max(0, Math.floor(data.talentPointsMax || 0));
@@ -2581,6 +2676,7 @@ function activateConfigListeners(actor, tab, app) {
   tab.find("[data-action='show-orb']").on("click", () => showOrb(actor));
   tab.find("[data-action='show-skill-button']").on("click", async () => { await saveSkillButtonLayout(actor.id, {visible: true}); refreshSkillUI(); });
   tab.find("[name='regenScore']").on("input", event => tab.find(".tsru-modifier").text(`Modifier: ${signedNumber(Math.floor(((Number(event.currentTarget.value) || 10) - 10) / 2))}`));
+  tab.find("[name='breakEffectScore']").on("input", event => tab.find(".tsru-break-modifier").text(`Modifier: ${signedNumber(Math.floor(((Number(event.currentTarget.value) || 10) - 10) / 2))}`));
 }
 
 function openToughnessConfig(actor) {
@@ -2907,6 +3003,14 @@ Hooks.on("updateCombat", async combat => {
   state.gmPanel?.render(false);
   if (!isAuthority()) return;
   if (state.suppressCombatHook) return;
+  const ultimateQueue = state.ultimateQueues.get(combat.id);
+  if (ultimateQueue?.waitTurnId && combat.combatant?.id !== ultimateQueue.waitTurnId) {
+    ultimateQueue.resumeCombatantId = combat.combatant?.id ?? null;
+    ultimateQueue.resumeRound = combat.round;
+    ultimateQueue.waitTurnId = null;
+    await processUltimateQueue(combat.id);
+    return;
+  }
   const advance = state.actionAdvances.get(combat.id);
   if (advance && combat.combatant?.id !== advance.combatantId) {
     await finishActionAdvance(combat, advance);
@@ -2915,6 +3019,14 @@ Hooks.on("updateCombat", async combat => {
   }
   if (!combat.combatants.find(isAhaCombatant)) await maybeEnsureAhaCombatant(combat);
   const current = combat.combatant;
+  if (combat.started && current?.actor?.type === "npc") {
+    const toughness = getToughness(current.actor);
+    if (toughness.enabled && toughness.current === 0) {
+      await current.actor.update({[`flags.${MODULE_ID}.toughness.current`]: toughness.max});
+      ui.notifications.info(`${current.actor.name}'s Toughness recovered to full.`);
+      refreshToughnessBars();
+    }
+  }
   if (combat.started && current) {
     const turnKey = `${combat.id}:${combat.round}:${current.id}`;
     const previous = state.lastTalentTurns.get(combat.id);

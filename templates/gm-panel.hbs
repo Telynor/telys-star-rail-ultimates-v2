@@ -35,7 +35,7 @@
     <div class="tsru-gm-character-list">
       {{#each characters}}
       <article class="tsru-gm-character-row">
-        <header><img src="{{this.actor.img}}"><strong>{{this.actor.name}}</strong></header>
+        <header><img src="{{this.actor.img}}"><strong>{{this.actor.name}}</strong><label class="tsru-gm-party-toggle" title="Main-party turns finish before queued Ultimates begin"><input type="checkbox" data-actor-id="{{this.actor.id}}" data-actor-field="mainParty" {{checked this.config.mainParty}}><span>Main Party</span></label></header>
         <label><span>Energy</span><div class="tsru-gm-paired-input"><input type="number" min="0" max="{{this.config.max}}" value="{{this.config.current}}" data-actor-id="{{this.actor.id}}" data-actor-field="current"><b>/</b><input type="number" min="1" value="{{this.config.max}}" data-actor-id="{{this.actor.id}}" data-actor-field="max"></div></label>
         <label><span>Energy Regen</span><div class="tsru-gm-paired-input"><input type="number" min="1" max="30" value="{{this.config.regenScore}}" data-actor-id="{{this.actor.id}}" data-actor-field="regenScore"><b data-regen-modifier="{{this.actor.id}}">{{this.modifier}}</b></div></label>
         <label><span>Gain on attack</span><input type="number" min="0" value="{{this.config.attackGain}}" data-actor-id="{{this.actor.id}}" data-actor-field="attackGain"></label>
