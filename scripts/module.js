@@ -54,6 +54,7 @@ const state = {
   processedMessages: new Set(),
   ultimateLocks: new Set(),
   pendingUltimates: new Map(),
+  ultimateQueues: new Map(),
   lastTargetsByActor: new Map(),
   recentToughness: new Map(),
   activeTalents: new Set(),
@@ -1321,7 +1322,7 @@ async function requestUltimate(actor) {
   game.socket.emit(SOCKET, {type: "activateUltimate", actorId: actor.id, requestingUserId: game.user.id});
 }
 
-async function insertUltimateTurn(actor) {
+async function insertUltimateTurn(actor, resume = {}) {
   const combat = game.combat;
   if (!combat?.started) return null;
   const current = combat.combatant;
@@ -1338,7 +1339,7 @@ async function insertUltimateTurn(actor) {
     sceneId: token?.parent?.id ?? canvas.scene?.id ?? null,
     initiative,
     img: getConfig(actor).orbImage || actor.img,
-    flags: {[MODULE_ID]: {temporaryUltimate: true, resumeCombatantId: current?.id ?? null, resumeRound: combat.round}}
+    flags: {[MODULE_ID]: {temporaryUltimate: true, resumeCombatantId: resume.combatantId ?? current?.id ?? null, resumeRound: resume.round ?? combat.round}}
   }]);
   if (!temporary) return null;
   const index = combat.turns.findIndex(entry => entry.id === temporary.id);
@@ -1350,15 +1351,17 @@ async function insertUltimateTurn(actor) {
   return temporary;
 }
 
-async function removeUltimateTurn(temporary) {
+async function removeUltimateTurn(temporary, {resume = true} = {}) {
   if (!temporary) return;
   const combat = temporary.parent;
   const resumeId = temporary.getFlag(MODULE_ID, "resumeCombatantId");
   const resumeRound = temporary.getFlag(MODULE_ID, "resumeRound");
   state.suppressCombatHook = true;
   await combat.deleteEmbeddedDocuments("Combatant", [temporary.id]);
-  const resumeIndex = combat.turns.findIndex(entry => entry.id === resumeId);
-  if (resumeIndex >= 0) await combat.update({turn: resumeIndex, round: resumeRound ?? combat.round});
+  if (resume) {
+    const resumeIndex = combat.turns.findIndex(entry => entry.id === resumeId);
+    if (resumeIndex >= 0) await combat.update({turn: resumeIndex, round: resumeRound ?? combat.round});
+  }
   state.suppressCombatHook = false;
 }
 
@@ -1369,15 +1372,19 @@ async function postAbilityText(actor, kind, text, {combatantId = ""} = {}) {
     : "<em>No ability text has been configured.</em>";
   const labels = {skill: "Skill", ultimate: "Ultimate", elation: "Elation Action"};
   const icons = {skill: "fa-hand-sparkles", ultimate: "fa-burst", elation: "fa-masks-theater"};
-  const completion = kind === "elation" && combatantId ? `<footer><button type="button" data-tsru-complete-elation="${escapeHTML(combatantId)}"><i class="fas fa-check"></i> Complete Elation Action</button></footer>` : "";
+  const completion = kind === "elation" && combatantId
+    ? `<footer><button type="button" data-tsru-complete-elation="${escapeHTML(combatantId)}"><i class="fas fa-check"></i> Complete Elation Action</button></footer>`
+    : kind === "ultimate" && combatantId
+      ? `<footer><button type="button" data-tsru-complete-ultimate="${escapeHTML(actor.id)}"><i class="fas fa-check"></i> Ultimate Complete</button></footer>`
+      : "";
   return ChatMessage.create({
     speaker: ChatMessage.getSpeaker({actor, token: actor.getActiveTokens(true, true)?.[0]?.document}),
     content: `<article class="tsru-ability-chat tsru-ability-chat-${kind}"><header><i class="fas ${icons[kind]}"></i><div><strong>${escapeHTML(actor.name)}</strong><span>${labels[kind]}</span></div></header><div class="tsru-ability-chat-body">${content}</div>${completion}</article>`
   });
 }
 
-async function runUltimateScript(actor) {
-  return postAbilityText(actor, "ultimate", getConfig(actor).ultimateText);
+async function runUltimateScript(actor, combatantId = "") {
+  return postAbilityText(actor, "ultimate", getConfig(actor).ultimateText, {combatantId});
 }
 
 async function runSkillScript(actor) {
@@ -1483,11 +1490,77 @@ async function completeUltimate(actorId) {
   const temporary = pending?.combatId && pending?.combatantId
     ? game.combats.get(pending.combatId)?.combatants.get(pending.combatantId)
     : null;
-  await removeUltimateTurn(temporary);
+  if (temporary) await removeUltimateTurn(temporary, {resume: false});
   state.pendingUltimates.delete(actorId);
   state.ultimateLocks.delete(actorId);
   game.socket.emit(SOCKET, {type: "ultimateState", actorId, locked: false});
   refreshOrb(game.actors.get(actorId));
+  const queue = pending?.combatId ? state.ultimateQueues.get(pending.combatId) : null;
+  if (queue) {
+    queue.activeActorId = null;
+    await processUltimateQueue(pending.combatId);
+  }
+}
+
+function ultimateInitiative(actor, combat) {
+  const combatant = combat?.combatants.find(entry => entry.actorId === actor.id && !entry.getFlag(MODULE_ID, "temporaryUltimate"));
+  return Number.isFinite(Number(combatant?.initiative)) ? Number(combatant.initiative) : -Infinity;
+}
+
+async function finishUltimateQueue(combatId) {
+  const queue = state.ultimateQueues.get(combatId);
+  const combat = game.combats.get(combatId);
+  state.ultimateQueues.delete(combatId);
+  if (!queue || !combat) return;
+  const resumeIndex = combat.turns.findIndex(entry => entry.id === queue.resumeCombatantId);
+  if (resumeIndex < 0) return;
+  state.suppressCombatHook = true;
+  try { await combat.update({round: queue.resumeRound ?? combat.round, turn: resumeIndex}); }
+  finally { state.suppressCombatHook = false; }
+}
+
+function broadcastUltimateSplash(actor) {
+  const config = getConfig(actor);
+  const element = getElements().find(entry => entry.id === config.elementId);
+  const splash = {actorName: actor.name, image: config.splashImage, duration: config.splashDuration, ultimateName: config.ultimateName, ultimateSubtitle: config.ultimateSubtitle, titleX: config.titleX, titleY: config.titleY, titleSize: config.titleSize, titleAlign: config.titleAlign, fontFile: config.fontFile, subtitleFontFile: config.subtitleFontFile, color: element?.chargeColor || DEFAULT_CONFIG.chargeColor};
+  showSplash(splash);
+  game.socket.emit(SOCKET, {type: "showSplash", sourceUserId: game.user.id, ...splash});
+}
+
+async function beginQueuedUltimate(request, queue, combat) {
+  const actor = game.actors.get(request.actorId);
+  if (!actor) return completeUltimate(request.actorId);
+  broadcastUltimateSplash(actor);
+  const temporary = await insertUltimateTurn(actor, {combatantId: queue.resumeCombatantId, round: queue.resumeRound});
+  if (!temporary) throw new Error("Foundry could not create the temporary Ultimate combatant.");
+  queue.activeActorId = actor.id;
+  const pending = {actorId: actor.id, requestingUserId: request.requestingUserId, combatId: combat.id, combatantId: temporary?.id ?? null, timer: window.setTimeout(() => completeUltimate(actor.id), 600000)};
+  state.pendingUltimates.set(actor.id, pending);
+  if (request.requestingUserId === game.user.id) await runUltimateScript(actor, temporary?.id ?? "");
+  else game.socket.emit(SOCKET, {type: "useUltimate", actorId: actor.id, combatantId: temporary?.id ?? "", targetUserId: request.requestingUserId});
+}
+
+async function processUltimateQueue(combatId) {
+  const queue = state.ultimateQueues.get(combatId);
+  const combat = game.combats.get(combatId);
+  if (!queue || !combat || queue.activeActorId) return;
+  if (queue.startTimer) { window.clearTimeout(queue.startTimer); queue.startTimer = null; }
+  if (!queue.requests.length) return finishUltimateQueue(combatId);
+  const firstTime = Math.min(...queue.requests.map(entry => entry.requestedAt));
+  const simultaneous = queue.requests.filter(entry => entry.requestedAt <= firstTime + 200);
+  simultaneous.sort((left, right) => right.initiative - left.initiative || left.sequence - right.sequence);
+  const request = simultaneous[0];
+  queue.requests.splice(queue.requests.indexOf(request), 1);
+  try { await beginQueuedUltimate(request, queue, combat); }
+  catch (error) {
+    console.error(`${MODULE_ID} | Could not begin queued Ultimate`, error);
+    ui.notifications.error(`Could not begin ${game.actors.get(request.actorId)?.name ?? "the character"}'s Ultimate turn: ${error.message}`);
+    state.pendingUltimates.delete(request.actorId);
+    state.ultimateLocks.delete(request.actorId);
+    game.socket.emit(SOCKET, {type: "ultimateState", actorId: request.actorId, locked: false});
+    queue.activeActorId = null;
+    await processUltimateQueue(combatId);
+  }
 }
 
 async function executeUltimate(actorId, requestingUserId) {
@@ -1502,26 +1575,23 @@ async function executeUltimate(actorId, requestingUserId) {
   refreshOrb(actor);
   try {
     await dispatchTalentEvent("ultimateUsed", {sourceActor: actor, requestingUserId}, `${actor.id}:${Date.now()}`);
-    const element = getElements().find(entry => entry.id === config.elementId);
-    const splash = {actorName: actor.name, image: config.splashImage, duration: config.splashDuration, ultimateName: config.ultimateName, ultimateSubtitle: config.ultimateSubtitle, titleX: config.titleX, titleY: config.titleY, titleSize: config.titleSize, titleAlign: config.titleAlign, fontFile: config.fontFile, subtitleFontFile: config.subtitleFontFile, color: element?.chargeColor || DEFAULT_CONFIG.chargeColor};
-    showSplash(splash);
-    game.socket.emit(SOCKET, {type: "showSplash", sourceUserId: game.user.id, ...splash});
-    const temporary = await insertUltimateTurn(actor);
     await setEnergy(actor, 0);
-    const pending = {
-      actorId,
-      requestingUserId,
-      combatId: temporary?.parent?.id ?? null,
-      combatantId: temporary?.id ?? null,
-      timer: window.setTimeout(() => completeUltimate(actorId), 120000)
-    };
-    state.pendingUltimates.set(actorId, pending);
-    if (requestingUserId === game.user.id) {
+    const combat = game.combat;
+    if (!combat?.started) {
+      broadcastUltimateSplash(actor);
       await runUltimateScript(actor);
-      await completeUltimate(actorId);
-    } else {
-      game.socket.emit(SOCKET, {type: "useUltimate", actorId, targetUserId: requestingUserId});
+      state.ultimateLocks.delete(actorId);
+      game.socket.emit(SOCKET, {type: "ultimateState", actorId, locked: false});
+      return refreshOrb(actor);
     }
+    let queue = state.ultimateQueues.get(combat.id);
+    if (!queue) {
+      queue = {resumeCombatantId: combat.combatant?.id ?? null, resumeRound: combat.round, activeActorId: null, requests: [], sequence: 0, startTimer: null};
+      state.ultimateQueues.set(combat.id, queue);
+    }
+    queue.requests.push({actorId, requestingUserId, initiative: ultimateInitiative(actor, combat), requestedAt: Date.now(), sequence: queue.sequence++});
+    ui.notifications.info(`${actor.name}'s Ultimate was added to the interrupt queue.`);
+    if (!queue.activeActorId && !queue.startTimer) queue.startTimer = window.setTimeout(() => processUltimateQueue(combat.id), 225);
   } catch (error) {
     console.error(`${MODULE_ID} | Ultimate failed`, error);
     ui.notifications.error(`Ultimate failed: ${error.message}`);
@@ -1625,8 +1695,7 @@ async function onSocket(payload) {
     const actor = game.actors.get(payload.actorId);
     try {
       if (!actor?.isOwner) throw new Error("You no longer own this character.");
-      await runUltimateScript(actor);
-      game.socket.emit(SOCKET, {type: "ultimateComplete", actorId: payload.actorId, userId: game.user.id});
+      await runUltimateScript(actor, payload.combatantId ?? "");
     } catch (error) {
       console.error(`${MODULE_ID} | Player Ultimate failed`, error);
       ui.notifications.error(`Ultimate failed: ${error.message}`);
@@ -1636,7 +1705,8 @@ async function onSocket(payload) {
   }
   if (payload.type === "ultimateComplete" && isAuthority()) {
     const pending = state.pendingUltimates.get(payload.actorId);
-    if (pending?.requestingUserId === payload.userId) await completeUltimate(payload.actorId);
+    const completingUser = game.users.get(payload.userId);
+    if (pending && (pending.requestingUserId === payload.userId || completingUser?.isGM)) await completeUltimate(payload.actorId);
     return;
   }
   if (payload.type === "ultimateState") {
@@ -2768,6 +2838,18 @@ Hooks.on("getSceneControlButtons", addHudTool);
 Hooks.on("createChatMessage", processCoreAttackMessage);
 Hooks.on("renderChatMessage", (_message, html) => {
   const root = html?.jquery ? html : $(html);
+  root.find("[data-tsru-complete-ultimate]").each((_index, element) => {
+    const actor = game.actors.get(element.dataset.tsruCompleteUltimate);
+    if (!game.user.isGM && !actor?.isOwner) element.remove();
+  });
+  root.find("[data-tsru-complete-ultimate]").on("click.tsru", async event => {
+    const button = event.currentTarget;
+    const actorId = button.dataset.tsruCompleteUltimate;
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Completing Ultimate…';
+    if (isAuthority()) await completeUltimate(actorId);
+    else game.socket.emit(SOCKET, {type: "ultimateComplete", actorId, userId: game.user.id});
+  });
   root.find("[data-tsru-complete-elation]").on("click.tsru", async event => {
     const button = event.currentTarget;
     const combatantId = button.dataset.tsruCompleteElation;
@@ -2802,6 +2884,11 @@ Hooks.on("deleteCombat", async combat => {
   if (state.specialAha?.combatId === combat.id) state.specialAha = null;
   state.actionAdvances.delete(combat.id);
   state.ultimateLocks.clear();
+  const ultimateQueue = state.ultimateQueues.get(combat.id);
+  if (ultimateQueue?.startTimer) window.clearTimeout(ultimateQueue.startTimer);
+  state.ultimateQueues.delete(combat.id);
+  for (const pending of state.pendingUltimates.values()) if (pending?.timer) window.clearTimeout(pending.timer);
+  state.pendingUltimates.clear();
   state.skillLocks.clear();
   for (const pending of state.pendingSkills.values()) if (pending?.timer) window.clearTimeout(pending.timer);
   state.pendingSkills.clear();
