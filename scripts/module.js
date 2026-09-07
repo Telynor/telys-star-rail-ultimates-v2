@@ -889,6 +889,36 @@ function isDamageMessage(message) {
   return type.includes("damage") || message.rolls?.some(roll => String(roll.options?.type ?? roll.options?.rollType ?? "").toLowerCase().includes("damage"));
 }
 
+function damageRollsFromAppliedMessage(message) {
+  const rolls = Array.isArray(message?.rolls) ? message.rolls : [];
+  const explicitDamage = rolls.filter(roll => {
+    const className = String(roll?.constructor?.name ?? "").toLowerCase();
+    const rollType = String(roll?.options?.type ?? roll?.options?.rollType ?? "").toLowerCase();
+    return className.includes("damageroll") || rollType.includes("damage");
+  });
+  if (explicitDamage.length) return explicitDamage;
+  return rolls.filter(roll => !String(roll?.constructor?.name ?? "").toLowerCase().includes("d20roll"));
+}
+
+async function processAppliedDamage(target, _amount, options = {}) {
+  if (!isAuthority() || !target) return;
+  const origin = options.origin;
+  const sourceUuid = options.midi?.sourceActorUuid;
+  let attacker = sourceUuid ? await fromUuid(sourceUuid).catch(() => null) : null;
+  attacker = attacker?.actor ?? attacker;
+  if (!attacker && origin?.speaker?.actor) attacker = game.actors.get(origin.speaker.actor);
+  if (!attacker && origin?.speaker?.token) attacker = canvas?.tokens?.get(origin.speaker.token)?.actor;
+  if (!attacker || attacker.documentName !== "Actor") return;
+
+  const damageRolls = damageRollsFromAppliedMessage(origin);
+  const diceDamage = rawDiceTotal(damageRolls);
+  if (diceDamage <= 0) return;
+
+  const targetActor = target?.actor ?? target?.document?.actor ?? target;
+  const eventKey = `applied-damage:${origin?.id ?? options.midi?.workflowId ?? "unknown"}:${targetActor.uuid}:${diceDamage}`;
+  await applyToughnessDamage(attacker, [targetActor], diceDamage, eventKey);
+}
+
 async function applyToughnessDamage(attacker, targets, amount, eventKey = "") {
   if (!isAuthority() || !attacker || amount <= 0) return;
   const targetList = [...targets].filter(Boolean);
@@ -1523,6 +1553,7 @@ Hooks.once("ready", () => {
   if (game.modules.get("midi-qol")?.active) Hooks.on("midi-qol.RollComplete", processMidiWorkflow);
   if (game.modules.get("midi-qol")?.active) Hooks.on("midi-qol.damageRollComplete", processMidiWorkflow);
   Hooks.on("dnd5e.rollDamageV2", processDnd5eDamageRolls);
+  Hooks.on("dnd5e.applyDamage", processAppliedDamage);
 });
 
 Hooks.on("renderActorSheet", injectUltimateTab);
