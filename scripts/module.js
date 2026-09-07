@@ -104,7 +104,9 @@ async function setToughness(actor, value) {
 }
 
 function regenModifier(config) {
-  return Math.floor(((Number(config.regenScore) || 10) - 10) / 2);
+  const parsed = Number(config.regenScore);
+  const score = Number.isFinite(parsed) ? clamp(parsed, 1, 30) : 10;
+  return Math.floor((score - 10) / 2);
 }
 
 function energyAbilityMarkup(actor, tagName = "div") {
@@ -113,15 +115,20 @@ function energyAbilityMarkup(actor, tagName = "div") {
   return `<${tagName} class="tsru-energy-ability ability-score" data-tsru-energy-ability data-actor-id="${actor.id}" title="Energy gained = base gain + Energy Regen modifier">
     <div class="tsru-energy-ability-label">ENERGY REGEN</div>
     <div class="tsru-energy-ability-modifier">${signedNumber(regenModifier(config))}</div>
-    <input class="tsru-energy-ability-score" type="number" min="1" max="30" step="1" value="${Number(config.regenScore) || 10}" aria-label="Energy Regen ability score" ${editable ? "" : "disabled"}>
+    <input class="tsru-energy-ability-score" type="number" min="1" max="30" step="1" value="${Number.isFinite(Number(config.regenScore)) ? clamp(config.regenScore, 1, 30) : 10}" aria-label="Energy Regen ability score" ${editable ? "" : "disabled"}>
   </${tagName}>`;
 }
 
-async function injectEnergyAbility(app, html) {
+async function injectEnergyAbility(app, html, attempt = 0) {
   const actor = app.actor ?? app.document;
   if (actor?.documentName !== "Actor" || actor.type !== "character") return;
-  const rootElement = html?.jquery ? html[0] : html instanceof HTMLElement ? html : app.element?.[0] ?? app.element;
-  if (!rootElement) return;
+  const appElement = app.element?.jquery ? app.element[0] : app.element;
+  const hookElement = html?.jquery ? html[0] : html instanceof HTMLElement ? html : null;
+  const rootElement = appElement?.isConnected ? appElement : hookElement;
+  if (!rootElement) {
+    if (attempt < 6) window.setTimeout(() => injectEnergyAbility(app, null, attempt + 1), 75);
+    return;
+  }
   const root = $(rootElement);
   if (root.find("[data-tsru-energy-ability]").length) return;
   const explicitCha = root.find('[data-ability="cha"], [data-ability-id="cha"], [data-key="cha"]').filter((_index, element) => {
@@ -136,7 +143,11 @@ async function injectEnergyAbility(app, html) {
       return rect.width >= 45 && rect.width <= 160 && rect.height >= 45 && rect.height <= 130 && /^CHA\b/i.test(text) && /[+-]\d/.test(text);
     }).first();
   }
-  if (!chaCard.length) return console.debug(`${MODULE_ID} | CHA ability card not found for`, actor.name);
+  if (!chaCard.length) {
+    if (attempt < 6) window.setTimeout(() => injectEnergyAbility(app, null, attempt + 1), 75);
+    else console.debug(`${MODULE_ID} | CHA ability card not found for`, actor.name);
+    return;
+  }
   const tagName = chaCard.prop("tagName")?.toLowerCase() || "div";
   chaCard.after(energyAbilityMarkup(actor, tagName));
   const card = chaCard.next("[data-tsru-energy-ability]");
@@ -153,7 +164,9 @@ async function injectEnergyAbility(app, html) {
     if (!(game.user.isGM || actor.isOwner)) return;
     const value = clamp(event.currentTarget.value, 1, 30);
     event.currentTarget.value = value;
-    await actor.update({[`flags.${MODULE_ID}.ultimate.regenScore`]: value});
+    const updatedConfig = foundry.utils.deepClone(getConfig(actor));
+    updatedConfig.regenScore = value;
+    await actor.setFlag(MODULE_ID, "ultimate", updatedConfig);
     card.find(".tsru-energy-ability-modifier").text(signedNumber(Math.floor((value - 10) / 2)));
     ui.notifications.info(`${actor.name}'s Energy Regen is now ${value} (${signedNumber(Math.floor((value - 10) / 2))}).`);
   });
