@@ -340,7 +340,7 @@ class PunchlineMeter {
     this.element.style.setProperty("--tsru-punchline-font-size", `${clamp(config.punchlineFontSize, 12, 160)}px`);
     this.element.style.setProperty("--tsru-punchline-color", config.color || DEFAULT_AHA_CONFIG.color);
     this.element.querySelector(".tsru-punchline-icon").src = config.punchlineIcon || DEFAULT_AHA_CONFIG.punchlineIcon;
-    this.element.querySelector(".tsru-punchline-number").textContent = `+${currentPunchline()}`;
+    this.element.querySelector(".tsru-punchline-number").textContent = String(currentPunchline());
     loadSplashFont(config.punchlineFontFile).then(font => this.element?.style.setProperty("--tsru-punchline-font", font)).catch(error => console.warn(`${MODULE_ID} | Could not load Punchline font`, error));
     return this;
   }
