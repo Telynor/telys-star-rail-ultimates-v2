@@ -2363,6 +2363,8 @@ class StarRailGMPanel extends FormApplication {
       template: `modules/${MODULE_ID}/templates/gm-panel.hbs`,
       width: 820,
       height: 720,
+      minWidth: 340,
+      minHeight: 300,
       resizable: true,
       closeOnSubmit: false
     });
