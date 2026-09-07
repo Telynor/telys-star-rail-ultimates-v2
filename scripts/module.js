@@ -287,6 +287,19 @@ async function addPunchline(amount = 1) {
   return setPunchline(currentPunchline() + (Number(amount) || 0));
 }
 
+async function awardPunchlineForAttack(actor, eventKey = "") {
+  if (!isAuthority() || actor?.type !== "character" || !getAhaConfig().elationEnabled) return;
+  const key = `punchline-attack:${eventKey || actor.uuid}`;
+  if (state.processedMessages.has(key)) return;
+  state.processedMessages.add(key);
+  window.setTimeout(() => state.processedMessages.delete(key), 120000);
+  const ahaConfig = getAhaConfig();
+  const actorConfig = getConfig(actor);
+  const isElation = Boolean(ahaConfig.elationPathId) && actorConfig.pathId === ahaConfig.elationPathId;
+  const gain = isElation ? Math.max(0, Math.floor(Number(actorConfig.punchlineGain) || 0)) : 1;
+  if (gain > 0) await addPunchline(gain);
+}
+
 async function spendPunchline(amount = 1) {
   if (!isAuthority()) throw new Error("Only the active GM can change Punchline directly.");
   const cost = Math.max(0, Math.floor(Number(amount) || 0));
@@ -1434,19 +1447,6 @@ async function processAppliedDamage(target, amount, options = {}) {
   const targetActor = target?.actor ?? target?.document?.actor ?? target;
   const damageEventId = origin?.id ?? options.midi?.workflowId ?? "unknown";
 
-  if (attacker.type === "character" && Number(amount) > 0 && getAhaConfig().elationEnabled) {
-    const punchlineKey = `punchline-damage:${damageEventId}:${targetActor.uuid}`;
-    if (!state.processedMessages.has(punchlineKey)) {
-      state.processedMessages.add(punchlineKey);
-      window.setTimeout(() => state.processedMessages.delete(punchlineKey), 120000);
-      const ahaConfig = getAhaConfig();
-      const actorConfig = getConfig(attacker);
-      const isElation = Boolean(ahaConfig.elationPathId) && actorConfig.pathId === ahaConfig.elationPathId;
-      const gain = isElation ? Math.max(0, Math.floor(Number(actorConfig.punchlineGain) || 0)) : 1;
-      if (gain > 0) await addPunchline(gain);
-    }
-  }
-
   if (targetActor?.type === "character" && Number(amount) > 0) {
     const energyKey = `applied-energy:${damageEventId}:${targetActor.uuid}`;
     if (!state.processedMessages.has(energyKey)) {
@@ -1550,7 +1550,10 @@ async function processCoreAttackMessage(message) {
     return;
   }
   if (attackMessage && attacker) await addEnergy(attacker, energyGain(getConfig(attacker), "attack"), "attack");
-  if ((damageMessage || macroDamageMessage) && attacker) await applyToughnessDamage(attacker, [...targetIds].map(id => game.actors.get(id)), rawDiceTotal(message.rolls), midiWorkflowId || message.id);
+  if ((damageMessage || macroDamageMessage) && attacker) {
+    if (!midiActive) await awardPunchlineForAttack(attacker, `chat:${message.id}`);
+    await applyToughnessDamage(attacker, [...targetIds].map(id => game.actors.get(id)), rawDiceTotal(message.rolls), midiWorkflowId || message.id);
+  }
   if (midiActive) return;
   if (!attackMessage) return;
   for (const actorId of targetIds) {
@@ -1582,6 +1585,7 @@ async function processMidiWorkflow(workflow) {
     window.setTimeout(() => state.processedMessages.delete(attackKey), 120000);
     await addEnergy(attacker, energyGain(getConfig(attacker), "attack"), "attack");
   }
+  if (attacker && (hitTargets.size > 0 || diceDamage > 0)) await awardPunchlineForAttack(attacker, `midi:${key}`);
   const targetKey = [...toughnessTargets].map(target => target?.id ?? target?.document?.id ?? target?.actor?.id ?? "target").sort().join(",");
   const damageKey = `midi-damage:${key}:${targetKey}:${diceDamage}`;
   if (diceDamage > 0 && !state.processedMessages.has(damageKey)) {
