@@ -435,7 +435,7 @@ function getSkillPointConfig() {
   config.maximum = Math.max(1, Math.floor(Number(config.maximum) || DEFAULT_SKILL_POINT_CONFIG.maximum));
   config.starting = clamp(Math.floor(Number(config.starting)), 0, config.maximum);
   config.pointsPerRow = clamp(Math.floor(Number(config.pointsPerRow)), 1, config.maximum);
-  config.pointSpacing = clamp(Number(config.pointSpacing), 0, 50);
+  config.pointSpacing = clamp(Number(config.pointSpacing), -50, 50);
   return config;
 }
 
@@ -1521,7 +1521,7 @@ class SkillPointConfig extends FormApplication {
       maximum,
       starting: clamp(Math.floor(Number(formData.starting)), 0, maximum),
       pointsPerRow: clamp(Math.floor(Number(formData.pointsPerRow)), 1, maximum),
-      pointSpacing: clamp(Number(formData.pointSpacing), 0, 50),
+      pointSpacing: clamp(Number(formData.pointSpacing), -50, 50),
       illuminatedIcon: formData.illuminatedIcon || DEFAULT_SKILL_POINT_CONFIG.illuminatedIcon,
       emptyIcon: formData.emptyIcon || DEFAULT_SKILL_POINT_CONFIG.emptyIcon,
       numberFontFile: formData.numberFontFile || ""
