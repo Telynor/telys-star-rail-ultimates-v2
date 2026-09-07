@@ -36,6 +36,7 @@ const DEFAULT_CONFIG = Object.freeze({
   titleAlign: "left",
   fontFile: "",
   subtitleFontFile: "",
+  ultimateButtonImage: "",
   orbImage: "",
   chargeColor: "#596171",
   readyColor: "#20e6ff",
@@ -60,6 +61,8 @@ const state = {
   ultimateLocks: new Set(),
   pendingUltimates: new Map(),
   ultimateQueues: new Map(),
+  splashBroadcasts: new Map(),
+  receivedSplashIds: new Set(),
   lastTargetsByActor: new Map(),
   recentToughness: new Map(),
   activeTalents: new Set(),
@@ -1211,7 +1214,7 @@ class UltimateOrb {
     this.element.style.setProperty("--tsru-color", color || DEFAULT_CONFIG.chargeColor);
     this.element.classList.toggle("has-energy", percent > 0 && !ready);
     this.element.classList.toggle("is-ready", ready);
-    this.element.querySelector(".tsru-orb-image").src = config.orbImage || this.actor.img || "icons/svg/mystery-man.svg";
+    this.element.querySelector(".tsru-orb-image").src = config.ultimateButtonImage || config.orbImage || this.actor.img || "icons/svg/mystery-man.svg";
     this.element.querySelector(".tsru-orb-percent").textContent = config.showPercent ? `${Math.round(percent)}%` : "";
     this.element.querySelector(".tsru-orb").disabled = !ready || state.ultimateLocks.has(this.actor.id);
     this.element.querySelector(".tsru-orb").title = ready ? `${this.actor.name}: Activate Ultimate` : `${this.actor.name}: ${config.current}/${config.max} Energy`;
@@ -1369,12 +1372,15 @@ async function showSplash({actorName, image, duration = 1, ultimateName = "Ultim
 
 async function requestUltimate(actor) {
   const config = getConfig(actor);
+  if (!game.user.isGM && !actor?.isOwner) return ui.notifications.error("You do not own this character.");
   if (!config.enabled || config.current < config.max) return ui.notifications.warn("This Ultimate is not ready.");
-  if (state.ultimateLocks.has(actor.id)) return;
+  if (state.ultimateLocks.has(actor.id)) return ui.notifications.warn("This Ultimate is already queued or resolving.");
   if (game.user.isGM && isAuthority()) return executeUltimate(actor.id, game.user.id);
   const gm = activeGM();
   if (!gm) return ui.notifications.error("A GM must be connected to activate an Ultimate.");
-  game.socket.emit(SOCKET, {type: "activateUltimate", actorId: actor.id, requestingUserId: game.user.id});
+  const requestId = foundry.utils.randomID();
+  ui.notifications.info(`${actor.name}'s Ultimate request was sent to the GM.`);
+  game.socket.emit(SOCKET, {type: "activateUltimate", requestId, actorId: actor.id, requestingUserId: game.user.id});
 }
 
 async function insertUltimateTurn(actor, resume = {}) {
@@ -1393,7 +1399,7 @@ async function insertUltimateTurn(actor, resume = {}) {
     tokenId: token?.id ?? null,
     sceneId: token?.parent?.id ?? canvas.scene?.id ?? null,
     initiative,
-    img: getConfig(actor).orbImage || actor.img,
+    img: getConfig(actor).ultimateButtonImage || getConfig(actor).orbImage || actor.img,
     flags: {[MODULE_ID]: {temporaryUltimate: true, resumeCombatantId: resume.combatantId ?? current?.id ?? null, resumeRound: resume.round ?? combat.round}}
   }]);
   if (!temporary) return null;
@@ -1491,13 +1497,16 @@ async function executeElationAction(combatant) {
 
 async function requestSkill(actor) {
   const config = getConfig(actor);
+  if (!game.user.isGM && !actor?.isOwner) return ui.notifications.error("You do not own this character.");
   if (!config.skillEnabled) return ui.notifications.warn("This character's Skill button is disabled.");
   if (currentSkillPoints() <= 0) return ui.notifications.warn("The party has no Skill Points remaining.");
-  if (state.skillLocks.has(actor.id)) return;
+  if (state.skillLocks.has(actor.id)) return ui.notifications.warn("This Skill is already resolving.");
   if (game.user.isGM && isAuthority()) return executeSkill(actor.id, game.user.id);
   const gm = activeGM();
   if (!gm) return ui.notifications.error("A GM must be connected to spend a shared Skill Point.");
-  game.socket.emit(SOCKET, {type: "activateSkill", actorId: actor.id, requestingUserId: game.user.id});
+  const requestId = foundry.utils.randomID();
+  ui.notifications.info(`${actor.name}'s Skill request was sent to the GM.`);
+  game.socket.emit(SOCKET, {type: "activateSkill", requestId, actorId: actor.id, requestingUserId: game.user.id});
 }
 
 async function completeSkill(actorId) {
@@ -1574,12 +1583,37 @@ async function finishUltimateQueue(combatId) {
   finally { state.suppressCombatHook = false; }
 }
 
+function retryUltimateSplashBroadcast(playbackId) {
+  const pending = state.splashBroadcasts.get(playbackId);
+  if (!pending) return;
+  if (!pending.remaining.size) {
+    window.clearTimeout(pending.timer);
+    state.splashBroadcasts.delete(playbackId);
+    return;
+  }
+  if (pending.attempts >= 3) {
+    const missed = [...pending.remaining].map(id => game.users.get(id)?.name ?? id);
+    console.warn(`${MODULE_ID} | Ultimate splash was not acknowledged by`, missed);
+    ui.notifications.warn(`Ultimate splash could not be confirmed for: ${missed.join(", ")}.`);
+    state.splashBroadcasts.delete(playbackId);
+    return;
+  }
+  pending.attempts++;
+  for (const targetUserId of pending.remaining) game.socket.emit(SOCKET, {...pending.payload, targetUserId});
+  pending.timer = window.setTimeout(() => retryUltimateSplashBroadcast(playbackId), 900);
+}
+
 function broadcastUltimateSplash(actor) {
   const config = getConfig(actor);
   const element = getElements().find(entry => entry.id === config.elementId);
   const splash = {actorName: actor.name, image: config.splashImage, duration: config.splashDuration, ultimateName: config.ultimateName, ultimateSubtitle: config.ultimateSubtitle, titleX: config.titleX, titleY: config.titleY, titleSize: config.titleSize, titleAlign: config.titleAlign, fontFile: config.fontFile, subtitleFontFile: config.subtitleFontFile, color: element?.chargeColor || DEFAULT_CONFIG.chargeColor};
   showSplash(splash);
-  game.socket.emit(SOCKET, {type: "showSplash", sourceUserId: game.user.id, ...splash});
+  const recipients = new Set(game.users.filter(user => user.active && user.id !== game.user.id).map(user => user.id));
+  if (!recipients.size) return;
+  const playbackId = foundry.utils.randomID();
+  const payload = {type: "showSplash", playbackId, sourceUserId: game.user.id, ...splash};
+  state.splashBroadcasts.set(playbackId, {payload, remaining: recipients, attempts: 0, timer: null});
+  retryUltimateSplashBroadcast(playbackId);
 }
 
 async function beginQueuedUltimate(request, queue, combat) {
@@ -1707,7 +1741,13 @@ async function onSocket(payload) {
   }
   if (payload.type === "elationActionComplete" && isAuthority()) return completeElationAction(payload.combatantId, payload.userId);
   if (payload.type === "skillPointsChanged") { refreshSkillUI(); return; }
-  if (payload.type === "activateSkill" && isAuthority()) return executeSkill(payload.actorId, payload.requestingUserId);
+  if (payload.type === "activateSkill" && isAuthority()) {
+    const before = currentSkillPoints();
+    await executeSkill(payload.actorId, payload.requestingUserId);
+    const accepted = currentSkillPoints() < before;
+    game.socket.emit(SOCKET, {type: "playerActionResult", targetUserId: payload.requestingUserId, requestId: payload.requestId, accepted, action: "Skill", message: accepted ? "Skill activated successfully." : "The GM could not activate that Skill. Check ownership, the Skill toggle, and available Skill Points."});
+    return;
+  }
   if (payload.type === "useSkill" && payload.targetUserId === game.user.id) {
     const actor = game.actors.get(payload.actorId);
     try {
@@ -1743,9 +1783,41 @@ async function onSocket(payload) {
     if (payload.sourceUserId !== game.user.id) playAhaVideo(payload);
     return;
   }
-  if (payload.type === "activateUltimate" && isAuthority()) return executeUltimate(payload.actorId, payload.requestingUserId);
+  if (payload.type === "activateUltimate" && isAuthority()) {
+    const actor = game.actors.get(payload.actorId);
+    const before = Number(getConfig(actor).current);
+    await executeUltimate(payload.actorId, payload.requestingUserId);
+    const accepted = Boolean(actor && Number(getConfig(actor).current) < before);
+    const queue = game.combat?.id ? state.ultimateQueues.get(game.combat.id) : null;
+    const waiting = Boolean(accepted && queue?.waitTurnId);
+    game.socket.emit(SOCKET, {type: "playerActionResult", targetUserId: payload.requestingUserId, requestId: payload.requestId, accepted, action: "Ultimate", message: accepted ? (waiting ? "Ultimate queued. It will begin when the current Main Party turn ends." : "Ultimate activated successfully.") : "The GM could not activate that Ultimate. Check ownership, Energy, and the character's Ultimate toggle."});
+    return;
+  }
+  if (payload.type === "playerActionResult" && payload.targetUserId === game.user.id) {
+    const notify = payload.accepted ? ui.notifications.info : ui.notifications.error;
+    notify.call(ui.notifications, payload.message || `${payload.action ?? "Action"} request ${payload.accepted ? "accepted" : "rejected"}.`);
+    return;
+  }
   if (payload.type === "showSplash") {
-    if (payload.sourceUserId !== game.user.id) showSplash(payload);
+    if (payload.sourceUserId === game.user.id) return;
+    if (payload.targetUserId && payload.targetUserId !== game.user.id) return;
+    const playbackId = payload.playbackId;
+    const alreadyReceived = playbackId && state.receivedSplashIds.has(playbackId);
+    if (playbackId) {
+      state.receivedSplashIds.add(playbackId);
+      window.setTimeout(() => state.receivedSplashIds.delete(playbackId), 60000);
+    }
+    if (!alreadyReceived) await showSplash(payload);
+    if (playbackId) game.socket.emit(SOCKET, {type: "ultimateSplashAck", playbackId, sourceUserId: game.user.id, targetUserId: payload.sourceUserId});
+    return;
+  }
+  if (payload.type === "ultimateSplashAck" && payload.targetUserId === game.user.id) {
+    const pending = state.splashBroadcasts.get(payload.playbackId);
+    pending?.remaining.delete(payload.sourceUserId);
+    if (pending && !pending.remaining.size) {
+      window.clearTimeout(pending.timer);
+      state.splashBroadcasts.delete(payload.playbackId);
+    }
     return;
   }
   if (payload.type === "useUltimate" && payload.targetUserId === game.user.id) {
@@ -2588,6 +2660,7 @@ async function injectUltimateTab(app, html) {
     titleAlignRight: config.titleAlign === "right",
     modifierSigned: signedNumber(regenModifier(config)),
     breakModifierSigned: signedNumber(breakEffectModifier(config)),
+    ultimateButtonArtwork: config.ultimateButtonImage || config.orbImage || "",
     breakDiceOptions: Array.from({length: 20}, (_value, index) => ({value: index + 1, selected: config.breakDamageDice === index + 1})),
     breakDieOptions: [4, 6, 8, 10, 12, 20].map(value => ({value, selected: config.breakDamageDie === value})),
     modeHit: config.attackedMode === "hit",
@@ -2638,6 +2711,7 @@ async function openUltimateConfig(actor, sheetApp = null) {
     titleAlignRight: config.titleAlign === "right",
     modifierSigned: signedNumber(regenModifier(config)),
     breakModifierSigned: signedNumber(breakEffectModifier(config)),
+    ultimateButtonArtwork: config.ultimateButtonImage || config.orbImage || "",
     breakDiceOptions: Array.from({length: 20}, (_value, index) => ({value: index + 1, selected: config.breakDamageDice === index + 1})),
     breakDieOptions: [4, 6, 8, 10, 12, 20].map(value => ({value, selected: config.breakDamageDie === value})),
     modeHit: config.attackedMode === "hit",
@@ -3005,6 +3079,9 @@ Hooks.on("deleteCombat", async combat => {
   if (state.specialAha?.combatId === combat.id) state.specialAha = null;
   state.actionAdvances.delete(combat.id);
   state.ultimateLocks.clear();
+  for (const pending of state.splashBroadcasts.values()) if (pending?.timer) window.clearTimeout(pending.timer);
+  state.splashBroadcasts.clear();
+  state.receivedSplashIds.clear();
   const ultimateQueue = state.ultimateQueues.get(combat.id);
   if (ultimateQueue?.startTimer) window.clearTimeout(ultimateQueue.startTimer);
   state.ultimateQueues.delete(combat.id);
