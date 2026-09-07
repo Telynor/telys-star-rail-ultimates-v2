@@ -5,7 +5,7 @@
 - One synchronized, party-wide Skill Point pool with configurable maximum and combat-start values.
 - Uploadable illuminated and empty point artwork, configurable points per row, and right-to-left row drain order.
 - A movable and resizable meter plus per-character movable Skill buttons.
-- GM-authored per-character Skill scripts. The active GM authorizes and deducts each point before the owning player runs the script.
+- GM-authored per-character Skill descriptions. Using a Skill deducts one point and posts its formatted text to chat.
 
 ## Elation and Punchline
 
@@ -13,10 +13,9 @@
 - Choose a saved Path as the Elation Path. Matching characters generate their configured Punchline amount on damage; other player characters generate +1.
 - The shared movable Punchline counter supports custom mask artwork and a custom number font.
 - Punchline number font size is independently adjustable from Aha Config.
-- Skill and Ultimate scripts receive a `punchline` helper for reading, adding, spending, or setting the shared resource.
 - When Aha's turn begins, matching Elation Path characters receive temporary portrait-backed Elation Action turns immediately after Aha, ordered by their existing initiative from highest to lowest.
-- Each temporary turn runs that character's GM-authored Elation Action script on its active owner. Once the awaited script finishes, the sequence advances automatically; after the final action, Punchline resets to zero, the temporary turns disappear, and the next normal round begins.
-- Skills, Ultimates, and Elation Actions remain usable when their script field is empty. The normal resource, animation, and turn behavior still resolves, with a “Script missing, no effect.” notification in place of a scripted effect.
+- Each temporary turn posts that character's Elation Action text to chat and waits for its owner to press **Complete Elation Action**. After the final action, Punchline resets to zero, the temporary turns disappear, and combat resumes.
+- Skills, Ultimates, and Elation Actions are descriptive text fields rather than executable JavaScript. Their normal resource, animation, and turn behavior still resolves when the description is empty.
 
 ## Programmable Talents
 
@@ -38,13 +37,18 @@ A Foundry Virtual Tabletop v14 module for D&D 5e that recreates Honkai: Star Rai
 - Configurable Energy score, maximum, and base gains.
 - Energy modifier: `floor((Energy Regen score - 10) / 2)`.
 - A GM-only Ultimate tab injected into D&D 5e character sheets.
-- A configurable Item/Activity to execute as the Ultimate.
+- Formatted Skill, Ultimate, and Elation Action chat cards.
 - A one-second, world-wide cinematic artwork splash (duration is configurable).
 - Temporary interrupt turns inserted into the Combat Tracker.
 - GM-defined custom Elements with uploaded icons and colors.
 - GM-defined Paths with browseable or drag-and-drop icons; assigned Element and Path badges appear beside the character portrait.
 - Immediate GM-only manual Energy override on each character's Ultimate tab.
-- A per-character GM-only Ultimate script editor, replacing Ultimate Item selection and its attack prompt.
+- Per-character GM-only Skill, Ultimate, and Elation Action description editors.
+- A left-side GM panel for live Energy, Punchline, Skill Point, Talent Point, and gain-value adjustments.
+- GM Action Advance turns that interrupt combat for a selected initiative participant, then resume the interrupted turn.
+- Per-token temporary Toughness weakness checklists in the GM panel. Permanent sheet selections remain checked and locked, targeted enemies are highlighted, and temporary weaknesses remain visible until reset.
+- Per-enemy temporary Toughness weaknesses from the GM panel, layered over permanent sheet selections.
+- Per-enemy and Scene-wide controls that remove temporary weaknesses and return to permanent selections without changing the NPC sheet configuration.
 - GM-only enemy Toughness bars with configurable maximum/current values and Element weaknesses.
 - Matching player Elements automatically deal Toughness damage equal to the attack's raw dice results, excluding flat modifiers.
 - Players can see enemy Toughness bars, but weakness dots remain hidden until that Element successfully deals Toughness damage.
@@ -73,9 +77,9 @@ The GitHub repository is `telys-star-rail-ultimates-v2` under the `Telynor` acco
 1. Enable the module in a D&D 5e world.
 2. As GM, open **Game Settings → Configure Settings → Module Settings → Manage Elements** and create the campaign's Elements.
 3. Open a player character sheet and select the GM-only **Ultimate** tab.
-4. Enable the character, set Energy values and gains, write its Ultimate script, upload HUD and splash artwork, and assign an Element and Path.
+4. Enable the character, set Energy values and gains, write its ability descriptions, upload HUD and splash artwork, and assign an Element and Path.
 5. Save. Owners of that actor receive an orb automatically. Use the HUD toggle in the Token Controls toolbar if an orb is closed.
-6. At full Energy, click the orb to trigger the splash, interrupt turn, and configured character script.
+6. At full Energy, click the orb to trigger the splash, interrupt turn, and formatted Ultimate chat card.
 
 ## Energy rules
 

@@ -1,0 +1,56 @@
+<form class="tsru-gm-panel-form">
+  <header class="tsru-gm-panel-header"><div><h2><i class="fas fa-sliders"></i> Star Rail GM Panel</h2><p>Live combat resources and character tuning. Changes apply immediately.</p></div><span class="tsru-gm-badge">GM ONLY</span></header>
+
+  <section class="tsru-gm-live-resources">
+    <div class="tsru-gm-resource-card"><strong>Punchline</strong><div><button type="button" data-resource-action="punchline" data-delta="-1"><i class="fas fa-minus"></i></button><input type="number" min="0" value="{{punchline}}" data-resource-input="punchline"><button type="button" data-resource-action="punchline" data-delta="1"><i class="fas fa-plus"></i></button></div></div>
+    <div class="tsru-gm-resource-card"><strong>Shared Skill Points</strong><div><button type="button" data-resource-action="skillPoints" data-delta="-1"><i class="fas fa-minus"></i></button><input type="number" min="0" max="{{skillPointMax}}" value="{{skillPoints}}" data-resource-input="skillPoints"><button type="button" data-resource-action="skillPoints" data-delta="1"><i class="fas fa-plus"></i></button></div></div>
+  </section>
+
+  <section class="tsru-gm-section">
+    <h3><i class="fas fa-forward-fast"></i> Special Action Advance</h3>
+    <p>Interrupt the current turn with one extra turn for a combatant already in initiative. When the extra turn ends, the interrupted turn resumes.</p>
+    <div class="tsru-gm-action-advance"><select name="actionAdvanceCombatant" {{#unless hasCombat}}disabled{{/unless}}><option value="">— Choose a character or enemy —</option>{{#each combatants}}<option value="{{this.id}}">{{this.name}} — Initiative {{this.initiative}}</option>{{/each}}</select><button type="button" data-action="action-advance" {{#unless hasCombat}}disabled{{/unless}}><i class="fas fa-forward-fast"></i> Insert Action Advance</button></div>
+  </section>
+
+  <section class="tsru-gm-section tsru-gm-weakness-settings">
+    <h3><i class="fas fa-shield-virus"></i> Temporary Toughness Weaknesses</h3>
+    <p>Permanent weaknesses come from each enemy's sheet configuration. Temporary weaknesses affect Toughness until reset, without altering those permanent selections.</p>
+    <div class="tsru-gm-weakness-list">
+      {{#each sceneEnemies}}
+      <article class="tsru-gm-weakness-row {{#if this.targeted}}targeted{{/if}}" data-toughness-actor="{{this.tokenUuid}}" data-toughness-token="{{this.tokenId}}">
+        <header><img src="{{this.actor.img}}"><div><strong>{{this.token.name}}</strong><small>{{this.actor.name}}</small></div><span class="tsru-targeted-badge" {{#unless this.targeted}}style="display:none"{{/unless}}><i class="fas fa-bullseye"></i> Targeted</span></header>
+        <div class="tsru-gm-element-checklist">{{#each this.elements}}<label class="{{#if this.permanent}}permanent{{/if}}"><input type="checkbox" value="{{this.id}}" data-temporary-element {{#if this.permanent}}checked disabled{{else}}{{#if this.temporary}}checked{{/if}}{{/if}}><img src="{{this.icon}}"><span>{{this.name}}</span>{{#if this.permanent}}<small>Sheet</small>{{else}}{{#if this.temporary}}<small>Temporary</small>{{/if}}{{/if}}</label>{{else}}<em>Create Elements in module settings first.</em>{{/each}}</div>
+        <div class="tsru-gm-weakness-actions"><button type="button" data-action="save-temporary-weaknesses"><i class="fas fa-save"></i> Save Temporary Weaknesses</button><button type="button" data-action="reset-temporary-weaknesses"><i class="fas fa-rotate-left"></i> Reset Weaknesses</button></div>
+      </article>
+      {{else}}
+      <p class="notes">No enemy tokens are present on the current Scene.</p>
+      {{/each}}
+    </div>
+    <button type="button" data-action="reset-all-temporary-weaknesses"><i class="fas fa-rotate-left"></i> Reset Every Enemy to Main Weakness Selections</button>
+  </section>
+
+  <section class="tsru-gm-section tsru-gm-character-settings">
+    <h3><i class="fas fa-users-gear"></i> Character Resources</h3>
+    <p>Energy, regeneration, automatic gains, Punchline gain, and Talent Points update as soon as a field is changed.</p>
+    <div class="tsru-gm-character-list">
+      {{#each characters}}
+      <article class="tsru-gm-character-row">
+        <header><img src="{{this.actor.img}}"><strong>{{this.actor.name}}</strong></header>
+        <label><span>Energy</span><div class="tsru-gm-paired-input"><input type="number" min="0" max="{{this.config.max}}" value="{{this.config.current}}" data-actor-id="{{this.actor.id}}" data-actor-field="current"><b>/</b><input type="number" min="1" value="{{this.config.max}}" data-actor-id="{{this.actor.id}}" data-actor-field="max"></div></label>
+        <label><span>Energy Regen</span><div class="tsru-gm-paired-input"><input type="number" min="1" max="30" value="{{this.config.regenScore}}" data-actor-id="{{this.actor.id}}" data-actor-field="regenScore"><b data-regen-modifier="{{this.actor.id}}">{{this.modifier}}</b></div></label>
+        <label><span>Gain on attack</span><input type="number" min="0" value="{{this.config.attackGain}}" data-actor-id="{{this.actor.id}}" data-actor-field="attackGain"></label>
+        <label><span>Gain when hit</span><input type="number" min="0" value="{{this.config.attackedGain}}" data-actor-id="{{this.actor.id}}" data-actor-field="attackedGain"></label>
+        <label><span>Punchline gain</span><input type="number" min="0" value="{{this.config.punchlineGain}}" data-actor-id="{{this.actor.id}}" data-actor-field="punchlineGain"></label>
+        <label><span>Talent Points</span><div class="tsru-gm-paired-input"><input type="number" min="0" max="{{this.config.talentPointsMax}}" value="{{this.config.talentPointsCurrent}}" data-actor-id="{{this.actor.id}}" data-actor-field="talentPointsCurrent"><b>/</b><input type="number" min="0" value="{{this.config.talentPointsMax}}" data-actor-id="{{this.actor.id}}" data-actor-field="talentPointsMax"></div></label>
+      </article>
+      {{else}}
+      <p class="notes">No player-character actors were found.</p>
+      {{/each}}
+    </div>
+  </section>
+
+  <section class="tsru-gm-section">
+    <h3><i class="fas fa-screwdriver-wrench"></i> Module Configuration</h3>
+    <div class="tsru-gm-config-buttons"><button type="button" data-open-config="aha"><i class="fas fa-masks-theater"></i> Aha Instant</button><button type="button" data-open-config="skills"><i class="fas fa-diamond"></i> Skill Points</button><button type="button" data-open-config="elements"><i class="fas fa-sparkles"></i> Elements</button><button type="button" data-open-config="paths"><i class="fas fa-route"></i> Paths</button><button type="button" data-action="reset-canvas-toughness"><i class="fas fa-shield-halved"></i> Reset Scene Toughness</button></div>
+  </section>
+</form>
