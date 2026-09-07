@@ -762,6 +762,36 @@
 /* GM live-control panel */
 #tsru-gm-panel .window-content { padding: 0; overflow: hidden; }
 .tsru-gm-panel-form { height: 100%; overflow-y: auto; padding: 16px; color: #e8e8ec; background: radial-gradient(circle at top left, rgba(117,78,28,.18), transparent 35%), #111318; }
+.tsru-gm-panel-form button,
+.tsru-gm-panel-form select,
+.tsru-gm-panel-form input:not([type="checkbox"]) {
+  border: 1px solid #777b86;
+  background: #20242d;
+  color: #f4f1e8;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.025);
+}
+.tsru-gm-panel-form input:not([type="checkbox"])::placeholder { color: #9da1aa; }
+.tsru-gm-panel-form select option { background: #20242d; color: #f4f1e8; }
+.tsru-gm-panel-form button { color: #f1d68c; font-weight: 650; }
+.tsru-gm-panel-form button:hover:not(:disabled),
+.tsru-gm-panel-form button:focus-visible,
+.tsru-gm-panel-form select:focus,
+.tsru-gm-panel-form input:not([type="checkbox"]):focus {
+  border-color: #e6c66e;
+  background: #2a303b;
+  color: #fff8df;
+  box-shadow: 0 0 0 2px rgba(230,198,110,.2), 0 0 10px rgba(230,198,110,.12);
+  outline: none;
+}
+.tsru-gm-panel-form button:disabled,
+.tsru-gm-panel-form select:disabled,
+.tsru-gm-panel-form input:disabled {
+  border-color: #454953;
+  background: #171a20;
+  color: #8f9299;
+  opacity: .72;
+}
+.tsru-gm-panel-form input[type="checkbox"] { accent-color: #e4c466; }
 .tsru-gm-panel-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; border-bottom: 1px solid #89703c; margin-bottom: 14px; padding-bottom: 12px; }
 .tsru-gm-panel-header h2 { margin: 0 0 3px; color: #f1d68c; }
 .tsru-gm-panel-header p, .tsru-gm-section > p { margin: 0; color: #aeb0b7; }
