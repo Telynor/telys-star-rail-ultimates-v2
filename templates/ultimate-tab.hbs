@@ -13,6 +13,14 @@
       <div class="tsru-field"><label><strong>Count as attacked when</strong><small>Choose whether targeting alone is enough.</small></label><select name="attackedMode"><option value="hit" {{#if modeHit}}selected{{/if}}>The attack hits</option><option value="targeted" {{#if modeTargeted}}selected{{/if}}>The character is targeted</option></select></div>
     </div>
 
+    <div class="tsru-config-section tsru-skill-config-section">
+      <h3><i class="fas fa-hand-sparkles"></i> Skill</h3>
+      <div class="tsru-field tsru-field-toggle"><span class="tsru-field-label"><strong>Enable Skill button</strong><small>Shows this character's movable Skill button to its owner and the GM.</small></span><input type="checkbox" name="skillEnabled" {{checked config.skillEnabled}}></div>
+      <div class="tsru-field tsru-field-wide tsru-script-field"><label><strong>Skill Script</strong><small>Runs after the shared party pool successfully spends 1 Skill Point. Available variables: <code>actor</code>, <code>token</code>, <code>game</code>, <code>canvas</code>, <code>ui</code>, <code>foundry</code>, and <code>Hooks</code>.</small></label><textarea name="skillScript" rows="10" spellcheck="false" placeholder="// Write this character's Skill here.">{{config.skillScript}}</textarea></div>
+      <div class="tsru-field tsru-field-wide"><label><strong>Skill button artwork</strong><small>Displayed inside this character's free-floating circular Skill button. Defaults to the actor portrait.</small></label><div class="tsru-file-control"><input type="text" name="skillButtonImage" value="{{config.skillButtonImage}}" placeholder="Use actor portrait"><button type="button" class="file-picker" data-type="image" data-target="skillButtonImage" title="Browse Files"><i class="fas fa-file-import"></i></button></div></div>
+      <div class="tsru-field tsru-field-wide"><label><strong>Floating Skill button</strong><small>The party must have at least 1 shared Skill Point before it can be pressed.</small></label><button type="button" data-action="show-skill-button"><i class="fas fa-hand-sparkles"></i> Show Skill Button</button></div>
+    </div>
+
     <div class="tsru-config-section tsru-energy-override">
       <h3><i class="fas fa-gauge-high"></i> Manual Energy Override</h3>
       <div class="tsru-field tsru-field-wide"><label><strong>Set current Energy immediately</strong><small>Overrides this character's current Energy without changing any other settings.</small></label><div class="tsru-override-control"><input type="number" class="tsru-energy-override-value" min="0" max="{{config.max}}" value="{{config.current}}"><button type="button" data-action="set-energy"><i class="fas fa-check"></i> Set Energy</button></div></div>
@@ -51,6 +59,7 @@
       <button type="button" data-action="reset-energy"><i class="fas fa-battery-empty"></i> Empty Energy</button>
       <button type="button" data-action="fill-energy"><i class="fas fa-battery-full"></i> Fill Energy</button>
       <button type="button" data-action="show-orb"><i class="fas fa-circle"></i> Show Orb</button>
+      <button type="button" data-action="show-skill-button"><i class="fas fa-hand-sparkles"></i> Show Skill</button>
       <button type="button" class="tsru-save-config" data-action="save-config"><i class="fas fa-save"></i> Save Configuration</button>
     </footer>
   </div>

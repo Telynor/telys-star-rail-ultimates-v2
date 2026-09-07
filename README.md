@@ -1,5 +1,12 @@
 # Tely's Star Rail Ultimates
 
+## Shared Skill Points
+
+- One synchronized, party-wide Skill Point pool with configurable maximum and combat-start values.
+- Uploadable illuminated and empty point artwork, configurable points per row, and right-to-left row drain order.
+- A movable and resizable meter plus per-character movable Skill buttons.
+- GM-authored per-character Skill scripts. The active GM authorizes and deducts each point before the owning player runs the script.
+
 A Foundry Virtual Tabletop v14 module for D&D 5e that recreates Honkai: Star Rail-style Ultimate energy and interrupt turns.
 
 ## Features

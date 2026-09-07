@@ -9,6 +9,9 @@ const DEFAULT_CONFIG = Object.freeze({
   attackGain: 10,
   attackedGain: 5,
   attackedMode: "hit",
+  skillEnabled: true,
+  skillScript: "",
+  skillButtonImage: "",
   ultimateScript: "",
   splashImage: "",
   splashDuration: 1,
@@ -30,6 +33,11 @@ const DEFAULT_CONFIG = Object.freeze({
 
 const state = {
   orbs: new Map(),
+  skillButtons: new Map(),
+  skillMeter: null,
+  skillLocks: new Set(),
+  pendingSkills: new Map(),
+  skillSpendLock: false,
   ahaButton: null,
   processedMessages: new Set(),
   ultimateLocks: new Set(),
@@ -48,6 +56,14 @@ const DEFAULT_AHA_CONFIG = Object.freeze({
   color: "#ff4fd8",
   initiativeEnabled: false,
   combatantImage: "icons/svg/mystery-man.svg"
+});
+
+const DEFAULT_SKILL_POINT_CONFIG = Object.freeze({
+  maximum: 5,
+  starting: 3,
+  pointsPerRow: 5,
+  illuminatedIcon: "icons/svg/sun.svg",
+  emptyIcon: "icons/svg/circle.svg"
 });
 
 const DEFAULT_TOUGHNESS = Object.freeze({enabled: true, current: 100, max: 100, weaknesses: [], discoveredWeaknesses: []});
@@ -411,6 +427,162 @@ function registerAhaToolbarFallback() {
   }, true);
 }
 
+function getSkillPointConfig() {
+  const stored = game.settings.get(MODULE_ID, "skillPointConfig") ?? {};
+  const config = foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_SKILL_POINT_CONFIG), stored, {inplace: false});
+  config.maximum = Math.max(1, Math.floor(Number(config.maximum) || DEFAULT_SKILL_POINT_CONFIG.maximum));
+  config.starting = clamp(Math.floor(Number(config.starting)), 0, config.maximum);
+  config.pointsPerRow = clamp(Math.floor(Number(config.pointsPerRow)), 1, config.maximum);
+  return config;
+}
+
+function currentSkillPoints() {
+  return clamp(Math.floor(Number(game.settings.get(MODULE_ID, "skillPoints"))), 0, getSkillPointConfig().maximum);
+}
+
+async function setSkillPoints(value, {broadcast = true} = {}) {
+  if (!isAuthority()) return currentSkillPoints();
+  const next = clamp(Math.floor(Number(value)), 0, getSkillPointConfig().maximum);
+  await game.settings.set(MODULE_ID, "skillPoints", next);
+  if (broadcast) game.socket.emit(SOCKET, {type: "skillPointsChanged", value: next, sourceUserId: game.user.id});
+  refreshSkillUI();
+  Hooks.callAll("tsruSkillPointsChanged", next);
+  return next;
+}
+
+function skillMeterLayout() {
+  return foundry.utils.mergeObject({x: 420, y: 80, size: 42, visible: true}, game.settings.get(MODULE_ID, "skillMeterLayout") ?? {}, {inplace: false});
+}
+
+async function saveSkillMeterLayout(changes) {
+  const layout = foundry.utils.mergeObject(skillMeterLayout(), changes, {inplace: false});
+  await game.settings.set(MODULE_ID, "skillMeterLayout", layout);
+  return layout;
+}
+
+function skillButtonLayout(actorId) {
+  const layouts = game.settings.get(MODULE_ID, "skillButtonLayouts") ?? {};
+  const index = Math.max(0, game.actors.filter(actor => actor.type === "character").findIndex(actor => actor.id === actorId));
+  return foundry.utils.mergeObject({x: 240, y: 330 + index * 118, size: 96, visible: false}, layouts[actorId] ?? {}, {inplace: false});
+}
+
+async function saveSkillButtonLayout(actorId, changes) {
+  const layouts = foundry.utils.deepClone(game.settings.get(MODULE_ID, "skillButtonLayouts") ?? {});
+  layouts[actorId] = foundry.utils.mergeObject(layouts[actorId] ?? {}, changes, {inplace: false});
+  await game.settings.set(MODULE_ID, "skillButtonLayouts", layouts);
+}
+
+class SkillPointMeter {
+  constructor() { this.element = null; this.drag = null; this.resize = null; }
+  render() {
+    const layout = skillMeterLayout();
+    if (!layout.visible) return this.destroy();
+    if (!this.element) {
+      this.element = document.createElement("div");
+      this.element.className = "tsru-skill-meter";
+      this.element.innerHTML = `<div class="tsru-skill-meter-drag" title="Move Skill Point meter"><i class="fas fa-grip-lines"></i></div><div class="tsru-skill-pips"></div><div class="tsru-skill-meter-label">Skill Points</div><button type="button" class="tsru-skill-meter-close" title="Hide Skill Point meter"><i class="fas fa-xmark"></i></button><div class="tsru-skill-meter-resize" title="Resize"></div>`;
+      document.body.appendChild(this.element);
+      this.activateListeners();
+    }
+    const config = getSkillPointConfig();
+    const current = currentSkillPoints();
+    const spent = config.maximum - current;
+    const drainOrder = [];
+    for (let start = 0; start < config.maximum; start += config.pointsPerRow) {
+      const end = Math.min(start + config.pointsPerRow, config.maximum);
+      for (let index = end - 1; index >= start; index--) drainOrder.push(index);
+    }
+    const empty = new Set(drainOrder.slice(0, spent));
+    const pips = Array.from({length: config.maximum}, (_entry, index) => {
+      const active = !empty.has(index);
+      const src = active ? config.illuminatedIcon : config.emptyIcon;
+      return `<img class="tsru-skill-pip ${active ? "is-filled" : "is-empty"}" src="${escapeHTML(src)}" alt="${active ? "Filled" : "Empty"} Skill Point">`;
+    }).join("");
+    this.element.querySelector(".tsru-skill-pips").innerHTML = pips;
+    this.element.querySelector(".tsru-skill-pips").style.setProperty("--tsru-skill-columns", String(config.pointsPerRow));
+    this.element.querySelector(".tsru-skill-meter-label").textContent = `Skill Points ${current}/${config.maximum}`;
+    this.element.style.left = `${clamp(layout.x, 0, window.innerWidth - 40)}px`;
+    this.element.style.top = `${clamp(layout.y, 0, window.innerHeight - 40)}px`;
+    this.element.style.setProperty("--tsru-skill-pip-size", `${clamp(layout.size, 24, 100)}px`);
+    return this;
+  }
+  activateListeners() {
+    const drag = this.element.querySelector(".tsru-skill-meter-drag");
+    const resize = this.element.querySelector(".tsru-skill-meter-resize");
+    drag.addEventListener("pointerdown", event => { event.preventDefault(); const rect = this.element.getBoundingClientRect(); this.drag = {dx: event.clientX - rect.left, dy: event.clientY - rect.top}; drag.setPointerCapture(event.pointerId); });
+    drag.addEventListener("pointermove", event => { if (!this.drag) return; this.element.style.left = `${clamp(event.clientX - this.drag.dx, 0, window.innerWidth - 40)}px`; this.element.style.top = `${clamp(event.clientY - this.drag.dy, 0, window.innerHeight - 40)}px`; });
+    drag.addEventListener("pointerup", async event => { if (!this.drag) return; this.drag = null; drag.releasePointerCapture(event.pointerId); const rect = this.element.getBoundingClientRect(); await saveSkillMeterLayout({x: Math.round(rect.left), y: Math.round(rect.top)}); });
+    resize.addEventListener("pointerdown", event => { event.preventDefault(); this.resize = {startX: event.clientX, startSize: skillMeterLayout().size}; resize.setPointerCapture(event.pointerId); });
+    resize.addEventListener("pointermove", event => { if (!this.resize) return; this.element.style.setProperty("--tsru-skill-pip-size", `${clamp(this.resize.startSize + event.clientX - this.resize.startX, 24, 100)}px`); });
+    resize.addEventListener("pointerup", async event => { if (!this.resize) return; const size = clamp(this.resize.startSize + event.clientX - this.resize.startX, 24, 100); this.resize = null; resize.releasePointerCapture(event.pointerId); await saveSkillMeterLayout({size: Math.round(size)}); this.render(); });
+    this.element.querySelector(".tsru-skill-meter-close").addEventListener("click", async () => { await saveSkillMeterLayout({visible: false}); this.destroy(); });
+  }
+  destroy() { this.element?.remove(); this.element = null; if (state.skillMeter === this) state.skillMeter = null; }
+}
+
+function canUseSkillActor(actor) {
+  return Boolean(actor?.type === "character" && getConfig(actor).skillEnabled && (game.user.isGM || actor.isOwner));
+}
+
+class SkillButton {
+  constructor(actor) { this.actor = actor; this.element = null; this.drag = null; this.resize = null; }
+  render() {
+    const layout = skillButtonLayout(this.actor.id);
+    if (!canUseSkillActor(this.actor) || !layout.visible) return this.destroy();
+    if (!this.element) {
+      this.element = document.createElement("div");
+      this.element.className = "tsru-skill-widget";
+      this.element.dataset.actorId = this.actor.id;
+      this.element.innerHTML = `<div class="tsru-skill-drag" title="Move Skill button"><i class="fas fa-grip-lines"></i></div><button type="button" class="tsru-skill-button"><img></button><div class="tsru-skill-label">Skill</div><button type="button" class="tsru-skill-close" title="Hide Skill button"><i class="fas fa-xmark"></i></button><div class="tsru-skill-resize" title="Resize"></div>`;
+      document.body.appendChild(this.element);
+      this.activateListeners();
+    }
+    const config = getConfig(this.actor);
+    const element = getElements().find(entry => entry.id === config.elementId);
+    const available = currentSkillPoints() > 0 && !state.skillLocks.has(this.actor.id) && Boolean(config.skillScript?.trim());
+    this.element.style.left = `${clamp(layout.x, 0, window.innerWidth - 40)}px`;
+    this.element.style.top = `${clamp(layout.y, 0, window.innerHeight - 40)}px`;
+    this.element.style.setProperty("--tsru-skill-size", `${clamp(layout.size, 64, 280)}px`);
+    this.element.style.setProperty("--tsru-skill-color", element?.readyColor || DEFAULT_CONFIG.readyColor);
+    this.element.classList.toggle("is-unavailable", !available);
+    const button = this.element.querySelector(".tsru-skill-button");
+    button.disabled = !available;
+    button.title = available ? `${this.actor.name}: Use Skill (costs 1 Skill Point)` : state.skillLocks.has(this.actor.id) ? "This Skill is currently resolving." : currentSkillPoints() <= 0 ? "No Skill Points remain." : "No Skill script is configured.";
+    button.querySelector("img").src = config.skillButtonImage || this.actor.img || "icons/svg/sword.svg";
+    return this;
+  }
+  activateListeners() {
+    const drag = this.element.querySelector(".tsru-skill-drag"); const resize = this.element.querySelector(".tsru-skill-resize");
+    drag.addEventListener("pointerdown", event => { event.preventDefault(); const rect = this.element.getBoundingClientRect(); this.drag = {dx: event.clientX - rect.left, dy: event.clientY - rect.top}; drag.setPointerCapture(event.pointerId); });
+    drag.addEventListener("pointermove", event => { if (!this.drag) return; this.element.style.left = `${clamp(event.clientX - this.drag.dx, 0, window.innerWidth - 40)}px`; this.element.style.top = `${clamp(event.clientY - this.drag.dy, 0, window.innerHeight - 40)}px`; });
+    drag.addEventListener("pointerup", async event => { if (!this.drag) return; this.drag = null; drag.releasePointerCapture(event.pointerId); const rect = this.element.getBoundingClientRect(); await saveSkillButtonLayout(this.actor.id, {x: Math.round(rect.left), y: Math.round(rect.top)}); });
+    resize.addEventListener("pointerdown", event => { event.preventDefault(); const rect = this.element.getBoundingClientRect(); this.resize = {startX: event.clientX, startSize: rect.width}; resize.setPointerCapture(event.pointerId); });
+    resize.addEventListener("pointermove", event => { if (!this.resize) return; this.element.style.setProperty("--tsru-skill-size", `${clamp(this.resize.startSize + event.clientX - this.resize.startX, 64, 280)}px`); });
+    resize.addEventListener("pointerup", async event => { if (!this.resize) return; const size = clamp(this.resize.startSize + event.clientX - this.resize.startX, 64, 280); this.resize = null; resize.releasePointerCapture(event.pointerId); await saveSkillButtonLayout(this.actor.id, {size: Math.round(size)}); });
+    this.element.querySelector(".tsru-skill-close").addEventListener("click", async () => { await saveSkillButtonLayout(this.actor.id, {visible: false}); this.destroy(); });
+    this.element.querySelector(".tsru-skill-button").addEventListener("click", () => requestSkill(this.actor));
+  }
+  destroy() { this.element?.remove(); this.element = null; state.skillButtons.delete(this.actor.id); }
+}
+
+function refreshSkillUI() {
+  const meterLayout = skillMeterLayout();
+  if (meterLayout.visible) { if (!state.skillMeter) state.skillMeter = new SkillPointMeter(); state.skillMeter.render(); }
+  else state.skillMeter?.destroy();
+  for (const actor of game.actors ?? []) {
+    if (!canUseSkillActor(actor) || !skillButtonLayout(actor.id).visible) { state.skillButtons.get(actor.id)?.destroy(); continue; }
+    let button = state.skillButtons.get(actor.id);
+    if (!button) { button = new SkillButton(actor); state.skillButtons.set(actor.id, button); }
+    button.render();
+  }
+}
+
+async function showSkillUI() {
+  await saveSkillMeterLayout({visible: true});
+  for (const actor of game.actors.filter(canUseSkillActor)) await saveSkillButtonLayout(actor.id, {visible: true});
+  refreshSkillUI();
+}
+
 function getElements() {
   return (game.settings.get(MODULE_ID, "elements") ?? []).map(element => ({
     ...element,
@@ -737,6 +909,64 @@ async function runUltimateScript(actor) {
   return execute(actor, token, game, canvas, ui, foundry, Hooks);
 }
 
+async function runSkillScript(actor) {
+  const script = getConfig(actor).skillScript?.trim();
+  if (!script) throw new Error(`${actor.name} has no configured Skill script.`);
+  const token = actor.getActiveTokens(true, true)?.[0] ?? null;
+  const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+  const execute = new AsyncFunction("actor", "token", "game", "canvas", "ui", "foundry", "Hooks", `"use strict";\n${script}`);
+  return execute(actor, token, game, canvas, ui, foundry, Hooks);
+}
+
+async function requestSkill(actor) {
+  const config = getConfig(actor);
+  if (!config.skillEnabled) return ui.notifications.warn("This character's Skill button is disabled.");
+  if (!config.skillScript?.trim()) return ui.notifications.warn("No Skill script is configured for this character.");
+  if (currentSkillPoints() <= 0) return ui.notifications.warn("The party has no Skill Points remaining.");
+  if (state.skillLocks.has(actor.id)) return;
+  if (game.user.isGM && isAuthority()) return executeSkill(actor.id, game.user.id);
+  const gm = activeGM();
+  if (!gm) return ui.notifications.error("A GM must be connected to spend a shared Skill Point.");
+  game.socket.emit(SOCKET, {type: "activateSkill", actorId: actor.id, requestingUserId: game.user.id});
+}
+
+async function completeSkill(actorId) {
+  if (!isAuthority()) return;
+  const pending = state.pendingSkills.get(actorId);
+  if (pending?.timer) window.clearTimeout(pending.timer);
+  state.pendingSkills.delete(actorId);
+  state.skillLocks.delete(actorId);
+  game.socket.emit(SOCKET, {type: "skillState", actorId, locked: false});
+  refreshSkillUI();
+}
+
+async function executeSkill(actorId, requestingUserId) {
+  if (!isAuthority() || state.skillLocks.has(actorId) || state.skillSpendLock) return;
+  const actor = game.actors.get(actorId);
+  const requester = game.users.get(requestingUserId);
+  if (!actor || actor.type !== "character" || (!requester?.isGM && !actor.testUserPermission(requester, "OWNER"))) return;
+  const config = getConfig(actor);
+  if (!config.skillEnabled || !config.skillScript?.trim()) return ui.notifications.warn(`${actor.name} has no configured Skill script.`);
+  if (currentSkillPoints() <= 0) return ui.notifications.warn("The party has no Skill Points remaining.");
+
+  state.skillSpendLock = true;
+  state.skillLocks.add(actorId);
+  game.socket.emit(SOCKET, {type: "skillState", actorId, locked: true});
+  try {
+    await setSkillPoints(currentSkillPoints() - 1);
+    const pending = {actorId, requestingUserId, timer: window.setTimeout(() => completeSkill(actorId), 120000)};
+    state.pendingSkills.set(actorId, pending);
+    if (requestingUserId === game.user.id) {
+      await runSkillScript(actor);
+      await completeSkill(actorId);
+    } else game.socket.emit(SOCKET, {type: "useSkill", actorId, targetUserId: requestingUserId});
+  } catch (error) {
+    console.error(`${MODULE_ID} | Skill failed`, error);
+    ui.notifications.error(`Skill failed: ${error.message}`);
+    await completeSkill(actorId);
+  } finally { state.skillSpendLock = false; }
+}
+
 async function completeUltimate(actorId) {
   if (!isAuthority()) return;
   const pending = state.pendingUltimates.get(actorId);
@@ -793,6 +1023,31 @@ async function executeUltimate(actorId, requestingUserId) {
 
 async function onSocket(payload) {
   if (!payload?.type) return;
+  if (payload.type === "skillPointsChanged") { refreshSkillUI(); return; }
+  if (payload.type === "activateSkill" && isAuthority()) return executeSkill(payload.actorId, payload.requestingUserId);
+  if (payload.type === "useSkill" && payload.targetUserId === game.user.id) {
+    const actor = game.actors.get(payload.actorId);
+    try {
+      if (!actor?.isOwner) throw new Error("You no longer own this character.");
+      await runSkillScript(actor);
+      game.socket.emit(SOCKET, {type: "skillComplete", actorId: payload.actorId, userId: game.user.id});
+    } catch (error) {
+      console.error(`${MODULE_ID} | Player Skill failed`, error);
+      ui.notifications.error(`Skill failed: ${error.message}`);
+      game.socket.emit(SOCKET, {type: "skillComplete", actorId: payload.actorId, userId: game.user.id, failed: true});
+    }
+    return;
+  }
+  if (payload.type === "skillComplete" && isAuthority()) {
+    const pending = state.pendingSkills.get(payload.actorId);
+    if (pending?.requestingUserId === payload.userId) await completeSkill(payload.actorId);
+    return;
+  }
+  if (payload.type === "skillState") {
+    payload.locked ? state.skillLocks.add(payload.actorId) : state.skillLocks.delete(payload.actorId);
+    refreshSkillUI();
+    return;
+  }
   if (payload.type === "applyToughness" && isAuthority()) {
     const requestingUser = game.users.get(payload.sourceUserId);
     const attacker = await actorFromUuid(payload.attackerUuid);
@@ -1229,6 +1484,52 @@ class AhaMenu extends FormApplication {
   render() { new AhaConfig().render(true); return this; }
 }
 
+class SkillPointConfig extends FormApplication {
+  static get defaultOptions() {
+    return foundry.utils.mergeObject(super.defaultOptions, {
+      id: "tsru-skill-point-config",
+      title: "Skill Point Configuration",
+      template: `modules/${MODULE_ID}/templates/skill-point-config.hbs`,
+      width: 580,
+      height: "auto",
+      closeOnSubmit: true
+    });
+  }
+  getData() { return {config: getSkillPointConfig(), current: currentSkillPoints()}; }
+  activateListeners(html) {
+    super.activateListeners(html);
+    html.find(".file-picker").on("click", event => {
+      const button = event.currentTarget;
+      const target = button.dataset.target;
+      new FilePicker({type: "image", current: html.find(`[name="${target}"]`).val(), callback: path => html.find(`[name="${target}"]`).val(path).trigger("change")}).browse();
+    });
+    activateImageDrops(html);
+    html.find("[data-action='show-skill-ui']").on("click", showSkillUI);
+    html.find("[data-action='refill-skill-points']").on("click", async () => {
+      await setSkillPoints(getSkillPointConfig().maximum);
+      html.find('[name="current"]').val(currentSkillPoints());
+    });
+  }
+  async _updateObject(_event, formData) {
+    const maximum = Math.max(1, Math.floor(Number(formData.maximum) || DEFAULT_SKILL_POINT_CONFIG.maximum));
+    const config = {
+      maximum,
+      starting: clamp(Math.floor(Number(formData.starting)), 0, maximum),
+      pointsPerRow: clamp(Math.floor(Number(formData.pointsPerRow)), 1, maximum),
+      illuminatedIcon: formData.illuminatedIcon || DEFAULT_SKILL_POINT_CONFIG.illuminatedIcon,
+      emptyIcon: formData.emptyIcon || DEFAULT_SKILL_POINT_CONFIG.emptyIcon
+    };
+    await game.settings.set(MODULE_ID, "skillPointConfig", config);
+    await setSkillPoints(clamp(Math.floor(Number(formData.current)), 0, maximum));
+    refreshSkillUI();
+    ui.notifications.info("Shared Skill Point configuration saved.");
+  }
+}
+
+class SkillPointMenu extends FormApplication {
+  render() { new SkillPointConfig().render(true); return this; }
+}
+
 function registerSettings() {
   game.settings.register(MODULE_ID, "elements", {scope: "world", config: false, type: Array, default: []});
   game.settings.register(MODULE_ID, "paths", {scope: "world", config: false, type: Array, default: []});
@@ -1236,6 +1537,10 @@ function registerSettings() {
   game.settings.register(MODULE_ID, "orbLayouts", {scope: "client", config: false, type: Object, default: {}});
   game.settings.register(MODULE_ID, "ahaConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_AHA_CONFIG)});
   game.settings.register(MODULE_ID, "ahaLayout", {scope: "client", config: false, type: Object, default: {x: 220, y: 180, size: 128, visible: false}});
+  game.settings.register(MODULE_ID, "skillPointConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_SKILL_POINT_CONFIG)});
+  game.settings.register(MODULE_ID, "skillPoints", {scope: "world", config: false, type: Number, default: DEFAULT_SKILL_POINT_CONFIG.starting});
+  game.settings.register(MODULE_ID, "skillMeterLayout", {scope: "client", config: false, type: Object, default: {x: 420, y: 80, size: 42, visible: true}});
+  game.settings.register(MODULE_ID, "skillButtonLayouts", {scope: "client", config: false, type: Object, default: {}});
   game.settings.registerMenu(MODULE_ID, "elementManager", {
     name: "Manage Elements",
     label: "Open Element Manager",
@@ -1258,6 +1563,14 @@ function registerSettings() {
     hint: "Choose the GM-only floating button artwork, color, and WebM shown to connected players.",
     icon: "fas fa-masks-theater",
     type: AhaMenu,
+    restricted: true
+  });
+  game.settings.registerMenu(MODULE_ID, "skillPointsMenu", {
+    name: "Skill Point Configuration",
+    label: "Configure Skill Points",
+    hint: "Configure the shared party pool, starting points, layout, and filled/empty point artwork.",
+    icon: "fas fa-diamond",
+    type: SkillPointMenu,
     restricted: true
   });
 }
@@ -1359,12 +1672,13 @@ function activateConfigListeners(actor, tab, app) {
       data[field.name] = field.type === "checkbox" ? field.checked : field.value;
     });
     for (const key of ["current", "max", "regenScore", "attackGain", "attackedGain", "splashDuration", "titleX", "titleY", "titleSize"]) data[key] = Number(data[key]);
-    for (const key of ["enabled", "showPercent"]) data[key] = Boolean(data[key]);
+    for (const key of ["enabled", "showPercent", "skillEnabled"]) data[key] = Boolean(data[key]);
     data.max = Math.max(1, data.max || 100);
     data.current = clamp(data.current, 0, data.max);
     await actor.setFlag(MODULE_ID, "ultimate", data);
     ui.notifications.info(`${actor.name}'s Ultimate configuration saved.`);
     refreshOrb(actor);
+    refreshSkillUI();
     if (app?.render) app.render(false);
   });
   tab.find(".file-picker").on("click", event => {
@@ -1391,6 +1705,7 @@ function activateConfigListeners(actor, tab, app) {
   tab.find("[data-action='reset-energy']").on("click", async () => { await setEnergy(actor, 0); app.render(false); });
   tab.find("[data-action='fill-energy']").on("click", async () => { await setEnergy(actor, getConfig(actor).max); app.render(false); });
   tab.find("[data-action='show-orb']").on("click", () => showOrb(actor));
+  tab.find("[data-action='show-skill-button']").on("click", async () => { await saveSkillButtonLayout(actor.id, {visible: true}); refreshSkillUI(); });
   tab.find("[name='regenScore']").on("input", event => tab.find(".tsru-modifier").text(`Modifier: ${signedNumber(Math.floor(((Number(event.currentTarget.value) || 10) - 10) / 2))}`));
 }
 
@@ -1531,11 +1846,23 @@ function addHudTool(controls) {
   };
   if (Array.isArray(token.tools)) token.tools.push(tool);
   else token.tools.tsruOrbs = tool;
+  const skillTool = {
+    name: "tsru-skills",
+    title: "Show Skill Points & Skills",
+    icon: "fas fa-hand-sparkles",
+    order: 91,
+    button: true,
+    visible: true,
+    onClick: showSkillUI,
+    onChange: showSkillUI
+  };
+  if (Array.isArray(token.tools)) token.tools.push(skillTool);
+  else token.tools.tsruSkills = skillTool;
   const ahaTool = {
     name: "tsru-aha-instant",
     title: "Aha Instant",
     icon: "fas fa-masks-theater",
-    order: 91,
+    order: 92,
     button: true,
     visible: game.user.isGM,
     onClick: openAhaInstantControls,
@@ -1554,6 +1881,10 @@ function registerApi() {
       return addEnergy(actor, amount, reason);
     },
     requestUltimate,
+    requestSkill,
+    getSkillPoints: currentSkillPoints,
+    setSkillPoints,
+    showSkillUI,
     showSplash,
     refreshOrbs: refreshAllOrbs,
     showOrb,
@@ -1575,6 +1906,7 @@ Hooks.once("ready", () => {
   registerApi();
   refreshAllOrbs();
   refreshAhaButton();
+  refreshSkillUI();
   registerAhaToolbarFallback();
   if (game.modules.get("midi-qol")?.active) Hooks.on("midi-qol.RollComplete", processMidiWorkflow);
   if (game.modules.get("midi-qol")?.active) Hooks.on("midi-qol.damageRollComplete", processMidiWorkflow);
@@ -1601,15 +1933,19 @@ Hooks.on("renderCharacterActorSheet", injectCharacterBadges);
 Hooks.on("getActorSheetHeaderButtons", addActorHeaderButton);
 Hooks.on("getSceneControlButtons", addHudTool);
 Hooks.on("createChatMessage", processCoreAttackMessage);
-Hooks.on("updateActor", actor => { refreshOrb(actor); refreshToughnessBars(); });
+Hooks.on("updateActor", actor => { refreshOrb(actor); refreshSkillUI(); refreshToughnessBars(); });
 Hooks.on("updateToken", () => refreshToughnessBars());
-Hooks.on("deleteActor", actor => state.orbs.get(actor.id)?.destroy());
-Hooks.on("updateUser", user => { if (user.id === game.user.id) refreshAllOrbs(); });
-Hooks.on("canvasReady", () => { refreshAllOrbs(); refreshToughnessBars(); });
+Hooks.on("deleteActor", actor => { state.orbs.get(actor.id)?.destroy(); state.skillButtons.get(actor.id)?.destroy(); });
+Hooks.on("updateUser", user => { if (user.id === game.user.id) { refreshAllOrbs(); refreshSkillUI(); } });
+Hooks.on("updateSetting", setting => { if (setting?.key?.startsWith(`${MODULE_ID}.skillPoint`)) refreshSkillUI(); });
+Hooks.on("canvasReady", () => { refreshAllOrbs(); refreshSkillUI(); refreshToughnessBars(); });
 Hooks.on("canvasReady", refreshAhaButton);
 
 Hooks.on("deleteCombat", combat => {
   state.ultimateLocks.clear();
+  state.skillLocks.clear();
+  for (const pending of state.pendingSkills.values()) if (pending?.timer) window.clearTimeout(pending.timer);
+  state.pendingSkills.clear();
   for (const combatant of combat.combatants ?? []) {
     if (combatant.getFlag(MODULE_ID, "temporaryUltimate")) state.ultimateLocks.delete(combatant.actorId);
   }
@@ -1648,5 +1984,8 @@ Hooks.on("createCombatant", combatant => {
   window.setTimeout(() => maybeEnsureAhaCombatant(combatant.parent), 100);
 });
 
-Hooks.on("combatStart", combat => maybeEnsureAhaCombatant(combat, {force: true}));
+Hooks.on("combatStart", async combat => {
+  if (isAuthority()) await setSkillPoints(getSkillPointConfig().starting);
+  await maybeEnsureAhaCombatant(combat, {force: true});
+});
 Hooks.on("deleteCombatant", () => window.setTimeout(refreshToughnessBars, 100));
