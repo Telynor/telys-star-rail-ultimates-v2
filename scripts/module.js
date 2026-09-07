@@ -62,6 +62,8 @@ const DEFAULT_AHA_CONFIG = Object.freeze({
   punchlineIcon: "icons/svg/mask.svg",
   punchlineFontFile: "",
   punchlineFontSize: 39,
+  punchlineIconOffsetX: 0,
+  punchlineIconOffsetY: 0,
   video: "",
   buttonImage: "icons/svg/explosion.svg",
   color: "#ff4fd8",
@@ -338,6 +340,8 @@ class PunchlineMeter {
     this.element.style.top = `${clamp(layout.y, 0, window.innerHeight - 40)}px`;
     this.element.style.setProperty("--tsru-punchline-size", `${clamp(layout.size, 30, 160)}px`);
     this.element.style.setProperty("--tsru-punchline-font-scale", String(clamp(config.punchlineFontSize, 12, 160) / 54));
+    this.element.style.setProperty("--tsru-punchline-icon-x", `${clamp(config.punchlineIconOffsetX, -100, 100)}px`);
+    this.element.style.setProperty("--tsru-punchline-icon-y", `${clamp(config.punchlineIconOffsetY, -100, 100)}px`);
     this.element.style.setProperty("--tsru-punchline-color", config.color || DEFAULT_AHA_CONFIG.color);
     this.element.querySelector(".tsru-punchline-icon").src = config.punchlineIcon || DEFAULT_AHA_CONFIG.punchlineIcon;
     this.element.querySelector(".tsru-punchline-number").textContent = String(currentPunchline());
@@ -1712,12 +1716,24 @@ class AhaConfig extends FormApplication {
     html.find(".file-picker").on("click", event => {
       const button = event.currentTarget;
       const target = button.dataset.target;
-      new FilePicker({type: button.dataset.type || "any", current: html.find(`[name="${target}"]`).val(), callback: path => html.find(`[name="${target}"]`).val(path)}).browse();
+      new FilePicker({type: button.dataset.type || "any", current: html.find(`[name="${target}"]`).val(), callback: path => html.find(`[name="${target}"]`).val(path).trigger("change")}).browse();
     });
     html.find("[data-color-for]").on("change", event => html.find(`[name="${event.currentTarget.dataset.colorFor}"]`).val(event.currentTarget.value));
     html.find("[data-action='preview-aha']").on("click", () => playAhaVideo({video: html.find('[name="video"]').val()}));
     html.find("[data-action='show-aha-button']").on("click", showAhaButton);
     html.find("[data-action='show-punchline']").on("click", async () => { await savePunchlineLayout({visible: true}); refreshPunchlineHUD(); });
+    const refreshPunchlinePreview = () => {
+      const preview = html.find(".tsru-punchline-placement-preview");
+      const x = clamp(html.find('[name="punchlineIconOffsetX"]').val(), -100, 100);
+      const y = clamp(html.find('[name="punchlineIconOffsetY"]').val(), -100, 100);
+      preview.css("--tsru-preview-icon-x", `${x}px`).css("--tsru-preview-icon-y", `${y}px`);
+      preview.find(".tsru-preview-x-value").text(`${x}px`);
+      preview.find(".tsru-preview-y-value").text(`${y}px`);
+      preview.find("img").attr("src", html.find('[name="punchlineIcon"]').val() || DEFAULT_AHA_CONFIG.punchlineIcon);
+    };
+    html.find('[name="punchlineIconOffsetX"], [name="punchlineIconOffsetY"]').on("input change", refreshPunchlinePreview);
+    html.find('[name="punchlineIcon"]').on("input change", refreshPunchlinePreview);
+    refreshPunchlinePreview();
     html.find("[data-action='sync-aha-initiative']").on("click", async () => {
       if (!game.combat) return ui.notifications.warn("There is no active combat to add Aha Instant to.");
       const combatant = await maybeEnsureAhaCombatant(game.combat, {force: true});
@@ -1731,6 +1747,8 @@ class AhaConfig extends FormApplication {
       punchlineIcon: formData.punchlineIcon || DEFAULT_AHA_CONFIG.punchlineIcon,
       punchlineFontFile: formData.punchlineFontFile || "",
       punchlineFontSize: clamp(formData.punchlineFontSize, 12, 160),
+      punchlineIconOffsetX: clamp(formData.punchlineIconOffsetX, -100, 100),
+      punchlineIconOffsetY: clamp(formData.punchlineIconOffsetY, -100, 100),
       video: formData.video || "",
       buttonImage: formData.buttonImage || DEFAULT_AHA_CONFIG.buttonImage,
       color: formData.color || DEFAULT_AHA_CONFIG.color,
