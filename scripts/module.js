@@ -13,6 +13,7 @@ const DEFAULT_CONFIG = Object.freeze({
   skillScript: "",
   skillButtonImage: "",
   punchlineGain: 1,
+  elationActionScript: "",
   ultimateScript: "",
   splashImage: "",
   splashDuration: 1,
@@ -41,6 +42,9 @@ const state = {
   skillSpendLock: false,
   ahaButton: null,
   punchlineMeter: null,
+  pendingElationActions: new Map(),
+  activeElationActions: new Set(),
+  lastElationSequenceKey: "",
   processedMessages: new Set(),
   ultimateLocks: new Set(),
   pendingUltimates: new Map(),
@@ -401,6 +405,10 @@ function isAhaCombatant(combatant) {
   return Boolean(combatant?.getFlag(MODULE_ID, "ahaInstantCombatant"));
 }
 
+function isElationActionCombatant(combatant) {
+  return Boolean(combatant?.getFlag(MODULE_ID, "elationActionCombatant"));
+}
+
 async function ensureAhaCombatant(combat) {
   if (!isAuthority() || !combat) return null;
   const config = getAhaConfig();
@@ -410,7 +418,7 @@ async function ensureAhaCombatant(combat) {
     return null;
   }
   const rolledInitiatives = combat.combatants
-    .filter(combatant => !isAhaCombatant(combatant) && combatant.initiative !== null && Number.isFinite(Number(combatant.initiative)))
+    .filter(combatant => !isAhaCombatant(combatant) && !isElationActionCombatant(combatant) && combatant.initiative !== null && Number.isFinite(Number(combatant.initiative)))
     .map(combatant => Number(combatant.initiative));
   if (!rolledInitiatives.length) return existing ?? null;
   const data = {
@@ -427,6 +435,58 @@ async function ensureAhaCombatant(combat) {
     flags: {[MODULE_ID]: {ahaInstantCombatant: true}}
   }]);
   return created ?? null;
+}
+
+async function clearElationActionTurns(combat, {resetPunchline = false, resume = false, resumeRound = null} = {}) {
+  if (!isAuthority() || !combat) return;
+  const temporary = combat.combatants.filter(isElationActionCombatant);
+  state.suppressCombatHook = true;
+  try {
+    if (temporary.length) await combat.deleteEmbeddedDocuments("Combatant", temporary.map(entry => entry.id));
+    if (resetPunchline) await setPunchline(0);
+    if (resume && combat.started) await combat.update({round: Number(resumeRound ?? combat.round) + 1, turn: 0});
+  } finally { state.suppressCombatHook = false; }
+  for (const entry of temporary) {
+    const pending = state.pendingElationActions.get(entry.id);
+    if (pending?.timer) window.clearTimeout(pending.timer);
+    state.pendingElationActions.delete(entry.id);
+    state.activeElationActions.delete(entry.id);
+  }
+}
+
+async function createElationActionTurns(combat) {
+  if (!isAuthority() || !combat?.started || !getAhaConfig().elationEnabled) return [];
+  const aha = combat.combatant;
+  if (!isAhaCombatant(aha)) return [];
+  const sequenceKey = `${combat.id}:${combat.round}:${aha.id}`;
+  if (state.lastElationSequenceKey === sequenceKey) return combat.combatants.filter(isElationActionCombatant);
+  state.lastElationSequenceKey = sequenceKey;
+  await clearElationActionTurns(combat);
+  const pathId = getAhaConfig().elationPathId;
+  if (!pathId) { await setPunchline(0); return []; }
+
+  const seenActors = new Set();
+  const eligible = combat.combatants.filter(combatant => {
+    const actor = combatant.actor;
+    if (isAhaCombatant(combatant) || isElationActionCombatant(combatant) || combatant.getFlag(MODULE_ID, "temporaryUltimate") || actor?.type !== "character" || combatant.initiative === null) return false;
+    if (seenActors.has(actor.id) || getConfig(actor).pathId !== pathId) return false;
+    seenActors.add(actor.id);
+    return true;
+  }).sort((left, right) => Number(right.initiative) - Number(left.initiative) || String(left.actor?.name ?? "").localeCompare(String(right.actor?.name ?? "")) || left.id.localeCompare(right.id));
+
+  if (!eligible.length) { await setPunchline(0); return []; }
+  const ahaInitiative = Number(aha.initiative ?? -999);
+  return combat.createEmbeddedDocuments("Combatant", eligible.map((source, index) => ({
+    name: `ELATION ACTION — ${source.actor.name}`,
+    actorId: source.actor.id,
+    // Actor-backed rather than token-backed so the temporary turn cannot collide
+    // with the character's existing token combatant.
+    tokenId: null,
+    sceneId: null,
+    initiative: ahaInitiative - ((index + 1) / 1000),
+    img: source.actor.img || "icons/svg/mystery-man.svg",
+    flags: {[MODULE_ID]: {elationActionCombatant: true, sequenceKey, sequenceOrder: index, sourceCombatantId: source.id, resumeRound: combat.round, completed: false}}
+  })));
 }
 
 async function syncAhaCombatants() {
@@ -651,7 +711,7 @@ class SkillButton {
     }
     const config = getConfig(this.actor);
     const element = getElements().find(entry => entry.id === config.elementId);
-    const available = currentSkillPoints() > 0 && !state.skillLocks.has(this.actor.id) && Boolean(config.skillScript?.trim());
+    const available = currentSkillPoints() > 0 && !state.skillLocks.has(this.actor.id);
     this.element.style.left = `${clamp(layout.x, 0, window.innerWidth - 40)}px`;
     this.element.style.top = `${clamp(layout.y, 0, window.innerHeight - 40)}px`;
     this.element.style.setProperty("--tsru-skill-size", `${clamp(layout.size, 64, 280)}px`);
@@ -659,7 +719,7 @@ class SkillButton {
     this.element.classList.toggle("is-unavailable", !available);
     const button = this.element.querySelector(".tsru-skill-button");
     button.disabled = !available;
-    button.title = available ? `${this.actor.name}: Use Skill (costs 1 Skill Point)` : state.skillLocks.has(this.actor.id) ? "This Skill is currently resolving." : currentSkillPoints() <= 0 ? "No Skill Points remain." : "No Skill script is configured.";
+    button.title = available ? `${this.actor.name}: Use Skill (costs 1 Skill Point)` : state.skillLocks.has(this.actor.id) ? "This Skill is currently resolving." : "No Skill Points remain.";
     button.querySelector("img").src = config.skillButtonImage || this.actor.img || "icons/svg/sword.svg";
     return this;
   }
@@ -962,7 +1022,6 @@ async function showSplash({actorName, image, duration = 1, ultimateName = "Ultim
 async function requestUltimate(actor) {
   const config = getConfig(actor);
   if (!config.enabled || config.current < config.max) return ui.notifications.warn("This Ultimate is not ready.");
-  if (!config.ultimateScript?.trim()) return ui.notifications.warn("No Ultimate script is configured for this character.");
   if (state.ultimateLocks.has(actor.id)) return;
   if (game.user.isGM && isAuthority()) return executeUltimate(actor.id, game.user.id);
   const gm = activeGM();
@@ -1014,7 +1073,7 @@ async function removeUltimateTurn(temporary) {
 async function runUltimateScript(actor) {
   const config = getConfig(actor);
   const script = config.ultimateScript?.trim();
-  if (!script) throw new Error(`${actor.name} has no configured Ultimate script.`);
+  if (!script) { ui.notifications.warn("Script missing, no effect."); return; }
   const token = actor.getActiveTokens(true, true)?.[0] ?? null;
   const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
   const execute = new AsyncFunction("actor", "token", "game", "canvas", "ui", "foundry", "Hooks", "punchline", `"use strict";\n${script}`);
@@ -1023,17 +1082,63 @@ async function runUltimateScript(actor) {
 
 async function runSkillScript(actor) {
   const script = getConfig(actor).skillScript?.trim();
-  if (!script) throw new Error(`${actor.name} has no configured Skill script.`);
+  if (!script) { ui.notifications.warn("Script missing, no effect."); return; }
   const token = actor.getActiveTokens(true, true)?.[0] ?? null;
   const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
   const execute = new AsyncFunction("actor", "token", "game", "canvas", "ui", "foundry", "Hooks", "punchline", `"use strict";\n${script}`);
   return execute(actor, token, game, canvas, ui, foundry, Hooks, punchlineScriptHelpers(actor));
 }
 
+async function runElationActionScript(actor) {
+  const script = getConfig(actor).elationActionScript?.trim();
+  if (!script) { ui.notifications.warn("Script missing, no effect."); return; }
+  const token = actor.getActiveTokens(true, true)?.[0] ?? null;
+  const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+  const execute = new AsyncFunction("actor", "token", "game", "canvas", "ui", "foundry", "Hooks", "punchline", `"use strict";\n${script}`);
+  return execute(actor, token, game, canvas, ui, foundry, Hooks, punchlineScriptHelpers(actor));
+}
+
+async function completeElationAction(combatantId, userId) {
+  if (!isAuthority()) return;
+  const pending = state.pendingElationActions.get(combatantId);
+  if (pending && userId && pending.userId !== userId) return;
+  if (pending?.timer) window.clearTimeout(pending.timer);
+  state.pendingElationActions.delete(combatantId);
+  const combat = game.combats.get(pending?.combatId) ?? game.combat;
+  const combatant = combat?.combatants.get(combatantId);
+  if (!combatant || !isElationActionCombatant(combatant)) return;
+  await combatant.setFlag(MODULE_ID, "completed", true);
+  const remaining = combat.turns.filter(entry => isElationActionCombatant(entry) && !entry.getFlag(MODULE_ID, "completed"));
+  if (remaining.length) {
+    const next = remaining.sort((left, right) => Number(left.getFlag(MODULE_ID, "sequenceOrder")) - Number(right.getFlag(MODULE_ID, "sequenceOrder")))[0];
+    const index = combat.turns.findIndex(entry => entry.id === next.id);
+    if (index >= 0) await combat.update({turn: index});
+    await executeElationAction(next);
+    return;
+  }
+  const resumeRound = combatant.getFlag(MODULE_ID, "resumeRound") ?? combat.round;
+  await clearElationActionTurns(combat, {resetPunchline: true, resume: true, resumeRound});
+}
+
+async function executeElationAction(combatant) {
+  if (!isAuthority() || !combatant || state.activeElationActions.has(combatant.id) || combatant.getFlag(MODULE_ID, "completed")) return;
+  if (state.pendingElationActions.size && !state.pendingElationActions.has(combatant.id)) return;
+  const actor = combatant.actor;
+  if (!actor) return completeElationAction(combatant.id);
+  state.activeElationActions.add(combatant.id);
+  const owner = game.users.find(user => user.active && !user.isGM && actor.testUserPermission(user, "OWNER")) ?? activeGM();
+  const pending = {combatId: combatant.parent.id, userId: owner?.id, timer: window.setTimeout(() => completeElationAction(combatant.id, owner?.id), 120000)};
+  state.pendingElationActions.set(combatant.id, pending);
+  if (!owner || owner.id === game.user.id) {
+    try { await runElationActionScript(actor); }
+    catch (error) { console.error(`${MODULE_ID} | Elation Action failed`, error); ui.notifications.error(`${actor.name}'s Elation Action failed: ${error.message}`); }
+    await completeElationAction(combatant.id, owner?.id);
+  } else game.socket.emit(SOCKET, {type: "useElationAction", combatantId: combatant.id, actorId: actor.id, targetUserId: owner.id});
+}
+
 async function requestSkill(actor) {
   const config = getConfig(actor);
   if (!config.skillEnabled) return ui.notifications.warn("This character's Skill button is disabled.");
-  if (!config.skillScript?.trim()) return ui.notifications.warn("No Skill script is configured for this character.");
   if (currentSkillPoints() <= 0) return ui.notifications.warn("The party has no Skill Points remaining.");
   if (state.skillLocks.has(actor.id)) return;
   if (game.user.isGM && isAuthority()) return executeSkill(actor.id, game.user.id);
@@ -1058,7 +1163,7 @@ async function executeSkill(actorId, requestingUserId) {
   const requester = game.users.get(requestingUserId);
   if (!actor || actor.type !== "character" || (!requester?.isGM && !actor.testUserPermission(requester, "OWNER"))) return;
   const config = getConfig(actor);
-  if (!config.skillEnabled || !config.skillScript?.trim()) return ui.notifications.warn(`${actor.name} has no configured Skill script.`);
+  if (!config.skillEnabled) return ui.notifications.warn(`${actor.name}'s Skill button is disabled.`);
   if (currentSkillPoints() <= 0) return ui.notifications.warn("The party has no Skill Points remaining.");
 
   state.skillSpendLock = true;
@@ -1100,8 +1205,6 @@ async function executeUltimate(actorId, requestingUserId) {
   if (!actor || (!requester?.isGM && !actor.testUserPermission(requester, "OWNER"))) return;
   const config = getConfig(actor);
   if (!config.enabled || config.current < config.max) return;
-  if (!config.ultimateScript?.trim()) return ui.notifications.warn(`${actor.name} has no configured Ultimate script.`);
-
   state.ultimateLocks.add(actorId);
   game.socket.emit(SOCKET, {type: "ultimateState", actorId, locked: true});
   refreshOrb(actor);
@@ -1145,6 +1248,20 @@ async function onSocket(payload) {
     else if (payload.operation === "set") await setPunchline(payload.amount);
     return;
   }
+  if (payload.type === "useElationAction" && payload.targetUserId === game.user.id) {
+    const actor = game.actors.get(payload.actorId);
+    try {
+      if (!actor?.isOwner) throw new Error("You no longer own this character.");
+      await runElationActionScript(actor);
+      game.socket.emit(SOCKET, {type: "elationActionComplete", combatantId: payload.combatantId, userId: game.user.id});
+    } catch (error) {
+      console.error(`${MODULE_ID} | Player Elation Action failed`, error);
+      ui.notifications.error(`Elation Action failed: ${error.message}`);
+      game.socket.emit(SOCKET, {type: "elationActionComplete", combatantId: payload.combatantId, userId: game.user.id, failed: true});
+    }
+    return;
+  }
+  if (payload.type === "elationActionComplete" && isAuthority()) return completeElationAction(payload.combatantId, payload.userId);
   if (payload.type === "skillPointsChanged") { refreshSkillUI(); return; }
   if (payload.type === "activateSkill" && isAuthority()) return executeSkill(payload.actorId, payload.requestingUserId);
   if (payload.type === "useSkill" && payload.targetUserId === game.user.id) {
@@ -1620,6 +1737,7 @@ class AhaConfig extends FormApplication {
     await setPunchline(formData.punchline);
     refreshAhaButton();
     refreshPunchlineHUD();
+    if (!getAhaConfig().elationEnabled && game.combat) await clearElationActionTurns(game.combat);
     await syncAhaCombatants();
     for (const app of Object.values(ui.windows ?? {})) if (app.actor?.type === "character") app.render(false);
     ui.notifications.info("Aha Instant configuration saved.");
@@ -2110,6 +2228,10 @@ Hooks.on("deleteCombat", combat => {
   state.skillLocks.clear();
   for (const pending of state.pendingSkills.values()) if (pending?.timer) window.clearTimeout(pending.timer);
   state.pendingSkills.clear();
+  for (const pending of state.pendingElationActions.values()) if (pending?.timer) window.clearTimeout(pending.timer);
+  state.pendingElationActions.clear();
+  state.activeElationActions.clear();
+  state.lastElationSequenceKey = "";
   for (const combatant of combat.combatants ?? []) {
     if (combatant.getFlag(MODULE_ID, "temporaryUltimate")) state.ultimateLocks.delete(combatant.actorId);
   }
@@ -2127,9 +2249,14 @@ Hooks.on("updateCombat", async combat => {
       state.lastAhaTurnKey = turnKey;
       triggerAhaInstant();
     }
+    await createElationActionTurns(combat);
     return;
   }
   if (state.suppressCombatHook) return;
+  if (isElationActionCombatant(current)) {
+    await executeElationAction(current);
+    return;
+  }
   const temporary = current;
   if (!temporary?.getFlag(MODULE_ID, "temporaryUltimate")) return;
   const actor = temporary.actor;
@@ -2138,13 +2265,13 @@ Hooks.on("updateCombat", async combat => {
 });
 
 Hooks.on("updateCombatant", async (combatant, changed) => {
-  if (!isAuthority() || isAhaCombatant(combatant) || !("initiative" in changed)) return;
+  if (!isAuthority() || isAhaCombatant(combatant) || isElationActionCombatant(combatant) || !("initiative" in changed)) return;
   await maybeEnsureAhaCombatant(combatant.parent);
 });
 
 Hooks.on("createCombatant", combatant => {
   window.setTimeout(refreshToughnessBars, 150);
-  if (isAhaCombatant(combatant)) return;
+  if (isAhaCombatant(combatant) || isElationActionCombatant(combatant)) return;
   window.setTimeout(() => maybeEnsureAhaCombatant(combatant.parent), 100);
 });
 
@@ -2152,4 +2279,12 @@ Hooks.on("combatStart", async combat => {
   if (isAuthority()) await setSkillPoints(getSkillPointConfig().starting);
   await maybeEnsureAhaCombatant(combat, {force: true});
 });
-Hooks.on("deleteCombatant", () => window.setTimeout(refreshToughnessBars, 100));
+Hooks.on("deleteCombatant", combatant => {
+  if (isElationActionCombatant(combatant)) {
+    const pending = state.pendingElationActions.get(combatant.id);
+    if (pending?.timer) window.clearTimeout(pending.timer);
+    state.pendingElationActions.delete(combatant.id);
+    state.activeElationActions.delete(combatant.id);
+  }
+  window.setTimeout(refreshToughnessBars, 100);
+});

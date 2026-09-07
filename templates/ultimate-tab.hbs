@@ -25,6 +25,7 @@
     <div class="tsru-config-section tsru-punchline-character-section">
       <h3><i class="fas fa-masks-theater"></i> Elation &amp; Punchline</h3>
       <div class="tsru-field"><label><strong>Punchline Gain</strong><small>If this character has the configured Elation Path, this many Punchlines are gained whenever they inflict damage. Characters on other Paths always generate +1.</small></label><input type="number" name="punchlineGain" min="0" step="1" value="{{config.punchlineGain}}"></div>
+      <div class="tsru-field tsru-field-wide tsru-script-field"><label><strong>Elation Action Script</strong><small>Runs automatically when this character's temporary Elation Action turn becomes active. The sequence waits for this asynchronous script to finish before moving to the next character.</small></label><textarea name="elationActionScript" rows="10" spellcheck="false" placeholder="// Write this character's Elation Action here.">{{config.elationActionScript}}</textarea></div>
       <div class="tsru-field tsru-field-wide"><label><strong>Script access</strong><small>Skill and Ultimate scripts can use <code>punchline.get()</code>, <code>await punchline.add(amount)</code>, <code>await punchline.spend(amount)</code>, and <code>await punchline.set(amount)</code>.</small></label><div class="tsru-script-access-note">Shared Punchline: controlled by the active GM</div></div>
     </div>
     {{/if}}

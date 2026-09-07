@@ -13,6 +13,9 @@
 - Choose a saved Path as the Elation Path. Matching characters generate their configured Punchline amount on damage; other player characters generate +1.
 - The shared movable Punchline counter supports custom mask artwork and a custom number font.
 - Skill and Ultimate scripts receive a `punchline` helper for reading, adding, spending, or setting the shared resource.
+- When Aha's turn begins, matching Elation Path characters receive temporary portrait-backed Elation Action turns immediately after Aha, ordered by their existing initiative from highest to lowest.
+- Each temporary turn runs that character's GM-authored Elation Action script on its active owner. Once the awaited script finishes, the sequence advances automatically; after the final action, Punchline resets to zero, the temporary turns disappear, and the next normal round begins.
+- Skills, Ultimates, and Elation Actions remain usable when their script field is empty. The normal resource, animation, and turn behavior still resolves, with a “Script missing, no effect.” notification in place of a scripted effect.
 
 A Foundry Virtual Tabletop v14 module for D&D 5e that recreates Honkai: Star Rail-style Ultimate energy and interrupt turns.
 
