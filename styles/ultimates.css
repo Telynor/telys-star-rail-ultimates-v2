@@ -664,7 +664,7 @@
   --tsru-punchline-size: 54px;
   --tsru-punchline-color: #ff704d;
   --tsru-punchline-font: var(--font-primary);
-  --tsru-punchline-font-size: 39px;
+  --tsru-punchline-font-scale: .7222;
   position: fixed;
   z-index: 10009;
   display: flex;
@@ -678,7 +678,7 @@
   user-select: none;
 }
 .tsru-punchline-icon { width: var(--tsru-punchline-size); height: var(--tsru-punchline-size); border: 0; object-fit: contain; filter: drop-shadow(1px 0 0 rgba(255,240,218,.95)) drop-shadow(-1px 0 0 rgba(255,240,218,.95)) drop-shadow(0 1px 0 rgba(255,240,218,.95)) drop-shadow(0 -1px 0 rgba(255,240,218,.95)) drop-shadow(0 0 7px var(--tsru-punchline-color)); }
-.tsru-punchline-number { align-self: center; margin-left: calc(var(--tsru-punchline-size) * .08); color: #fff1dd; font-family: var(--tsru-punchline-font); font-size: var(--tsru-punchline-font-size); font-weight: 800; line-height: 1; transform: translateY(-.1em); text-shadow: 1px 0 0 #9e2f25, -1px 0 0 #9e2f25, 0 1px 0 #9e2f25, 0 -1px 0 #9e2f25, 0 0 7px var(--tsru-punchline-color); white-space: nowrap; }
+.tsru-punchline-number { align-self: center; display: inline-flex; align-items: center; height: var(--tsru-punchline-size); margin-left: calc(var(--tsru-punchline-size) * .08); color: #fff1dd; font-family: var(--tsru-punchline-font); font-size: calc(var(--tsru-punchline-size) * var(--tsru-punchline-font-scale)); font-weight: 800; line-height: 1; text-shadow: 1px 0 0 #9e2f25, -1px 0 0 #9e2f25, 0 1px 0 #9e2f25, 0 -1px 0 #9e2f25, 0 0 7px var(--tsru-punchline-color); white-space: nowrap; }
 .tsru-punchline-drag { position: absolute; top: 0; left: 50%; width: 40px; height: 15px; color: rgba(255,255,255,.7); text-align: center; transform: translateX(-50%); cursor: move; opacity: .25; }
 .tsru-punchline-close { position: absolute; z-index: 3; top: 0; right: 0; width: 20px; height: 20px; min-height: 0; padding: 0; border-radius: 50%; background: rgba(8,8,12,.9); color: white; font-size: 10px; line-height: 18px; opacity: 0; }
 .tsru-punchline-resize { position: absolute; right: 1px; bottom: 1px; width: 15px; height: 15px; border-right: 3px solid var(--tsru-punchline-color); border-bottom: 3px solid var(--tsru-punchline-color); cursor: nwse-resize; opacity: .25; }
