@@ -61,6 +61,7 @@ const DEFAULT_AHA_CONFIG = Object.freeze({
   elationPathId: "",
   punchlineIcon: "icons/svg/mask.svg",
   punchlineFontFile: "",
+  punchlineFontSize: 39,
   video: "",
   buttonImage: "icons/svg/explosion.svg",
   color: "#ff4fd8",
@@ -336,6 +337,7 @@ class PunchlineMeter {
     this.element.style.left = `${clamp(layout.x, 0, window.innerWidth - 40)}px`;
     this.element.style.top = `${clamp(layout.y, 0, window.innerHeight - 40)}px`;
     this.element.style.setProperty("--tsru-punchline-size", `${clamp(layout.size, 30, 160)}px`);
+    this.element.style.setProperty("--tsru-punchline-font-size", `${clamp(config.punchlineFontSize, 12, 160)}px`);
     this.element.style.setProperty("--tsru-punchline-color", config.color || DEFAULT_AHA_CONFIG.color);
     this.element.querySelector(".tsru-punchline-icon").src = config.punchlineIcon || DEFAULT_AHA_CONFIG.punchlineIcon;
     this.element.querySelector(".tsru-punchline-number").textContent = `+${currentPunchline()}`;
@@ -1728,6 +1730,7 @@ class AhaConfig extends FormApplication {
       elationPathId: formData.elationPathId || "",
       punchlineIcon: formData.punchlineIcon || DEFAULT_AHA_CONFIG.punchlineIcon,
       punchlineFontFile: formData.punchlineFontFile || "",
+      punchlineFontSize: clamp(formData.punchlineFontSize, 12, 160),
       video: formData.video || "",
       buttonImage: formData.buttonImage || DEFAULT_AHA_CONFIG.buttonImage,
       color: formData.color || DEFAULT_AHA_CONFIG.color,

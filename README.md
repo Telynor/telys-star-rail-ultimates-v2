@@ -12,6 +12,7 @@
 - A world-level “Elation on Team?” switch controls Punchline and every Aha Instant feature.
 - Choose a saved Path as the Elation Path. Matching characters generate their configured Punchline amount on damage; other player characters generate +1.
 - The shared movable Punchline counter supports custom mask artwork and a custom number font.
+- Punchline number font size is independently adjustable from Aha Config.
 - Skill and Ultimate scripts receive a `punchline` helper for reading, adding, spending, or setting the shared resource.
 - When Aha's turn begins, matching Elation Path characters receive temporary portrait-backed Elation Action turns immediately after Aha, ordered by their existing initiative from highest to lowest.
 - Each temporary turn runs that character's GM-authored Elation Action script on its active owner. Once the awaited script finishes, the sequence advances automatically; after the final action, Punchline resets to zero, the temporary turns disappear, and the next normal round begins.
