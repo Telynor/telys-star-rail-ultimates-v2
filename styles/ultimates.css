@@ -629,6 +629,22 @@
   scrollbar-gutter: stable;
 }
 
+/* Temporarily retract the native character sidebar while viewing Eidolons.
+   This does not alter D&D5e's own persisted sidebar state. */
+.dnd5e2.character.tsru-eidolon-tab-open .sheet-body > .sidebar,
+.dnd5e2.sheet.character.tsru-eidolon-tab-open .sheet-body > .sidebar,
+.dnd5e2.character.tsru-eidolon-tab-open .sheet-body > aside,
+.dnd5e2.sheet.character.tsru-eidolon-tab-open .sheet-body > aside {
+  display: none !important;
+}
+
+.dnd5e2.character.tsru-eidolon-tab-open .sheet-body .main-content,
+.dnd5e2.sheet.character.tsru-eidolon-tab-open .sheet-body .main-content {
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+  max-width: none !important;
+}
+
 .dnd5e2.character .tab-body,
 .dnd5e2.sheet.character .tab-body {
   min-width: 0;

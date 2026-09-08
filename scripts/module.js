@@ -3195,9 +3195,13 @@ async function injectEidolonTab(app, html) {
     event.preventDefault(); event.stopImmediatePropagation();
     nav.find('[data-tab]').removeClass("active"); control.addClass("active");
     root.find('.tab[data-group="primary"]').removeClass("active"); tab.addClass("active");
+    root.addClass("tsru-eidolon-tab-open");
     if (app.tabGroups) app.tabGroups.primary = "tsru-eidolons";
   });
-  nav.find('[data-tab]').not('[data-tab="tsru-eidolons"]').on("click.tsru-eidolon-hide", () => tab.removeClass("active"));
+  nav.find('[data-tab]').not('[data-tab="tsru-eidolons"]').on("click.tsru-eidolon-hide", () => {
+    tab.removeClass("active");
+    root.removeClass("tsru-eidolon-tab-open");
+  });
   root.removeAttr("data-tsru-eidolons-injecting");
   if (app.tabGroups?.primary === "tsru-eidolons") control.trigger("click");
 }
