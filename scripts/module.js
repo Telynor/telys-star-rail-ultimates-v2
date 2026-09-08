@@ -10,6 +10,9 @@ const DEFAULT_CONFIG = Object.freeze({
   attackedGain: 5,
   attackedMode: "hit",
   mainParty: false,
+  lockEnergyAfterUltimate: true,
+  energyLockCombatId: "",
+  energyLockRound: null,
   breakCharacter: false,
   breakEffectScore: 10,
   breakDamageDice: 1,
@@ -423,10 +426,38 @@ function energyGain(config, kind) {
   return Math.max(0, (Number(base) || 0) + regenModifier(config) + tetsuoBonus);
 }
 
+function isEnergyLocked(actor) {
+  if (!actor) return false;
+  const config = getConfig(actor);
+  if (!config.lockEnergyAfterUltimate || !config.energyLockCombatId || config.energyLockRound === null) return false;
+  const combat = game.combats.get(config.energyLockCombatId);
+  return Boolean(combat?.started && Number(combat.round) <= Number(config.energyLockRound));
+}
+
+async function lockEnergyUntilNextRound(actor, combat) {
+  if (!actor || !combat?.started || !getConfig(actor).lockEnergyAfterUltimate) return;
+  await actor.update({
+    [`flags.${MODULE_ID}.ultimate.energyLockCombatId`]: combat.id,
+    [`flags.${MODULE_ID}.ultimate.energyLockRound`]: Number(combat.round)
+  });
+}
+
+async function clearExpiredEnergyLocks(combat) {
+  if (!combat?.started) return;
+  const updates = game.actors
+    .filter(actor => {
+      const config = getConfig(actor);
+      return config.energyLockCombatId === combat.id && config.energyLockRound !== null && Number(combat.round) > Number(config.energyLockRound);
+    })
+    .map(actor => ({_id: actor.id, [`flags.${MODULE_ID}.ultimate.energyLockCombatId`]: "", [`flags.${MODULE_ID}.ultimate.energyLockRound`]: null}));
+  if (updates.length) await Actor.updateDocuments(updates);
+}
+
 async function setEnergy(actor, value) {
   if (!actor) return;
   const config = getConfig(actor);
   const current = clamp(value, 0, config.max);
+  if (current > config.current && isEnergyLocked(actor)) return config.current;
   await actor.update({[`flags.${MODULE_ID}.ultimate.current`]: current});
   return current;
 }
@@ -435,6 +466,7 @@ async function addEnergy(actor, amount, reason = "") {
   if (!actor || !isAuthority()) return;
   const config = getConfig(actor);
   if (!config.enabled || !amount) return;
+  if (Number(amount) > 0 && isEnergyLocked(actor)) return;
   const before = config.current;
   const after = clamp(before + Number(amount), 0, config.max);
   if (after === before) return;
@@ -1821,6 +1853,7 @@ async function executeUltimate(actorId, requestingUserId) {
     await dispatchTalentEvent("ultimateUsed", {sourceActor: actor, requestingUserId}, `${actor.id}:${Date.now()}`);
     await setEnergy(actor, 0);
     const combat = game.combat;
+    await lockEnergyUntilNextRound(actor, combat);
     if (!combat?.started) {
       broadcastUltimateSplash(actor);
       await runUltimateScript(actor);
@@ -1831,7 +1864,8 @@ async function executeUltimate(actorId, requestingUserId) {
     let queue = state.ultimateQueues.get(combat.id);
     if (!queue) {
       const current = combat.combatant;
-      const waitsForAlly = Boolean(current?.actor?.type === "character" && getConfig(current.actor).mainParty && !current.getFlag(MODULE_ID, "temporaryUltimate"));
+      const isOtherMainPartyActor = current?.actorId !== actor.id && current?.actor?.type === "character" && getConfig(current.actor).mainParty;
+      const waitsForAlly = Boolean(isOtherMainPartyActor && !current.getFlag(MODULE_ID, "temporaryUltimate"));
       queue = {resumeCombatantId: waitsForAlly ? null : current?.id ?? null, resumeRound: combat.round, waitTurnId: waitsForAlly ? current.id : null, activeActorId: null, requests: [], sequence: 0, startTimer: null};
       state.ultimateQueues.set(combat.id, queue);
     }
@@ -1930,21 +1964,22 @@ async function onSocket(payload) {
     const requestingUser = game.users.get(payload.sourceUserId);
     const message = game.messages.get(payload.messageId);
     const target = await actorFromUuid(payload.targetUuid);
-    const result = await applyChatRollAsDamage(message, target, requestingUser);
+    const result = await applyChatRollAsDamage(message, target, requestingUser, payload.applicationId);
     game.socket.emit(SOCKET, {type: "manualChatDamageResult", targetUserId: payload.sourceUserId, messageId: payload.messageId, ...result});
     return;
   }
   if (payload.type === "manualChatDamageResult" && payload.targetUserId === game.user.id) {
     const notify = payload.ok ? ui.notifications.info : ui.notifications.error;
     notify.call(ui.notifications, payload.message);
-    if (!payload.ok) {
-      const button = document.querySelector(`[data-tsru-apply-chat-damage="${CSS.escape(payload.messageId ?? "")}"]`);
-      const message = game.messages.get(payload.messageId);
-      if (button && message) {
-        button.disabled = false;
-        button.innerHTML = `<i class="fas fa-crosshairs"></i><span>Apply ${manualChatDamageAmount(message)} as damage to targeted creature</span>`;
-      }
-    }
+    const message = game.messages.get(payload.messageId);
+    document.querySelectorAll(`[data-tsru-chat-damage-control="${CSS.escape(payload.messageId ?? "")}"]`).forEach(control => renderManualDamageControl(control, message, payload.applications, payload.done));
+    return;
+  }
+  if (payload.type === "finishManualChatDamage" && isAuthority()) {
+    const requestingUser = game.users.get(payload.sourceUserId);
+    const message = game.messages.get(payload.messageId);
+    const result = await finishManualChatDamage(message, requestingUser);
+    game.socket.emit(SOCKET, {type: "manualChatDamageResult", targetUserId: payload.sourceUserId, messageId: payload.messageId, ...result});
     return;
   }
   if (payload.type === "applyToughness" && isAuthority()) {
@@ -2087,6 +2122,13 @@ function manualChatDamageAmount(message) {
   return Math.max(0, Math.floor(fullDamageTotal(Array.isArray(message?.rolls) ? message.rolls : [])));
 }
 
+function manualDamageApplications(message) {
+  const applications = message?.getFlag(MODULE_ID, "manualDamageApplications");
+  if (Array.isArray(applications)) return applications;
+  const legacy = message?.getFlag(MODULE_ID, "manualDamageApplied");
+  return legacy ? [legacy] : [];
+}
+
 function isManualChatDamageEligible(message) {
   const actor = actorFromChatMessage(message);
   const combat = game.combat;
@@ -2108,10 +2150,10 @@ async function applyDirectChatDamage(target, amount) {
   return damage;
 }
 
-async function applyChatRollAsDamage(message, target, requestingUser) {
+async function applyChatRollAsDamage(message, target, requestingUser, applicationId = "") {
   if (!isAuthority()) return {ok: false, message: "Only the active GM can apply chat damage."};
   if (!message || !target) return {ok: false, message: "The roll or target no longer exists."};
-  if (message.getFlag(MODULE_ID, "manualDamageApplied")) return {ok: false, message: "That roll has already been applied."};
+  if (message.getFlag(MODULE_ID, "manualDamageDone")) return {ok: false, done: true, applications: manualDamageApplications(message), message: "Damage application has already been marked done."};
   const attacker = actorFromChatMessage(message);
   if (!attacker || (!requestingUser?.isGM && !attacker.testUserPermission(requestingUser, "OWNER"))) return {ok: false, message: "You do not control the character that made this roll."};
   if (!isManualChatDamageEligible(message)) return {ok: false, message: "This roll is not eligible for combat damage."};
@@ -2120,8 +2162,10 @@ async function applyChatRollAsDamage(message, target, requestingUser) {
   const total = manualChatDamageAmount(message);
   const config = getConfig(attacker);
   const hpDamage = config.breakCharacter ? Math.min(1, total) : total;
-  const toughnessDamage = config.breakCharacter ? total : rawDiceTotal(message.rolls);
-  const eventKey = `manual-chat-damage:${message.id}:${target.uuid}`;
+  const rolledDiceDamage = rawDiceTotal(message.rolls);
+  const toughnessDamage = config.breakCharacter ? total : (rolledDiceDamage > 0 ? rolledDiceDamage : total);
+  const resolvedApplicationId = applicationId || foundry.utils.randomID();
+  const eventKey = `manual-chat-damage:${message.id}:${resolvedApplicationId}:${target.uuid}`;
   await applyDirectChatDamage(target, hpDamage);
   if (toughnessDamage > 0) await applyToughnessDamage(attacker, [target], toughnessDamage, eventKey);
   const detail = {sourceActor: attacker, targetActor: target, amount: hpDamage, origin: message, manual: true};
@@ -2132,8 +2176,18 @@ async function applyChatRollAsDamage(message, target, requestingUser) {
     const targetConfig = getConfig(target);
     if (targetConfig.attackedMode === "targeted" || targetConfig.attackedMode === "hit") await addEnergy(target, energyGain(targetConfig, "attacked"), "hit");
   }
-  await message.setFlag(MODULE_ID, "manualDamageApplied", {actorUuid: attacker.uuid, targetUuid: target.uuid, targetName: target.name, amount: hpDamage, total, toughnessDamage, userId: requestingUser?.id, appliedAt: Date.now()});
-  return {ok: true, message: `${total} roll damage applied to ${target.name} (${hpDamage} HP, ${toughnessDamage} Toughness attempted).`};
+  const application = {id: resolvedApplicationId, actorUuid: attacker.uuid, targetUuid: target.uuid, targetName: target.name, amount: hpDamage, total, toughnessDamage, userId: requestingUser?.id, appliedAt: Date.now()};
+  const applications = [...manualDamageApplications(message), application];
+  await message.setFlag(MODULE_ID, "manualDamageApplications", applications);
+  return {ok: true, applications, done: false, message: `${total} roll damage applied to ${target.name} (${hpDamage} HP, ${toughnessDamage} Toughness attempted).`};
+}
+
+async function finishManualChatDamage(message, requestingUser) {
+  if (!isAuthority()) return {ok: false, message: "Only the active GM can finish chat damage."};
+  const attacker = actorFromChatMessage(message);
+  if (!message || !attacker || (!requestingUser?.isGM && !attacker.testUserPermission(requestingUser, "OWNER"))) return {ok: false, message: "You do not control the character that made this roll."};
+  await message.setFlag(MODULE_ID, "manualDamageDone", true);
+  return {ok: true, done: true, applications: manualDamageApplications(message), message: "Finished applying damage from this roll."};
 }
 
 async function limitBreakAttackHpDamage(attacker, target, amount, eventId, options = {}) {
@@ -2779,7 +2833,11 @@ class StarRailGMPanel extends FormApplication {
       if (field === "max") {
         value = Math.max(1, value);
         await actor.update({[`flags.${MODULE_ID}.ultimate.max`]: value, [`flags.${MODULE_ID}.ultimate.current`]: clamp(config.current, 0, value)});
-      } else if (field === "current") await setEnergy(actor, value);
+      } else if (field === "current") {
+        const applied = await setEnergy(actor, value);
+        input.value = applied ?? getConfig(actor).current;
+        if (Number(applied) !== clamp(value, 0, config.max) && isEnergyLocked(actor)) ui.notifications.warn(`${actor.name} cannot regain Energy until the next round.`);
+      }
       else if (field === "regenScore") await actor.update({[`flags.${MODULE_ID}.ultimate.regenScore`]: clamp(value, 1, 30)});
       else if (field === "talentPointsMax") {
         value = Math.max(0, value);
@@ -3043,9 +3101,14 @@ function activateConfigListeners(actor, tab, app) {
       data[field.name] = field.type === "checkbox" ? field.checked : field.value;
     });
     for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "talentPointsCurrent", "talentPointsMax", "punchlineGain", "splashDuration", "titleX", "titleY", "titleSize"]) data[key] = Number(data[key]);
-    for (const key of ["enabled", "showPercent", "skillEnabled", "mainParty", "breakCharacter"]) data[key] = Boolean(data[key]);
+    for (const key of ["enabled", "showPercent", "skillEnabled", "mainParty", "lockEnergyAfterUltimate", "breakCharacter"]) data[key] = Boolean(data[key]);
     data.max = Math.max(1, data.max || 100);
     data.current = clamp(data.current, 0, data.max);
+    const savedConfig = getConfig(actor);
+    if (isEnergyLocked(actor) && data.current > savedConfig.current) {
+      data.current = savedConfig.current;
+      ui.notifications.warn(`${actor.name} cannot regain Energy until the next round.`);
+    }
     data.talentPointsMax = Math.max(0, Math.floor(data.talentPointsMax || 0));
     data.talentPointsCurrent = clamp(Math.floor(data.talentPointsCurrent || 0), 0, data.talentPointsMax);
     await actor.setFlag(MODULE_ID, "ultimate", data);
@@ -3069,11 +3132,12 @@ function activateConfigListeners(actor, tab, app) {
     event.stopPropagation();
     const config = getConfig(actor);
     const value = clamp(tab.find(".tsru-energy-override-value").val(), 0, config.max);
-    await setEnergy(actor, value);
-    tab.find("[name='current']").val(value);
-    tab.find(".tsru-energy-override-value").val(value);
+    const applied = await setEnergy(actor, value);
+    tab.find("[name='current']").val(applied);
+    tab.find(".tsru-energy-override-value").val(applied);
     refreshOrb(actor);
-    ui.notifications.info(`${actor.name}'s Energy was set to ${value}/${config.max}.`);
+    if (Number(applied) !== value && isEnergyLocked(actor)) ui.notifications.warn(`${actor.name} cannot regain Energy until the next round.`);
+    else ui.notifications.info(`${actor.name}'s Energy was set to ${applied}/${config.max}.`);
   });
   tab.find("[data-action='reset-energy']").on("click", async () => { await setEnergy(actor, 0); app.render(false); });
   tab.find("[data-action='fill-energy']").on("click", async () => { await setEnergy(actor, getConfig(actor).max); app.render(false); });
@@ -3601,42 +3665,68 @@ Hooks.on("renderCharacterActorSheet", injectCharacterBadges);
 Hooks.on("getActorSheetHeaderButtons", addActorHeaderButton);
 Hooks.on("getSceneControlButtons", addHudTool);
 Hooks.on("createChatMessage", processCoreAttackMessage);
+
+function renderManualDamageControl(controlElement, message, suppliedApplications = null, suppliedDone = null) {
+  if (!controlElement || !message) return;
+  const control = $(controlElement);
+  const amount = manualChatDamageAmount(message);
+  const applications = Array.isArray(suppliedApplications) ? suppliedApplications : manualDamageApplications(message);
+  const done = suppliedDone ?? Boolean(message.getFlag(MODULE_ID, "manualDamageDone"));
+  control.empty();
+  for (const application of applications) {
+    control.append(`<button type="button" class="tsru-chat-damage-applied" disabled><i class="fas fa-check"></i><span>Applied ${application.total ?? amount} to ${escapeHTML(application.targetName ?? "target")}</span></button>`);
+  }
+  if (done) {
+    control.append('<div class="tsru-chat-damage-finished"><i class="fas fa-flag-checkered"></i><span>Done applying damage</span></div>');
+    return;
+  }
+  const applyButton = $(`<button type="button" class="tsru-chat-damage-apply"><i class="fas fa-crosshairs"></i><span>Apply ${amount} as damage to targeted creature</span></button>`);
+  const doneButton = $('<button type="button" class="tsru-chat-damage-done"><i class="fas fa-flag-checkered"></i><span>Done applying damage</span></button>');
+  control.append(applyButton, doneButton);
+  applyButton.on("click.tsru", async event => {
+    const button = event.currentTarget;
+    const targets = [...(game.user.targets ?? [])];
+    if (targets.length !== 1) return ui.notifications.warn("Target exactly one creature before applying this roll as damage.");
+    const target = targets[0];
+    const targetUuid = target.document?.uuid ?? target.actor?.uuid;
+    if (!targetUuid) return ui.notifications.error("The targeted creature could not be resolved.");
+    const applicationId = foundry.utils.randomID();
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Applying damage…</span>';
+    if (isAuthority()) {
+      const result = await applyChatRollAsDamage(message, target.actor, game.user, applicationId);
+      const notify = result.ok ? ui.notifications.info : ui.notifications.error;
+      notify.call(ui.notifications, result.message);
+      renderManualDamageControl(controlElement, message, result.applications, result.done);
+    } else {
+      game.socket.emit(SOCKET, {type: "applyManualChatDamage", sourceUserId: game.user.id, messageId: message.id, targetUuid, applicationId});
+      window.setTimeout(() => {
+        if (button.isConnected && button.disabled) {
+          button.disabled = false;
+          button.innerHTML = `<i class="fas fa-crosshairs"></i><span>Apply ${amount} as damage to targeted creature</span>`;
+        }
+      }, 5000);
+    }
+  });
+  doneButton.on("click.tsru", async event => {
+    event.currentTarget.disabled = true;
+    if (isAuthority()) {
+      const result = await finishManualChatDamage(message, game.user);
+      const notify = result.ok ? ui.notifications.info : ui.notifications.error;
+      notify.call(ui.notifications, result.message);
+      renderManualDamageControl(controlElement, message, result.applications, result.done);
+    } else game.socket.emit(SOCKET, {type: "finishManualChatDamage", sourceUserId: game.user.id, messageId: message.id});
+  });
+}
+
 Hooks.on("renderChatMessage", (message, html) => {
   const root = html?.jquery ? html : $(html);
   const roller = actorFromChatMessage(message);
   if (isManualChatDamageEligible(message) && (game.user.isGM || roller?.isOwner)) {
-    const applied = message.getFlag(MODULE_ID, "manualDamageApplied");
-    const amount = manualChatDamageAmount(message);
-    const control = $(`<div class="tsru-chat-damage-control"><button type="button" data-tsru-apply-chat-damage="${escapeHTML(message.id)}" ${applied ? "disabled" : ""}><i class="fas ${applied ? "fa-check" : "fa-crosshairs"}"></i><span>${applied ? `Applied to ${escapeHTML(applied.targetName ?? "target")}` : `Apply ${amount} as damage to targeted creature`}</span></button></div>`);
+    const control = $(`<div class="tsru-chat-damage-control" data-tsru-chat-damage-control="${escapeHTML(message.id)}"></div>`);
     const destination = root.find(".message-content").last();
     (destination.length ? destination : root).append(control);
-    control.find("button").on("click.tsru", async event => {
-      const button = event.currentTarget;
-      const targets = [...(game.user.targets ?? [])];
-      if (targets.length !== 1) return ui.notifications.warn("Target exactly one creature before applying this roll as damage.");
-      const target = targets[0];
-      const targetUuid = target.document?.uuid ?? target.actor?.uuid;
-      if (!targetUuid) return ui.notifications.error("The targeted creature could not be resolved.");
-      button.disabled = true;
-      button.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Applying damage…</span>';
-      if (isAuthority()) {
-        const result = await applyChatRollAsDamage(message, target.actor, game.user);
-        const notify = result.ok ? ui.notifications.info : ui.notifications.error;
-        notify.call(ui.notifications, result.message);
-        if (!result.ok) {
-          button.disabled = false;
-          button.innerHTML = `<i class="fas fa-crosshairs"></i><span>Apply ${amount} as damage to targeted creature</span>`;
-        }
-      } else {
-        game.socket.emit(SOCKET, {type: "applyManualChatDamage", sourceUserId: game.user.id, messageId: message.id, targetUuid});
-        window.setTimeout(() => {
-          if (button.isConnected && !message.getFlag(MODULE_ID, "manualDamageApplied")) {
-            button.disabled = false;
-            button.innerHTML = `<i class="fas fa-crosshairs"></i><span>Apply ${amount} as damage to targeted creature</span>`;
-          }
-        }, 5000);
-      }
-    });
+    renderManualDamageControl(control[0], message);
   }
   root.find("[data-tsru-complete-ultimate]").each((_index, element) => {
     const actor = game.actors.get(element.dataset.tsruCompleteUltimate);
@@ -3722,6 +3812,7 @@ Hooks.on("updateCombat", async combat => {
   refreshToughnessBars();
   state.gmPanel?.render(false);
   if (!isAuthority()) return;
+  await clearExpiredEnergyLocks(combat);
   const previousTurn = state.lastCombatTurns.get(combat.id);
   const currentTurn = combatTurnSnapshot(combat);
   state.lastCombatTurns.set(combat.id, currentTurn);
