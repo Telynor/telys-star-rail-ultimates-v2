@@ -1418,12 +1418,13 @@ async function removeUltimateTurn(temporary, {resume = true} = {}) {
   const resumeId = temporary.getFlag(MODULE_ID, "resumeCombatantId");
   const resumeRound = temporary.getFlag(MODULE_ID, "resumeRound");
   state.suppressCombatHook = true;
-  await combat.deleteEmbeddedDocuments("Combatant", [temporary.id]);
-  if (resume) {
-    const resumeIndex = combat.turns.findIndex(entry => entry.id === resumeId);
-    if (resumeIndex >= 0) await combat.update({turn: resumeIndex, round: resumeRound ?? combat.round});
-  }
-  state.suppressCombatHook = false;
+  try {
+    if (combat?.combatants.has(temporary.id)) await combat.deleteEmbeddedDocuments("Combatant", [temporary.id]);
+    if (resume) {
+      const resumeIndex = combat.turns.findIndex(entry => entry.id === resumeId);
+      if (resumeIndex >= 0) await combat.update({turn: resumeIndex, round: resumeRound ?? combat.round});
+    }
+  } finally { state.suppressCombatHook = false; }
 }
 
 async function postAbilityText(actor, kind, text, {combatantId = ""} = {}) {
@@ -1459,22 +1460,32 @@ async function runElationActionScript(actor, combatantId = "") {
 async function completeElationAction(combatantId, userId) {
   if (!isAuthority()) return;
   const pending = state.pendingElationActions.get(combatantId);
-  if (pending && userId && pending.userId !== userId) return;
+  const combat = (pending?.combatId ? game.combats.get(pending.combatId) : null)
+    ?? game.combats.find(entry => entry.combatants.has(combatantId))
+    ?? game.combat;
+  const combatant = combat?.combatants.get(combatantId);
+  const completingUser = userId ? game.users.get(userId) : null;
+  if (userId && !completingUser?.isGM && !combatant?.actor?.testUserPermission(completingUser, "OWNER")) return;
   if (pending?.timer) window.clearTimeout(pending.timer);
   state.pendingElationActions.delete(combatantId);
-  const combat = game.combats.get(pending?.combatId) ?? game.combat;
-  const combatant = combat?.combatants.get(combatantId);
+  state.activeElationActions.delete(combatantId);
   if (!combatant || !isElationActionCombatant(combatant)) return;
-  await combatant.setFlag(MODULE_ID, "completed", true);
-  const remaining = combat.turns.filter(entry => isElationActionCombatant(entry) && !entry.getFlag(MODULE_ID, "completed"));
+  const resumeRound = combatant.getFlag(MODULE_ID, "resumeRound") ?? combat.round;
+  const remainingIds = combat.turns
+    .filter(entry => entry.id !== combatantId && isElationActionCombatant(entry) && !entry.getFlag(MODULE_ID, "completed"))
+    .sort((left, right) => Number(left.getFlag(MODULE_ID, "sequenceOrder")) - Number(right.getFlag(MODULE_ID, "sequenceOrder")))
+    .map(entry => entry.id);
+  state.suppressCombatHook = true;
+  try { await combat.deleteEmbeddedDocuments("Combatant", [combatantId]); }
+  finally { state.suppressCombatHook = false; }
+  const remaining = remainingIds.map(id => combat.combatants.get(id)).filter(Boolean);
   if (remaining.length) {
-    const next = remaining.sort((left, right) => Number(left.getFlag(MODULE_ID, "sequenceOrder")) - Number(right.getFlag(MODULE_ID, "sequenceOrder")))[0];
+    const next = remaining[0];
     const index = combat.turns.findIndex(entry => entry.id === next.id);
     if (index >= 0) await combat.update({turn: index});
     await executeElationAction(next);
     return;
   }
-  const resumeRound = combatant.getFlag(MODULE_ID, "resumeRound") ?? combat.round;
   if (await finishSpecialAha(combat)) return;
   await clearElationActionTurns(combat, {resetPunchline: true, resume: true, resumeRound});
 }
@@ -1551,18 +1562,26 @@ async function completeUltimate(actorId) {
   if (!isAuthority()) return;
   const pending = state.pendingUltimates.get(actorId);
   if (pending?.timer) window.clearTimeout(pending.timer);
-  const temporary = pending?.combatId && pending?.combatantId
-    ? game.combats.get(pending.combatId)?.combatants.get(pending.combatantId)
-    : null;
-  if (temporary) await removeUltimateTurn(temporary, {resume: false});
+  const combat = (pending?.combatId ? game.combats.get(pending.combatId) : null)
+    ?? game.combats.find(entry => entry.combatants.some(combatant => combatant.actorId === actorId && combatant.getFlag(MODULE_ID, "temporaryUltimate")))
+    ?? game.combat;
+  const temporaryIds = combat?.combatants
+    .filter(combatant => combatant.actorId === actorId && combatant.getFlag(MODULE_ID, "temporaryUltimate"))
+    .map(combatant => combatant.id) ?? [];
+  if (temporaryIds.length) {
+    state.suppressCombatHook = true;
+    try { await combat.deleteEmbeddedDocuments("Combatant", temporaryIds); }
+    finally { state.suppressCombatHook = false; }
+  }
   state.pendingUltimates.delete(actorId);
   state.ultimateLocks.delete(actorId);
   game.socket.emit(SOCKET, {type: "ultimateState", actorId, locked: false});
   refreshOrb(game.actors.get(actorId));
-  const queue = pending?.combatId ? state.ultimateQueues.get(pending.combatId) : null;
+  const queueCombatId = pending?.combatId ?? combat?.id ?? [...state.ultimateQueues].find(([_id, entry]) => entry.activeActorId === actorId)?.[0];
+  const queue = queueCombatId ? state.ultimateQueues.get(queueCombatId) : null;
   if (queue) {
     queue.activeActorId = null;
-    await processUltimateQueue(pending.combatId);
+    await processUltimateQueue(queueCombatId);
   }
 }
 
@@ -1835,7 +1854,9 @@ async function onSocket(payload) {
   if (payload.type === "ultimateComplete" && isAuthority()) {
     const pending = state.pendingUltimates.get(payload.actorId);
     const completingUser = game.users.get(payload.userId);
-    if (pending && (pending.requestingUserId === payload.userId || completingUser?.isGM)) await completeUltimate(payload.actorId);
+    const actor = game.actors.get(payload.actorId);
+    if ((pending || game.combats.some(combat => combat.combatants.some(entry => entry.actorId === payload.actorId && entry.getFlag(MODULE_ID, "temporaryUltimate"))))
+      && (completingUser?.isGM || actor?.testUserPermission(completingUser, "OWNER"))) await completeUltimate(payload.actorId);
     return;
   }
   if (payload.type === "ultimateState") {
