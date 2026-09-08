@@ -3098,11 +3098,34 @@ function activateEidolonListeners(actor, tab, app) {
   tab.find(".file-picker").on("click", event => {
     const target = event.currentTarget.dataset.target;
     const scope = $(event.currentTarget).closest("[data-eidolon-popout]").length ? $(event.currentTarget).closest("[data-eidolon-popout]") : tab;
-    const picker = new FilePicker({type: event.currentTarget.dataset.type || "image", current: scope.find(`[name="${target}"]`).val(), callback: path => scope.find(`[name="${target}"]`).val(path).trigger("input")});
-    Hooks.once("renderFilePicker", rendered => {
-      if (rendered === picker) $(rendered.element).css("z-index", 1000001);
+    const popout = scope.is("[data-eidolon-popout]") ? scope : $();
+    let restored = false;
+    const restorePopout = () => {
+      if (restored || !popout.length) return;
+      restored = true;
+      popout.prop("hidden", false).addClass("open");
+    };
+    const picker = new FilePicker({
+      type: event.currentTarget.dataset.type || "image",
+      current: scope.find(`[name="${target}"]`).val(),
+      callback: path => {
+        scope.find(`[name="${target}"]`).val(path).trigger("input");
+        restorePopout();
+      }
     });
-    picker.browse();
+    const originalClose = picker.close.bind(picker);
+    picker.close = async (...args) => {
+      try {
+        return await originalClose(...args);
+      } finally {
+        restorePopout();
+      }
+    };
+    if (popout.length) popout.prop("hidden", true);
+    Promise.resolve(picker.browse()).catch(error => {
+      restorePopout();
+      console.error(`${MODULE_ID} | Could not open Eidolon artwork browser`, error);
+    });
   });
   tab.find("[data-eidolon-editor] input").on("input change", event => {
     const number = Number(event.currentTarget.closest("[data-eidolon-editor]").dataset.eidolonEditor);
