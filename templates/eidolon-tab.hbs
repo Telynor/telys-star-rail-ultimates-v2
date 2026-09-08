@@ -15,25 +15,35 @@
   </div>
 
   <div class="tsru-eidolon-unlocks">
-    {{#each slots}}<article class="tsru-eidolon-unlock {{#if this.active}}active{{/if}}"><span>E{{this.number}}</span><strong>{{this.title}}</strong>{{#if this.active}}<em><i class="fas fa-check"></i> Active</em>{{else}}<button type="button" data-action="activate-eidolon" data-eidolon="{{this.number}}" {{#unless this.canActivate}}disabled{{/unless}}><i class="fas fa-lock-open"></i> Activate</button>{{/if}}</article>{{/each}}
+    {{#each slots}}<article class="tsru-eidolon-unlock {{#if this.active}}active{{/if}}"><span>E{{this.number}}</span><strong>{{this.title}}</strong><div class="tsru-eidolon-unlock-actions">{{#if this.active}}<em><i class="fas fa-check"></i> Active</em>{{else}}<button type="button" data-action="activate-eidolon" data-eidolon="{{this.number}}" {{#unless this.canActivate}}disabled{{/unless}}><i class="fas fa-lock-open"></i> Activate</button>{{/if}}{{#if this.canConfigure}}<button type="button" data-action="configure-eidolon" data-eidolon="{{this.number}}"><i class="fas fa-sliders"></i> Configure</button>{{/if}}</div></article>{{/each}}
   </div>
 
   {{#if isGM}}
-  <div class="tsru-eidolon-editor">
-    <h3>GM Artwork &amp; Crop Configuration</h3>
+  <div class="tsru-eidolon-currency-panel">
     <label class="tsru-eidolon-currency"><strong>Activation currency Item</strong><small>Drop a world Item here or paste its UUID. One copy is consumed for each unlock.</small><input type="text" name="eidolonCurrencyUuid" value="{{currencyUuid}}" placeholder="Item.xxxxxxxxxxxxxxxx"></label>
-    <p class="hint">Drag artwork directly inside the preview, or use the X/Y/Zoom controls. Changes preview immediately and are saved only with the button below.</p>
-    <div class="tsru-eidolon-editor-grid">
-      {{#each slots}}<fieldset data-eidolon-editor="{{this.number}}"><legend>E{{this.number}}</legend>
+    <button type="button" data-action="save-eidolon-currency"><i class="fas fa-save"></i> Save Currency</button>
+  </div>
+
+  {{#each slots}}
+  <div class="tsru-eidolon-popout" data-eidolon-popout="{{this.number}}" hidden>
+    <button type="button" class="tsru-eidolon-popout-backdrop" data-action="close-eidolon-config" aria-label="Close"></button>
+    <section class="tsru-eidolon-popout-card" role="dialog" aria-modal="true" aria-label="Configure Eidolon {{this.number}}">
+      <header><h3>Configure E{{this.number}}</h3><button type="button" data-action="close-eidolon-config" aria-label="Close"><i class="fas fa-xmark"></i></button></header>
+      <div class="tsru-eidolon-popout-preview">
+        {{#if ../interface.backgroundImage}}<img class="tsru-eidolon-background" src="{{../interface.backgroundImage}}" alt="">{{/if}}
+        <div class="tsru-eidolon-art-slot" data-eidolon-preview-art="{{this.number}}" style="--mask:{{this.mask}};{{#if this.maskImage}}--mask-image:url('{{this.maskImage}}');{{/if}}--art-x:{{this.offsetX}}%;--art-y:{{this.offsetY}}%;--art-scale:{{this.scalePercent}}"><img src="{{this.artwork}}" alt="E{{this.number}} preview"></div>
+      </div>
+      <div class="tsru-eidolon-popout-controls" data-eidolon-editor="{{this.number}}">
         <label>Title<input type="text" name="eidolon.{{this.number}}.title" value="{{this.title}}"></label>
         <label>Artwork<span class="tsru-file-control"><input type="text" name="eidolon.{{this.number}}.artwork" value="{{this.artwork}}"><button type="button" class="file-picker" data-type="image" data-target="eidolon.{{this.number}}.artwork"><i class="fas fa-file-import"></i></button></span></label>
         <label>X position <input type="range" min="-100" max="100" step="0.5" name="eidolon.{{this.number}}.offsetX" value="{{this.offsetX}}"><output>{{this.offsetX}}%</output></label>
         <label>Y position <input type="range" min="-100" max="100" step="0.5" name="eidolon.{{this.number}}.offsetY" value="{{this.offsetY}}"><output>{{this.offsetY}}%</output></label>
         <label>Zoom <input type="range" min="25" max="400" step="1" name="eidolon.{{this.number}}.scale" value="{{this.scale}}"><output>{{this.scale}}%</output></label>
         <label class="tsru-field-toggle"><span>Active</span><input type="checkbox" name="eidolon.{{this.number}}.active" {{checked this.active}}></label>
-      </fieldset>{{/each}}
-    </div>
-    <button type="button" data-action="save-eidolons"><i class="fas fa-save"></i> Save Eidolon Configuration</button>
+      </div>
+      <footer><button type="button" data-action="close-eidolon-config">Cancel</button><button type="button" data-action="save-eidolon" data-eidolon="{{this.number}}"><i class="fas fa-save"></i> Save E{{this.number}}</button></footer>
+    </section>
   </div>
+  {{/each}}
   {{/if}}
 </section>

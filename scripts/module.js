@@ -2838,15 +2838,24 @@ function registerSettings() {
 async function injectUltimateTab(app, html) {
   const actor = app.actor ?? app.document;
   if (!game.user.isGM || actor?.type !== "character") return;
-  const rootElement = html?.jquery ? html[0] : html instanceof HTMLElement ? html : app.element;
+  const appElement = app.element?.jquery ? app.element[0] : app.element;
+  const htmlElement = html?.jquery ? html[0] : html instanceof HTMLElement ? html : null;
+  const rootElement = appElement instanceof HTMLElement ? appElement : htmlElement;
   if (!rootElement) return;
   const root = $(rootElement);
-  if (root.find('[data-tab="tsru-ultimate"]').length) return;
+  const existingControl = root.find('nav [data-tab="tsru-ultimate"]');
+  const existingTab = root.find('.tsru-sheet-tab[data-tab="tsru-ultimate"]');
+  if (existingControl.length && existingTab.length) return;
+  existingControl.remove();
+  existingTab.remove();
+  if (root.attr("data-tsru-ultimate-injecting") === "true") return;
+  root.attr("data-tsru-ultimate-injecting", "true");
   const nav = root.find('nav.tabs[data-group="primary"], nav.sheet-tabs[data-group="primary"], .tabs-right nav.tabs').first();
   let body = root.find('.tab-body').first();
   if (!body.length) body = root.find('.sheet-body').first();
   if (!body.length) body = root.find('[data-application-part="body"]').first();
   if (!nav.length || !body.length) {
+    root.removeAttr("data-tsru-ultimate-injecting");
     addSheetConfigFallback(app, root, actor);
     return;
   }
@@ -2888,6 +2897,8 @@ async function injectUltimateTab(app, html) {
     tab.removeClass("active");
     root.removeClass("tsru-tab-open");
   });
+  root.removeAttr("data-tsru-ultimate-injecting");
+  if (app.tabGroups?.primary === "tsru-ultimate") ultimateControl.trigger("click");
 }
 
 function addSheetConfigFallback(app, root, actor) {
@@ -2997,7 +3008,8 @@ async function eidolonTabData(actor) {
       maskImage: resolveAssetUrl(interfaceConfig[`mask${slot.number}`]),
       displayArtwork: slot.artwork || "",
       scalePercent: slot.scale / 100,
-      canActivate: slot.number === firstLocked && (game.user.isGM || actor.isOwner)
+      canActivate: slot.number === firstLocked && (game.user.isGM || actor.isOwner),
+      canConfigure: Boolean(game.user.isGM)
     }))
   };
 }
@@ -3028,7 +3040,7 @@ async function activateEidolon(actor, number) {
 
 function refreshEidolonPreview(tab, number) {
   const editor = tab.find(`[data-eidolon-editor="${number}"]`);
-  const art = tab.find(`[data-eidolon-art="${number}"]`);
+  const art = tab.find(`[data-eidolon-preview-art="${number}"]`);
   if (!editor.length || !art.length) return;
   const artwork = editor.find(`[name="eidolon.${number}.artwork"]`).val();
   const x = Number(editor.find(`[name="eidolon.${number}.offsetX"]`).val()) || 0;
@@ -3039,21 +3051,39 @@ function refreshEidolonPreview(tab, number) {
   editor.find(`[name="eidolon.${number}.offsetX"]`).next("output").text(`${x}%`);
   editor.find(`[name="eidolon.${number}.offsetY"]`).next("output").text(`${y}%`);
   editor.find(`[name="eidolon.${number}.scale"]`).next("output").text(`${scale}%`);
-  tab.find(`[data-eidolon-title="${number}"] span`).text(editor.find(`[name="eidolon.${number}.title"]`).val());
-  art.toggleClass("locked", !editor.find(`[name="eidolon.${number}.active"]`).prop("checked"));
+}
+
+function populateEidolonEditor(actor, tab, number) {
+  const slot = getEidolons(actor).slots[number - 1];
+  const editor = tab.find(`[data-eidolon-editor="${number}"]`);
+  if (!slot || !editor.length) return;
+  editor.find(`[name="eidolon.${number}.title"]`).val(slot.title);
+  editor.find(`[name="eidolon.${number}.artwork"]`).val(slot.artwork);
+  editor.find(`[name="eidolon.${number}.offsetX"]`).val(slot.offsetX);
+  editor.find(`[name="eidolon.${number}.offsetY"]`).val(slot.offsetY);
+  editor.find(`[name="eidolon.${number}.scale"]`).val(slot.scale);
+  editor.find(`[name="eidolon.${number}.active"]`).prop("checked", slot.active);
+  refreshEidolonPreview(tab, number);
 }
 
 function activateEidolonListeners(actor, tab, app) {
   tab.find("[data-action='activate-eidolon']").on("click", async event => activateEidolon(actor, Number(event.currentTarget.dataset.eidolon)));
   if (!game.user.isGM) return;
+  tab.find("[data-action='configure-eidolon']").on("click", event => {
+    const number = Number(event.currentTarget.dataset.eidolon);
+    populateEidolonEditor(actor, tab, number);
+    tab.find(`[data-eidolon-popout="${number}"]`).prop("hidden", false).addClass("open");
+  });
+  tab.find("[data-action='close-eidolon-config']").on("click", event => {
+    $(event.currentTarget).closest("[data-eidolon-popout]").prop("hidden", true).removeClass("open");
+  });
   tab.find(".file-picker").on("click", event => {
     const target = event.currentTarget.dataset.target;
     new FilePicker({type: event.currentTarget.dataset.type || "image", current: tab.find(`[name="${target}"]`).val(), callback: path => tab.find(`[name="${target}"]`).val(path).trigger("input")}).browse();
   });
   tab.find("[data-eidolon-editor] input").on("input change", event => refreshEidolonPreview(tab, Number(event.currentTarget.closest("[data-eidolon-editor]").dataset.eidolonEditor)));
-  const stage = tab.find("[data-eidolon-stage]");
-  stage.find("[data-eidolon-art]").on("pointerdown", event => {
-    const slot = Number(event.currentTarget.dataset.eidolonArt);
+  tab.find("[data-eidolon-preview-art]").on("pointerdown", event => {
+    const slot = Number(event.currentTarget.dataset.eidolonPreviewArt);
     const editor = tab.find(`[data-eidolon-editor="${slot}"]`);
     const xInput = editor.find(`[name="eidolon.${slot}.offsetX"]`);
     const yInput = editor.find(`[name="eidolon.${slot}.offsetY"]`);
@@ -3061,7 +3091,8 @@ function activateEidolonListeners(actor, tab, app) {
     const startY = event.clientY;
     const initialX = Number(xInput.val()) || 0;
     const initialY = Number(yInput.val()) || 0;
-    const rect = stage[0].getBoundingClientRect();
+    const preview = event.currentTarget.closest(".tsru-eidolon-popout-preview");
+    const rect = preview.getBoundingClientRect();
     event.currentTarget.setPointerCapture(event.pointerId);
     const move = moveEvent => {
       xInput.val(clamp(initialX + ((moveEvent.clientX - startX) / rect.width) * 100, -100, 100));
@@ -3084,32 +3115,43 @@ function activateEidolonListeners(actor, tab, app) {
       if (dropped.type === "Item" && dropped.uuid) event.currentTarget.value = dropped.uuid;
     } catch (_error) {}
   });
-  tab.find("[data-action='save-eidolons']").on("click", async () => {
+  tab.find("[data-action='save-eidolon-currency']").on("click", async () => {
     const data = getEidolons(actor);
     data.currencyUuid = String(tab.find('[name="eidolonCurrencyUuid"]').val() || "").trim();
-    for (const slot of data.slots) {
-      const editor = tab.find(`[data-eidolon-editor="${slot.number}"]`);
-      slot.title = String(editor.find(`[name="eidolon.${slot.number}.title"]`).val() || `Eidolon ${slot.number}`);
-      slot.artwork = String(editor.find(`[name="eidolon.${slot.number}.artwork"]`).val() || "");
-      slot.offsetX = clamp(editor.find(`[name="eidolon.${slot.number}.offsetX"]`).val(), -100, 100);
-      slot.offsetY = clamp(editor.find(`[name="eidolon.${slot.number}.offsetY"]`).val(), -100, 100);
-      slot.scale = clamp(editor.find(`[name="eidolon.${slot.number}.scale"]`).val(), 25, 400);
-      slot.active = editor.find(`[name="eidolon.${slot.number}.active"]`).prop("checked");
-    }
     await actor.setFlag(MODULE_ID, "eidolons", data);
-    ui.notifications.info(`${actor.name}'s Eidolon artwork and crops were saved.`);
-    if (app?.render) app.render(false);
+    ui.notifications.info(`${actor.name}'s Eidolon activation currency was saved.`);
   });
-  for (let number = 1; number <= 6; number++) refreshEidolonPreview(tab, number);
+  tab.find("[data-action='save-eidolon']").on("click", async event => {
+    const number = Number(event.currentTarget.dataset.eidolon);
+    const data = getEidolons(actor);
+    const slot = data.slots[number - 1];
+    const editor = tab.find(`[data-eidolon-editor="${number}"]`);
+    slot.title = String(editor.find(`[name="eidolon.${number}.title"]`).val() || `Eidolon ${number}`);
+    slot.artwork = String(editor.find(`[name="eidolon.${number}.artwork"]`).val() || "");
+    slot.offsetX = clamp(editor.find(`[name="eidolon.${number}.offsetX"]`).val(), -100, 100);
+    slot.offsetY = clamp(editor.find(`[name="eidolon.${number}.offsetY"]`).val(), -100, 100);
+    slot.scale = clamp(editor.find(`[name="eidolon.${number}.scale"]`).val(), 25, 400);
+    slot.active = editor.find(`[name="eidolon.${number}.active"]`).prop("checked");
+    await actor.setFlag(MODULE_ID, "eidolons", data);
+    ui.notifications.info(`${actor.name}'s E${number} appearance was saved.`);
+    tab.find(`[data-eidolon-popout="${number}"]`).prop("hidden", true).removeClass("open");
+  });
 }
 
 async function injectEidolonTab(app, html) {
   const actor = app.actor ?? app.document;
   if (actor?.documentName !== "Actor" || actor.type !== "character") return;
-  const rootElement = html?.jquery ? html[0] : html instanceof HTMLElement ? html : app.element?.jquery ? app.element[0] : app.element;
+  const appElement = app.element?.jquery ? app.element[0] : app.element;
+  const htmlElement = html?.jquery ? html[0] : html instanceof HTMLElement ? html : null;
+  const rootElement = appElement instanceof HTMLElement ? appElement : htmlElement;
   if (!rootElement) return;
   const root = $(rootElement);
-  if (root.find('[data-tab="tsru-eidolons"]').length || root.attr("data-tsru-eidolons-injecting") === "true") return;
+  const existingControl = root.find('nav [data-tab="tsru-eidolons"]');
+  const existingTab = root.find('.tsru-eidolon-tab[data-tab="tsru-eidolons"]');
+  if (existingControl.length && existingTab.length) return;
+  existingControl.remove();
+  existingTab.remove();
+  if (root.attr("data-tsru-eidolons-injecting") === "true") return;
   root.attr("data-tsru-eidolons-injecting", "true");
   const nav = root.find('nav.tabs[data-group="primary"], nav.sheet-tabs[data-group="primary"], .tabs-right nav.tabs').first();
   let body = root.find('.tab-body').first();
@@ -3131,6 +3173,7 @@ async function injectEidolonTab(app, html) {
   });
   nav.find('[data-tab]').not('[data-tab="tsru-eidolons"]').on("click.tsru-eidolon-hide", () => tab.removeClass("active"));
   root.removeAttr("data-tsru-eidolons-injecting");
+  if (app.tabGroups?.primary === "tsru-eidolons") control.trigger("click");
 }
 
 function openToughnessConfig(actor) {
@@ -3379,6 +3422,13 @@ Hooks.on("renderApplicationV2", (app, html) => {
     injectEidolonTab(app, html);
     injectEnergyAbility(app, html);
     injectCharacterBadges(app, html);
+    requestAnimationFrame(() => {
+      const root = app.element?.jquery ? app.element : $(app.element);
+      injectUltimateTab(app, root);
+      injectEidolonTab(app, root);
+      injectEnergyAbility(app, root);
+      injectCharacterBadges(app, root);
+    });
   }
   if (actor?.documentName === "Actor" && actor.type === "npc") injectToughnessHeaderButton(app, html);
 });
@@ -3415,12 +3465,15 @@ Hooks.on("tsruEnergyChanged", (actor, before, after, reason) => dispatchTalentEv
 Hooks.on("tsruPunchlineChanged", value => { state.gmPanel?.refreshLiveValues(); dispatchTalentEvent("punchlineChanged", {value}); });
 Hooks.on("tsruSkillPointsChanged", value => { state.gmPanel?.refreshLiveValues(); dispatchTalentEvent("skillPointsChanged", {value}); });
 Hooks.on("tsruTalentPointsChanged", (actor, before, after) => { refreshTalentCounter(actor); dispatchTalentEvent("talentPointsChanged", {sourceActor: actor, before, after, amount: after - before}); });
-Hooks.on("updateActor", actor => {
+Hooks.on("updateActor", (actor, changes) => {
   refreshOrb(actor);
   refreshSkillUI();
   refreshTalentCounter(actor);
   refreshToughnessBars();
   state.gmPanel?.refreshLiveValues();
+  if (foundry.utils.hasProperty(changes, `flags.${MODULE_ID}.eidolons`)) {
+    for (const app of Object.values(ui.windows ?? {})) if ((app.actor ?? app.document)?.id === actor.id) app.render(false);
+  }
   if (actor.type === "character" && Number(getConfig(actor).current) >= Number(getConfig(actor).max) && state.ultimateLocks.has(actor.id)) {
     reconcileUltimateLock(actor.id);
   }
