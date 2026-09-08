@@ -68,6 +68,7 @@ const state = {
   activeTalents: new Set(),
   talentEvents: new Set(),
   lastTalentTurns: new Map(),
+  lastCombatTurns: new Map(),
   specialAha: null,
   gmPanel: null,
   actionAdvances: new Map(),
@@ -704,6 +705,32 @@ function isAhaCombatant(combatant) {
 
 function isElationActionCombatant(combatant) {
   return Boolean(combatant?.getFlag(MODULE_ID, "elationActionCombatant"));
+}
+
+function combatTurnSnapshot(combat) {
+  const combatant = combat?.combatant;
+  return combatant ? {
+    id: combatant.id,
+    actorId: combatant.actorId ?? combatant.actor?.id ?? null,
+    ultimate: Boolean(combatant.getFlag(MODULE_ID, "temporaryUltimate")),
+    elation: isElationActionCombatant(combatant)
+  } : null;
+}
+
+async function removeOrphanedTemporaryTurns(combat) {
+  if (!isAuthority() || !combat) return;
+  const queue = state.ultimateQueues.get(combat.id);
+  const orphanedUltimates = combat.combatants.filter(entry => {
+    if (!entry.getFlag(MODULE_ID, "temporaryUltimate")) return false;
+    const pending = state.pendingUltimates.get(entry.actorId);
+    return pending?.combatantId !== entry.id && queue?.activeActorId !== entry.actorId;
+  });
+  const completedElation = combat.combatants.filter(entry => isElationActionCombatant(entry) && entry.getFlag(MODULE_ID, "completed"));
+  const ids = [...new Set([...orphanedUltimates, ...completedElation].map(entry => entry.id))];
+  if (!ids.length) return;
+  state.suppressCombatHook = true;
+  try { await combat.deleteEmbeddedDocuments("Combatant", ids); }
+  finally { state.suppressCombatHook = false; }
 }
 
 async function ensureAhaCombatant(combat) {
@@ -1676,9 +1703,9 @@ async function beginQueuedUltimate(request, queue, combat) {
   const actor = game.actors.get(request.actorId);
   if (!actor) return completeUltimate(request.actorId);
   broadcastUltimateSplash(actor);
+  queue.activeActorId = actor.id;
   const temporary = await insertUltimateTurn(actor, {combatantId: queue.resumeCombatantId, round: queue.resumeRound});
   if (!temporary) throw new Error("Foundry could not create the temporary Ultimate combatant.");
-  queue.activeActorId = actor.id;
   const pending = {actorId: actor.id, requestingUserId: request.requestingUserId, combatId: combat.id, combatantId: temporary?.id ?? null, timer: window.setTimeout(() => completeUltimate(actor.id), 600000)};
   state.pendingUltimates.set(actor.id, pending);
   if (request.requestingUserId === game.user.id) await runUltimateScript(actor, temporary?.id ?? "");
@@ -3143,6 +3170,7 @@ Hooks.on("canvasReady", refreshAhaButton);
 Hooks.on("deleteCombat", async combat => {
   await dispatchTalentEvent("combatEnd", {combat}, combat.id);
   state.lastTalentTurns.delete(combat.id);
+  state.lastCombatTurns.delete(combat.id);
   if (state.specialAha?.combatId === combat.id) state.specialAha = null;
   state.actionAdvances.delete(combat.id);
   state.ultimateLocks.clear();
@@ -3171,7 +3199,25 @@ Hooks.on("updateCombat", async combat => {
   refreshToughnessBars();
   state.gmPanel?.render(false);
   if (!isAuthority()) return;
+  const previousTurn = state.lastCombatTurns.get(combat.id);
+  const currentTurn = combatTurnSnapshot(combat);
+  state.lastCombatTurns.set(combat.id, currentTurn);
   if (state.suppressCombatHook) return;
+  if (previousTurn?.id && previousTurn.id !== currentTurn?.id) {
+    if (previousTurn.ultimate && previousTurn.actorId) {
+      await completeUltimate(previousTurn.actorId);
+      await removeOrphanedTemporaryTurns(combat);
+      state.lastCombatTurns.set(combat.id, combatTurnSnapshot(combat));
+      return;
+    }
+    if (previousTurn.elation) {
+      await completeElationAction(previousTurn.id);
+      await removeOrphanedTemporaryTurns(combat);
+      state.lastCombatTurns.set(combat.id, combatTurnSnapshot(combat));
+      return;
+    }
+  }
+  await removeOrphanedTemporaryTurns(combat);
   const ultimateQueue = state.ultimateQueues.get(combat.id);
   if (ultimateQueue?.waitTurnId && combat.combatant?.id !== ultimateQueue.waitTurnId) {
     ultimateQueue.resumeCombatantId = combat.combatant?.id ?? null;
@@ -3238,6 +3284,7 @@ Hooks.on("createCombatant", combatant => {
 });
 
 Hooks.on("combatStart", async combat => {
+  state.lastCombatTurns.set(combat.id, combatTurnSnapshot(combat));
   if (isAuthority()) {
     await setSkillPoints(getSkillPointConfig().starting);
     for (const actor of game.actors.filter(entry => entry.type === "character" && currentTalentPoints(entry) !== 0)) {
@@ -3248,6 +3295,8 @@ Hooks.on("combatStart", async combat => {
   await maybeEnsureAhaCombatant(combat, {force: true});
 });
 Hooks.on("deleteCombatant", combatant => {
+  const tracked = state.lastCombatTurns.get(combatant.parent?.id);
+  if (tracked?.id === combatant.id) state.lastCombatTurns.set(combatant.parent.id, combatTurnSnapshot(combatant.parent));
   state.gmPanel?.render(false);
   const advance = state.actionAdvances.get(combatant.parent?.id);
   if (advance?.combatantId === combatant.id) state.actionAdvances.delete(combatant.parent.id);
