@@ -1753,6 +1753,26 @@ async function completeUltimate(actorId) {
   }
 }
 
+async function completeImmediateUltimate(actorId) {
+  if (!isAuthority()) return;
+  state.ultimateLocks.delete(actorId);
+  game.socket.emit(SOCKET, {type: "ultimateState", actorId, locked: false});
+  refreshOrb(game.actors.get(actorId));
+}
+
+async function beginImmediateUltimate(actor, requestingUserId) {
+  broadcastUltimateSplash(actor);
+  if (requestingUserId === game.user.id) {
+    try { await runUltimateScript(actor); }
+    catch (error) {
+      console.error(`${MODULE_ID} | Immediate Ultimate failed`, error);
+      ui.notifications.error(`Ultimate failed: ${error.message}`);
+    } finally { await completeImmediateUltimate(actor.id); }
+    return;
+  }
+  game.socket.emit(SOCKET, {type: "useUltimate", actorId: actor.id, combatantId: "", immediate: true, targetUserId: requestingUserId});
+}
+
 function ultimateInitiative(actor, combat) {
   const combatant = combat?.combatants.find(entry => entry.actorId === actor.id && !entry.getFlag(MODULE_ID, "temporaryUltimate"));
   return Number.isFinite(Number(combatant?.initiative)) ? Number(combatant.initiative) : -Infinity;
@@ -1861,9 +1881,17 @@ async function executeUltimate(actorId, requestingUserId) {
       game.socket.emit(SOCKET, {type: "ultimateState", actorId, locked: false});
       return refreshOrb(actor);
     }
+    const current = combat.combatant;
+    const isOwnNormalTurn = current?.actorId === actor.id
+      && !current.getFlag(MODULE_ID, "temporaryUltimate")
+      && !isElationActionCombatant(current)
+      && !isAhaCombatant(current);
+    if (isOwnNormalTurn) {
+      ui.notifications.info(`${actor.name}'s Ultimate activated immediately on their own turn.`);
+      return beginImmediateUltimate(actor, requestingUserId);
+    }
     let queue = state.ultimateQueues.get(combat.id);
     if (!queue) {
-      const current = combat.combatant;
       const isOtherMainPartyActor = current?.actorId !== actor.id && current?.actor?.type === "character" && getConfig(current.actor).mainParty;
       const waitsForAlly = Boolean(isOtherMainPartyActor && !current.getFlag(MODULE_ID, "temporaryUltimate"));
       queue = {resumeCombatantId: waitsForAlly ? null : current?.id ?? null, resumeRound: combat.round, waitTurnId: waitsForAlly ? current.id : null, activeActorId: null, requests: [], sequence: 0, startTimer: null};
@@ -2036,11 +2064,18 @@ async function onSocket(payload) {
     try {
       if (!actor?.isOwner) throw new Error("You no longer own this character.");
       await runUltimateScript(actor, payload.combatantId ?? "");
+      if (payload.immediate) game.socket.emit(SOCKET, {type: "immediateUltimateComplete", actorId: payload.actorId, userId: game.user.id});
     } catch (error) {
       console.error(`${MODULE_ID} | Player Ultimate failed`, error);
       ui.notifications.error(`Ultimate failed: ${error.message}`);
-      game.socket.emit(SOCKET, {type: "ultimateComplete", actorId: payload.actorId, userId: game.user.id, failed: true});
+      game.socket.emit(SOCKET, {type: payload.immediate ? "immediateUltimateComplete" : "ultimateComplete", actorId: payload.actorId, userId: game.user.id, failed: true});
     }
+    return;
+  }
+  if (payload.type === "immediateUltimateComplete" && isAuthority()) {
+    const completingUser = game.users.get(payload.userId);
+    const actor = game.actors.get(payload.actorId);
+    if (state.ultimateLocks.has(payload.actorId) && (completingUser?.isGM || actor?.testUserPermission(completingUser, "OWNER"))) await completeImmediateUltimate(payload.actorId);
     return;
   }
   if (payload.type === "ultimateComplete" && isAuthority()) {
@@ -2292,7 +2327,8 @@ async function applyToughnessDamage(attacker, targets, amount, eventKey = "") {
   const targetSignature = targetList.map(target => (target?.actor ?? target?.document?.actor ?? target)?.uuid ?? target?.id ?? "target").sort().join(",");
   const signature = `${attacker.uuid}:${targetSignature}:${amount}`;
   const now = Date.now();
-  if (now - (state.recentToughness.get(signature) ?? 0) < 1500) return;
+  const isManualApplication = String(eventKey).startsWith("manual-chat-damage:");
+  if (!isManualApplication && now - (state.recentToughness.get(signature) ?? 0) < 1500) return;
   const processedKey = eventKey ? `toughness:${eventKey}` : "";
   if (processedKey && state.processedMessages.has(processedKey)) return;
   const elementId = getConfig(attacker).elementId;
@@ -2323,8 +2359,10 @@ async function applyToughnessDamage(attacker, targets, amount, eventKey = "") {
     window.setTimeout(() => state.processedMessages.delete(processedKey), 120000);
   }
   if (applied) {
-    state.recentToughness.set(signature, now);
-    window.setTimeout(() => state.recentToughness.delete(signature), 2000);
+    if (!isManualApplication) {
+      state.recentToughness.set(signature, now);
+      window.setTimeout(() => state.recentToughness.delete(signature), 2000);
+    }
   }
 }
 
