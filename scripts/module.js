@@ -111,7 +111,13 @@ const DEFAULT_EIDOLON_CONFIG = Object.freeze({
   fiveShardOverlay: "",
   e3Overlay: "",
   referenceImage: "",
-  titleFontFile: ""
+  titleFontFile: "",
+  mask1: "",
+  mask2: "",
+  mask3: "",
+  mask4: "",
+  mask5: "",
+  mask6: ""
 });
 
 const EIDOLON_MASKS = Object.freeze({
@@ -2543,7 +2549,13 @@ class EidolonAppearanceConfig extends FormApplication {
       fiveShardOverlay: formData.fiveShardOverlay || "",
       e3Overlay: formData.e3Overlay || "",
       referenceImage: formData.referenceImage || "",
-      titleFontFile: formData.titleFontFile || ""
+      titleFontFile: formData.titleFontFile || "",
+      mask1: formData.mask1 || "",
+      mask2: formData.mask2 || "",
+      mask3: formData.mask3 || "",
+      mask4: formData.mask4 || "",
+      mask5: formData.mask5 || "",
+      mask6: formData.mask6 || ""
     });
     for (const app of Object.values(ui.windows ?? {})) if (app.actor?.type === "character") app.render(false);
     ui.notifications.info("Eidolon interface layers saved.");
@@ -2962,16 +2974,18 @@ function activateConfigListeners(actor, tab, app) {
 
 async function eidolonTabData(actor) {
   const data = getEidolons(actor);
+  const interfaceConfig = getEidolonConfig();
   const firstLocked = data.slots.find(slot => !slot.active)?.number ?? 7;
   return {
-    interface: getEidolonConfig(),
+    interface: interfaceConfig,
     currencyUuid: data.currencyUuid,
     isGM: Boolean(game.user.isGM),
     slots: data.slots.map(slot => ({
       ...slot,
       isE3: slot.number === 3,
-      mask: EIDOLON_MASKS[slot.number],
-      displayArtwork: slot.artwork || actor.img || "icons/svg/mystery-man.svg",
+      mask: interfaceConfig[`mask${slot.number}`] ? "none" : EIDOLON_MASKS[slot.number],
+      maskImage: interfaceConfig[`mask${slot.number}`] || "",
+      displayArtwork: slot.artwork || "",
       scalePercent: slot.scale / 100,
       canActivate: slot.number === firstLocked && (game.user.isGM || actor.isOwner)
     }))
@@ -3010,7 +3024,7 @@ function refreshEidolonPreview(tab, number) {
   const x = Number(editor.find(`[name="eidolon.${number}.offsetX"]`).val()) || 0;
   const y = Number(editor.find(`[name="eidolon.${number}.offsetY"]`).val()) || 0;
   const scale = Number(editor.find(`[name="eidolon.${number}.scale"]`).val()) || 100;
-  art.find("img").attr("src", artwork || art.attr("data-fallback-art"));
+  art.find("img").attr("src", artwork || "");
   art.css("--art-x", `${x}%`).css("--art-y", `${y}%`).css("--art-scale", String(scale / 100));
   editor.find(`[name="eidolon.${number}.offsetX"]`).next("output").text(`${x}%`);
   editor.find(`[name="eidolon.${number}.offsetY"]`).next("output").text(`${y}%`);

@@ -4,11 +4,11 @@
   <div class="tsru-eidolon-stage" data-eidolon-stage>
     {{#if interface.backgroundImage}}<img class="tsru-eidolon-background" src="{{interface.backgroundImage}}" alt="">{{/if}}
     {{#each slots}}
-      {{#unless this.isE3}}<div class="tsru-eidolon-art-slot {{#unless this.active}}locked{{/unless}}" data-eidolon-art="{{this.number}}" data-fallback-art="{{this.displayArtwork}}" style="--mask:{{this.mask}};--art-x:{{this.offsetX}}%;--art-y:{{this.offsetY}}%;--art-scale:{{this.scalePercent}}"><img src="{{this.displayArtwork}}" alt="E{{this.number}} artwork"></div>{{/unless}}
+      {{#unless this.isE3}}<div class="tsru-eidolon-art-slot {{#unless this.active}}locked{{/unless}}" data-eidolon-art="{{this.number}}" data-fallback-art="{{this.displayArtwork}}" style="--mask:{{this.mask}};{{#if this.maskImage}}--mask-image:url('{{this.maskImage}}');{{/if}}--art-x:{{this.offsetX}}%;--art-y:{{this.offsetY}}%;--art-scale:{{this.scalePercent}}"><img src="{{this.displayArtwork}}" alt="E{{this.number}} artwork"></div>{{/unless}}
     {{/each}}
     {{#if interface.fiveShardOverlay}}<img class="tsru-eidolon-five-overlay" src="{{interface.fiveShardOverlay}}" alt="">{{/if}}
     {{#each slots}}
-      {{#if this.isE3}}<div class="tsru-eidolon-art-slot tsru-eidolon-e3-art {{#unless this.active}}locked{{/unless}}" data-eidolon-art="3" data-fallback-art="{{this.displayArtwork}}" style="--mask:{{this.mask}};--art-x:{{this.offsetX}}%;--art-y:{{this.offsetY}}%;--art-scale:{{this.scalePercent}}"><img src="{{this.displayArtwork}}" alt="E3 artwork"></div>{{/if}}
+      {{#if this.isE3}}<div class="tsru-eidolon-art-slot tsru-eidolon-e3-art {{#unless this.active}}locked{{/unless}}" data-eidolon-art="3" data-fallback-art="{{this.displayArtwork}}" style="--mask:{{this.mask}};{{#if this.maskImage}}--mask-image:url('{{this.maskImage}}');{{/if}}--art-x:{{this.offsetX}}%;--art-y:{{this.offsetY}}%;--art-scale:{{this.scalePercent}}"><img src="{{this.displayArtwork}}" alt="E3 artwork"></div>{{/if}}
     {{/each}}
     {{#if interface.e3Overlay}}<img class="tsru-eidolon-e3-overlay" src="{{interface.e3Overlay}}" alt="">{{/if}}
     {{#each slots}}<div class="tsru-eidolon-title {{#unless this.active}}locked{{/unless}}" data-eidolon-title="{{this.number}}"><strong>E{{this.number}}</strong><span>{{this.title}}</span></div>{{/each}}
