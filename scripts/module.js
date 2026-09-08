@@ -187,6 +187,19 @@ function resolveAssetUrl(path) {
   }
 }
 
+function resolveActorSheetRoot(app, html) {
+  const appElement = app?.element?.jquery ? app.element[0] : app?.element;
+  const htmlElement = html?.jquery ? html[0] : html instanceof HTMLElement ? html : null;
+  const enclosingElement = htmlElement?.closest?.(".application, .window-app, [data-appid]");
+  const candidates = [htmlElement, enclosingElement, appElement].filter((element, index, list) => element instanceof HTMLElement && list.indexOf(element) === index);
+  const navigation = 'nav.tabs[data-group="primary"], nav.sheet-tabs[data-group="primary"], .tabs-right nav.tabs';
+  const content = '.tab-body, .sheet-body, [data-application-part="body"]';
+  return candidates.find(element => {
+    const root = $(element);
+    return root.find(navigation).length && root.find(content).length;
+  }) ?? enclosingElement ?? appElement ?? htmlElement;
+}
+
 function getConfig(actor) {
   const stored = actor?.getFlag(MODULE_ID, "ultimate") ?? {};
   const config = foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_CONFIG), stored, {
@@ -2838,9 +2851,7 @@ function registerSettings() {
 async function injectUltimateTab(app, html) {
   const actor = app.actor ?? app.document;
   if (!game.user.isGM || actor?.type !== "character") return;
-  const appElement = app.element?.jquery ? app.element[0] : app.element;
-  const htmlElement = html?.jquery ? html[0] : html instanceof HTMLElement ? html : null;
-  const rootElement = appElement instanceof HTMLElement ? appElement : htmlElement;
+  const rootElement = resolveActorSheetRoot(app, html);
   if (!rootElement) return;
   const root = $(rootElement);
   const existingControl = root.find('nav [data-tab="tsru-ultimate"]');
@@ -3141,9 +3152,7 @@ function activateEidolonListeners(actor, tab, app) {
 async function injectEidolonTab(app, html) {
   const actor = app.actor ?? app.document;
   if (actor?.documentName !== "Actor" || actor.type !== "character") return;
-  const appElement = app.element?.jquery ? app.element[0] : app.element;
-  const htmlElement = html?.jquery ? html[0] : html instanceof HTMLElement ? html : null;
-  const rootElement = appElement instanceof HTMLElement ? appElement : htmlElement;
+  const rootElement = resolveActorSheetRoot(app, html);
   if (!rootElement) return;
   const root = $(rootElement);
   const existingControl = root.find('nav [data-tab="tsru-eidolons"]');
