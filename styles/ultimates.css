@@ -3,6 +3,11 @@
   --tsru-cyan: #20e6ff;
 }
 
+.tsru-chat-damage-control { margin-top:7px; padding-top:7px; border-top:1px solid rgba(115,94,48,.45); }
+.tsru-chat-damage-control button { display:flex; align-items:center; justify-content:center; gap:6px; width:100%; min-height:30px; margin:0; padding:5px 8px; border:1px solid #8e763c; border-radius:4px; background:linear-gradient(180deg,#302919,#17140d); color:#f2dda0; font-weight:700; line-height:1.2; }
+.tsru-chat-damage-control button:hover:not(:disabled) { border-color:#e4c86e; box-shadow:0 0 7px rgba(229,200,120,.35); }
+.tsru-chat-damage-control button:disabled { opacity:.68; cursor:default; }
+
 /* Eidolon Resonance ------------------------------------------------------- */
 .tsru-eidolon-tab { padding: 12px; overflow: auto; color: #e9e7f5; }
 .tsru-eidolon-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }

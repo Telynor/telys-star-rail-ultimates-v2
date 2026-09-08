@@ -1926,6 +1926,27 @@ async function onSocket(payload) {
     refreshSkillUI();
     return;
   }
+  if (payload.type === "applyManualChatDamage" && isAuthority()) {
+    const requestingUser = game.users.get(payload.sourceUserId);
+    const message = game.messages.get(payload.messageId);
+    const target = await actorFromUuid(payload.targetUuid);
+    const result = await applyChatRollAsDamage(message, target, requestingUser);
+    game.socket.emit(SOCKET, {type: "manualChatDamageResult", targetUserId: payload.sourceUserId, messageId: payload.messageId, ...result});
+    return;
+  }
+  if (payload.type === "manualChatDamageResult" && payload.targetUserId === game.user.id) {
+    const notify = payload.ok ? ui.notifications.info : ui.notifications.error;
+    notify.call(ui.notifications, payload.message);
+    if (!payload.ok) {
+      const button = document.querySelector(`[data-tsru-apply-chat-damage="${CSS.escape(payload.messageId ?? "")}"]`);
+      const message = game.messages.get(payload.messageId);
+      if (button && message) {
+        button.disabled = false;
+        button.innerHTML = `<i class="fas fa-crosshairs"></i><span>Apply ${manualChatDamageAmount(message)} as damage to targeted creature</span>`;
+      }
+    }
+    return;
+  }
   if (payload.type === "applyToughness" && isAuthority()) {
     const requestingUser = game.users.get(payload.sourceUserId);
     const attacker = await actorFromUuid(payload.attackerUuid);
@@ -2056,6 +2077,63 @@ function rawDiceTotal(rolls) {
 
 function fullDamageTotal(rolls) {
   return (rolls ?? []).reduce((total, roll) => total + Math.max(0, Number(roll?.total) || 0), 0);
+}
+
+function actorFromChatMessage(message) {
+  return game.actors.get(message?.speaker?.actor) ?? canvas?.tokens?.get(message?.speaker?.token)?.actor ?? null;
+}
+
+function manualChatDamageAmount(message) {
+  return Math.max(0, Math.floor(fullDamageTotal(Array.isArray(message?.rolls) ? message.rolls : [])));
+}
+
+function isManualChatDamageEligible(message) {
+  const actor = actorFromChatMessage(message);
+  const combat = game.combat;
+  if (!combat?.started || actor?.type !== "character" || manualChatDamageAmount(message) <= 0) return false;
+  if (!combat.combatants.some(combatant => combatant.actorId === actor.id)) return false;
+  return !/weakness break/i.test(String(message.flavor ?? ""));
+}
+
+async function applyDirectChatDamage(target, amount) {
+  const hp = target?.system?.attributes?.hp;
+  if (!hp || !Number.isFinite(Number(hp.value))) return 0;
+  const damage = Math.max(0, Math.floor(Number(amount) || 0));
+  const temporary = Math.max(0, Number(hp.temp) || 0);
+  const absorbed = Math.min(temporary, damage);
+  const remaining = damage - absorbed;
+  const updates = {"system.attributes.hp.value": Math.max(0, Number(hp.value) - remaining)};
+  if (hp.temp !== undefined && hp.temp !== null) updates["system.attributes.hp.temp"] = Math.max(0, temporary - absorbed);
+  await target.update(updates);
+  return damage;
+}
+
+async function applyChatRollAsDamage(message, target, requestingUser) {
+  if (!isAuthority()) return {ok: false, message: "Only the active GM can apply chat damage."};
+  if (!message || !target) return {ok: false, message: "The roll or target no longer exists."};
+  if (message.getFlag(MODULE_ID, "manualDamageApplied")) return {ok: false, message: "That roll has already been applied."};
+  const attacker = actorFromChatMessage(message);
+  if (!attacker || (!requestingUser?.isGM && !attacker.testUserPermission(requestingUser, "OWNER"))) return {ok: false, message: "You do not control the character that made this roll."};
+  if (!isManualChatDamageEligible(message)) return {ok: false, message: "This roll is not eligible for combat damage."};
+  const combat = game.combat;
+  if (!combat?.combatants.some(combatant => combatant.actorId === target.id || combatant.actor?.id === target.id || combatant.actor?.uuid === target.uuid)) return {ok: false, message: "The targeted creature is not in the current combat."};
+  const total = manualChatDamageAmount(message);
+  const config = getConfig(attacker);
+  const hpDamage = config.breakCharacter ? Math.min(1, total) : total;
+  const toughnessDamage = config.breakCharacter ? total : rawDiceTotal(message.rolls);
+  const eventKey = `manual-chat-damage:${message.id}:${target.uuid}`;
+  await applyDirectChatDamage(target, hpDamage);
+  if (toughnessDamage > 0) await applyToughnessDamage(attacker, [target], toughnessDamage, eventKey);
+  const detail = {sourceActor: attacker, targetActor: target, amount: hpDamage, origin: message, manual: true};
+  await dispatchTalentEvent("damageDealt", detail, eventKey);
+  await dispatchTalentEvent("damageTaken", detail, eventKey);
+  await awardPunchlineForAttack(attacker, eventKey);
+  if (target.type === "character") {
+    const targetConfig = getConfig(target);
+    if (targetConfig.attackedMode === "targeted" || targetConfig.attackedMode === "hit") await addEnergy(target, energyGain(targetConfig, "attacked"), "hit");
+  }
+  await message.setFlag(MODULE_ID, "manualDamageApplied", {actorUuid: attacker.uuid, targetUuid: target.uuid, targetName: target.name, amount: hpDamage, total, toughnessDamage, userId: requestingUser?.id, appliedAt: Date.now()});
+  return {ok: true, message: `${total} roll damage applied to ${target.name} (${hpDamage} HP, ${toughnessDamage} Toughness attempted).`};
 }
 
 async function limitBreakAttackHpDamage(attacker, target, amount, eventId, options = {}) {
@@ -3523,8 +3601,43 @@ Hooks.on("renderCharacterActorSheet", injectCharacterBadges);
 Hooks.on("getActorSheetHeaderButtons", addActorHeaderButton);
 Hooks.on("getSceneControlButtons", addHudTool);
 Hooks.on("createChatMessage", processCoreAttackMessage);
-Hooks.on("renderChatMessage", (_message, html) => {
+Hooks.on("renderChatMessage", (message, html) => {
   const root = html?.jquery ? html : $(html);
+  const roller = actorFromChatMessage(message);
+  if (isManualChatDamageEligible(message) && (game.user.isGM || roller?.isOwner)) {
+    const applied = message.getFlag(MODULE_ID, "manualDamageApplied");
+    const amount = manualChatDamageAmount(message);
+    const control = $(`<div class="tsru-chat-damage-control"><button type="button" data-tsru-apply-chat-damage="${escapeHTML(message.id)}" ${applied ? "disabled" : ""}><i class="fas ${applied ? "fa-check" : "fa-crosshairs"}"></i><span>${applied ? `Applied to ${escapeHTML(applied.targetName ?? "target")}` : `Apply ${amount} as damage to targeted creature`}</span></button></div>`);
+    const destination = root.find(".message-content").last();
+    (destination.length ? destination : root).append(control);
+    control.find("button").on("click.tsru", async event => {
+      const button = event.currentTarget;
+      const targets = [...(game.user.targets ?? [])];
+      if (targets.length !== 1) return ui.notifications.warn("Target exactly one creature before applying this roll as damage.");
+      const target = targets[0];
+      const targetUuid = target.document?.uuid ?? target.actor?.uuid;
+      if (!targetUuid) return ui.notifications.error("The targeted creature could not be resolved.");
+      button.disabled = true;
+      button.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Applying damage…</span>';
+      if (isAuthority()) {
+        const result = await applyChatRollAsDamage(message, target.actor, game.user);
+        const notify = result.ok ? ui.notifications.info : ui.notifications.error;
+        notify.call(ui.notifications, result.message);
+        if (!result.ok) {
+          button.disabled = false;
+          button.innerHTML = `<i class="fas fa-crosshairs"></i><span>Apply ${amount} as damage to targeted creature</span>`;
+        }
+      } else {
+        game.socket.emit(SOCKET, {type: "applyManualChatDamage", sourceUserId: game.user.id, messageId: message.id, targetUuid});
+        window.setTimeout(() => {
+          if (button.isConnected && !message.getFlag(MODULE_ID, "manualDamageApplied")) {
+            button.disabled = false;
+            button.innerHTML = `<i class="fas fa-crosshairs"></i><span>Apply ${amount} as damage to targeted creature</span>`;
+          }
+        }, 5000);
+      }
+    });
+  }
   root.find("[data-tsru-complete-ultimate]").each((_index, element) => {
     const actor = game.actors.get(element.dataset.tsruCompleteUltimate);
     if (!game.user.isGM && !actor?.isOwner) element.remove();
