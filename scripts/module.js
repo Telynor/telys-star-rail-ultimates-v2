@@ -177,6 +177,16 @@ function escapeHTML(value) {
   return div.innerHTML;
 }
 
+function resolveAssetUrl(path) {
+  const value = String(path || "").trim();
+  if (!value) return "";
+  try {
+    return new URL(value, document.baseURI).href;
+  } catch (_error) {
+    return value;
+  }
+}
+
 function getConfig(actor) {
   const stored = actor?.getFlag(MODULE_ID, "ultimate") ?? {};
   const config = foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_CONFIG), stored, {
@@ -2984,7 +2994,7 @@ async function eidolonTabData(actor) {
       ...slot,
       isE3: slot.number === 3,
       mask: interfaceConfig[`mask${slot.number}`] ? "none" : EIDOLON_MASKS[slot.number],
-      maskImage: interfaceConfig[`mask${slot.number}`] || "",
+      maskImage: resolveAssetUrl(interfaceConfig[`mask${slot.number}`]),
       displayArtwork: slot.artwork || "",
       scalePercent: slot.scale / 100,
       canActivate: slot.number === firstLocked && (game.user.isGM || actor.isOwner)
