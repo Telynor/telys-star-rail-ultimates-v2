@@ -72,6 +72,7 @@ const state = {
   specialAha: null,
   gmPanel: null,
   actionAdvances: new Map(),
+  sheetObservers: new WeakMap(),
   suppressCombatHook: false,
   lastAhaTurnKey: ""
 };
@@ -3185,6 +3186,34 @@ async function injectEidolonTab(app, html) {
   if (app.tabGroups?.primary === "tsru-eidolons") control.trigger("click");
 }
 
+function observeCharacterSheetTabs(app) {
+  const actor = app.actor ?? app.document;
+  if (actor?.documentName !== "Actor" || actor.type !== "character") return;
+  const rawElement = app.element;
+  const root = rawElement?.jquery ? rawElement[0] : rawElement?.[0] instanceof HTMLElement ? rawElement[0] : rawElement;
+  if (!(root instanceof HTMLElement)) return;
+  const previous = state.sheetObservers.get(app);
+  if (previous?.root === root) return;
+  previous?.observer?.disconnect();
+  if (previous?.timer) clearTimeout(previous.timer);
+  const entry = {root, observer: null, timer: null};
+  const ensureTabs = () => {
+    if (!root.isConnected) return;
+    injectUltimateTab(app, root);
+    injectEidolonTab(app, root);
+  };
+  const observer = new MutationObserver(() => {
+    clearTimeout(entry.timer);
+    entry.timer = setTimeout(ensureTabs, 40);
+  });
+  entry.observer = observer;
+  observer.observe(root, {childList: true, subtree: true});
+  state.sheetObservers.set(app, entry);
+  setTimeout(ensureTabs, 0);
+  setTimeout(ensureTabs, 100);
+  setTimeout(ensureTabs, 300);
+}
+
 function openToughnessConfig(actor) {
   const config = getToughness(actor);
   const elements = getElements();
@@ -3423,6 +3452,8 @@ Hooks.on("renderActorSheet", injectUltimateTab);
 Hooks.on("renderCharacterActorSheet", injectUltimateTab);
 Hooks.on("renderActorSheet", injectEidolonTab);
 Hooks.on("renderCharacterActorSheet", injectEidolonTab);
+Hooks.on("renderActorSheet", observeCharacterSheetTabs);
+Hooks.on("renderCharacterActorSheet", observeCharacterSheetTabs);
 Hooks.on("renderActorSheet", injectToughnessHeaderButton);
 Hooks.on("renderApplicationV2", (app, html) => {
   const actor = app.actor ?? app.document;
@@ -3431,6 +3462,7 @@ Hooks.on("renderApplicationV2", (app, html) => {
     injectEidolonTab(app, html);
     injectEnergyAbility(app, html);
     injectCharacterBadges(app, html);
+    observeCharacterSheetTabs(app);
     requestAnimationFrame(() => {
       const root = app.element?.jquery ? app.element : $(app.element);
       injectUltimateTab(app, root);
