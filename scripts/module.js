@@ -106,6 +106,48 @@ const DEFAULT_SKILL_POINT_CONFIG = Object.freeze({
 
 const DEFAULT_TOUGHNESS = Object.freeze({enabled: true, current: 100, max: 100, weaknesses: [], temporaryWeaknesses: [], discoveredWeaknesses: []});
 
+const DEFAULT_EIDOLON_CONFIG = Object.freeze({
+  backgroundImage: "",
+  fiveShardOverlay: "",
+  e3Overlay: "",
+  referenceImage: "",
+  titleFontFile: ""
+});
+
+const EIDOLON_MASKS = Object.freeze({
+  1: "polygon(29.1% 0%, 48.5% 0%, 48.6% 22.7%, 50.5% 32.5%, 47.2% 33.0%, 42.0% 28.0%, 36.8% 25.2%, 32.3% 17.3%)",
+  2: "polygon(53.2% 0%, 73.8% 0%, 73.2% 28.7%, 70.7% 41.7%, 67.6% 52.0%, 60.5% 55.5%, 52.5% 42.0%, 51.8% 24.0%)",
+  3: "polygon(73.5% 0%, 100% 0%, 100% 46.0%, 91.8% 48.8%, 83.3% 47.7%, 80.4% 42.8%, 81.8% 31.8%, 72.6% 25.0%)",
+  4: "polygon(73.0% 51.2%, 91.8% 49.6%, 90.7% 67.8%, 86.8% 75.0%, 84.6% 90.0%, 78.0% 93.5%, 74.2% 100%, 68.4% 98.0%, 64.0% 81.5%, 63.8% 73.5%)",
+  5: "polygon(48.5% 47.0%, 56.0% 57.0%, 63.0% 81.0%, 62.2% 88.0%, 62.2% 100%, 54.5% 100%, 47.5% 93.0%, 42.7% 88.5%, 38.7% 80.0%, 41.8% 70.0%, 44.0% 56.0%)",
+  6: "polygon(34.2% 33.8%, 52.0% 35.3%, 47.7% 54.0%, 41.0% 68.3%, 35.2% 75.0%, 28.7% 80.5%, 22.0% 79.4%, 18.4% 72.0%, 14.5% 61.0%, 15.8% 50.2%, 24.8% 42.5%)"
+});
+
+function defaultEidolonSlots() {
+  return Array.from({length: 6}, (_entry, index) => ({
+    number: index + 1,
+    active: false,
+    title: `Eidolon ${index + 1}`,
+    artwork: "",
+    offsetX: 0,
+    offsetY: 0,
+    scale: 100
+  }));
+}
+
+function getEidolonConfig() {
+  return foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_EIDOLON_CONFIG), game.settings.get(MODULE_ID, "eidolonConfig") ?? {}, {inplace: false, insertKeys: true, overwrite: true});
+}
+
+function getEidolons(actor) {
+  const stored = actor?.getFlag(MODULE_ID, "eidolons") ?? {};
+  const slots = defaultEidolonSlots().map((fallback, index) => {
+    const value = Array.isArray(stored.slots) ? stored.slots[index] ?? {} : {};
+    return {...fallback, ...value, number: index + 1, active: Boolean(value.active), offsetX: clamp(value.offsetX, -100, 100), offsetY: clamp(value.offsetY, -100, 100), scale: clamp(value.scale || 100, 25, 400)};
+  });
+  return {currencyUuid: String(stored.currencyUuid ?? ""), slots};
+}
+
 function activeGM() {
   return game.users?.find(user => user.active && user.isGM);
 }
@@ -2467,6 +2509,51 @@ class SkillPointMenu extends FormApplication {
   render() { new SkillPointConfig().render(true); return this; }
 }
 
+class EidolonAppearanceConfig extends FormApplication {
+  static get defaultOptions() {
+    return foundry.utils.mergeObject(super.defaultOptions, {
+      id: "tsru-eidolon-appearance-config",
+      title: "Eidolon Interface Configuration",
+      template: `modules/${MODULE_ID}/templates/eidolon-config.hbs`,
+      width: 680,
+      height: "auto",
+      resizable: true,
+      closeOnSubmit: true
+    });
+  }
+  getData() { return {config: getEidolonConfig()}; }
+  activateListeners(html) {
+    super.activateListeners(html);
+    html.find(".file-picker").on("click", event => {
+      const target = event.currentTarget.dataset.target;
+      new FilePicker({type: event.currentTarget.dataset.type || "image", current: html.find(`[name="${target}"]`).val(), callback: path => html.find(`[name="${target}"]`).val(path).trigger("input")}).browse();
+    });
+    activateImageDrops(html);
+    const refresh = () => {
+      html.find(".tsru-eidolon-global-preview .tsru-eidolon-background").attr("src", html.find('[name="backgroundImage"]').val());
+      html.find(".tsru-eidolon-global-preview .tsru-eidolon-five-overlay").attr("src", html.find('[name="fiveShardOverlay"]').val());
+      html.find(".tsru-eidolon-global-preview .tsru-eidolon-e3-overlay").attr("src", html.find('[name="e3Overlay"]').val());
+    };
+    html.find("input").on("input change", refresh);
+    refresh();
+  }
+  async _updateObject(_event, formData) {
+    await game.settings.set(MODULE_ID, "eidolonConfig", {
+      backgroundImage: formData.backgroundImage || "",
+      fiveShardOverlay: formData.fiveShardOverlay || "",
+      e3Overlay: formData.e3Overlay || "",
+      referenceImage: formData.referenceImage || "",
+      titleFontFile: formData.titleFontFile || ""
+    });
+    for (const app of Object.values(ui.windows ?? {})) if (app.actor?.type === "character") app.render(false);
+    ui.notifications.info("Eidolon interface layers saved.");
+  }
+}
+
+class EidolonAppearanceMenu extends FormApplication {
+  render() { new EidolonAppearanceConfig().render(true); return this; }
+}
+
 async function insertActionAdvanceTurn(combatantId) {
   if (!isAuthority()) return ui.notifications.warn("Only the active GM can insert an Action Advance turn.");
   const combat = game.combat;
@@ -2621,6 +2708,7 @@ class StarRailGMPanel extends FormApplication {
       if (target === "skills") new SkillPointConfig().render(true);
       if (target === "elements") new ElementManager().render(true);
       if (target === "paths") new PathManager().render(true);
+      if (target === "eidolons") new EidolonAppearanceConfig().render(true);
     });
   }
   refreshLiveValues() {
@@ -2682,6 +2770,7 @@ function registerSettings() {
   game.settings.register(MODULE_ID, "skillPoints", {scope: "world", config: false, type: Number, default: DEFAULT_SKILL_POINT_CONFIG.starting});
   game.settings.register(MODULE_ID, "skillMeterLayout", {scope: "client", config: false, type: Object, default: {x: 420, y: 80, size: 42, visible: true}});
   game.settings.register(MODULE_ID, "skillButtonLayouts", {scope: "client", config: false, type: Object, default: {}});
+  game.settings.register(MODULE_ID, "eidolonConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_EIDOLON_CONFIG)});
   game.settings.registerMenu(MODULE_ID, "elementManager", {
     name: "Manage Elements",
     label: "Open Element Manager",
@@ -2712,6 +2801,14 @@ function registerSettings() {
     hint: "Configure the shared party pool, starting points, layout, and filled/empty point artwork.",
     icon: "fas fa-diamond",
     type: SkillPointMenu,
+    restricted: true
+  });
+  game.settings.registerMenu(MODULE_ID, "eidolonAppearance", {
+    name: "Eidolon Interface Configuration",
+    label: "Configure Eidolon Layers",
+    hint: "Choose the background, five-shard glass, E3 glass, reference artwork, and title font used by every character's Eidolon interface.",
+    icon: "fas fa-gem",
+    type: EidolonAppearanceMenu,
     restricted: true
   });
 }
@@ -2861,6 +2958,155 @@ function activateConfigListeners(actor, tab, app) {
   tab.find("[data-action='show-skill-button']").on("click", async () => { await saveSkillButtonLayout(actor.id, {visible: true}); refreshSkillUI(); });
   tab.find("[name='regenScore']").on("input", event => tab.find(".tsru-modifier").text(`Modifier: ${signedNumber(Math.floor(((Number(event.currentTarget.value) || 10) - 10) / 2))}`));
   tab.find("[name='breakEffectScore']").on("input", event => tab.find(".tsru-break-modifier").text(`Modifier: ${signedNumber(Math.floor(((Number(event.currentTarget.value) || 10) - 10) / 2))}`));
+}
+
+async function eidolonTabData(actor) {
+  const data = getEidolons(actor);
+  const firstLocked = data.slots.find(slot => !slot.active)?.number ?? 7;
+  return {
+    interface: getEidolonConfig(),
+    currencyUuid: data.currencyUuid,
+    isGM: Boolean(game.user.isGM),
+    slots: data.slots.map(slot => ({
+      ...slot,
+      isE3: slot.number === 3,
+      mask: EIDOLON_MASKS[slot.number],
+      displayArtwork: slot.artwork || actor.img || "icons/svg/mystery-man.svg",
+      scalePercent: slot.scale / 100,
+      canActivate: slot.number === firstLocked && (game.user.isGM || actor.isOwner)
+    }))
+  };
+}
+
+async function findEidolonCurrency(actor, currencyUuid) {
+  if (!currencyUuid) return null;
+  const source = await fromUuid(currencyUuid).catch(() => null);
+  return actor.items?.find(item => item.uuid === currencyUuid || item.getFlag("core", "sourceId") === currencyUuid || (source && item.name === source.name && item.type === source.type)) ?? null;
+}
+
+async function activateEidolon(actor, number) {
+  if (!(game.user.isGM || actor.isOwner)) return ui.notifications.warn("You do not own this character.");
+  const data = getEidolons(actor);
+  const next = data.slots.find(slot => !slot.active)?.number;
+  if (number !== next) return ui.notifications.warn(`E${next ?? 6} must be activated next.`);
+  const currency = await findEidolonCurrency(actor, data.currencyUuid);
+  const quantity = Number(currency?.system?.quantity ?? 0);
+  if (!game.user.isGM && (!currency || quantity < 1)) return ui.notifications.warn("This character does not have the configured Eidolon currency.");
+  if (currency && quantity > 0) {
+    if (quantity === 1) await currency.delete();
+    else await currency.update({"system.quantity": quantity - 1});
+  } else if (!game.user.isGM) return;
+  data.slots[number - 1].active = true;
+  await actor.setFlag(MODULE_ID, "eidolons", data);
+  ui.notifications.info(`${actor.name} activated Eidolon ${number}.`);
+  for (const app of Object.values(ui.windows ?? {})) if ((app.actor ?? app.document)?.id === actor.id) app.render(false);
+}
+
+function refreshEidolonPreview(tab, number) {
+  const editor = tab.find(`[data-eidolon-editor="${number}"]`);
+  const art = tab.find(`[data-eidolon-art="${number}"]`);
+  if (!editor.length || !art.length) return;
+  const artwork = editor.find(`[name="eidolon.${number}.artwork"]`).val();
+  const x = Number(editor.find(`[name="eidolon.${number}.offsetX"]`).val()) || 0;
+  const y = Number(editor.find(`[name="eidolon.${number}.offsetY"]`).val()) || 0;
+  const scale = Number(editor.find(`[name="eidolon.${number}.scale"]`).val()) || 100;
+  art.find("img").attr("src", artwork || art.attr("data-fallback-art"));
+  art.css("--art-x", `${x}%`).css("--art-y", `${y}%`).css("--art-scale", String(scale / 100));
+  editor.find(`[name="eidolon.${number}.offsetX"]`).next("output").text(`${x}%`);
+  editor.find(`[name="eidolon.${number}.offsetY"]`).next("output").text(`${y}%`);
+  editor.find(`[name="eidolon.${number}.scale"]`).next("output").text(`${scale}%`);
+  tab.find(`[data-eidolon-title="${number}"] span`).text(editor.find(`[name="eidolon.${number}.title"]`).val());
+  art.toggleClass("locked", !editor.find(`[name="eidolon.${number}.active"]`).prop("checked"));
+}
+
+function activateEidolonListeners(actor, tab, app) {
+  tab.find("[data-action='activate-eidolon']").on("click", async event => activateEidolon(actor, Number(event.currentTarget.dataset.eidolon)));
+  if (!game.user.isGM) return;
+  tab.find(".file-picker").on("click", event => {
+    const target = event.currentTarget.dataset.target;
+    new FilePicker({type: event.currentTarget.dataset.type || "image", current: tab.find(`[name="${target}"]`).val(), callback: path => tab.find(`[name="${target}"]`).val(path).trigger("input")}).browse();
+  });
+  tab.find("[data-eidolon-editor] input").on("input change", event => refreshEidolonPreview(tab, Number(event.currentTarget.closest("[data-eidolon-editor]").dataset.eidolonEditor)));
+  const stage = tab.find("[data-eidolon-stage]");
+  stage.find("[data-eidolon-art]").on("pointerdown", event => {
+    const slot = Number(event.currentTarget.dataset.eidolonArt);
+    const editor = tab.find(`[data-eidolon-editor="${slot}"]`);
+    const xInput = editor.find(`[name="eidolon.${slot}.offsetX"]`);
+    const yInput = editor.find(`[name="eidolon.${slot}.offsetY"]`);
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const initialX = Number(xInput.val()) || 0;
+    const initialY = Number(yInput.val()) || 0;
+    const rect = stage[0].getBoundingClientRect();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const move = moveEvent => {
+      xInput.val(clamp(initialX + ((moveEvent.clientX - startX) / rect.width) * 100, -100, 100));
+      yInput.val(clamp(initialY + ((moveEvent.clientY - startY) / rect.height) * 100, -100, 100));
+      refreshEidolonPreview(tab, slot);
+    };
+    const end = () => {
+      event.currentTarget.removeEventListener("pointermove", move);
+      event.currentTarget.removeEventListener("pointerup", end);
+      event.currentTarget.removeEventListener("pointercancel", end);
+    };
+    event.currentTarget.addEventListener("pointermove", move);
+    event.currentTarget.addEventListener("pointerup", end);
+    event.currentTarget.addEventListener("pointercancel", end);
+  });
+  tab.find('[name="eidolonCurrencyUuid"]').on("drop", event => {
+    event.preventDefault();
+    try {
+      const dropped = JSON.parse(event.originalEvent?.dataTransfer?.getData("text/plain") || "{}");
+      if (dropped.type === "Item" && dropped.uuid) event.currentTarget.value = dropped.uuid;
+    } catch (_error) {}
+  });
+  tab.find("[data-action='save-eidolons']").on("click", async () => {
+    const data = getEidolons(actor);
+    data.currencyUuid = String(tab.find('[name="eidolonCurrencyUuid"]').val() || "").trim();
+    for (const slot of data.slots) {
+      const editor = tab.find(`[data-eidolon-editor="${slot.number}"]`);
+      slot.title = String(editor.find(`[name="eidolon.${slot.number}.title"]`).val() || `Eidolon ${slot.number}`);
+      slot.artwork = String(editor.find(`[name="eidolon.${slot.number}.artwork"]`).val() || "");
+      slot.offsetX = clamp(editor.find(`[name="eidolon.${slot.number}.offsetX"]`).val(), -100, 100);
+      slot.offsetY = clamp(editor.find(`[name="eidolon.${slot.number}.offsetY"]`).val(), -100, 100);
+      slot.scale = clamp(editor.find(`[name="eidolon.${slot.number}.scale"]`).val(), 25, 400);
+      slot.active = editor.find(`[name="eidolon.${slot.number}.active"]`).prop("checked");
+    }
+    await actor.setFlag(MODULE_ID, "eidolons", data);
+    ui.notifications.info(`${actor.name}'s Eidolon artwork and crops were saved.`);
+    if (app?.render) app.render(false);
+  });
+  for (let number = 1; number <= 6; number++) refreshEidolonPreview(tab, number);
+}
+
+async function injectEidolonTab(app, html) {
+  const actor = app.actor ?? app.document;
+  if (actor?.documentName !== "Actor" || actor.type !== "character") return;
+  const rootElement = html?.jquery ? html[0] : html instanceof HTMLElement ? html : app.element?.jquery ? app.element[0] : app.element;
+  if (!rootElement) return;
+  const root = $(rootElement);
+  if (root.find('[data-tab="tsru-eidolons"]').length || root.attr("data-tsru-eidolons-injecting") === "true") return;
+  root.attr("data-tsru-eidolons-injecting", "true");
+  const nav = root.find('nav.tabs[data-group="primary"], nav.sheet-tabs[data-group="primary"], .tabs-right nav.tabs').first();
+  let body = root.find('.tab-body').first();
+  if (!body.length) body = root.find('.sheet-body').first();
+  if (!body.length) body = root.find('[data-application-part="body"]').first();
+  if (!nav.length || !body.length) { root.removeAttr("data-tsru-eidolons-injecting"); return; }
+  nav.append(`<a class="item control tsru-tab-control" data-action="tab" data-tab="tsru-eidolons" data-group="primary" data-tooltip="Eidolon Resonance" aria-label="Eidolon Resonance"><i class="fas fa-gem"></i><span class="tsru-tab-label">Eidolons</span></a>`);
+  body.append(await renderTemplate(`modules/${MODULE_ID}/templates/eidolon-tab.hbs`, await eidolonTabData(actor)));
+  const tab = body.find('.tsru-eidolon-tab');
+  const control = nav.find('[data-tab="tsru-eidolons"]');
+  const fontFile = getEidolonConfig().titleFontFile;
+  if (fontFile) loadSplashFont(fontFile).then(font => tab.css("--tsru-eidolon-font", font)).catch(error => console.warn(`${MODULE_ID} | Could not load Eidolon title font`, error));
+  activateEidolonListeners(actor, tab, app);
+  control.on("click.tsru", event => {
+    event.preventDefault(); event.stopImmediatePropagation();
+    nav.find('[data-tab]').removeClass("active"); control.addClass("active");
+    root.find('.tab[data-group="primary"]').removeClass("active"); tab.addClass("active");
+    if (app.tabGroups) app.tabGroups.primary = "tsru-eidolons";
+  });
+  nav.find('[data-tab]').not('[data-tab="tsru-eidolons"]').on("click.tsru-eidolon-hide", () => tab.removeClass("active"));
+  root.removeAttr("data-tsru-eidolons-injecting");
 }
 
 function openToughnessConfig(actor) {
@@ -3099,11 +3345,14 @@ Hooks.once("ready", () => {
 
 Hooks.on("renderActorSheet", injectUltimateTab);
 Hooks.on("renderCharacterActorSheet", injectUltimateTab);
+Hooks.on("renderActorSheet", injectEidolonTab);
+Hooks.on("renderCharacterActorSheet", injectEidolonTab);
 Hooks.on("renderActorSheet", injectToughnessHeaderButton);
 Hooks.on("renderApplicationV2", (app, html) => {
   const actor = app.actor ?? app.document;
   if (actor?.documentName === "Actor" && actor.type === "character") {
     injectUltimateTab(app, html);
+    injectEidolonTab(app, html);
     injectEnergyAbility(app, html);
     injectCharacterBadges(app, html);
   }

@@ -1,5 +1,9 @@
 # Tely's Star Rail Ultimates
 
+## Eidolon Resonance
+
+Character sheets include a shared GM/player Eidolon tab with six sequential unlocks. GMs can configure the background, five-shard glass layer, isolated E3 layer, title font, per-Eidolon artwork, titles, crop position, zoom, activation state, and a per-character Item used as activation currency.
+
 ## Shared Skill Points
 
 - One synchronized, party-wide Skill Point pool with configurable maximum and combat-start values.

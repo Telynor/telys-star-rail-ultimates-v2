@@ -1,0 +1,39 @@
+<section class="tsru-eidolon-tab tab" data-group="primary" data-tab="tsru-eidolons">
+  <header class="tsru-eidolon-heading"><div><h2><i class="fas fa-gem"></i> Eidolon Resonance</h2><p>Eidolons unlock in sequence from E1 through E6.</p></div>{{#if isGM}}<span class="tsru-gm-badge">GM CONFIGURATION</span>{{/if}}</header>
+
+  <div class="tsru-eidolon-stage" data-eidolon-stage>
+    {{#if interface.backgroundImage}}<img class="tsru-eidolon-background" src="{{interface.backgroundImage}}" alt="">{{/if}}
+    {{#each slots}}
+      {{#unless this.isE3}}<div class="tsru-eidolon-art-slot {{#unless this.active}}locked{{/unless}}" data-eidolon-art="{{this.number}}" data-fallback-art="{{this.displayArtwork}}" style="--mask:{{this.mask}};--art-x:{{this.offsetX}}%;--art-y:{{this.offsetY}}%;--art-scale:{{this.scalePercent}}"><img src="{{this.displayArtwork}}" alt="E{{this.number}} artwork"></div>{{/unless}}
+    {{/each}}
+    {{#if interface.fiveShardOverlay}}<img class="tsru-eidolon-five-overlay" src="{{interface.fiveShardOverlay}}" alt="">{{/if}}
+    {{#each slots}}
+      {{#if this.isE3}}<div class="tsru-eidolon-art-slot tsru-eidolon-e3-art {{#unless this.active}}locked{{/unless}}" data-eidolon-art="3" data-fallback-art="{{this.displayArtwork}}" style="--mask:{{this.mask}};--art-x:{{this.offsetX}}%;--art-y:{{this.offsetY}}%;--art-scale:{{this.scalePercent}}"><img src="{{this.displayArtwork}}" alt="E3 artwork"></div>{{/if}}
+    {{/each}}
+    {{#if interface.e3Overlay}}<img class="tsru-eidolon-e3-overlay" src="{{interface.e3Overlay}}" alt="">{{/if}}
+    {{#each slots}}<div class="tsru-eidolon-title {{#unless this.active}}locked{{/unless}}" data-eidolon-title="{{this.number}}"><strong>E{{this.number}}</strong><span>{{this.title}}</span></div>{{/each}}
+  </div>
+
+  <div class="tsru-eidolon-unlocks">
+    {{#each slots}}<article class="tsru-eidolon-unlock {{#if this.active}}active{{/if}}"><span>E{{this.number}}</span><strong>{{this.title}}</strong>{{#if this.active}}<em><i class="fas fa-check"></i> Active</em>{{else}}<button type="button" data-action="activate-eidolon" data-eidolon="{{this.number}}" {{#unless this.canActivate}}disabled{{/unless}}><i class="fas fa-lock-open"></i> Activate</button>{{/if}}</article>{{/each}}
+  </div>
+
+  {{#if isGM}}
+  <div class="tsru-eidolon-editor">
+    <h3>GM Artwork &amp; Crop Configuration</h3>
+    <label class="tsru-eidolon-currency"><strong>Activation currency Item</strong><small>Drop a world Item here or paste its UUID. One copy is consumed for each unlock.</small><input type="text" name="eidolonCurrencyUuid" value="{{currencyUuid}}" placeholder="Item.xxxxxxxxxxxxxxxx"></label>
+    <p class="hint">Drag artwork directly inside the preview, or use the X/Y/Zoom controls. Changes preview immediately and are saved only with the button below.</p>
+    <div class="tsru-eidolon-editor-grid">
+      {{#each slots}}<fieldset data-eidolon-editor="{{this.number}}"><legend>E{{this.number}}</legend>
+        <label>Title<input type="text" name="eidolon.{{this.number}}.title" value="{{this.title}}"></label>
+        <label>Artwork<span class="tsru-file-control"><input type="text" name="eidolon.{{this.number}}.artwork" value="{{this.artwork}}"><button type="button" class="file-picker" data-type="image" data-target="eidolon.{{this.number}}.artwork"><i class="fas fa-file-import"></i></button></span></label>
+        <label>X position <input type="range" min="-100" max="100" step="0.5" name="eidolon.{{this.number}}.offsetX" value="{{this.offsetX}}"><output>{{this.offsetX}}%</output></label>
+        <label>Y position <input type="range" min="-100" max="100" step="0.5" name="eidolon.{{this.number}}.offsetY" value="{{this.offsetY}}"><output>{{this.offsetY}}%</output></label>
+        <label>Zoom <input type="range" min="25" max="400" step="1" name="eidolon.{{this.number}}.scale" value="{{this.scale}}"><output>{{this.scale}}%</output></label>
+        <label class="tsru-field-toggle"><span>Active</span><input type="checkbox" name="eidolon.{{this.number}}.active" {{checked this.active}}></label>
+      </fieldset>{{/each}}
+    </div>
+    <button type="button" data-action="save-eidolons"><i class="fas fa-save"></i> Save Eidolon Configuration</button>
+  </div>
+  {{/if}}
+</section>

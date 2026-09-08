@@ -1,0 +1,17 @@
+<form class="tsru-eidolon-layer-form">
+  <p>These images share one 1920×1080 coordinate system. The complete six-shard image is reference-only and is never rendered in the finished interface.</p>
+  <div class="tsru-eidolon-layer-fields">
+    <label><strong>Background layer</strong><small>No glass shards.</small><span class="tsru-file-control"><input type="text" name="backgroundImage" value="{{config.backgroundImage}}"><button type="button" class="file-picker" data-type="image" data-target="backgroundImage"><i class="fas fa-file-import"></i></button></span></label>
+    <label><strong>Middle glass layer</strong><small>The E1, E2, E4, E5, and E6 glass overlay.</small><span class="tsru-file-control"><input type="text" name="fiveShardOverlay" value="{{config.fiveShardOverlay}}"><button type="button" class="file-picker" data-type="image" data-target="fiveShardOverlay"><i class="fas fa-file-import"></i></button></span></label>
+    <label><strong>Upper E3 glass layer</strong><small>The isolated E3 glass overlay.</small><span class="tsru-file-control"><input type="text" name="e3Overlay" value="{{config.e3Overlay}}"><button type="button" class="file-picker" data-type="image" data-target="e3Overlay"><i class="fas fa-file-import"></i></button></span></label>
+    <label><strong>Six-shard reference</strong><small>Shown only in this GM configuration screen.</small><span class="tsru-file-control"><input type="text" name="referenceImage" value="{{config.referenceImage}}"><button type="button" class="file-picker" data-type="image" data-target="referenceImage"><i class="fas fa-file-import"></i></button></span></label>
+    <label><strong>Eidolon title font</strong><small>TTF, OTF, WOFF, or WOFF2.</small><span class="tsru-file-control"><input type="text" name="titleFontFile" value="{{config.titleFontFile}}"><button type="button" class="file-picker" data-type="any" data-target="titleFontFile"><i class="fas fa-file-import"></i></button></span></label>
+  </div>
+  <div class="tsru-eidolon-stage tsru-eidolon-global-preview">
+    <img class="tsru-eidolon-background" alt="">
+    <img class="tsru-eidolon-five-overlay" alt="">
+    <img class="tsru-eidolon-e3-overlay" alt="">
+  </div>
+  {{#if config.referenceImage}}<details><summary>Show full reference</summary><img class="tsru-eidolon-reference" src="{{config.referenceImage}}"></details>{{/if}}
+  <footer><button type="submit"><i class="fas fa-save"></i> Save Layer Configuration</button></footer>
+</form>
