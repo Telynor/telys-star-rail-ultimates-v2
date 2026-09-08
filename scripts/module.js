@@ -1370,10 +1370,37 @@ async function showSplash({actorName, image, duration = 1, ultimateName = "Ultim
   }, Math.max(100, Number(duration) * 1000));
 }
 
+function hasTemporaryUltimateTurn(actorId) {
+  return game.combats.some(combat => combat.combatants.some(entry => entry.actorId === actorId && entry.getFlag(MODULE_ID, "temporaryUltimate")));
+}
+
+function hasQueuedUltimateRequest(actorId) {
+  return [...state.ultimateQueues.values()].some(queue => queue.requests?.some(request => request.actorId === actorId));
+}
+
+async function reconcileUltimateLock(actorId) {
+  if (!actorId || !state.ultimateLocks.has(actorId)) return false;
+  if (hasTemporaryUltimateTurn(actorId) || hasQueuedUltimateRequest(actorId)) return false;
+  const pending = state.pendingUltimates.get(actorId);
+  if (pending?.timer) window.clearTimeout(pending.timer);
+  state.pendingUltimates.delete(actorId);
+  for (const [combatId, queue] of state.ultimateQueues) {
+    if (queue.activeActorId !== actorId) continue;
+    queue.activeActorId = null;
+    window.setTimeout(() => processUltimateQueue(combatId), 0);
+  }
+  state.ultimateLocks.delete(actorId);
+  if (isAuthority()) game.socket.emit(SOCKET, {type: "ultimateState", actorId, locked: false});
+  refreshOrb(game.actors.get(actorId));
+  console.warn(`${MODULE_ID} | Cleared a stale Ultimate lock for`, game.actors.get(actorId)?.name ?? actorId);
+  return true;
+}
+
 async function requestUltimate(actor) {
   const config = getConfig(actor);
   if (!game.user.isGM && !actor?.isOwner) return ui.notifications.error("You do not own this character.");
   if (!config.enabled || config.current < config.max) return ui.notifications.warn("This Ultimate is not ready.");
+  await reconcileUltimateLock(actor.id);
   if (state.ultimateLocks.has(actor.id)) return ui.notifications.warn("This Ultimate is already queued or resolving.");
   if (game.user.isGM && isAuthority()) return executeUltimate(actor.id, game.user.id);
   const gm = activeGM();
@@ -1568,20 +1595,30 @@ async function completeUltimate(actorId) {
   const temporaryIds = combat?.combatants
     .filter(combatant => combatant.actorId === actorId && combatant.getFlag(MODULE_ID, "temporaryUltimate"))
     .map(combatant => combatant.id) ?? [];
-  if (temporaryIds.length) {
-    state.suppressCombatHook = true;
-    try { await combat.deleteEmbeddedDocuments("Combatant", temporaryIds); }
-    finally { state.suppressCombatHook = false; }
-  }
-  state.pendingUltimates.delete(actorId);
-  state.ultimateLocks.delete(actorId);
-  game.socket.emit(SOCKET, {type: "ultimateState", actorId, locked: false});
-  refreshOrb(game.actors.get(actorId));
   const queueCombatId = pending?.combatId ?? combat?.id ?? [...state.ultimateQueues].find(([_id, entry]) => entry.activeActorId === actorId)?.[0];
   const queue = queueCombatId ? state.ultimateQueues.get(queueCombatId) : null;
+  try {
+    if (temporaryIds.length) {
+      state.suppressCombatHook = true;
+      try { await combat.deleteEmbeddedDocuments("Combatant", temporaryIds); }
+      finally { state.suppressCombatHook = false; }
+    }
+  } catch (error) {
+    console.error(`${MODULE_ID} | Could not remove completed Ultimate turn`, error);
+    ui.notifications.error(`The Ultimate finished, but its temporary initiative turn could not be removed: ${error.message}`);
+  } finally {
+    state.pendingUltimates.delete(actorId);
+    state.ultimateLocks.delete(actorId);
+    game.socket.emit(SOCKET, {type: "ultimateState", actorId, locked: false});
+    refreshOrb(game.actors.get(actorId));
+    if (queue) queue.activeActorId = null;
+  }
   if (queue) {
-    queue.activeActorId = null;
-    await processUltimateQueue(queueCombatId);
+    try { await processUltimateQueue(queueCombatId); }
+    catch (error) {
+      console.error(`${MODULE_ID} | Could not continue the Ultimate queue`, error);
+      ui.notifications.error(`Could not continue the Ultimate queue: ${error.message}`);
+    }
   }
 }
 
@@ -3078,7 +3115,16 @@ Hooks.on("tsruEnergyChanged", (actor, before, after, reason) => dispatchTalentEv
 Hooks.on("tsruPunchlineChanged", value => { state.gmPanel?.refreshLiveValues(); dispatchTalentEvent("punchlineChanged", {value}); });
 Hooks.on("tsruSkillPointsChanged", value => { state.gmPanel?.refreshLiveValues(); dispatchTalentEvent("skillPointsChanged", {value}); });
 Hooks.on("tsruTalentPointsChanged", (actor, before, after) => { refreshTalentCounter(actor); dispatchTalentEvent("talentPointsChanged", {sourceActor: actor, before, after, amount: after - before}); });
-Hooks.on("updateActor", actor => { refreshOrb(actor); refreshSkillUI(); refreshTalentCounter(actor); refreshToughnessBars(); state.gmPanel?.refreshLiveValues(); });
+Hooks.on("updateActor", actor => {
+  refreshOrb(actor);
+  refreshSkillUI();
+  refreshTalentCounter(actor);
+  refreshToughnessBars();
+  state.gmPanel?.refreshLiveValues();
+  if (actor.type === "character" && Number(getConfig(actor).current) >= Number(getConfig(actor).max) && state.ultimateLocks.has(actor.id)) {
+    reconcileUltimateLock(actor.id);
+  }
+});
 Hooks.on("updateToken", () => { refreshToughnessBars(); state.gmPanel?.render(false); });
 Hooks.on("targetToken", user => { if (user.id === game.user.id) state.gmPanel?.refreshTargetHighlights(); });
 Hooks.on("deleteActor", actor => { state.orbs.get(actor.id)?.destroy(); state.skillButtons.get(actor.id)?.destroy(); });
