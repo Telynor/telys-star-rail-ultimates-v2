@@ -3084,19 +3084,34 @@ function activateEidolonListeners(actor, tab, app) {
   tab.find("[data-action='configure-eidolon']").on("click", event => {
     const number = Number(event.currentTarget.dataset.eidolon);
     populateEidolonEditor(actor, tab, number);
-    tab.find(`[data-eidolon-popout="${number}"]`).prop("hidden", false).addClass("open");
+    const popout = tab.find(`[data-eidolon-popout="${number}"]`);
+    popout.data("tsru-return-parent", popout.parent()[0]);
+    popout.prop("hidden", false).addClass("open").appendTo(document.body);
   });
   tab.find("[data-action='close-eidolon-config']").on("click", event => {
-    $(event.currentTarget).closest("[data-eidolon-popout]").prop("hidden", true).removeClass("open");
+    const popout = $(event.currentTarget).closest("[data-eidolon-popout]");
+    const returnParent = popout.data("tsru-return-parent");
+    popout.prop("hidden", true).removeClass("open");
+    if (returnParent?.isConnected) popout.appendTo(returnParent);
+    else popout.remove();
   });
   tab.find(".file-picker").on("click", event => {
     const target = event.currentTarget.dataset.target;
-    new FilePicker({type: event.currentTarget.dataset.type || "image", current: tab.find(`[name="${target}"]`).val(), callback: path => tab.find(`[name="${target}"]`).val(path).trigger("input")}).browse();
+    const scope = $(event.currentTarget).closest("[data-eidolon-popout]").length ? $(event.currentTarget).closest("[data-eidolon-popout]") : tab;
+    const picker = new FilePicker({type: event.currentTarget.dataset.type || "image", current: scope.find(`[name="${target}"]`).val(), callback: path => scope.find(`[name="${target}"]`).val(path).trigger("input")});
+    Hooks.once("renderFilePicker", rendered => {
+      if (rendered === picker) $(rendered.element).css("z-index", 1000001);
+    });
+    picker.browse();
   });
-  tab.find("[data-eidolon-editor] input").on("input change", event => refreshEidolonPreview(tab, Number(event.currentTarget.closest("[data-eidolon-editor]").dataset.eidolonEditor)));
+  tab.find("[data-eidolon-editor] input").on("input change", event => {
+    const number = Number(event.currentTarget.closest("[data-eidolon-editor]").dataset.eidolonEditor);
+    refreshEidolonPreview($(event.currentTarget).closest("[data-eidolon-popout]"), number);
+  });
   tab.find("[data-eidolon-preview-art]").on("pointerdown", event => {
     const slot = Number(event.currentTarget.dataset.eidolonPreviewArt);
-    const editor = tab.find(`[data-eidolon-editor="${slot}"]`);
+    const popout = $(event.currentTarget).closest("[data-eidolon-popout]");
+    const editor = popout.find(`[data-eidolon-editor="${slot}"]`);
     const xInput = editor.find(`[name="eidolon.${slot}.offsetX"]`);
     const yInput = editor.find(`[name="eidolon.${slot}.offsetY"]`);
     const startX = event.clientX;
@@ -3109,7 +3124,7 @@ function activateEidolonListeners(actor, tab, app) {
     const move = moveEvent => {
       xInput.val(clamp(initialX + ((moveEvent.clientX - startX) / rect.width) * 100, -100, 100));
       yInput.val(clamp(initialY + ((moveEvent.clientY - startY) / rect.height) * 100, -100, 100));
-      refreshEidolonPreview(tab, slot);
+      refreshEidolonPreview(popout, slot);
     };
     const end = () => {
       event.currentTarget.removeEventListener("pointermove", move);
@@ -3137,16 +3152,17 @@ function activateEidolonListeners(actor, tab, app) {
     const number = Number(event.currentTarget.dataset.eidolon);
     const data = getEidolons(actor);
     const slot = data.slots[number - 1];
-    const editor = tab.find(`[data-eidolon-editor="${number}"]`);
+    const popout = $(event.currentTarget).closest("[data-eidolon-popout]");
+    const editor = popout.find(`[data-eidolon-editor="${number}"]`);
     slot.title = String(editor.find(`[name="eidolon.${number}.title"]`).val() || `Eidolon ${number}`);
     slot.artwork = String(editor.find(`[name="eidolon.${number}.artwork"]`).val() || "");
     slot.offsetX = clamp(editor.find(`[name="eidolon.${number}.offsetX"]`).val(), -100, 100);
     slot.offsetY = clamp(editor.find(`[name="eidolon.${number}.offsetY"]`).val(), -100, 100);
     slot.scale = clamp(editor.find(`[name="eidolon.${number}.scale"]`).val(), 25, 400);
     slot.active = editor.find(`[name="eidolon.${number}.active"]`).prop("checked");
+    popout.prop("hidden", true).removeClass("open").remove();
     await actor.setFlag(MODULE_ID, "eidolons", data);
     ui.notifications.info(`${actor.name}'s E${number} appearance was saved.`);
-    tab.find(`[data-eidolon-popout="${number}"]`).prop("hidden", true).removeClass("open");
   });
 }
 
