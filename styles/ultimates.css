@@ -948,6 +948,12 @@
 .tsru-gm-element-checklist small { grid-column: 2 / -1; padding-left: 2px; color: #b8a77a; font-size: .62rem; }
 .tsru-gm-weakness-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
 .tsru-gm-weakness-actions button { white-space: normal; line-height: 1.05; }
+.tsru-gm-weakness-actions button.active { border-color:#e5c878; box-shadow:0 0 7px rgba(229,200,120,.35); }
+.tsru-gm-weakness-actions button.danger { border-color:#a94a4a; color:#ffc1c1; }
+.tsru-gm-bulk-weakness-actions { display:grid; grid-template-columns:repeat(4,minmax(125px,1fr)); gap:7px; margin-top:10px; }
+.tsru-gm-bulk-weakness-actions button { min-width:0; white-space:normal; line-height:1.1; }
+.tsru-gm-energy-lock-toggle { grid-column:1 / -1; display:flex !important; grid-template-columns:none !important; flex-direction:row; align-items:center; justify-content:flex-start; gap:10px !important; padding-top:5px; border-top:1px solid rgba(146,126,75,.3); }
+.tsru-gm-energy-lock-toggle input { width:auto !important; }
 
 /* Chat cards for non-executable Skill, Ultimate, and Elation descriptions */
 .tsru-ability-chat { overflow: hidden; border: 1px solid #76622f; border-radius: 7px; background: linear-gradient(145deg,rgba(28,31,40,.98),rgba(10,12,17,.98)); color: #e8e8ec; }
@@ -990,6 +996,7 @@
   .tsru-gm-weakness-row { grid-template-columns: minmax(0,1fr); }
   .tsru-gm-weakness-row > header, .tsru-gm-weakness-actions { grid-column: auto; }
   .tsru-gm-weakness-actions { grid-template-columns: minmax(0,1fr); }
+  .tsru-gm-bulk-weakness-actions { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .tsru-gm-element-checklist label { flex: 1 1 135px; border-radius: 6px; }
   .tsru-gm-config-buttons { grid-template-columns: repeat(2,minmax(0,1fr)); }
 }

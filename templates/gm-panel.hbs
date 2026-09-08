@@ -20,13 +20,13 @@
       <article class="tsru-gm-weakness-row {{#if this.targeted}}targeted{{/if}}" data-toughness-actor="{{this.tokenUuid}}" data-toughness-token="{{this.tokenId}}">
         <header><img src="{{this.actor.img}}"><div><strong>{{this.token.name}}</strong><small>{{this.actor.name}}</small></div><span class="tsru-targeted-badge" {{#unless this.targeted}}style="display:none"{{/unless}}><i class="fas fa-bullseye"></i> Targeted</span></header>
         <div class="tsru-gm-element-checklist">{{#each this.elements}}<label class="{{#if this.permanent}}permanent{{/if}}"><input type="checkbox" value="{{this.id}}" data-temporary-element {{#if this.permanent}}checked disabled{{else}}{{#if this.temporary}}checked{{/if}}{{/if}}><img src="{{this.icon}}"><span>{{this.name}}</span>{{#if this.permanent}}<small>Sheet</small>{{else}}{{#if this.temporary}}<small>Temporary</small>{{/if}}{{/if}}</label>{{else}}<em>Create Elements in module settings first.</em>{{/each}}</div>
-        <div class="tsru-gm-weakness-actions"><button type="button" data-action="save-temporary-weaknesses"><i class="fas fa-save"></i> Save Temporary Weaknesses</button><button type="button" data-action="reset-temporary-weaknesses"><i class="fas fa-rotate-left"></i> Reset Weaknesses</button></div>
+        <div class="tsru-gm-weakness-actions"><button type="button" data-action="save-temporary-weaknesses"><i class="fas fa-save"></i> Save Temporary Weaknesses</button><button type="button" data-action="reset-temporary-weaknesses"><i class="fas fa-rotate-left"></i> Reset Weaknesses</button><button type="button" data-action="set-weakness-mode" data-mode="all" class="{{#if this.allWeaknesses}}active{{/if}}"><i class="fas fa-rainbow"></i> All Weaknesses</button><button type="button" data-action="set-weakness-mode" data-mode="none" class="{{#if this.noWeaknesses}}active danger{{/if}}"><i class="fas fa-shield"></i> No Weaknesses</button></div>
       </article>
       {{else}}
       <p class="notes">No enemy tokens on the current Scene are in the initiative order.</p>
       {{/each}}
     </div>
-    <button type="button" data-action="reset-all-temporary-weaknesses"><i class="fas fa-rotate-left"></i> Reset Every Enemy to Main Weakness Selections</button>
+    <div class="tsru-gm-bulk-weakness-actions"><button type="button" data-action="bulk-enable-toughness"><i class="fas fa-toggle-on"></i> Enable Toughness for All</button><button type="button" data-action="bulk-weakness-mode" data-mode="all"><i class="fas fa-rainbow"></i> All Weaknesses for All</button><button type="button" data-action="bulk-weakness-mode" data-mode="none"><i class="fas fa-shield"></i> No Weaknesses for All</button><button type="button" data-action="reset-all-temporary-weaknesses"><i class="fas fa-rotate-left"></i> Reset All to Sheet Weaknesses</button></div>
   </section>
 
   <section class="tsru-gm-section tsru-gm-character-settings">
@@ -42,6 +42,7 @@
         <label><span>Gain when hit</span><input type="number" min="0" value="{{this.config.attackedGain}}" data-actor-id="{{this.actor.id}}" data-actor-field="attackedGain"></label>
         <label><span>Punchline gain</span><input type="number" min="0" value="{{this.config.punchlineGain}}" data-actor-id="{{this.actor.id}}" data-actor-field="punchlineGain"></label>
         <label><span>Talent Points</span><div class="tsru-gm-paired-input"><input type="number" min="0" max="{{this.config.talentPointsMax}}" value="{{this.config.talentPointsCurrent}}" data-actor-id="{{this.actor.id}}" data-actor-field="talentPointsCurrent"><b>/</b><input type="number" min="0" value="{{this.config.talentPointsMax}}" data-actor-id="{{this.actor.id}}" data-actor-field="talentPointsMax"></div></label>
+        <label class="tsru-gm-energy-lock-toggle"><span>Pause Energy after Ult</span><input type="checkbox" data-actor-id="{{this.actor.id}}" data-actor-field="lockEnergyAfterUltimate" {{checked this.config.lockEnergyAfterUltimate}} title="When enabled, this character cannot regain Energy until the next round after using an Ultimate."></label>
       </article>
       {{else}}
       <p class="notes">No Main Party characters or character tokens are present on the current Scene.</p>

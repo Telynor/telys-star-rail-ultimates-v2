@@ -242,10 +242,28 @@ function temporaryToughnessWeaknesses(target) {
   return Array.isArray(tokenValues) ? tokenValues : getToughness(actor).temporaryWeaknesses;
 }
 
+function toughnessWeaknessMode(target) {
+  const {actor, tokenDocument} = toughnessTargetParts(target);
+  return String(tokenDocument?.getFlag(MODULE_ID, "weaknessMode") ?? actor?.getFlag(MODULE_ID, "weaknessMode") ?? "");
+}
+
 function effectiveToughnessWeaknesses(target) {
+  const mode = toughnessWeaknessMode(target);
+  if (mode === "none") return [];
+  if (mode === "all") return getElements().map(element => element.id);
   const {actor} = toughnessTargetParts(target);
   const config = getToughness(actor);
   return [...new Set([...config.weaknesses, ...temporaryToughnessWeaknesses(target)])];
+}
+
+async function setToughnessWeaknessMode(target, mode = "") {
+  if (!game.user.isGM || !["", "all", "none"].includes(mode)) return false;
+  const {actor, tokenDocument} = toughnessTargetParts(target);
+  if (!actor || actor.type !== "npc") return false;
+  if (tokenDocument) await tokenDocument.setFlag(MODULE_ID, "weaknessMode", mode);
+  else await actor.setFlag(MODULE_ID, "weaknessMode", mode);
+  refreshToughnessBars();
+  return true;
 }
 
 async function setTemporaryToughnessWeaknesses(target, elementIds) {
@@ -256,6 +274,7 @@ async function setTemporaryToughnessWeaknesses(target, elementIds) {
   const temporaryWeaknesses = [...new Set(elementIds ?? [])].filter(id => valid.has(id) && !config.weaknesses.includes(id));
   if (tokenDocument) await tokenDocument.setFlag(MODULE_ID, "temporaryWeaknesses", temporaryWeaknesses);
   else await actor.update({[`flags.${MODULE_ID}.toughness.temporaryWeaknesses`]: temporaryWeaknesses});
+  await setToughnessWeaknessMode(target, "");
   refreshToughnessBars();
   return true;
 }
@@ -271,9 +290,11 @@ async function resetTemporaryToughnessWeaknesses(target = null) {
   for (const entry of targets) {
     const {actor, tokenDocument} = toughnessTargetParts(entry);
     const config = getToughness(actor);
-    if (!temporaryToughnessWeaknesses(entry).length) continue;
+    if (!temporaryToughnessWeaknesses(entry).length && !toughnessWeaknessMode(entry)) continue;
     if (tokenDocument) await tokenDocument.setFlag(MODULE_ID, "temporaryWeaknesses", []);
     else await actor.update({[`flags.${MODULE_ID}.toughness.temporaryWeaknesses`]: []});
+    if (tokenDocument) await tokenDocument.unsetFlag(MODULE_ID, "weaknessMode");
+    else await actor.unsetFlag(MODULE_ID, "weaknessMode");
     await actor.update({[`flags.${MODULE_ID}.toughness.discoveredWeaknesses`]: config.discoveredWeaknesses.filter(id => config.weaknesses.includes(id))});
     reset++;
   }
@@ -1537,7 +1558,6 @@ async function requestUltimate(actor) {
   const gm = activeGM();
   if (!gm) return ui.notifications.error("A GM must be connected to activate an Ultimate.");
   const requestId = foundry.utils.randomID();
-  ui.notifications.info(`${actor.name}'s Ultimate request was sent to the GM.`);
   game.socket.emit(SOCKET, {type: "activateUltimate", requestId, actorId: actor.id, requestingUserId: game.user.id});
 }
 
@@ -1887,7 +1907,6 @@ async function executeUltimate(actorId, requestingUserId) {
       && !isElationActionCombatant(current)
       && !isAhaCombatant(current);
     if (isOwnNormalTurn) {
-      ui.notifications.info(`${actor.name}'s Ultimate activated immediately on their own turn.`);
       return beginImmediateUltimate(actor, requestingUserId);
     }
     let queue = state.ultimateQueues.get(combat.id);
@@ -1898,7 +1917,6 @@ async function executeUltimate(actorId, requestingUserId) {
       state.ultimateQueues.set(combat.id, queue);
     }
     queue.requests.push({actorId, requestingUserId, initiative: ultimateInitiative(actor, combat), requestedAt: Date.now(), sequence: queue.sequence++});
-    ui.notifications.info(`${actor.name}'s Ultimate was added to the interrupt queue.`);
     if (!queue.waitTurnId && !queue.activeActorId && !queue.startTimer) queue.startTimer = window.setTimeout(() => processUltimateQueue(combat.id), 225);
   } catch (error) {
     console.error(`${MODULE_ID} | Ultimate failed`, error);
@@ -1991,7 +2009,7 @@ async function onSocket(payload) {
   if (payload.type === "applyManualChatDamage" && isAuthority()) {
     const requestingUser = game.users.get(payload.sourceUserId);
     const message = game.messages.get(payload.messageId);
-    const target = await actorFromUuid(payload.targetUuid);
+    const target = await fromUuid(payload.targetUuid).catch(() => actorFromUuid(payload.targetUuid));
     const result = await applyChatRollAsDamage(message, target, requestingUser, payload.applicationId);
     game.socket.emit(SOCKET, {type: "manualChatDamageResult", targetUserId: payload.sourceUserId, messageId: payload.messageId, ...result});
     return;
@@ -2187,34 +2205,36 @@ async function applyDirectChatDamage(target, amount) {
 
 async function applyChatRollAsDamage(message, target, requestingUser, applicationId = "") {
   if (!isAuthority()) return {ok: false, message: "Only the active GM can apply chat damage."};
-  if (!message || !target) return {ok: false, message: "The roll or target no longer exists."};
+  const {actor: targetActor} = toughnessTargetParts(target);
+  if (!message || !targetActor) return {ok: false, message: "The roll or target no longer exists."};
   if (message.getFlag(MODULE_ID, "manualDamageDone")) return {ok: false, done: true, applications: manualDamageApplications(message), message: "Damage application has already been marked done."};
   const attacker = actorFromChatMessage(message);
   if (!attacker || (!requestingUser?.isGM && !attacker.testUserPermission(requestingUser, "OWNER"))) return {ok: false, message: "You do not control the character that made this roll."};
   if (!isManualChatDamageEligible(message)) return {ok: false, message: "This roll is not eligible for combat damage."};
   const combat = game.combat;
-  if (!combat?.combatants.some(combatant => combatant.actorId === target.id || combatant.actor?.id === target.id || combatant.actor?.uuid === target.uuid)) return {ok: false, message: "The targeted creature is not in the current combat."};
+  if (!combat?.combatants.some(combatant => combatant.actorId === targetActor.id || combatant.actor?.id === targetActor.id || combatant.actor?.uuid === targetActor.uuid)) return {ok: false, message: "The targeted creature is not in the current combat."};
   const total = manualChatDamageAmount(message);
   const config = getConfig(attacker);
   const hpDamage = config.breakCharacter ? Math.min(1, total) : total;
   const rolledDiceDamage = rawDiceTotal(message.rolls);
   const toughnessDamage = config.breakCharacter ? total : (rolledDiceDamage > 0 ? rolledDiceDamage : total);
   const resolvedApplicationId = applicationId || foundry.utils.randomID();
-  const eventKey = `manual-chat-damage:${message.id}:${resolvedApplicationId}:${target.uuid}`;
-  await applyDirectChatDamage(target, hpDamage);
-  if (toughnessDamage > 0) await applyToughnessDamage(attacker, [target], toughnessDamage, eventKey);
-  const detail = {sourceActor: attacker, targetActor: target, amount: hpDamage, origin: message, manual: true};
+  const targetUuid = toughnessTargetParts(target).tokenDocument?.uuid ?? targetActor.uuid;
+  const eventKey = `manual-chat-damage:${message.id}:${resolvedApplicationId}:${targetUuid}`;
+  await applyDirectChatDamage(targetActor, hpDamage);
+  const appliedToughness = toughnessDamage > 0 ? await applyToughnessDamage(attacker, [target], toughnessDamage, eventKey) : 0;
+  const detail = {sourceActor: attacker, targetActor, amount: hpDamage, origin: message, manual: true};
   await dispatchTalentEvent("damageDealt", detail, eventKey);
   await dispatchTalentEvent("damageTaken", detail, eventKey);
   await awardPunchlineForAttack(attacker, eventKey);
-  if (target.type === "character") {
-    const targetConfig = getConfig(target);
-    if (targetConfig.attackedMode === "targeted" || targetConfig.attackedMode === "hit") await addEnergy(target, energyGain(targetConfig, "attacked"), "hit");
+  if (targetActor.type === "character") {
+    const targetConfig = getConfig(targetActor);
+    if (targetConfig.attackedMode === "targeted" || targetConfig.attackedMode === "hit") await addEnergy(targetActor, energyGain(targetConfig, "attacked"), "hit");
   }
-  const application = {id: resolvedApplicationId, actorUuid: attacker.uuid, targetUuid: target.uuid, targetName: target.name, amount: hpDamage, total, toughnessDamage, userId: requestingUser?.id, appliedAt: Date.now()};
+  const application = {id: resolvedApplicationId, actorUuid: attacker.uuid, targetUuid, targetName: targetActor.name, amount: hpDamage, total, toughnessDamage: appliedToughness, toughnessAttempted: toughnessDamage, userId: requestingUser?.id, appliedAt: Date.now()};
   const applications = [...manualDamageApplications(message), application];
   await message.setFlag(MODULE_ID, "manualDamageApplications", applications);
-  return {ok: true, applications, done: false, message: `${total} roll damage applied to ${target.name} (${hpDamage} HP, ${toughnessDamage} Toughness attempted).`};
+  return {ok: true, applications, done: false, message: `${total} roll damage applied to ${targetActor.name} (${hpDamage} HP, ${appliedToughness} Toughness).`};
 }
 
 async function finishManualChatDamage(message, requestingUser) {
@@ -2322,23 +2342,24 @@ async function processAppliedDamage(target, amount, options = {}) {
 }
 
 async function applyToughnessDamage(attacker, targets, amount, eventKey = "") {
-  if (!isAuthority() || !attacker || amount <= 0) return;
+  if (!isAuthority() || !attacker || amount <= 0) return 0;
   const targetList = [...targets].filter(Boolean);
   const targetSignature = targetList.map(target => (target?.actor ?? target?.document?.actor ?? target)?.uuid ?? target?.id ?? "target").sort().join(",");
   const signature = `${attacker.uuid}:${targetSignature}:${amount}`;
   const now = Date.now();
   const isManualApplication = String(eventKey).startsWith("manual-chat-damage:");
-  if (!isManualApplication && now - (state.recentToughness.get(signature) ?? 0) < 1500) return;
+  if (!isManualApplication && now - (state.recentToughness.get(signature) ?? 0) < 1500) return 0;
   const processedKey = eventKey ? `toughness:${eventKey}` : "";
-  if (processedKey && state.processedMessages.has(processedKey)) return;
+  if (!isManualApplication && processedKey && state.processedMessages.has(processedKey)) return 0;
   const elementId = getConfig(attacker).elementId;
   const breakCharacter = getConfig(attacker).breakCharacter;
   const freeForAll = game.actors.some(entry => entry.type === "character" && foundry.utils.getProperty(entry.getFlag(MODULE_ID, "scriptState") ?? {}, "lark.freeForAll.active"));
-  if (!elementId && !freeForAll) return;
+  if (!elementId && !freeForAll) return 0;
   let applied = false;
   for (const target of targetList) {
     const actor = target?.actor ?? target?.document?.actor ?? target;
     if (!actor || actor.type !== "npc") continue;
+    if (toughnessWeaknessMode(target) === "none") continue;
     const toughness = getToughness(actor);
     const matchesWeakness = Boolean(elementId && effectiveToughnessWeaknesses(target).includes(elementId));
     if (!toughness.enabled || (!breakCharacter && !freeForAll && !matchesWeakness) || toughness.current <= 0) continue;
@@ -2354,7 +2375,7 @@ async function applyToughnessDamage(attacker, targets, amount, eventKey = "") {
       await applyWeaknessBreakDamage(attacker, actor);
     }
   }
-  if (processedKey && applied) {
+  if (!isManualApplication && processedKey && applied) {
     state.processedMessages.add(processedKey);
     window.setTimeout(() => state.processedMessages.delete(processedKey), 120000);
   }
@@ -2364,6 +2385,7 @@ async function applyToughnessDamage(attacker, targets, amount, eventKey = "") {
       window.setTimeout(() => state.recentToughness.delete(signature), 2000);
     }
   }
+  return applied ? amount : 0;
 }
 
 async function processDnd5eDamageRolls(rolls, data = {}) {
@@ -2834,9 +2856,11 @@ class StarRailGMPanel extends FormApplication {
       const actor = token.actor;
       const config = getToughness(actor);
       const temporary = temporaryToughnessWeaknesses(token);
+      const weaknessMode = toughnessWeaknessMode(token);
       return {
-        actor, token, tokenId: token.id, tokenUuid: token.document.uuid, targeted: targetedIds.has(token.id),
-        elements: elements.map(element => ({...element, permanent: config.weaknesses.includes(element.id), temporary: temporary.includes(element.id)}))
+        actor, token, tokenId: token.id, tokenUuid: token.document.uuid, targeted: targetedIds.has(token.id), weaknessMode,
+        allWeaknesses: weaknessMode === "all", noWeaknesses: weaknessMode === "none",
+        elements: elements.map(element => ({...element, permanent: config.weaknesses.includes(element.id), temporary: weaknessMode === "all" || temporary.includes(element.id)}))
       };
     });
     return {characters, sceneEnemies, punchline: currentPunchline(), skillPoints: currentSkillPoints(), skillPointMax: getSkillPointConfig().maximum, combatants, hasCombat: Boolean(game.combat?.started)};
@@ -2859,9 +2883,9 @@ class StarRailGMPanel extends FormApplication {
       const input = event.currentTarget;
       const actor = game.actors.get(input.dataset.actorId);
       const field = input.dataset.actorField;
-      if (!actor || !["current", "max", "regenScore", "attackGain", "attackedGain", "punchlineGain", "talentPointsCurrent", "talentPointsMax", "mainParty"].includes(field)) return;
-      if (field === "mainParty") {
-        await actor.update({[`flags.${MODULE_ID}.ultimate.mainParty`]: input.checked});
+      if (!actor || !["current", "max", "regenScore", "attackGain", "attackedGain", "punchlineGain", "talentPointsCurrent", "talentPointsMax", "mainParty", "lockEnergyAfterUltimate"].includes(field)) return;
+      if (["mainParty", "lockEnergyAfterUltimate"].includes(field)) {
+        await actor.update({[`flags.${MODULE_ID}.ultimate.${field}`]: input.checked});
         return this.refreshLiveValues();
       }
       let value = Number(input.value);
@@ -2907,9 +2931,32 @@ class StarRailGMPanel extends FormApplication {
       ui.notifications.info(reset ? `Weaknesses reset to ${tokenDocument?.name ?? "enemy"}'s main sheet selections.` : "No temporary weaknesses needed resetting.");
       this.render(false);
     });
+    html.find("[data-action='set-weakness-mode']").on("click", async event => {
+      const row = event.currentTarget.closest("[data-toughness-actor]");
+      const tokenDocument = row?.dataset.toughnessActor ? await fromUuid(row.dataset.toughnessActor).catch(() => null) : null;
+      const mode = event.currentTarget.dataset.mode;
+      if (await setToughnessWeaknessMode(tokenDocument, mode)) {
+        ui.notifications.info(`${tokenDocument?.name ?? "Enemy"} now has ${mode === "all" ? "all Toughness weaknesses" : "Toughness weakness disabled"}.`);
+        this.render(false);
+      }
+    });
     html.find("[data-action='reset-all-temporary-weaknesses']").on("click", async () => {
       const reset = await resetTemporaryToughnessWeaknesses();
       ui.notifications.info(`Reset temporary weaknesses for ${reset} enem${reset === 1 ? "y" : "ies"}.`);
+      this.render(false);
+    });
+    html.find("[data-action='bulk-weakness-mode']").on("click", async event => {
+      const mode = event.currentTarget.dataset.mode;
+      const targets = (canvas?.tokens?.placeables ?? []).filter(token => token.actor?.type === "npc").map(token => token.document);
+      for (const target of targets) await setToughnessWeaknessMode(target, mode);
+      ui.notifications.info(`Updated Toughness weakness mode for ${targets.length} scene enem${targets.length === 1 ? "y" : "ies"}.`);
+      this.render(false);
+    });
+    html.find("[data-action='bulk-enable-toughness']").on("click", async () => {
+      const actors = [...new Map((canvas?.tokens?.placeables ?? []).filter(token => token.actor?.type === "npc").map(token => [token.actor.id, token.actor])).values()];
+      if (actors.length) await Actor.updateDocuments(actors.map(actor => ({_id: actor.id, [`flags.${MODULE_ID}.toughness.enabled`]: true})));
+      refreshToughnessBars();
+      ui.notifications.info(`Enabled Toughness for ${actors.length} scene enemy actor${actors.length === 1 ? "" : "s"}.`);
       this.render(false);
     });
     html.find("[data-open-config]").on("click", event => {
@@ -2933,6 +2980,7 @@ class StarRailGMPanel extends FormApplication {
       root.find(`[data-actor-id="${actor.id}"][data-actor-field="talentPointsCurrent"]`).val(config.talentPointsCurrent);
       root.find(`[data-actor-id="${actor.id}"][data-actor-field="talentPointsMax"]`).val(config.talentPointsMax);
       root.find(`[data-actor-id="${actor.id}"][data-actor-field="mainParty"]`).prop("checked", config.mainParty);
+      root.find(`[data-actor-id="${actor.id}"][data-actor-field="lockEnergyAfterUltimate"]`).prop("checked", config.lockEnergyAfterUltimate);
       root.find(`[data-regen-modifier="${actor.id}"]`).text(signedNumber(regenModifier(config)));
     }
   }
@@ -3498,7 +3546,8 @@ function renderToughnessBar(token) {
   if (fill > 0) drawToughnessRect(graphics, x, y, fill, height, 0xaeb4bd, 1, 2);
   container.addChild(graphics);
   const effectiveWeaknesses = effectiveToughnessWeaknesses(token);
-  const visibleWeaknesses = game.user?.isGM
+  const weaknessMode = toughnessWeaknessMode(token);
+  const visibleWeaknesses = weaknessMode === "none" ? [] : weaknessMode === "all" ? effectiveWeaknesses : game.user?.isGM
     ? effectiveWeaknesses
     : [...new Set([...config.discoveredWeaknesses.filter(id => effectiveWeaknesses.includes(id)), ...temporaryToughnessWeaknesses(token)])];
   const weaknesses = getElements().filter(element => visibleWeaknesses.includes(element.id));
@@ -3732,7 +3781,7 @@ function renderManualDamageControl(controlElement, message, suppliedApplications
     button.disabled = true;
     button.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Applying damage…</span>';
     if (isAuthority()) {
-      const result = await applyChatRollAsDamage(message, target.actor, game.user, applicationId);
+      const result = await applyChatRollAsDamage(message, target.document ?? target, game.user, applicationId);
       const notify = result.ok ? ui.notifications.info : ui.notifications.error;
       notify.call(ui.notifications, result.message);
       renderManualDamageControl(controlElement, message, result.applications, result.done);
