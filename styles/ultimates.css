@@ -849,6 +849,31 @@
 .tsru-hub-grid button:hover { border-color:#ead795; box-shadow:0 0 12px rgba(234,215,149,.22); }
 .tsru-hub-grid button i { width:22px; color:#ead795; font-size:19px; text-align:center; }
 
+#controls [data-tool="tsru-gm-panel"],
+#controls [data-action="tsru-gm-panel"],
+#scene-controls [data-tool="tsru-gm-panel"],
+#scene-controls [data-action="tsru-gm-panel"] {
+  border-color:#ff6674!important;
+  background:#a7192e!important;
+  color:#fff!important;
+  box-shadow:inset 0 0 0 1px #ff8994,0 0 8px #d9233f66!important;
+}
+#controls [data-tool="tsru-gm-panel"]:hover,
+#controls [data-action="tsru-gm-panel"]:hover,
+#scene-controls [data-tool="tsru-gm-panel"]:hover,
+#scene-controls [data-action="tsru-gm-panel"]:hover,
+#controls [data-tool="tsru-gm-panel"].active,
+#scene-controls [data-tool="tsru-gm-panel"].active {
+  border-color:#ffc0c6!important;
+  background:#d52b43!important;
+  color:#fff!important;
+  box-shadow:0 0 12px #ff405dcc!important;
+}
+#controls [data-tool="tsru-gm-panel"] i,
+#controls [data-action="tsru-gm-panel"] i,
+#scene-controls [data-tool="tsru-gm-panel"] i,
+#scene-controls [data-action="tsru-gm-panel"] i { color:#fff!important; }
+
 .tsru-quest-settings-form,.tsru-quest-manager-form { padding:12px; color:#e9e7df; background:#11141c; }
 .tsru-quest-settings-form header h2,.tsru-quest-settings-form header p,.tsru-quest-manager-form header h2,.tsru-quest-manager-form header p { margin:0 0 5px; }
 .tsru-quest-settings-form input:not([type="checkbox"]):not([type="color"]),.tsru-quest-settings-form select,.tsru-quest-settings-form textarea,
