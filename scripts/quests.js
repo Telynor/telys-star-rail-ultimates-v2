@@ -244,6 +244,30 @@ class QuestLog extends FormApplication {
     html.find("[data-select-quest]").on("click",async e=>{this.selected=e.currentTarget.dataset.selectQuest;await markQuestSeen(this.selected);this.render(false);});
     html.find("[data-quest-close]").on("click",()=>this.close());
     html.find("[data-quest-minimize]").on("click",()=>this.toggleCompact());
+    const dragHandle = html.find(".tsru-quest-custom-header")[0];
+    dragHandle?.addEventListener("pointerdown", event => {
+      if (event.button !== 0 || event.target.closest("button, a, input, select, textarea")) return;
+      event.preventDefault();
+      const startX = event.clientX;
+      const startY = event.clientY;
+      const windowElement = this.element?.jquery ? this.element[0] : this.element;
+      const startLeft = Number(this.position.left) || windowElement?.offsetLeft || 0;
+      const startTop = Number(this.position.top) || windowElement?.offsetTop || 0;
+      dragHandle.setPointerCapture?.(event.pointerId);
+      const move = moveEvent => this.setPosition({
+        left: startLeft + moveEvent.clientX - startX,
+        top: startTop + moveEvent.clientY - startY
+      });
+      const finish = finishEvent => {
+        dragHandle.removeEventListener("pointermove", move);
+        dragHandle.removeEventListener("pointerup", finish);
+        dragHandle.removeEventListener("pointercancel", finish);
+        if (dragHandle.hasPointerCapture?.(finishEvent.pointerId)) dragHandle.releasePointerCapture(finishEvent.pointerId);
+      };
+      dragHandle.addEventListener("pointermove", move);
+      dragHandle.addEventListener("pointerup", finish);
+      dragHandle.addEventListener("pointercancel", finish);
+    });
   }
   setPosition(options={}) { const pos=super.setPosition(options); const el=this.element?.jquery?this.element[0]:this.element;if(el)el.style.setProperty("--tsru-quest-scale",Math.max(.68,Math.min(1.35,(pos?.width||1100)/1100))); return pos; }
   toggleCompact(){const el=this.element?.jquery?this.element[0]:this.element;if(!this.compact)this.expandedHeight=this.position.height||680;this.compact=!this.compact;el?.classList.toggle("is-minimized",this.compact);this.setPosition({height:this.compact?64:this.expandedHeight});}
