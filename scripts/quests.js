@@ -125,18 +125,28 @@ class HSRHub extends FormApplication {
     super.activateListeners(html);
     html.find("[data-hub-action]").on("click", async event => {
       const action = event.currentTarget.dataset.hubAction;
-      if (action === "quests") openQuestLog();
-      if (action === "orbs") { const count = await api()?.showUltimateUI?.(); ui.notifications.info(`Showing ${count || 0} Ultimate orb${count === 1 ? "" : "s"}.`); }
-      if (action === "skills") api()?.showSkillUI?.();
-      if (action === "gm") api()?.openGMPanel?.();
-      if (action === "aha-config") api()?.openAhaConfig?.();
-      if (action === "aha-toggle") { const shown = await api()?.toggleAhaOrb?.(); ui.notifications.info(`Aha Instant orb ${shown ? "shown" : "hidden"}.`); }
-      if (action === "skill-config") api()?.openSkillPointConfig?.();
-      if (action === "elements") api()?.openElementManager?.();
-      if (action === "paths") api()?.openPathManager?.();
-      if (action === "eidolons") api()?.openEidolonConfig?.();
-      if (action === "quest-manager") new QuestManager().render(true);
-      if (action === "quest-settings") new QuestSettings().render(true);
+      const actions = {
+        quests: ["Mission Log", openQuestLog],
+        orbs: ["Ultimate Orbs", async () => {
+          const count = await api()?.showUltimateUI?.();
+          ui.notifications.info(`Showing ${count || 0} Ultimate orb${count === 1 ? "" : "s"}.`);
+        }],
+        skills: ["Skills & Skill Points", () => api()?.showSkillUI?.()],
+        gm: ["Star Rail GM Panel", () => api()?.openGMPanel?.()],
+        "aha-config": ["Aha Instant Configuration", () => api()?.openAhaConfig?.()],
+        "aha-toggle": ["Aha Instant Orb", async () => {
+          const shown = await api()?.toggleAhaOrb?.();
+          ui.notifications.info(`Aha Instant orb ${shown ? "shown" : "hidden"}.`);
+        }],
+        "skill-config": ["Skill Point Configuration", () => api()?.openSkillPointConfig?.()],
+        elements: ["Element Manager", () => api()?.openElementManager?.()],
+        paths: ["Path Manager", () => api()?.openPathManager?.()],
+        eidolons: ["Eidolon Configuration", () => api()?.openEidolonConfig?.()],
+        "quest-manager": ["Mission Manager", () => new QuestManager().render(true)],
+        "quest-settings": ["Mission Settings", () => new QuestSettings().render(true)]
+      };
+      const [label, callback] = actions[action] ?? [];
+      if (callback) await runUiAction(label, callback);
     });
   }
   async _updateObject() {}
@@ -245,26 +255,37 @@ let questLog;
 function openQuestLog(){ if(!questLog)questLog=new QuestLog();questLog.render(true); }
 function openHub(){ new HSRHub().render(true); }
 
+async function runUiAction(label, callback) {
+  try { return await callback(); }
+  catch (error) {
+    console.error(`${MODULE_ID} | Could not open ${label}`, error);
+    ui.notifications.error(`Could not open ${label}: ${error.message}`);
+  }
+}
+
+function toolbarAction(label, callback) {
+  return () => runUiAction(label, callback);
+}
+
 function consolidateToolbar(controls) {
   const token=controls.find?.(c=>c.name==="token")??controls.tokens??controls.token;
   const old=new Set(["tsru-orbs","tsru-skills","tsru-aha-instant","tsru-gm-panel"]);
   if(token){if(Array.isArray(token.tools)) token.tools=token.tools.filter(t=>!old.has(t.name)); else for(const name of old)delete token.tools[name];}
-  const action=(fn)=>async()=>fn?.();
   const hubTools=[
-    {name:"tsru-quest-log",title:"Mission Log",icon:"fas fa-clipboard-list",button:true,visible:true,onClick:openQuestLog,onChange:openQuestLog},
-    {name:"tsru-orbs",title:"Show Ultimate Orbs",icon:"fas fa-burst",button:true,visible:true,onClick:action(api()?.showUltimateUI),onChange:action(api()?.showUltimateUI)},
-    {name:"tsru-skills",title:"Show Skills & Skill Points",icon:"fas fa-hand-sparkles",button:true,visible:true,onClick:action(api()?.showSkillUI),onChange:action(api()?.showSkillUI)},
-    {name:"tsru-hub-window",title:"Open HSR Hub",icon:"fas fa-grid-2",button:true,visible:true,onClick:openHub,onChange:openHub},
-    {name:"tsru-gm-panel",title:"Star Rail GM Panel",icon:"fas fa-sliders",button:true,visible:game.user.isGM,onClick:action(api()?.openGMPanel),onChange:action(api()?.openGMPanel)},
-    {name:"tsru-quest-manager",title:"Mission Manager",icon:"fas fa-list-check",button:true,visible:game.user.isGM,onClick:()=>new QuestManager().render(true),onChange:()=>new QuestManager().render(true)},
-    {name:"tsru-quest-settings",title:"Mission Types & Rarities",icon:"fas fa-tags",button:true,visible:game.user.isGM,onClick:()=>new QuestSettings().render(true),onChange:()=>new QuestSettings().render(true)},
-    {name:"tsru-aha-config",title:"Aha Instant Configuration",icon:"fas fa-masks-theater",button:true,visible:game.user.isGM,onClick:action(api()?.openAhaConfig),onChange:action(api()?.openAhaConfig)},
-    {name:"tsru-aha-toggle",title:"Toggle Aha Instant Orb",icon:"fas fa-eye",button:true,visible:game.user.isGM,onClick:action(api()?.toggleAhaOrb),onChange:action(api()?.toggleAhaOrb)},
-    {name:"tsru-skill-config",title:"Skill Point Configuration",icon:"fas fa-diamond",button:true,visible:game.user.isGM,onClick:action(api()?.openSkillPointConfig),onChange:action(api()?.openSkillPointConfig)},
-    {name:"tsru-elements",title:"Manage Elements",icon:"fas fa-sparkles",button:true,visible:game.user.isGM,onClick:action(api()?.openElementManager),onChange:action(api()?.openElementManager)},
-    {name:"tsru-paths",title:"Manage Paths",icon:"fas fa-route",button:true,visible:game.user.isGM,onClick:action(api()?.openPathManager),onChange:action(api()?.openPathManager)},
-    {name:"tsru-eidolons",title:"Configure Eidolon Layers",icon:"fas fa-gem",button:true,visible:game.user.isGM,onClick:action(api()?.openEidolonConfig),onChange:action(api()?.openEidolonConfig)}
-  ];
+    ["tsru-quest-log","Mission Log","fas fa-clipboard-list",true,toolbarAction("Mission Log",openQuestLog)],
+    ["tsru-orbs","Show Ultimate Orbs","fas fa-burst",true,toolbarAction("Ultimate Orbs",()=>api()?.showUltimateUI?.())],
+    ["tsru-skills","Show Skills & Skill Points","fas fa-hand-sparkles",true,toolbarAction("Skills & Skill Points",()=>api()?.showSkillUI?.())],
+    ["tsru-hub-window","Open HSR Hub","fas fa-grid-2",true,toolbarAction("HSR Hub",openHub)],
+    ["tsru-gm-panel","Star Rail GM Panel","fas fa-sliders",game.user.isGM,toolbarAction("Star Rail GM Panel",()=>api()?.openGMPanel?.())],
+    ["tsru-quest-manager","Mission Manager","fas fa-list-check",game.user.isGM,toolbarAction("Mission Manager",()=>new QuestManager().render(true))],
+    ["tsru-quest-settings","Mission Types & Rarities","fas fa-tags",game.user.isGM,toolbarAction("Mission Settings",()=>new QuestSettings().render(true))],
+    ["tsru-aha-config","Aha Instant Configuration","fas fa-masks-theater",game.user.isGM,toolbarAction("Aha Instant Configuration",()=>api()?.openAhaConfig?.())],
+    ["tsru-aha-toggle","Toggle Aha Instant Orb","fas fa-eye",game.user.isGM,toolbarAction("Aha Instant Orb",()=>api()?.toggleAhaOrb?.())],
+    ["tsru-skill-config","Skill Point Configuration","fas fa-diamond",game.user.isGM,toolbarAction("Skill Point Configuration",()=>api()?.openSkillPointConfig?.())],
+    ["tsru-elements","Manage Elements","fas fa-sparkles",game.user.isGM,toolbarAction("Element Manager",()=>api()?.openElementManager?.())],
+    ["tsru-paths","Manage Paths","fas fa-route",game.user.isGM,toolbarAction("Path Manager",()=>api()?.openPathManager?.())],
+    ["tsru-eidolons","Configure Eidolon Layers","fas fa-gem",game.user.isGM,toolbarAction("Eidolon Configuration",()=>api()?.openEidolonConfig?.())]
+  ].map(([name,title,icon,visible,handler])=>({name,title,icon,button:true,visible,onClick:handler,onChange:handler}));
   const hub={name:"tsru-hsr-hub",title:"HSR Hub",icon:"fas fa-rocket",order:89,layer:"controls",tools:hubTools};
   if(Array.isArray(controls)){const existing=controls.findIndex(c=>c.name===hub.name);if(existing>=0)controls.splice(existing,1);controls.push(hub);}
   else controls[hub.name]=hub;
