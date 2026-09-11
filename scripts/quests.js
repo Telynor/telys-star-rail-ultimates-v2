@@ -164,16 +164,21 @@ class QuestSettings extends FormApplication {
     html.find("[data-remove-rarity]").on("click", e => { this.capture(html); this._rarities.splice(Number(e.currentTarget.dataset.removeRarity), 1); this.render(true); });
   }
   capture(html) {
-    const fd = new FormData(html[0]); const ex = foundry.utils.expandObject(Object.fromEntries(fd.entries()));
+    const root = html?.jquery ? html : $(html);
+    const form = root.is("form") ? root[0] : root.find("form.tsru-quest-settings-form").first()[0];
+    if (!form) throw new Error("Mission configuration form could not be found.");
+    const fd = new FormData(form); const ex = foundry.utils.expandObject(Object.fromEntries(fd.entries()));
     this._types = Object.values(ex.types ?? {}).map((v, i) => ({...this._types[i], ...v, enabled: fd.has(`types.${i}.enabled`), order: Number(v.order) || 0}));
     this._rarities = Object.values(ex.rarities ?? {}).map((v, i) => ({...this._rarities[i], ...v, order: Number(v.order) || 0}));
   }
   async _updateObject(_event, formData) {
-    const html = this.element?.jquery ? this.element : $(this.element); this.capture(html);
+    this.capture(this.element);
     await game.settings.set(MODULE_ID, "questTypes", this._types);
     await game.settings.set(MODULE_ID, "questRarities", this._rarities);
     await game.settings.set(MODULE_ID, "questAllIcon", formData.questAllIcon || "icons/svg/book.svg");
-    ui.notifications.info("Quest types and reward rarities saved."); refreshQuestWindows();
+    ui.notifications.info("Quest types and reward rarities saved.");
+    refreshQuestWindows();
+    this.render(false);
   }
 }
 
