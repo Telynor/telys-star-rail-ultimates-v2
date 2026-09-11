@@ -77,7 +77,8 @@ const state = {
   actionAdvances: new Map(),
   sheetObservers: new WeakMap(),
   suppressCombatHook: false,
-  lastAhaTurnKey: ""
+  lastAhaTurnKey: "",
+  ahaVideoCache: {source: "", objectUrl: "", promise: null}
 };
 
 let ahaToolbarOpening = false;
@@ -784,12 +785,45 @@ async function saveAhaLayout(changes) {
   return layout;
 }
 
-function playAhaVideo({video}) {
+async function preloadAhaVideo(video = getAhaConfig().video) {
+  const source = String(video || "");
+  const cache = state.ahaVideoCache;
+  if (!source) {
+    if (cache.objectUrl) URL.revokeObjectURL(cache.objectUrl);
+    state.ahaVideoCache = {source: "", objectUrl: "", promise: null};
+    return "";
+  }
+  if (cache.source === source && cache.objectUrl) return cache.objectUrl;
+  if (cache.source === source && cache.promise) return cache.promise;
+  if (cache.objectUrl) URL.revokeObjectURL(cache.objectUrl);
+  const pending = fetch(resolveAssetUrl(source), {cache: "force-cache"})
+    .then(response => {
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.blob();
+    })
+    .then(blob => {
+      if (state.ahaVideoCache.source !== source) return source;
+      const objectUrl = URL.createObjectURL(blob);
+      state.ahaVideoCache = {source, objectUrl, promise: null};
+      console.log(`${MODULE_ID} | Preloaded Aha Instant video (${Math.round(blob.size / 1024)} KB)`);
+      return objectUrl;
+    })
+    .catch(error => {
+      if (state.ahaVideoCache.source === source) state.ahaVideoCache = {source, objectUrl: "", promise: null};
+      console.warn(`${MODULE_ID} | Could not preload Aha Instant video; playback will use the original asset`, error);
+      return source;
+    });
+  state.ahaVideoCache = {source, objectUrl: "", promise: pending};
+  return pending;
+}
+
+async function playAhaVideo({video}) {
   if (!video) return;
+  const playbackSource = await preloadAhaVideo(video);
   document.querySelectorAll(".tsru-aha-overlay").forEach(element => element.remove());
   const overlay = document.createElement("div");
   overlay.className = "tsru-aha-overlay";
-  overlay.innerHTML = `<video src="${escapeHTML(video)}" autoplay playsinline preload="auto"></video>`;
+  overlay.innerHTML = `<video src="${escapeHTML(playbackSource || video)}" autoplay playsinline preload="auto"></video>`;
   appendToCanvasLayer(overlay);
   const player = overlay.querySelector("video");
   let removed = false;
@@ -1931,6 +1965,7 @@ async function onSocket(payload) {
     state.punchlineMeter?.destroy();
     refreshAhaButton();
     refreshPunchlineHUD();
+    preloadAhaVideo(payload.video ?? getAhaConfig().video);
     return;
   }
   if (payload.type === "punchlineChanged") { refreshPunchlineHUD(); return; }
@@ -2671,7 +2706,8 @@ class AhaConfig extends FormApplication {
     refreshAhaButton();
     state.punchlineMeter?.destroy();
     refreshPunchlineHUD();
-    game.socket.emit(SOCKET, {type: "ahaConfigChanged", sourceUserId: game.user.id});
+    preloadAhaVideo(savedConfig.video);
+    game.socket.emit(SOCKET, {type: "ahaConfigChanged", sourceUserId: game.user.id, video: savedConfig.video});
     if (!getAhaConfig().elationEnabled && game.combat) await clearElationActionTurns(game.combat);
     await syncAhaCombatants();
     for (const app of Object.values(ui.windows ?? {})) if (app.actor?.type === "character") app.render(false);
@@ -3727,6 +3763,7 @@ Hooks.once("ready", () => {
   refreshAhaButton();
   refreshPunchlineHUD();
   refreshSkillUI();
+  preloadAhaVideo();
   registerAhaToolbarFallback();
   if (game.modules.get("midi-qol")?.active) Hooks.on("midi-qol.RollComplete", processMidiWorkflow);
   if (game.modules.get("midi-qol")?.active) Hooks.on("midi-qol.damageRollComplete", processMidiWorkflow);
@@ -3876,6 +3913,7 @@ Hooks.on("updateSetting", setting => {
     if (!getAhaConfig().elationEnabled) document.querySelectorAll(".tsru-aha-overlay").forEach(element => element.remove());
     refreshAhaButton();
     refreshPunchlineHUD();
+    if (setting?.key === `${MODULE_ID}.ahaConfig`) preloadAhaVideo();
   }
 });
 Hooks.on("canvasReady", () => { refreshAllOrbs(); refreshSkillUI(); refreshPunchlineHUD(); refreshToughnessBars(); });
