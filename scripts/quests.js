@@ -267,6 +267,38 @@ function toolbarAction(label, callback) {
   return () => runUiAction(label, callback);
 }
 
+function hubToolbarActions() {
+  return {
+    "tsru-quest-log": ["Mission Log", openQuestLog],
+    "tsru-orbs": ["Ultimate Orbs", () => api()?.showUltimateUI?.()],
+    "tsru-skills": ["Skills & Skill Points", () => api()?.showSkillUI?.()],
+    "tsru-hub-window": ["HSR Hub", openHub],
+    "tsru-gm-panel": ["Star Rail GM Panel", () => api()?.openGMPanel?.()],
+    "tsru-quest-manager": ["Mission Manager", () => new QuestManager().render(true)],
+    "tsru-quest-settings": ["Mission Settings", () => new QuestSettings().render(true)],
+    "tsru-aha-config": ["Aha Instant Configuration", () => api()?.openAhaConfig?.()],
+    "tsru-aha-toggle": ["Aha Instant Orb", () => api()?.toggleAhaOrb?.()],
+    "tsru-skill-config": ["Skill Point Configuration", () => api()?.openSkillPointConfig?.()],
+    "tsru-elements": ["Element Manager", () => api()?.openElementManager?.()],
+    "tsru-paths": ["Path Manager", () => api()?.openPathManager?.()],
+    "tsru-eidolons": ["Eidolon Configuration", () => api()?.openEidolonConfig?.()]
+  };
+}
+
+function registerHubToolbarFallback() {
+  if (document.documentElement.dataset.tsruHubToolbarListener) return;
+  document.documentElement.dataset.tsruHubToolbarListener = "true";
+  document.addEventListener("click", event => {
+    const control = event.target.closest?.("[data-tool], [data-control], [data-action]");
+    const toolName = control?.dataset.tool ?? control?.dataset.control ?? control?.dataset.action;
+    const [label, callback] = hubToolbarActions()[toolName] ?? [];
+    if (!callback) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    runUiAction(label, callback);
+  }, true);
+}
+
 function consolidateToolbar(controls) {
   const token=controls.find?.(c=>c.name==="token")??controls.tokens??controls.token;
   const old=new Set(["tsru-orbs","tsru-skills","tsru-aha-instant","tsru-gm-panel"]);
@@ -307,6 +339,7 @@ Hooks.once("ready",()=>{
     if(payload.notify&&payload.sourceUserId!==game.user.id){const q=quests().find(x=>x.id===payload.questId);if(q&&visibleQuest(q))ui.notifications.info(q.status==="complete"?`Mission Complete: ${q.title}`:`New Mission: ${q.title}`);}
   });
   Object.assign(game.modules.get(MODULE_ID).api??{}, {openHub,openQuestLog,openQuestManager:()=>new QuestManager().render(true),openQuestSettings:()=>new QuestSettings().render(true)});
+  registerHubToolbarFallback();
 });
 
 Hooks.on("getSceneControlButtons",consolidateToolbar);
