@@ -2878,10 +2878,11 @@ class StarRailGMPanel extends FormApplication {
     });
   }
   getData() {
+    const collapsedCards = game.settings.get(MODULE_ID, "gmPanelCollapsedCards") ?? {};
     const canvasCharacterIds = new Set((canvas?.tokens?.placeables ?? []).filter(token => token.actor?.type === "character").map(token => token.actor.id));
     const characters = game.actors
       .filter(actor => actor.type === "character" && (getConfig(actor).mainParty || canvasCharacterIds.has(actor.id)))
-      .map(actor => ({actor, config: getConfig(actor), modifier: signedNumber(regenModifier(getConfig(actor)))}));
+      .map(actor => ({actor, config: getConfig(actor), modifier: signedNumber(regenModifier(getConfig(actor))), collapsed: Boolean(collapsedCards[`character:${actor.id}`])}));
     const normalCombatants = game.combat?.combatants?.filter(entry => !isAhaCombatant(entry) && !isElationActionCombatant(entry) && !entry.getFlag(MODULE_ID, "temporaryUltimate") && !entry.getFlag(MODULE_ID, "actionAdvance")) ?? [];
     const combatants = game.combat?.started ? normalCombatants.map(entry => ({id: entry.id, name: entry.name, initiative: entry.initiative, img: entry.img})) : [];
     const initiativeTokenIds = new Set(normalCombatants.map(entry => entry.tokenId).filter(Boolean));
@@ -2895,6 +2896,7 @@ class StarRailGMPanel extends FormApplication {
       const weaknessMode = toughnessWeaknessMode(token);
       return {
         actor, token, tokenId: token.id, tokenUuid: token.document.uuid, targeted: targetedIds.has(token.id), weaknessMode,
+        collapsed: Boolean(collapsedCards[`npc:${token.document.uuid}`]),
         allWeaknesses: weaknessMode === "all", noWeaknesses: weaknessMode === "none",
         elements: elements.map(element => ({...element, permanent: config.weaknesses.includes(element.id), temporary: weaknessMode === "all" || temporary.includes(element.id)}))
       };
@@ -2903,6 +2905,18 @@ class StarRailGMPanel extends FormApplication {
   }
   activateListeners(html) {
     super.activateListeners(html);
+    html.find("[data-collapse-toggle]").on("click", async event => {
+      const button = event.currentTarget;
+      const key = button.dataset.collapseToggle;
+      const card = button.closest(".tsru-gm-collapsible");
+      if (!key || !card) return;
+      const collapsed = !card.classList.contains("collapsed");
+      card.classList.toggle("collapsed", collapsed);
+      button.setAttribute("aria-expanded", String(!collapsed));
+      const saved = foundry.utils.deepClone(game.settings.get(MODULE_ID, "gmPanelCollapsedCards") ?? {});
+      saved[key] = collapsed;
+      await game.settings.set(MODULE_ID, "gmPanelCollapsedCards", saved);
+    });
     html.find("[data-resource-action]").on("click", async event => {
       const action = event.currentTarget.dataset.resourceAction;
       const delta = Number(event.currentTarget.dataset.delta) || 0;
@@ -3065,6 +3079,7 @@ function registerSettings() {
   game.settings.register(MODULE_ID, "skillMeterLayout", {scope: "client", config: false, type: Object, default: {x: 420, y: 80, size: 42, visible: true}});
   game.settings.register(MODULE_ID, "skillButtonLayouts", {scope: "client", config: false, type: Object, default: {}});
   game.settings.register(MODULE_ID, "eidolonConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_EIDOLON_CONFIG)});
+  game.settings.register(MODULE_ID, "gmPanelCollapsedCards", {scope: "client", config: false, type: Object, default: {}});
   game.settings.registerMenu(MODULE_ID, "elementManager", {
     name: "Manage Elements",
     label: "Open Element Manager",

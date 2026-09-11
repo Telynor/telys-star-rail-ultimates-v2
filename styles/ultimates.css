@@ -1133,3 +1133,40 @@
   .tsru-gm-config-buttons { grid-template-columns: minmax(0,1fr); }
   .tsru-gm-resource-card > div { grid-template-columns: 32px minmax(0,1fr) 32px; }
 }
+
+/* Collapsible character and NPC cards */
+.tsru-gm-character-row,
+.tsru-gm-weakness-row { display:block; padding:0; overflow:hidden; }
+.tsru-gm-collapse-header {
+  display:flex; align-items:center; gap:10px; width:100%; min-height:54px; margin:0; padding:8px 11px;
+  border:0; border-radius:0; background:linear-gradient(90deg,rgba(71,62,39,.42),rgba(28,32,41,.72)); color:#f3eee0; text-align:left;
+}
+.tsru-gm-collapse-header:hover { background:linear-gradient(90deg,rgba(111,88,39,.55),rgba(38,43,54,.88)); }
+.tsru-gm-collapse-header img { flex:0 0 38px; width:38px; height:38px; border:1px solid #8b7440; border-radius:50%; object-fit:cover; }
+.tsru-gm-collapse-name { display:grid; flex:1 1 auto; min-width:0; }
+.tsru-gm-collapse-name strong { overflow:hidden; color:#f4f0e6; font-size:.95rem; text-overflow:ellipsis; white-space:nowrap; }
+.tsru-gm-collapse-name small { overflow:hidden; color:#aaaeb8; font-size:.68rem; text-overflow:ellipsis; white-space:nowrap; }
+.tsru-gm-collapse-chevron { flex:0 0 auto; margin-left:4px; color:#e8ca76; transition:transform .18s ease; }
+.tsru-gm-collapsible.collapsed .tsru-gm-collapse-chevron { transform:rotate(-90deg); }
+.tsru-gm-collapsible.collapsed .tsru-gm-collapsible-content { display:none; }
+.tsru-gm-collapsible-content { border-top:1px solid rgba(137,112,60,.42); }
+.tsru-gm-character-content { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; align-items:end; padding:11px; }
+.tsru-gm-character-content label { display:grid; gap:3px; min-width:0; }
+.tsru-gm-character-content label>span { color:#b8b3a5; font-size:.72rem; white-space:normal; }
+.tsru-gm-character-content input { width:100%; min-width:0; text-align:center; }
+.tsru-gm-character-content .tsru-gm-party-toggle { display:flex; flex-direction:row; align-items:center; justify-content:flex-start; align-self:stretch; gap:9px; margin:0; padding:6px 8px; border:1px solid #454b58; border-radius:5px; }
+.tsru-gm-character-content .tsru-gm-party-toggle input { order:-1; width:18px!important; height:18px; }
+.tsru-gm-weakness-content { display:grid; grid-template-columns:minmax(260px,1.6fr) minmax(190px,.8fr); gap:10px; align-items:center; padding:11px; }
+.tsru-gm-weakness-row.targeted .tsru-gm-collapse-header { background:linear-gradient(90deg,rgba(117,65,22,.82),rgba(48,38,30,.8)); }
+.tsru-gm-collapse-header .tsru-targeted-badge { flex:0 0 auto; }
+
+@container (max-width: 620px) {
+  .tsru-gm-character-content { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .tsru-gm-weakness-content { grid-template-columns:minmax(0,1fr); }
+}
+@container (max-width: 400px) {
+  .tsru-gm-character-content { grid-template-columns:minmax(0,1fr); }
+  .tsru-gm-collapse-header { padding:7px 8px; }
+  .tsru-gm-collapse-header .tsru-targeted-badge { font-size:0; }
+  .tsru-gm-collapse-header .tsru-targeted-badge i { font-size:.75rem; }
+}
