@@ -1,0 +1,14 @@
+<div class="tsru-quest-log-shell">
+  <header class="tsru-quest-custom-header"><div><i class="fas fa-clipboard-list"></i><span><b>Missions</b><small>{{#if allMode}}All Missions{{else}}{{selected.type.name}}{{/if}}</small></span></div><nav><button type="button" data-quest-minimize title="Minimize"><i class="fas fa-minus"></i></button><button type="button" data-quest-close title="Close"><i class="fas fa-xmark"></i></button></nav></header>
+  <aside class="tsru-quest-type-rail"><button type="button" class="{{#if allActive}}active{{/if}}" data-quest-filter="all" data-tooltip="All Missions"><img src="{{allIcon}}"></button>{{#each types}}<button type="button" class="{{#if this.active}}active{{/if}}" data-quest-filter="{{this.id}}" data-tooltip="{{this.name}}"><img src="{{this.icon}}"></button>{{/each}}</aside>
+  <section class="tsru-quest-list-pane">
+    {{#if allMode}}{{#each groups}}<div class="tsru-quest-group"><h3><img src="{{this.type.icon}}">{{this.type.name}}</h3>{{#each this.quests}}<button type="button" class="tsru-quest-block {{#if this.isNew}}is-new{{/if}}" data-select-quest="{{this.id}}" style="--quest-bg:url('{{this.type.background}}')"><b>{{this.title}}</b><small><i class="fas fa-location-dot"></i> {{this.location}}</small></button>{{/each}}</div>{{else}}<p>No assigned missions.</p>{{/each}}{{else}}{{#each flat}}<button type="button" class="tsru-quest-block {{#if this.isNew}}is-new{{/if}}" data-select-quest="{{this.id}}" style="--quest-bg:url('{{this.type.background}}')"><b>{{this.title}}</b><small><i class="fas fa-location-dot"></i> {{this.location}}</small></button>{{else}}<p>No missions of this type.</p>{{/each}}{{/if}}
+  </section>
+  <main class="tsru-quest-detail-pane" style="--quest-bg:url('{{selected.type.background}}')">
+    {{#if selected}}<div class="tsru-quest-location"><i class="fas fa-location-dot"></i> {{selected.location}}</div><h1>{{selected.title}}</h1><h3>{{selected.stage.title}}</h3>
+    <div class="tsru-objective-list">{{#each selected.objectives}}<div class="{{#if this.complete}}complete{{/if}} {{#if this.hidden}}hidden-objective{{/if}}"><i class="{{#if this.complete}}fas fa-check{{else}}fas fa-circle{{/if}}"></i><span>{{this.text}}</span>{{#if this.hidden}}<small>Hidden Objective</small>{{/if}}</div>{{else}}<div><i class="fas fa-circle"></i><span>No visible objectives.</span></div>{{/each}}</div>
+    <p class="tsru-quest-description">{{selected.description}}</p>
+    <section class="tsru-rewards-preview"><h3>Rewards Preview</h3><div>{{#each selected.rewards}}<article style="--rarity:{{this.rarity.color}};--reward-bg:url('{{this.rarity.background}}')"><img src="{{this.img}}"><b>{{this.quantity}}</b><span>{{this.name}}</span></article>{{else}}<em>No rewards listed.</em>{{/each}}</div></section>
+    {{else}}<div class="tsru-empty-state"><i class="fas fa-clipboard-list"></i><p>No mission selected.</p></div>{{/if}}
+  </main>
+</div>

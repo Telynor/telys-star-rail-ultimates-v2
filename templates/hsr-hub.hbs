@@ -1,0 +1,19 @@
+<form class="tsru-hub-form">
+  <header><h2><i class="fas fa-rocket"></i> HSR Hub</h2><p>Star Rail interfaces and controls.</p></header>
+  <section class="tsru-hub-grid">
+    <button type="button" data-hub-action="quests"><i class="fas fa-clipboard-list"></i><span>Mission Log</span></button>
+    <button type="button" data-hub-action="orbs"><i class="fas fa-burst"></i><span>Ultimate Orbs</span></button>
+    <button type="button" data-hub-action="skills"><i class="fas fa-hand-sparkles"></i><span>Skills & Points</span></button>
+    {{#if gm}}
+    <button type="button" data-hub-action="gm"><i class="fas fa-sliders"></i><span>GM Panel</span></button>
+    <button type="button" data-hub-action="quest-manager"><i class="fas fa-list-check"></i><span>Mission Manager</span></button>
+    <button type="button" data-hub-action="quest-settings"><i class="fas fa-tags"></i><span>Mission Settings</span></button>
+    <button type="button" data-hub-action="aha-config"><i class="fas fa-masks-theater"></i><span>Aha Settings</span></button>
+    <button type="button" data-hub-action="aha-toggle"><i class="fas fa-eye"></i><span>Toggle Aha Orb</span></button>
+    <button type="button" data-hub-action="skill-config"><i class="fas fa-diamond"></i><span>Skill Point Settings</span></button>
+    <button type="button" data-hub-action="elements"><i class="fas fa-sparkles"></i><span>Elements</span></button>
+    <button type="button" data-hub-action="paths"><i class="fas fa-route"></i><span>Paths</span></button>
+    <button type="button" data-hub-action="eidolons"><i class="fas fa-gem"></i><span>Eidolon Layers</span></button>
+    {{/if}}
+  </section>
+</form>

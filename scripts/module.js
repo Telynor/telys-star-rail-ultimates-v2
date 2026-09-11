@@ -3684,6 +3684,9 @@ function registerApi() {
     resetTemporaryToughnessWeaknesses,
     insertActionAdvanceTurn,
     openGMPanel: openStarRailGMPanel,
+    openAhaConfig: () => new AhaConfig().render(true),
+    openSkillPointConfig: () => new SkillPointConfig().render(true),
+    openEidolonConfig: () => new EidolonAppearanceConfig().render(true),
     triggerSpecialAha,
     showSkillUI,
     getPunchline: currentPunchline,
@@ -3696,7 +3699,18 @@ function registerApi() {
     showAhaButton,
     triggerAhaInstant,
     openElementManager: () => new ElementManager().render(true),
-    openPathManager: () => new PathManager().render(true)
+    openPathManager: () => new PathManager().render(true),
+    toggleAhaOrb: async () => {
+      const layout = ahaLayout();
+      await saveAhaLayout({visible: !layout.visible});
+      refreshAhaButton();
+      return !layout.visible;
+    },
+    showUltimateUI: async () => {
+      let shown = 0;
+      for (const actor of game.actors.filter(canObserveActor)) if (await showOrb(actor, {notify: false})) shown++;
+      return shown;
+    }
   };
 }
 

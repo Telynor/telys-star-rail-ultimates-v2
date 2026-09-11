@@ -839,6 +839,85 @@
 }
 #board > .tsru-aha-overlay,
 #canvas > .tsru-aha-overlay { z-index: 2; }
+
+/* HSR Hub and Missions */
+.tsru-hub-form { padding:10px; color:#ece9df; background:linear-gradient(145deg,#0d1722,#171421); }
+.tsru-hub-form header h2,.tsru-hub-form header p { margin:0 0 5px; }
+.tsru-hub-form header p { color:#aeb9c5; }
+.tsru-hub-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:12px; }
+.tsru-hub-grid button { display:flex; align-items:center; gap:9px; min-height:48px; margin:0; padding:8px 12px; border:1px solid #6f7680; background:rgba(9,14,22,.82); color:#ece9df; text-align:left; }
+.tsru-hub-grid button:hover { border-color:#ead795; box-shadow:0 0 12px rgba(234,215,149,.22); }
+.tsru-hub-grid button i { width:22px; color:#ead795; font-size:19px; text-align:center; }
+
+.tsru-quest-settings-form,.tsru-quest-manager-form { padding:12px; color:#e9e7df; background:#11141c; }
+.tsru-quest-settings-form header h2,.tsru-quest-settings-form header p,.tsru-quest-manager-form header h2,.tsru-quest-manager-form header p { margin:0 0 5px; }
+.tsru-quest-settings-form fieldset { margin:10px 0; border:1px solid #626c79; }
+.tsru-quest-settings-form legend { color:#ead795; font-weight:800; }
+.tsru-config-table { display:grid; align-items:center; gap:6px; margin:8px 0; }
+.tsru-type-table { grid-template-columns:34px minmax(120px,1fr) 65px minmax(160px,1.4fr) minmax(160px,1.4fr) 34px; }
+.tsru-rarity-table { grid-template-columns:minmax(120px,1fr) 65px 58px minmax(180px,1.5fr) 34px; }
+.tsru-config-table input,.tsru-config-table button { min-width:0; margin:0; }
+.tsru-config-table input[type="color"] { width:48px; }
+.tsru-config-table input[type="hidden"] { display:none; }
+.tsru-quest-settings-form footer { display:flex; justify-content:flex-end; }
+
+.tsru-quest-manager-form>header { display:flex; justify-content:space-between; align-items:center; gap:12px; position:sticky; top:0; z-index:5; padding:8px; background:#11141c; }
+.tsru-quest-manager-form>header button { width:auto; }
+.tsru-quest-editor-list { display:grid; gap:12px; }
+.tsru-quest-editor-card { border:1px solid #5a6370; background:#181c26; box-shadow:0 4px 14px #0008; }
+.tsru-quest-editor-card>header { display:grid; grid-template-columns:minmax(180px,1fr) minmax(150px,.5fr) auto 36px; gap:7px; padding:9px; background:#242936; }
+.tsru-quest-title-input { font-size:17px!important; font-weight:800; }
+.tsru-quest-editor-card .status { align-self:center; padding:3px 9px; border-radius:10px; background:#3c7082; text-transform:uppercase; font-size:10px; }
+.tsru-quest-editor-card .status.complete { background:#4d7a4b; }
+.tsru-quest-editor-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; padding:10px; }
+.tsru-quest-editor-grid>label { display:grid; gap:3px; color:#d9cc9d; font-weight:700; }
+.tsru-quest-editor-grid .wide { grid-column:1/-1; }
+.tsru-quest-editor-grid textarea { min-height:70px; resize:vertical; }
+.tsru-assignment-list { display:flex; flex-wrap:wrap; gap:6px; }
+.tsru-assignment-list label { display:flex; align-items:center; gap:5px; padding:4px 8px; border:1px solid #525b68; border-radius:18px; }
+.tsru-assignment-list img { width:26px; height:26px; border:0; border-radius:50%; object-fit:cover; }
+.tsru-stage-head { display:flex; gap:7px; }
+.tsru-stage-head select { flex:1; }.tsru-stage-head button { width:auto; }
+.tsru-objective-edit-list { display:grid; gap:5px; margin-top:7px; }
+.tsru-objective-edit-list>div { display:grid; grid-template-columns:minmax(180px,1fr) auto auto auto 34px; align-items:center; gap:6px; }
+.tsru-objective-edit-list label { white-space:nowrap; }
+.tsru-reward-drop { margin:6px 0; padding:18px; border:2px dashed #7b8290; color:#c9c3a9; text-align:center; }
+.tsru-reward-edit-list { display:grid; gap:5px; }
+.tsru-reward-edit { display:grid; grid-template-columns:40px minmax(130px,1fr) 95px minmax(135px,.6fr) 34px; align-items:center; gap:7px; }
+.tsru-reward-edit img { width:38px; height:38px; border:0; object-fit:contain; }
+.tsru-quest-editor-card>footer { display:flex; justify-content:flex-end; gap:8px; padding:9px; border-top:1px solid #444d58; }
+.tsru-quest-editor-card>footer button { width:auto; }
+
+.tsru-quest-window { background:transparent!important; box-shadow:none!important; border:0!important; }
+.tsru-quest-window>.window-header { display:none!important; }
+.tsru-quest-window>.window-content { padding:0!important; overflow:hidden!important; background:transparent!important; backdrop-filter:none!important; }
+.tsru-quest-window.is-minimized { min-height:64px!important; height:64px!important; }
+.tsru-quest-window.is-minimized .tsru-quest-log-shell { grid-template-rows:62px 0; }
+.tsru-quest-window.is-minimized .tsru-quest-type-rail,.tsru-quest-window.is-minimized .tsru-quest-list-pane,.tsru-quest-window.is-minimized .tsru-quest-detail-pane { display:none; }
+.tsru-quest-log-shell { --s:var(--tsru-quest-scale,1); position:relative; display:grid; grid-template-columns:calc(92px * var(--s)) calc(340px * var(--s)) minmax(0,1fr); grid-template-rows:calc(78px * var(--s)) minmax(0,1fr); width:100%; height:100%; overflow:hidden; border:1px solid rgba(225,236,241,.42); background:linear-gradient(110deg,rgba(5,25,35,.82),rgba(17,31,45,.62) 50%,rgba(22,40,46,.55)); backdrop-filter:blur(16px) saturate(1.25); color:#f5f6f2; box-shadow:0 18px 70px #000b; }
+.tsru-quest-log-shell:before { content:""; position:absolute; inset:0; background:radial-gradient(circle at 60% 45%,rgba(151,109,174,.26),transparent 30%),linear-gradient(120deg,transparent,rgba(128,205,216,.08)); pointer-events:none; }
+.tsru-quest-custom-header { position:relative; z-index:3; grid-column:1/-1; display:flex; justify-content:space-between; align-items:center; padding:calc(12px * var(--s)) calc(18px * var(--s)); border-bottom:1px solid #ffffff24; }
+.tsru-quest-custom-header>div { display:flex; align-items:center; gap:calc(11px * var(--s)); }.tsru-quest-custom-header>div>i { color:#e6d89c; font-size:calc(30px * var(--s)); }
+.tsru-quest-custom-header span { display:grid; }.tsru-quest-custom-header b { color:#e6d89c; font-size:calc(18px * var(--s)); }.tsru-quest-custom-header small { font-size:calc(15px * var(--s)); }
+.tsru-quest-custom-header nav { display:flex; gap:5px; }.tsru-quest-custom-header button { width:calc(34px * var(--s)); height:calc(34px * var(--s)); margin:0; border:0; background:transparent; color:white; font-size:calc(18px * var(--s)); }
+.tsru-quest-type-rail { position:relative; z-index:2; grid-row:2; display:flex; flex-direction:column; align-items:center; gap:calc(13px * var(--s)); padding:calc(14px * var(--s)) calc(10px * var(--s)); border-right:1px solid #ffffff22; overflow:auto; }
+.tsru-quest-type-rail button { flex:0 0 auto; width:calc(52px * var(--s)); height:calc(52px * var(--s)); margin:0; padding:calc(10px * var(--s)); border:1px solid transparent; border-radius:50%; background:rgba(15,28,39,.55); opacity:.62; }
+.tsru-quest-type-rail button.active,.tsru-quest-type-rail button:hover { opacity:1; border-color:#e8e7dd; background:#eef1ee; box-shadow:0 0 calc(14px * var(--s)) #dbeaff66; }
+.tsru-quest-type-rail img { width:100%; height:100%; border:0; object-fit:contain; filter:grayscale(1) brightness(2); }.tsru-quest-type-rail button.active img,.tsru-quest-type-rail button:hover img { filter:brightness(.22); }
+.tsru-quest-list-pane { position:relative; z-index:2; grid-row:2; padding:calc(12px * var(--s)); overflow:auto; border-right:1px solid #ffffff25; }
+.tsru-quest-group h3 { display:flex; align-items:center; gap:6px; margin:calc(8px * var(--s)) 0 calc(5px * var(--s)); padding:4px 8px; background:rgba(219,228,231,.78); color:#172630; font-size:calc(14px * var(--s)); }
+.tsru-quest-group h3 img { width:calc(18px * var(--s)); height:calc(18px * var(--s)); border:0; object-fit:contain; }
+.tsru-quest-block { position:relative; display:grid; width:100%; min-height:calc(66px * var(--s)); margin:0 0 calc(7px * var(--s)); padding:calc(10px * var(--s)) calc(13px * var(--s)); overflow:hidden; border:1px solid rgba(255,255,255,.55); border-left:calc(6px * var(--s)) solid #b3ca7b; border-radius:0; background:linear-gradient(90deg,rgba(243,246,244,.95),rgba(219,229,230,.83)),var(--quest-bg); background-size:cover; color:#182128; text-align:left; }
+.tsru-quest-block:after { content:""; position:absolute; inset:0; background-image:var(--quest-bg); background-position:center; background-size:cover; opacity:.16; pointer-events:none; }
+.tsru-quest-block b,.tsru-quest-block small { position:relative; z-index:1; }.tsru-quest-block b { font-size:calc(17px * var(--s)); }.tsru-quest-block small { color:#8c7747; font-size:calc(12px * var(--s)); }.tsru-quest-block.is-new:before { content:"NEW"; position:absolute; z-index:2; top:2px; right:4px; color:#9a5b28; font-size:calc(9px * var(--s)); font-weight:900; }
+.tsru-quest-detail-pane { position:relative; z-index:2; grid-row:2; padding:calc(22px * var(--s)) calc(28px * var(--s)); overflow:auto; background-image:linear-gradient(100deg,rgba(10,27,38,.65),rgba(11,26,38,.38)),var(--quest-bg); background-size:cover; background-position:center; }
+.tsru-quest-location { color:#d8c68c; font-size:calc(14px * var(--s)); }.tsru-quest-detail-pane h1 { margin:calc(8px * var(--s)) 0 calc(28px * var(--s)); font-size:calc(28px * var(--s)); }.tsru-quest-detail-pane>h3 { font-size:calc(16px * var(--s)); }
+.tsru-objective-list { display:grid; gap:5px; }.tsru-objective-list>div { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:calc(9px * var(--s)); padding:calc(7px * var(--s)) calc(11px * var(--s)); background:rgba(4,15,27,.58); font-size:calc(15px * var(--s)); }.tsru-objective-list i { font-size:7px; }.tsru-objective-list .complete { opacity:.62;text-decoration:line-through; }.tsru-objective-list small { color:#e3c06b; }
+.tsru-quest-description { max-width:850px; color:#d9dfe2; font-size:calc(14px * var(--s)); line-height:1.5; white-space:pre-wrap; }
+.tsru-rewards-preview { margin-top:calc(55px * var(--s)); border-top:1px solid #ffffff36; }.tsru-rewards-preview h3 { margin:calc(13px * var(--s)) 0; font-size:calc(17px * var(--s)); }.tsru-rewards-preview>div { display:flex; flex-wrap:wrap; gap:calc(10px * var(--s)); }
+.tsru-rewards-preview article { position:relative; display:grid; grid-template-rows:calc(68px * var(--s)) auto; width:calc(82px * var(--s)); border:1px solid var(--rarity,#79828d); background:linear-gradient(#ffffff0a,#0005),var(--reward-bg),color-mix(in srgb,var(--rarity,#79828d) 35%,#172333); background-size:cover; text-align:center; }.tsru-rewards-preview img { width:100%; height:100%; padding:5px; border:0; object-fit:contain; }.tsru-rewards-preview article>b { position:absolute; right:3px; top:calc(52px * var(--s)); font-size:calc(12px * var(--s)); text-shadow:0 1px 3px #000; }.tsru-rewards-preview article>span { overflow:hidden; padding:3px; font-size:calc(10px * var(--s)); text-overflow:ellipsis; white-space:nowrap; }
+.tsru-empty-state { display:grid; place-items:center; min-height:180px; color:#abb5bd; }.tsru-empty-state i { font-size:44px; }
+@media(max-width:800px){.tsru-quest-log-shell{grid-template-columns:calc(70px * var(--s)) calc(250px * var(--s)) minmax(0,1fr)}.tsru-quest-editor-grid{grid-template-columns:1fr}.tsru-quest-editor-grid .wide{grid-column:auto}.tsru-config-table{display:block}.tsru-config-table>*{display:block;width:100%;margin-bottom:5px}}
 .tsru-aha-overlay video { width: 100vw; height: 100vh; border: 0; object-fit: fill; background: transparent; }
 
 .tsru-aha-config-form { display: flex; flex-direction: column; gap: 12px; padding: 10px; }
