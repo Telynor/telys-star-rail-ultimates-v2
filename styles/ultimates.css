@@ -1378,3 +1378,48 @@
   display: none !important;
   background: none !important;
 }
+
+
+/* v2.22.3: Foundry may sanitize CSS-variable URL values in inline styles.
+   Restore the real img element and crop it without changing its horizontal bounds. */
+.tsru-quest-block.has-art {
+  position: relative !important;
+  display: grid !important;
+  min-height: calc(66px * var(--s)) !important;
+  overflow: hidden !important;
+  isolation: isolate !important;
+  background: transparent !important;
+}
+.tsru-quest-block.has-art .tsru-quest-card-art {
+  display: block !important;
+  position: absolute !important;
+  z-index: 0 !important;
+  left: 0 !important;
+  right: auto !important;
+  top: 50% !important;
+  bottom: auto !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  object-fit: fill !important;
+  object-position: center !important;
+  transform: translateY(-50%) scaleY(1.6) !important;
+  transform-origin: center center !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: none !important;
+}
+.tsru-quest-block.has-art > b,
+.tsru-quest-block.has-art > small {
+  position: relative !important;
+  z-index: 2 !important;
+  color: #182128 !important;
+}
+.tsru-quest-block.has-art > small {
+  color: #8c7747 !important;
+}
