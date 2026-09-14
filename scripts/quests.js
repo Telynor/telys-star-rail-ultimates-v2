@@ -167,15 +167,29 @@ class QuestSettings extends FormApplication {
     const root = html?.jquery ? html : $(html);
     const form = root.is("form") ? root[0] : root.find("form.tsru-quest-settings-form").first()[0];
     if (!form) throw new Error("Mission configuration form could not be found.");
-    const fd = new FormData(form); const ex = foundry.utils.expandObject(Object.fromEntries(fd.entries()));
-    this._types = Object.values(ex.types ?? {}).map((v, i) => ({...this._types[i], ...v, enabled: fd.has(`types.${i}.enabled`), order: Number(v.order) || 0}));
-    this._rarities = Object.values(ex.rarities ?? {}).map((v, i) => ({...this._rarities[i], ...v, order: Number(v.order) || 0}));
+    const fd = new FormData(form);
+    this._types = this._types.map((type, i) => ({
+      ...type, id: String(fd.get(`types.${i}.id`) || type.id),
+      name: String(fd.get(`types.${i}.name`) ?? type.name),
+      enabled: fd.has(`types.${i}.enabled`),
+      order: Number(fd.get(`types.${i}.order`)) || 0,
+      icon: String(fd.get(`types.${i}.icon`) ?? type.icon).trim(),
+      background: String(fd.get(`types.${i}.background`) ?? type.background).trim()
+    }));
+    this._rarities = this._rarities.map((rarity, i) => ({
+      ...rarity, id: String(fd.get(`rarities.${i}.id`) || rarity.id),
+      name: String(fd.get(`rarities.${i}.name`) ?? rarity.name),
+      order: Number(fd.get(`rarities.${i}.order`)) || 0,
+      color: String(fd.get(`rarities.${i}.color`) ?? rarity.color),
+      background: String(fd.get(`rarities.${i}.background`) ?? rarity.background).trim()
+    }));
   }
   async _updateObject(_event, formData) {
     this.capture(this.element);
     await game.settings.set(MODULE_ID, "questTypes", this._types);
     await game.settings.set(MODULE_ID, "questRarities", this._rarities);
-    await game.settings.set(MODULE_ID, "questAllIcon", formData.questAllIcon || "icons/svg/book.svg");
+    const form = this.element?.jquery ? this.element[0]?.querySelector("form.tsru-quest-settings-form") ?? this.element[0] : this.element?.querySelector("form.tsru-quest-settings-form") ?? this.element;
+    await game.settings.set(MODULE_ID, "questAllIcon", form?.querySelector('[name="questAllIcon"]')?.value?.trim() || formData.questAllIcon || "icons/svg/book.svg");
     ui.notifications.info("Quest types and reward rarities saved.");
     refreshQuestWindows();
     this.render(false);
