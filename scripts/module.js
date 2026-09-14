@@ -3025,7 +3025,7 @@ class StarRailGMPanel extends FormApplication {
     const initiativeTokenIds = new Set(normalCombatants.map(entry => entry.tokenId).filter(Boolean));
     const initiativeActorUuids = new Set(normalCombatants.map(entry => entry.actor?.uuid).filter(Boolean));
     const elements = getElements();
-    const targetedIds = new Set([...(game.user?.targets ?? [])].map(token => token.id));
+    const targetedIds = new Set([...(game.user?.targets ?? []), ...(canvas?.tokens?.controlled ?? [])].map(token => token.id));
     const sceneEnemies = (canvas?.tokens?.placeables ?? []).filter(token => token.actor?.type === "npc" && (initiativeTokenIds.has(token.id) || initiativeActorUuids.has(token.actor.uuid))).map(token => {
       const actor = token.actor;
       const config = getToughness(actor);
@@ -3179,7 +3179,7 @@ class StarRailGMPanel extends FormApplication {
   refreshTargetHighlights() {
     const root = this.element?.jquery ? this.element : $(this.element);
     if (!root?.length) return;
-    const targeted = new Set([...(game.user?.targets ?? [])].map(token => token.id));
+    const targeted = new Set([...(game.user?.targets ?? []), ...(canvas?.tokens?.controlled ?? [])].map(token => token.id));
     root.find("[data-toughness-token]").each((_index, row) => {
       const active = targeted.has(row.dataset.toughnessToken);
       row.classList.toggle("targeted", active);
@@ -4065,6 +4065,7 @@ Hooks.on("updateActor", (actor, changes) => {
 });
 Hooks.on("updateToken", () => { refreshToughnessBars(); state.gmPanel?.render(false); });
 Hooks.on("targetToken", user => { if (user.id === game.user.id) state.gmPanel?.refreshTargetHighlights(); });
+Hooks.on("controlToken", () => state.gmPanel?.refreshTargetHighlights());
 Hooks.on("deleteActor", actor => { state.orbs.get(actor.id)?.destroy(); state.skillButtons.get(actor.id)?.destroy(); });
 Hooks.on("updateUser", user => { if (user.id === game.user.id) { refreshAllOrbs(); refreshSkillUI(); } });
 Hooks.on("updateSetting", setting => {
