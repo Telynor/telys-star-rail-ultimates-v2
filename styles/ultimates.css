@@ -1216,3 +1216,8 @@
 .tsru-quest-block.has-art .tsru-quest-card-art { object-fit:fill; background:transparent; }
 .tsru-rewards-preview article.has-art { border:0; background:transparent; }
 .tsru-rewards-preview article.has-art .tsru-reward-card-art { object-fit:fill; background:transparent; }
+
+/* Mission artwork fills the whole selector card; labels no longer use opaque boxes. */
+.tsru-quest-block.has-art { position:relative; isolation:isolate; overflow:hidden; background:transparent!important; border:0!important; box-shadow:none; align-content:center; justify-items:start; }
+.tsru-quest-block.has-art .tsru-quest-card-art { z-index:0; inset:-3px; width:calc(100% + 6px); height:calc(100% + 6px); max-width:none; max-height:none; object-fit:cover; object-position:center; }
+.tsru-quest-block.has-art b,.tsru-quest-block.has-art small { z-index:1; padding:0; border:0; background:transparent!important; box-shadow:none; }
