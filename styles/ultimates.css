@@ -1356,3 +1356,25 @@
   margin-bottom: 0;
   border-bottom: 0;
 }
+
+
+/* v2.22.2: make the configured mission artwork the card background itself.
+   The vertical overscan deliberately crops white framing baked into older card assets. */
+.tsru-quest-block.has-art {
+  box-sizing: border-box !important;
+  border: 0 !important;
+  padding: calc(10px * var(--s)) calc(13px * var(--s)) !important;
+  background-color: transparent !important;
+  background-image: var(--tsru-mission-art) !important;
+  background-repeat: no-repeat !important;
+  background-position: center center !important;
+  background-size: 100% 160% !important;
+  background-clip: border-box !important;
+}
+.tsru-quest-block.has-art .tsru-quest-card-art {
+  display: none !important;
+}
+.tsru-quest-block.has-art::after {
+  display: none !important;
+  background: none !important;
+}
