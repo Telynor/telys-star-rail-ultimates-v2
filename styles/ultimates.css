@@ -1185,3 +1185,12 @@
 .tsru-rewards-preview article .tsru-reward-item-art { position:relative; z-index:1; grid-row:1; }
 .tsru-rewards-preview article>b,.tsru-rewards-preview article>span { z-index:2; }
 .tsru-rewards-preview article>span { background:rgba(8,13,23,.75); }
+
+.tsru-break-appearance-form { display:grid; gap:12px; padding:16px; background:#171c26; color:#edf0f4; }
+.tsru-break-appearance-form h2,.tsru-break-appearance-form p { margin:0; }
+.tsru-break-appearance-form p { color:#c4cbd5; }
+.tsru-break-appearance-form .tsru-field { display:grid; gap:5px; }
+.tsru-break-appearance-form .tsru-file-control { display:flex; gap:7px; }
+.tsru-break-appearance-form input { flex:1; min-width:0; background:#202734!important; color:#f5f7fa!important; border:1px solid #778596!important; }
+.tsru-break-appearance-form button { width:auto; background:#252d3a!important; color:#f3f5f7!important; border:1px solid #99a6b5!important; }
+.tsru-break-appearance-form footer { display:flex; justify-content:flex-end; }

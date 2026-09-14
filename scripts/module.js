@@ -15,8 +15,6 @@ const DEFAULT_CONFIG = Object.freeze({
   energyLockRound: null,
   breakCharacter: false,
   superBreakCharacter: false,
-  breakFontFile: "",
-  superBreakFontFile: "",
   breakEffectScore: 10,
   breakDamageDice: 1,
   breakDamageDie: 6,
@@ -2299,6 +2297,36 @@ async function limitBreakAttackHpDamage(attacker, target, amount, eventId, optio
   await target.update({"system.attributes.hp.value": Math.max(0, Math.min(Number(hp.max) || Infinity, initialHp - 1))});
 }
 
+function getBreakFonts() {
+  return game.settings.get(MODULE_ID, "breakFonts") ?? {breakFontFile:"", superBreakFontFile:""};
+}
+
+class BreakAppearanceConfig extends FormApplication {
+  static get defaultOptions() {
+    return foundry.utils.mergeObject(super.defaultOptions, {
+      id:"tsru-break-appearance", title:"Break Text Appearance",
+      template:`modules/${MODULE_ID}/templates/break-appearance.hbs`,
+      width:570, height:"auto", closeOnSubmit:true
+    });
+  }
+  getData() { return {config:getBreakFonts()}; }
+  activateListeners(html) {
+    super.activateListeners(html);
+    html.find(".file-picker").on("click", event => {
+      const input=html.find(`[name="${event.currentTarget.dataset.target}"]`);
+      new FilePicker({type:"any",current:input.val(),callback:path=>input.val(path).trigger("change")}).browse();
+    });
+  }
+  async _updateObject(_event, formData) {
+    if (!game.user.isGM) return;
+    await game.settings.set(MODULE_ID, "breakFonts", {
+      breakFontFile:String(formData.breakFontFile ?? "").trim(),
+      superBreakFontFile:String(formData.superBreakFontFile ?? "").trim()
+    });
+    ui.notifications.info("Universal Break text fonts saved for all characters.");
+  }
+}
+
 function breakDisplayTarget(target) {
   return (canvas?.tokens?.placeables ?? []).find(token => token.actor?.id === target?.id) ?? null;
 }
@@ -2341,7 +2369,7 @@ async function applyWeaknessBreakDamage(attacker, target, {superBreak = false} =
   }
   const token = breakDisplayTarget(target);
   const element = getElements().find(entry => entry.id === config.elementId);
-  const display = {type:"breakResult", actorId:target.id, tokenId:token?.id ?? "", sceneId:canvas?.scene?.id ?? "", damage, superBreak, color:element?.chargeColor ?? config.chargeColor, fontFile:superBreak ? config.superBreakFontFile : config.breakFontFile};
+  const display = {type:"breakResult", actorId:target.id, tokenId:token?.id ?? "", sceneId:canvas?.scene?.id ?? "", damage, superBreak, color:element?.chargeColor ?? config.chargeColor, fontFile:superBreak ? getBreakFonts().superBreakFontFile : getBreakFonts().breakFontFile};
   await showBreakResult(display);
   game.socket.emit(SOCKET, display);
   await roll.toMessage({speaker: ChatMessage.getSpeaker({actor: attacker}), flavor: `${attacker.name} — ${superBreak ? "Super Break" : "Break"} (${count}d${faces} ${superBreak ? `+ ${breakEffectModifier(config) + 1}` : `× ${modifier}`}): ${damage} HP damage`});
@@ -3169,6 +3197,8 @@ function registerSettings() {
   game.settings.register(MODULE_ID, "skillButtonLayouts", {scope: "client", config: false, type: Object, default: {}});
   game.settings.register(MODULE_ID, "eidolonConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_EIDOLON_CONFIG)});
   game.settings.register(MODULE_ID, "gmPanelCollapsedCards", {scope: "client", config: false, type: Object, default: {}});
+  game.settings.register(MODULE_ID, "breakFonts", {scope:"world",config:false,type:Object,default:{breakFontFile:"",superBreakFontFile:""}});
+  game.settings.registerMenu(MODULE_ID, "breakAppearance", {name:"Break Text Appearance",label:"Configure Break Fonts",hint:"Set the universal Break and Super Break popup fonts for every character.",icon:"fas fa-hammer",type:BreakAppearanceConfig,restricted:true});
   game.settings.registerMenu(MODULE_ID, "elementManager", {
     name: "Manage Elements",
     label: "Open Element Manager",
