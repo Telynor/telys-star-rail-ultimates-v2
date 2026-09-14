@@ -1194,3 +1194,16 @@
 .tsru-break-appearance-form input { flex:1; min-width:0; background:#202734!important; color:#f5f7fa!important; border:1px solid #778596!important; }
 .tsru-break-appearance-form button { width:auto; background:#252d3a!important; color:#f3f5f7!important; border:1px solid #99a6b5!important; }
 .tsru-break-appearance-form footer { display:flex; justify-content:flex-end; }
+
+.tsru-party-selector-form { display:grid; gap:12px; padding:14px; color:#f1f3f6; background:#111722; }
+.tsru-party-selector-form h2,.tsru-party-selector-form p { margin:0; }
+.tsru-party-character-list { display:grid; gap:8px; max-height:560px; overflow:auto; }
+.tsru-party-character-list button { display:grid; grid-template-columns:52px 1fr auto; align-items:center; gap:10px; min-height:66px; margin:0; padding:7px 10px; border:1px solid #657386; background:#202936; color:#f4f6f8; text-align:left; }
+.tsru-party-character-list button:hover { border-color:#ead795; background:#303c4c; }
+.tsru-party-character-list button.selected { border-color:#d8bf62; box-shadow:inset 4px 0 #d8bf62; }
+.tsru-party-character-list button.gm-locked { opacity:.72; }
+.tsru-party-character-list img { width:50px; height:50px; border:0; border-radius:50%; object-fit:cover; }
+.tsru-party-character-list span { display:grid; gap:3px; }
+.tsru-party-character-list small,.tsru-party-note { color:#bdc6d1; }
+.tsru-party-character-list button>i { color:#e5cc70; font-size:20px; }
+.tsru-gm-party-controls { display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px; grid-column:1/-1; padding-bottom:7px; border-bottom:1px solid #454e5c; }

@@ -62,6 +62,52 @@ function questActors() {
   return game.actors.filter(a => a.type === "character");
 }
 
+const actorUltimate = actor => actor?.getFlag(MODULE_ID, "ultimate") ?? {};
+const nonGmOwners = actor => game.users.filter(user => !user.isGM && actor?.testUserPermission(user, "OWNER"));
+const selectedPartyCharacters = () => game.settings.get(MODULE_ID, "partySelections") ?? {};
+const partyAuthority = () => game.users.activeGM ?? game.users.find(user => user.active && user.isGM);
+
+async function applyPartySelection(userId, actorId) {
+  if (!game.user.isGM || partyAuthority()?.id !== game.user.id) return false;
+  const user=game.users.get(userId), selected=game.actors.get(actorId);
+  if (!user || user.isGM || !selected || selected.type !== "character" || !selected.testUserPermission(user, "OWNER")) return false;
+  const selections=foundry.utils.deepClone(selectedPartyCharacters());
+  selections[user.id]=selected.id;
+  await game.settings.set(MODULE_ID, "partySelections", selections);
+  const selectedByOthers=new Set(Object.entries(selections).filter(([id])=>id!==user.id).map(([,id])=>id));
+  for (const actor of game.actors.filter(entry=>entry.type==="character" && entry.testUserPermission(user,"OWNER"))) {
+    const config=actorUltimate(actor);
+    if (config.partyGMOverride) continue;
+    const mainParty=actor.id===selected.id || selectedByOthers.has(actor.id);
+    if (Boolean(config.mainParty)!==mainParty) await actor.update({[`flags.${MODULE_ID}.ultimate.mainParty`]:mainParty});
+  }
+  game.socket.emit(SOCKET,{type:"partySelectionChanged",userId:user.id,actorId:selected.id});
+  return true;
+}
+
+class PartyCharacterSelector extends FormApplication {
+  static get defaultOptions() { return foundry.utils.mergeObject(super.defaultOptions,{id:"tsru-party-selector",title:"Select Main Character",template:`modules/${MODULE_ID}/templates/party-selector.hbs`,width:480,height:"auto",closeOnSubmit:false}); }
+  getData() {
+    const selectedId=selectedPartyCharacters()[game.user.id] ?? "";
+    return {characters:game.actors.filter(actor=>actor.type==="character" && actor.isOwner).map(actor=>({id:actor.id,name:actor.name,img:actor.img,selected:actor.id===selectedId,locked:Boolean(actorUltimate(actor).partyGMOverride)})),selectedId,gm:game.user.isGM};
+  }
+  activateListeners(html) {
+    super.activateListeners(html);
+    html.find("[data-select-party-character]").on("click",event=>this.select(event.currentTarget.dataset.selectPartyCharacter));
+  }
+  async select(actorId) {
+    if (game.user.isGM) return ui.notifications.warn("This selector is for non-GM players. Use the GM Panel for GM-controlled characters.");
+    const actor=game.actors.get(actorId);
+    if (!actor?.isOwner) return ui.notifications.error("You do not own that character.");
+    if (actorUltimate(actor).partyGMOverride) return ui.notifications.warn("The GM has locked this character's party status.");
+    const gm=partyAuthority();
+    if (!gm) return ui.notifications.error("An active GM is required to change your main character.");
+    game.socket.emit(SOCKET,{type:"selectPartyCharacter",userId:game.user.id,actorId,sourceUserId:game.user.id});
+    ui.notifications.info(`Requested ${actor.name} as your main character.`);
+  }
+  async _updateObject() {}
+}
+
 function seenQuestIds() { return new Set(game.settings.get(MODULE_ID, "questSeen") ?? []); }
 async function markQuestSeen(id) {
   if (!id) return;
@@ -97,8 +143,11 @@ async function distributeRewards(questId) {
   const all = quests();
   const quest = all.find(q => q.id === questId);
   if (!quest || quest.rewardsClaimed) return ui.notifications.warn("These rewards have already been distributed.");
-  const recipients = (quest.actorIds ?? []).map(id => game.actors.get(id)).filter(Boolean);
-  if (!recipients.length) return ui.notifications.warn("Assign at least one character before distributing rewards.");
+  const recipients = game.actors.filter(actor => {
+    if (actor.type !== "character" || !actorUltimate(actor).mainParty) return false;
+    return nonGmOwners(actor).length > 0 || Boolean(actorUltimate(actor).receivesRewards);
+  });
+  if (!recipients.length) return ui.notifications.warn("No eligible party characters can receive rewards. Players must select a main character; GMPCs also need Receives Rewards enabled.");
   for (const reward of quest.rewards ?? []) {
     const total = Math.max(1, Number(reward.quantity) || 1);
     if (quest.rewardMode === "copy") {
@@ -121,13 +170,14 @@ async function distributeRewards(questId) {
 
 class HSRHub extends FormApplication {
   static get defaultOptions() { return foundry.utils.mergeObject(super.defaultOptions, {id: "tsru-hub", title: "HSR Hub", template: `modules/${MODULE_ID}/templates/hsr-hub.hbs`, width: 430, height: "auto", resizable: true}); }
-  getData() { return {gm: game.user.isGM}; }
+  getData() { return {gm: game.user.isGM,player:!game.user.isGM}; }
   activateListeners(html) {
     super.activateListeners(html);
     html.find("[data-hub-action]").on("click", async event => {
       const action = event.currentTarget.dataset.hubAction;
       const actions = {
         quests: ["Mission Log", openQuestLog],
+        party: ["Main Character", () => new PartyCharacterSelector().render(true)],
         orbs: ["Ultimate Orbs", async () => {
           const count = await api()?.showUltimateUI?.();
           ui.notifications.info(`Showing ${count || 0} Ultimate orb${count === 1 ? "" : "s"}.`);
@@ -353,6 +403,7 @@ function toolbarAction(label, callback) {
 function hubToolbarActions() {
   return {
     "tsru-quest-log": ["Mission Log", openQuestLog],
+    "tsru-party-selector": ["Main Character", () => new PartyCharacterSelector().render(true)],
     "tsru-orbs": ["Ultimate Orbs", () => api()?.showUltimateUI?.()],
     "tsru-skills": ["Skills & Skill Points", () => api()?.showSkillUI?.()],
     "tsru-hub-window": ["HSR Hub", openHub],
@@ -388,6 +439,7 @@ function consolidateToolbar(controls) {
   if(token){if(Array.isArray(token.tools)) token.tools=token.tools.filter(t=>!old.has(t.name)); else for(const name of old)delete token.tools[name];}
   const hubTools=[
     ["tsru-quest-log","Mission Log","fas fa-clipboard-list",true,toolbarAction("Mission Log",openQuestLog)],
+    ["tsru-party-selector","Select Main Character","fas fa-user-check",!game.user.isGM,toolbarAction("Main Character",()=>new PartyCharacterSelector().render(true))],
     ["tsru-orbs","Show Ultimate Orbs","fas fa-burst",true,toolbarAction("Ultimate Orbs",()=>api()?.showUltimateUI?.())],
     ["tsru-skills","Show Skills & Skill Points","fas fa-hand-sparkles",true,toolbarAction("Skills & Skill Points",()=>api()?.showSkillUI?.())],
     ["tsru-hub-window","Open HSR Hub","fas fa-grid-2",true,toolbarAction("HSR Hub",openHub)],
@@ -413,15 +465,18 @@ Hooks.once("init",()=>{
   game.settings.register(MODULE_ID,"quests",{scope:"world",config:false,type:Array,default:[]});
   game.settings.register(MODULE_ID,"questAllIcon",{scope:"world",config:false,type:String,default:"icons/svg/book.svg"});
   game.settings.register(MODULE_ID,"questSeen",{scope:"client",config:false,type:Array,default:[]});
+  game.settings.register(MODULE_ID,"partySelections",{scope:"world",config:false,type:Object,default:{}});
   game.settings.registerMenu(MODULE_ID,"questConfiguration",{name:"Mission Types & Reward Rarities",label:"Configure Missions",hint:"Configure mission categories, category artwork, filter icons, order, and reward rarity hierarchy.",icon:"fas fa-list-check",type:class extends FormApplication{render(){new QuestSettings().render(true);return this;}},restricted:true});
 });
 
 Hooks.once("ready",()=>{
-  game.socket.on(SOCKET,payload=>{
+  game.socket.on(SOCKET,async payload=>{
+    if(payload?.type==="selectPartyCharacter" && game.user.isGM && partyAuthority()?.id===game.user.id) { await applyPartySelection(payload.userId,payload.actorId); return; }
+    if(payload?.type==="partySelectionChanged") { for(const app of Object.values(ui.windows??{})) if(["tsru-party-selector","tsru-quest-manager","tsru-gm-panel"].includes(app.options?.id)) app.render(false); if(payload.userId===game.user.id) ui.notifications.info("Your main character and party status were updated."); return; }
     if(payload?.type!=="questsChanged")return;refreshQuestWindows();
     if(payload.notify&&payload.sourceUserId!==game.user.id){const q=quests().find(x=>x.id===payload.questId);if(q&&visibleQuest(q))ui.notifications.info(q.status==="complete"?`Mission Complete: ${q.title}`:`New Mission: ${q.title}`);}
   });
-  Object.assign(game.modules.get(MODULE_ID).api??{}, {openHub,openQuestLog,openQuestManager:()=>new QuestManager().render(true),openQuestSettings:()=>new QuestSettings().render(true)});
+  Object.assign(game.modules.get(MODULE_ID).api??{}, {openHub,openQuestLog,openQuestManager:()=>new QuestManager().render(true),openQuestSettings:()=>new QuestSettings().render(true),openPartySelector:()=>new PartyCharacterSelector().render(true)});
   registerHubToolbarFallback();
 });
 

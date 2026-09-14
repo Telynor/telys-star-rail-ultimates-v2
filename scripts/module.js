@@ -10,6 +10,8 @@ const DEFAULT_CONFIG = Object.freeze({
   attackedGain: 5,
   attackedMode: "hit",
   mainParty: false,
+  partyGMOverride: false,
+  receivesRewards: false,
   lockEnergyAfterUltimate: true,
   energyLockCombatId: "",
   energyLockRound: null,
@@ -3014,7 +3016,10 @@ class StarRailGMPanel extends FormApplication {
     const canvasCharacterIds = new Set((canvas?.tokens?.placeables ?? []).filter(token => token.actor?.type === "character").map(token => token.actor.id));
     const characters = game.actors
       .filter(actor => actor.type === "character" && (getConfig(actor).mainParty || canvasCharacterIds.has(actor.id)))
-      .map(actor => ({actor, config: getConfig(actor), talentCurrent: currentTalentPoints(actor), talentEligible: Boolean(talentCombatForActor(actor)), modifier: signedNumber(regenModifier(getConfig(actor))), collapsed: Boolean(collapsedCards[`character:${actor.id}`])}));
+      .map(actor => {
+        const hasPlayerOwner=game.users.some(user=>!user.isGM && actor.testUserPermission(user,"OWNER"));
+        return {actor, config:getConfig(actor), hasPlayerOwner, isGMPC:!hasPlayerOwner, talentCurrent: currentTalentPoints(actor), talentEligible: Boolean(talentCombatForActor(actor)), modifier: signedNumber(regenModifier(getConfig(actor))), collapsed: Boolean(collapsedCards[`character:${actor.id}`])};
+      });
     const normalCombatants = game.combat?.combatants?.filter(entry => !isAhaCombatant(entry) && !isElationActionCombatant(entry) && !entry.getFlag(MODULE_ID, "temporaryUltimate") && !entry.getFlag(MODULE_ID, "actionAdvance")) ?? [];
     const combatants = game.combat?.started ? normalCombatants.map(entry => ({id: entry.id, name: entry.name, initiative: entry.initiative, img: entry.img})) : [];
     const initiativeTokenIds = new Set(normalCombatants.map(entry => entry.tokenId).filter(Boolean));
@@ -3065,8 +3070,8 @@ class StarRailGMPanel extends FormApplication {
       const input = event.currentTarget;
       const actor = game.actors.get(input.dataset.actorId);
       const field = input.dataset.actorField;
-      if (!actor || !["current", "max", "regenScore", "attackGain", "attackedGain", "punchlineGain", "talentPointsCurrent", "talentPointsMax", "mainParty", "lockEnergyAfterUltimate"].includes(field)) return;
-      if (["mainParty", "lockEnergyAfterUltimate"].includes(field)) {
+      if (!actor || !["current", "max", "regenScore", "attackGain", "attackedGain", "punchlineGain", "talentPointsCurrent", "talentPointsMax", "mainParty", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate"].includes(field)) return;
+      if (["mainParty", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate"].includes(field)) {
         await actor.update({[`flags.${MODULE_ID}.ultimate.${field}`]: input.checked});
         return this.refreshLiveValues();
       }
@@ -3165,6 +3170,8 @@ class StarRailGMPanel extends FormApplication {
       root.find(`[data-actor-id="${actor.id}"][data-actor-field="talentPointsCurrent"]`).val(currentTalentPoints(actor)).prop("disabled", !talentCombatForActor(actor));
       root.find(`[data-actor-id="${actor.id}"][data-actor-field="talentPointsMax"]`).val(config.talentPointsMax);
       root.find(`[data-actor-id="${actor.id}"][data-actor-field="mainParty"]`).prop("checked", config.mainParty);
+      root.find(`[data-actor-id="${actor.id}"][data-actor-field="partyGMOverride"]`).prop("checked", config.partyGMOverride);
+      root.find(`[data-actor-id="${actor.id}"][data-actor-field="receivesRewards"]`).prop("checked", config.receivesRewards);
       root.find(`[data-actor-id="${actor.id}"][data-actor-field="lockEnergyAfterUltimate"]`).prop("checked", config.lockEnergyAfterUltimate);
       root.find(`[data-regen-modifier="${actor.id}"]`).text(signedNumber(regenModifier(config)));
     }
@@ -3375,7 +3382,7 @@ function activateConfigListeners(actor, tab, app) {
       data[field.name] = field.type === "checkbox" ? field.checked : field.value;
     });
     for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "talentPointsCurrent", "talentPointsMax", "punchlineGain", "splashDuration", "titleX", "titleY", "titleSize"]) data[key] = Number(data[key]);
-    for (const key of ["enabled", "showPercent", "skillEnabled", "mainParty", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter"]) data[key] = Boolean(data[key]);
+    for (const key of ["enabled", "showPercent", "skillEnabled", "mainParty", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter"]) data[key] = Boolean(data[key]);
     data.max = Math.max(1, data.max || 100);
     data.current = clamp(data.current, 0, data.max);
     const savedConfig = getConfig(actor);

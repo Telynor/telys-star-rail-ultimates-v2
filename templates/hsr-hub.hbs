@@ -1,6 +1,7 @@
 <form class="tsru-hub-form">
   <header><h2><i class="fas fa-rocket"></i> HSR Hub</h2><p>Star Rail interfaces and controls.</p></header>
   <section class="tsru-hub-grid">
+    {{#if player}}<button type="button" data-hub-action="party"><i class="fas fa-user-check"></i><span>Main Character</span></button>{{/if}}
     <button type="button" data-hub-action="quests"><i class="fas fa-clipboard-list"></i><span>Mission Log</span></button>
     <button type="button" data-hub-action="orbs"><i class="fas fa-burst"></i><span>Ultimate Orbs</span></button>
     <button type="button" data-hub-action="skills"><i class="fas fa-hand-sparkles"></i><span>Skills & Points</span></button>
