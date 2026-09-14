@@ -190,15 +190,33 @@ function activatePickers(html) {
 }
 
 class QuestManager extends FormApplication {
+  constructor(...args) { super(...args); this.selectedQuestId = ""; this.search = ""; }
   static get defaultOptions() { return foundry.utils.mergeObject(super.defaultOptions, {id: "tsru-quest-manager", title: "HSR Mission Manager", template: `modules/${MODULE_ID}/templates/quest-manager.hbs`, width: 940, height: 780, resizable: true, closeOnSubmit: false, dragDrop: [{dropSelector: ".tsru-reward-drop"}]}); }
   async getData() {
     const typeList = types(); const rarityList = rarities(); const actors = questActors();
-    return {types: typeList, rarities: rarityList, actors, quests: quests().map(normalizeQuest).map(q => ({...q, typeOptions: typeList.map(t => ({...t, selected: t.id === q.typeId})), rarityOptions: rarityList, actors: actors.map(a => ({id:a.id,name:a.name,img:a.img,assigned:q.actorIds.includes(a.id)})), currentStage: q.stages[q.stageIndex] ?? q.stages[0]}))};
+    const all = quests().map(normalizeQuest);
+    if (!all.some(q => q.id === this.selectedQuestId)) this.selectedQuestId = all[0]?.id ?? "";
+    const selected = all.find(q => q.id === this.selectedQuestId);
+    const actorOption = a => ({id:a.id,name:a.name,img:a.img,assigned:selected.actorIds.includes(a.id)});
+    const mainParty = actors.filter(a => Boolean(a.getFlag(MODULE_ID, "ultimate")?.mainParty));
+    const otherActors = actors.filter(a => !mainParty.includes(a));
+    return {quests: all.map(q => ({...q, searchText: [q.title,q.location,q.description,...q.rewards.map(r=>r.name)].join(" ").toLocaleLowerCase()})),
+      selectedQuest: selected ? {...selected, typeOptions:typeList.map(t=>({...t,selected:t.id===selected.typeId})), rarityOptions:rarityList, mainPartyActors:mainParty.map(actorOption), otherActors:otherActors.map(actorOption), currentStage:selected.stages[selected.stageIndex]??selected.stages[0]} : null, search:this.search};
   }
   activateListeners(html) {
     super.activateListeners(html);
-    html.find("[data-new-quest]").on("click", async () => { const all = quests(); const q = normalizeQuest(); all.push(q); await saveQuests(all, {quest:q}); this.render(false); });
-    html.find("[data-delete-quest]").on("click", async e => { if (!await Dialog.confirm({title:"Delete Mission",content:"<p>Permanently delete this mission?</p>"})) return; await saveQuests(quests().filter(q => q.id !== e.currentTarget.dataset.deleteQuest), {notify:false}); this.render(false); });
+    html.find("[data-new-quest]").on("click", async () => { const all = quests(); const q = normalizeQuest(); all.push(q); this.selectedQuestId=q.id; await saveQuests(all, {quest:q}); this.render(false); });
+    html.find("[data-delete-quest]").on("click", async e => { if (!await Dialog.confirm({title:"Delete Mission",content:"<p>Permanently delete this mission?</p>"})) return; await saveQuests(quests().filter(q => q.id !== e.currentTarget.dataset.deleteQuest), {notify:false}); this.selectedQuestId=""; this.render(false); });
+    html.find("[data-select-manager-quest]").on("click", e => { this.selectedQuestId=e.currentTarget.dataset.selectManagerQuest; this.render(false); });
+    html.find("[data-mission-search]").on("input", e => {
+      this.search=e.currentTarget.value;
+      const tokens=this.search.toLocaleLowerCase().match(/[\p{L}\p{N}]+/gu)??[];
+      html.find("[data-manager-search-text]").each((_index, row) => {
+        row.hidden=!tokens.every(token=>row.dataset.managerSearchText.includes(token));
+      });
+      html.find("[data-no-search-results]").prop("hidden", html.find("[data-manager-search-text]:visible").length>0);
+    });
+    html.find("[data-save-quest]").on("click", e => this.saveEditor(e.currentTarget));
     html.find("[data-quest-field]").on("change", e => this.updateField(e.currentTarget));
     html.find("[data-assignment]").on("change", e => this.toggleAssignment(e.currentTarget));
     html.find("[data-add-stage]").on("click", e => this.addStage(e.currentTarget.dataset.addStage));
@@ -210,8 +228,29 @@ class QuestManager extends FormApplication {
     html.find("[data-reward-field]").on("change", e => this.updateReward(e.currentTarget));
     html.find("[data-complete-quest]").on("click", e => this.completeQuest(e.currentTarget.dataset.completeQuest));
     html.find("[data-distribute-rewards]").on("click", e => distributeRewards(e.currentTarget.dataset.distributeRewards));
+    if (this.search) html.find("[data-mission-search]").trigger("input");
   }
   async persist(all, notify = false, q = null) { await saveQuests(all, {notify, quest:q}); }
+  async saveEditor(button) {
+    const card=button.closest("[data-quest-id]"), all=quests(), q=all.find(x=>x.id===card?.dataset.questId);
+    if(!q)return;
+    for(const input of card.querySelectorAll("[data-quest-field]")) q[input.dataset.questField]=input.type==="checkbox"?input.checked:(input.type==="number"?Number(input.value):input.value);
+    q.actorIds=[...card.querySelectorAll("[data-assignment]:checked")].map(input=>input.value);
+    const stage=q.stages[q.stageIndex];
+    if(stage) {
+      stage.title=card.querySelector("[data-stage-title]")?.value||"Stage";
+      for(const row of card.querySelectorAll("[data-objective-id]")) {
+        const objective=stage.objectives.find(o=>o.id===row.dataset.objectiveId);
+        if(objective) for(const input of row.querySelectorAll("[data-objective-field]")) objective[input.dataset.objectiveField]=input.type==="checkbox"?input.checked:input.value;
+      }
+    }
+    for(const input of card.querySelectorAll("[data-reward-field]")) {
+      const reward=q.rewards[Number(input.dataset.rewardIndex)];
+      if(reward) reward[input.dataset.rewardField]=input.type==="number"?Math.max(1,Number(input.value)||1):input.value;
+    }
+    await this.persist(all);
+    ui.notifications.info(`Mission “${q.title}” saved. You can return to complete it later.`);
+  }
   async updateField(input) { const all=quests(), q=all.find(x=>x.id===input.closest("[data-quest-id]")?.dataset.questId); if(!q)return; const f=input.dataset.questField; q[f]=input.type==="checkbox"?input.checked:(input.type==="number"?Number(input.value):input.value); await this.persist(all); }
   async toggleAssignment(input) { const all=quests(),q=all.find(x=>x.id===input.closest("[data-quest-id]")?.dataset.questId); if(!q)return; q.actorIds=q.actorIds??[]; input.checked?q.actorIds.push(input.value):q.actorIds=q.actorIds.filter(id=>id!==input.value); q.actorIds=[...new Set(q.actorIds)]; await this.persist(all,input.checked,q); }
   async addStage(id) { const all=quests(),q=all.find(x=>x.id===id); q.stages.push({id:foundry.utils.randomID(),title:`Stage ${q.stages.length+1}`,objectives:[]}); q.stageIndex=q.stages.length-1; await this.persist(all); }
@@ -231,7 +270,7 @@ class QuestManager extends FormApplication {
 }
 
 class QuestLog extends FormApplication {
-  constructor(...args) { super(...args); this.filter="all"; this.selected=""; this.compact=false; this.expandedHeight=680; }
+  constructor(...args) { super(...args); this.filter="all"; this.selected="";  }
   static get defaultOptions() { return foundry.utils.mergeObject(super.defaultOptions, {id:"tsru-quest-log",title:"Missions",template:`modules/${MODULE_ID}/templates/quest-log.hbs`,width:1100,height:680,minWidth:620,minHeight:400,resizable:true,classes:["tsru-quest-window"]}); }
   async getData() {
     const typeList=types().filter(t=>t.enabled); let list=quests().map(normalizeQuest).filter(visibleQuest);
@@ -248,7 +287,8 @@ class QuestLog extends FormApplication {
     html.find("[data-quest-filter]").on("click",e=>{this.filter=e.currentTarget.dataset.questFilter;this.selected="";this.render(false);});
     html.find("[data-select-quest]").on("click",async e=>{this.selected=e.currentTarget.dataset.selectQuest;await markQuestSeen(this.selected);this.render(false);});
     html.find("[data-quest-close]").on("click",()=>this.close());
-    html.find("[data-quest-minimize]").on("click",()=>this.toggleCompact());
+    html.find("[data-quest-minimize]").on("click",()=>this.minimize());
+    html.find(".tsru-quest-custom-header").on("dblclick",e=>{if(!e.target.closest("button, a, input, select, textarea"))this.minimize();});
     const dragHandle = html.find(".tsru-quest-custom-header")[0];
     dragHandle?.addEventListener("pointerdown", event => {
       if (event.button !== 0 || event.target.closest("button, a, input, select, textarea")) return;
@@ -275,7 +315,6 @@ class QuestLog extends FormApplication {
     });
   }
   setPosition(options={}) { const pos=super.setPosition(options); const el=this.element?.jquery?this.element[0]:this.element;if(el)el.style.setProperty("--tsru-quest-scale",Math.max(.68,Math.min(1.35,(pos?.width||1100)/1100))); return pos; }
-  toggleCompact(){const el=this.element?.jquery?this.element[0]:this.element;if(!this.compact)this.expandedHeight=this.position.height||680;this.compact=!this.compact;el?.classList.toggle("is-minimized",this.compact);this.setPosition({height:this.compact?64:this.expandedHeight});}
   async close(...args){questLog=null;return super.close(...args);}
   async _updateObject() {}
 }

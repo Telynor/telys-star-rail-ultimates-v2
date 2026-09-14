@@ -937,11 +937,11 @@
 .tsru-quest-editor-card>footer button { width:auto; }
 
 .tsru-quest-window { background:transparent!important; box-shadow:none!important; border:0!important; }
-.tsru-quest-window>.window-header { display:none!important; }
+.tsru-quest-window:not(.minimized)>.window-header { display:none!important; }
+.tsru-quest-window.minimized { background:#181c26!important; border:1px solid #778596!important; box-shadow:0 4px 14px #0008!important; }
+.tsru-quest-window.minimized>.window-header { display:flex!important; }
+.tsru-quest-window.minimized>.window-content { display:none!important; }
 .tsru-quest-window>.window-content { padding:0!important; overflow:hidden!important; background:transparent!important; backdrop-filter:none!important; }
-.tsru-quest-window.is-minimized { min-height:64px!important; height:64px!important; }
-.tsru-quest-window.is-minimized .tsru-quest-log-shell { grid-template-rows:62px 0; }
-.tsru-quest-window.is-minimized .tsru-quest-type-rail,.tsru-quest-window.is-minimized .tsru-quest-list-pane,.tsru-quest-window.is-minimized .tsru-quest-detail-pane { display:none; }
 .tsru-quest-log-shell { --s:var(--tsru-quest-scale,1); position:relative; display:grid; grid-template-columns:calc(92px * var(--s)) calc(340px * var(--s)) minmax(0,1fr); grid-template-rows:calc(78px * var(--s)) minmax(0,1fr); width:100%; height:100%; overflow:hidden; border:1px solid rgba(225,236,241,.42); background:linear-gradient(110deg,rgba(5,25,35,.82),rgba(17,31,45,.62) 50%,rgba(22,40,46,.55)); backdrop-filter:blur(16px) saturate(1.25); color:#f5f6f2; box-shadow:0 18px 70px #000b; }
 .tsru-quest-log-shell:before { content:""; position:absolute; inset:0; background:radial-gradient(circle at 60% 45%,rgba(151,109,174,.26),transparent 30%),linear-gradient(120deg,transparent,rgba(128,205,216,.08)); pointer-events:none; }
 .tsru-quest-custom-header { position:relative; z-index:3; grid-column:1/-1; display:flex; justify-content:space-between; align-items:center; padding:calc(12px * var(--s)) calc(18px * var(--s)); border-bottom:1px solid #ffffff24; cursor:move; touch-action:none; user-select:none; }
@@ -955,8 +955,8 @@
 .tsru-quest-list-pane { position:relative; z-index:2; grid-row:2; padding:calc(12px * var(--s)); overflow:auto; border-right:1px solid #ffffff25; }
 .tsru-quest-group h3 { display:flex; align-items:center; gap:6px; margin:calc(8px * var(--s)) 0 calc(5px * var(--s)); padding:4px 8px; background:rgba(219,228,231,.78); color:#172630; font-size:calc(14px * var(--s)); }
 .tsru-quest-group h3 img { width:calc(18px * var(--s)); height:calc(18px * var(--s)); border:0; object-fit:contain; }
-.tsru-quest-block { position:relative; display:grid; width:100%; min-height:calc(66px * var(--s)); margin:0 0 calc(7px * var(--s)); padding:calc(10px * var(--s)) calc(13px * var(--s)); overflow:hidden; border:1px solid rgba(255,255,255,.55); border-left:calc(6px * var(--s)) solid #b3ca7b; border-radius:0; background:linear-gradient(90deg,rgba(243,246,244,.95),rgba(219,229,230,.83)),var(--quest-bg); background-size:cover; color:#182128; text-align:left; }
-.tsru-quest-block:after { content:""; position:absolute; inset:0; background-image:var(--quest-bg); background-position:center; background-size:cover; opacity:.16; pointer-events:none; }
+.tsru-quest-block { position:relative; display:grid; width:100%; min-height:calc(66px * var(--s)); margin:0 0 calc(7px * var(--s)); padding:calc(10px * var(--s)) calc(13px * var(--s)); overflow:hidden; border:1px solid rgba(255,255,255,.55); border-left:calc(6px * var(--s)) solid #b3ca7b; border-radius:0; background:linear-gradient(90deg,rgba(243,246,244,.95),rgba(219,229,230,.83)),var(--quest-bg); background-size:auto,contain; background-position:center; background-repeat:no-repeat; color:#182128; text-align:left; }
+.tsru-quest-block:after { content:""; position:absolute; inset:0; background-image:var(--quest-bg); background-position:center; background-size:contain; background-repeat:no-repeat; opacity:.25; pointer-events:none; }
 .tsru-quest-block b,.tsru-quest-block small { position:relative; z-index:1; }.tsru-quest-block b { font-size:calc(17px * var(--s)); }.tsru-quest-block small { color:#8c7747; font-size:calc(12px * var(--s)); }.tsru-quest-block.is-new:before { content:"NEW"; position:absolute; z-index:2; top:2px; right:4px; color:#9a5b28; font-size:calc(9px * var(--s)); font-weight:900; }
 .tsru-quest-detail-pane { position:relative; z-index:2; grid-row:2; padding:calc(22px * var(--s)) calc(28px * var(--s)); overflow:auto; background-image:linear-gradient(100deg,rgba(10,27,38,.65),rgba(11,26,38,.38)),var(--quest-bg); background-size:cover; background-position:center; }
 .tsru-quest-location { color:#d8c68c; font-size:calc(14px * var(--s)); }.tsru-quest-detail-pane h1 { margin:calc(8px * var(--s)) 0 calc(28px * var(--s)); font-size:calc(28px * var(--s)); }.tsru-quest-detail-pane>h3 { font-size:calc(16px * var(--s)); }
@@ -1170,3 +1170,4 @@
   .tsru-gm-collapse-header .tsru-targeted-badge { font-size:0; }
   .tsru-gm-collapse-header .tsru-targeted-badge i { font-size:.75rem; }
 }
+\n.tsru-mission-browser { display:grid; gap:8px; margin:4px 0 14px; padding:10px; border:1px solid #5a6370; background:#181c26; }\n.tsru-mission-browser>label { display:grid; gap:5px; color:#ead795; }\n.tsru-mission-browser-list { display:flex; flex-wrap:wrap; gap:7px; max-height:190px; overflow:auto; }\n.tsru-mission-browser-list button { display:grid; gap:3px; width:auto; min-width:170px; max-width:260px; padding:6px 10px; text-align:left; }\n.tsru-mission-browser-list button.active { border-color:#ead795!important; background:#384354!important; }\n.tsru-mission-browser-list button small { color:#ccd3de; }\n.tsru-mission-browser-list [hidden],.tsru-mission-browser [hidden] { display:none!important; }\n
