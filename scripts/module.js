@@ -1980,7 +1980,7 @@ async function executeUltimate(actorId, requestingUserId) {
 
 async function onSocket(payload) {
   if (!payload?.type) return;
-  if (payload.type === "breakResult") { await showBreakResult(payload); return; }
+  if (payload.type === "breakResult" || payload.type === "damageResult") { await showBreakResult(payload); return; }
   if (payload.type === "ahaConfigChanged") {
     state.punchlineMeter?.destroy();
     refreshAhaButton();
@@ -2277,6 +2277,7 @@ async function applyChatRollAsDamage(message, target, requestingUser, applicatio
   const targetUuid = toughnessTargetParts(target).tokenDocument?.uuid ?? targetActor.uuid;
   const eventKey = `manual-chat-damage:${message.id}:${resolvedApplicationId}:${targetUuid}`;
   await applyDirectChatDamage(targetActor, hpDamage);
+  if (attacker.type === "character" && hpDamage > 0) await broadcastDamageResult(target,hpDamage,{plainDamage:true,fontFile:getBreakFonts().breakFontFile});
   const appliedToughness = toughnessDamage > 0 ? await applyToughnessDamage(attacker, [target], toughnessDamage, eventKey) : 0;
   const detail = {sourceActor: attacker, targetActor, amount: hpDamage, origin: message, manual: true};
   await dispatchTalentEvent("damageDealt", detail, eventKey);
@@ -2345,7 +2346,16 @@ class BreakAppearanceConfig extends FormApplication {
 }
 
 function breakDisplayTarget(target) {
-  return (canvas?.tokens?.placeables ?? []).find(token => token.actor?.id === target?.id) ?? null;
+  const {actor,tokenDocument}=toughnessTargetParts(target);
+  return canvas?.tokens?.get(tokenDocument?.id) ?? (canvas?.tokens?.placeables ?? []).find(token => token.actor?.id === actor?.id) ?? null;
+}
+
+async function broadcastDamageResult(target, damage, {plainDamage=false, superBreak=false, color="", fontFile=""}={}) {
+  const {actor}=toughnessTargetParts(target);
+  const token=breakDisplayTarget(target);
+  const display={type:plainDamage?"damageResult":"breakResult",actorId:actor?.id??"",tokenId:token?.id??"",sceneId:canvas?.scene?.id??"",damage,plainDamage,superBreak,color,fontFile};
+  await showBreakResult(display);
+  game.socket.emit(SOCKET,display);
 }
 
 async function showBreakResult(payload) {
@@ -2356,7 +2366,8 @@ async function showBreakResult(payload) {
   let left = window.innerWidth / 2;
   let top = window.innerHeight / 2;
   if (token && rect) {
-    const worldPoint = new PIXI.Point(token.center.x, token.center.y - token.h * 0.35);
+    const stageScale=Math.abs(Number(canvas?.stage?.scale?.y))||1;
+    const worldPoint = new PIXI.Point(token.center.x, token.center.y - token.h / 2 - 12 / stageScale);
     const screenPoint = canvas?.stage?.worldTransform?.apply?.(worldPoint) ?? token.getGlobalPosition?.(new PIXI.Point()) ?? worldPoint;
     const screenWidth = Number(canvas?.app?.renderer?.screen?.width) || rect.width;
     const screenHeight = Number(canvas?.app?.renderer?.screen?.height) || rect.height;
@@ -2364,38 +2375,41 @@ async function showBreakResult(payload) {
     top = rect.top + screenPoint.y * (rect.height / screenHeight);
   }
   const popup = document.createElement("div");
-  popup.className = "tsru-break-popup";
+  popup.className = `tsru-break-popup${payload.plainDamage ? " is-plain-damage" : ""}`;
   popup.style.left = `${left}px`;
   popup.style.top = `${top}px`;
   popup.style.setProperty("--tsru-break-color", /^#[0-9a-f]{3,8}$/i.test(payload.color ?? "") ? payload.color : "#ed4855");
-  const label = document.createElement("strong");
-  label.textContent = payload.superBreak ? "Super Break" : "Break";
   const amount = document.createElement("span");
   amount.textContent = String(Math.max(0, Math.floor(Number(payload.damage) || 0)));
-  popup.append(label, amount);
+  let fontTarget=amount;
+  if (!payload.plainDamage) {
+    const label = document.createElement("strong");
+    label.textContent = payload.superBreak ? "Super Break" : "Break";
+    popup.append(label);
+    fontTarget=label;
+  }
+  popup.append(amount);
   document.body.append(popup);
   window.setTimeout(() => popup.remove(), 1250);
-  try { label.style.fontFamily = await loadSplashFont(payload.fontFile); }
-  catch (error) { console.warn(`${MODULE_ID} | Could not load Break font`, error); }
+  try { fontTarget.style.fontFamily = await loadSplashFont(payload.fontFile); }
+  catch (error) { console.warn(`${MODULE_ID} | Could not load damage popup font`, error); }
 }
 
 async function applyWeaknessBreakDamage(attacker, target, {superBreak = false} = {}) {
   const config = getConfig(attacker);
-  if (!config.breakCharacter || (superBreak && !config.superBreakCharacter)) return 0;
+  const targetActor=toughnessTargetParts(target).actor;
+  if (!targetActor || !config.breakCharacter || (superBreak && !config.superBreakCharacter)) return 0;
   const count = clamp(Math.floor(config.breakDamageDice), 1, 20);
   const faces = [4, 6, 8, 10, 12, 20].includes(Number(config.breakDamageDie)) ? Number(config.breakDamageDie) : 6;
   const modifier = Math.max(1, breakEffectModifier(config));
   const roll = await new Roll(`${count}d${faces}`).evaluate();
   const damage = Math.max(0, Math.floor(superBreak ? (Number(roll.total) || 0) + breakEffectModifier(config) + 1 : (Number(roll.total) || 0) * modifier));
   if (damage > 0) {
-    const hp = target.system?.attributes?.hp;
-    if (hp && Number.isFinite(Number(hp.value))) await target.update({"system.attributes.hp.value":Math.max(0, Number(hp.value) - damage)});
+    const hp = targetActor.system?.attributes?.hp;
+    if (hp && Number.isFinite(Number(hp.value))) await targetActor.update({"system.attributes.hp.value":Math.max(0, Number(hp.value) - damage)});
   }
-  const token = breakDisplayTarget(target);
   const element = getElements().find(entry => entry.id === config.elementId);
-  const display = {type:"breakResult", actorId:target.id, tokenId:token?.id ?? "", sceneId:canvas?.scene?.id ?? "", damage, superBreak, color:element?.chargeColor ?? config.chargeColor, fontFile:superBreak ? getBreakFonts().superBreakFontFile : getBreakFonts().breakFontFile};
-  await showBreakResult(display);
-  game.socket.emit(SOCKET, display);
+  await broadcastDamageResult(target,damage,{superBreak,color:element?.chargeColor??config.chargeColor,fontFile:superBreak?getBreakFonts().superBreakFontFile:getBreakFonts().breakFontFile});
   await roll.toMessage({speaker: ChatMessage.getSpeaker({actor: attacker}), flavor: `${attacker.name} — ${superBreak ? "Super Break" : "Break"} (${count}d${faces} ${superBreak ? `+ ${breakEffectModifier(config) + 1}` : `× ${modifier}`}): ${damage} HP damage`});
   return damage;
 }
@@ -2440,6 +2454,13 @@ async function processAppliedDamage(target, amount, options = {}) {
   const damageEventId = origin?.id ?? options.midi?.workflowId ?? "unknown";
 
   if (Number(amount) > 0) {
+    const shownDamage=getConfig(attacker).breakCharacter ? Math.min(1,Math.floor(Number(amount))) : Math.floor(Number(amount));
+    const popupKey=`damage-popup:${damageEventId}:${targetActor.uuid}:${shownDamage}`;
+    if (attacker.type==="character" && shownDamage>0 && !state.processedMessages.has(popupKey)) {
+      state.processedMessages.add(popupKey);
+      window.setTimeout(()=>state.processedMessages.delete(popupKey),120000);
+      await broadcastDamageResult(target,shownDamage,{plainDamage:true,fontFile:getBreakFonts().breakFontFile});
+    }
     const detail = {sourceActor: attacker, targetActor, amount: Number(amount), origin, midi: options.midi ?? null};
     await dispatchTalentEvent("damageDealt", detail, `${damageEventId}:${targetActor.uuid}`);
     await dispatchTalentEvent("damageTaken", detail, `${damageEventId}:${targetActor.uuid}`);
@@ -2463,7 +2484,7 @@ async function processAppliedDamage(target, amount, options = {}) {
   const toughnessDamage = getConfig(attacker).breakCharacter ? fullDamageTotal(damageRolls) : rawDiceTotal(damageRolls);
   if (toughnessDamage <= 0) return;
   const eventKey = `applied-damage:${damageEventId}:${targetActor.uuid}:${toughnessDamage}`;
-  await applyToughnessDamage(attacker, [targetActor], toughnessDamage, eventKey);
+  await applyToughnessDamage(attacker, [target], toughnessDamage, eventKey);
 }
 
 async function delayBrokenCombatant(target) {
@@ -2552,7 +2573,7 @@ async function applyToughnessDamage(attacker, targets, amount, eventKey = "") {
     if (!toughness.enabled || (!breakCharacter && !freeForAll && !matchesWeakness)) continue;
     if (toughness.current <= 0) {
       if (breakCharacter && getConfig(attacker).superBreakCharacter) {
-        await applyWeaknessBreakDamage(attacker, actor, {superBreak:true});
+        await applyWeaknessBreakDamage(attacker, target, {superBreak:true});
         applied = true;
       }
       continue;
@@ -2566,7 +2587,7 @@ async function applyToughnessDamage(attacker, targets, amount, eventKey = "") {
     applied = true;
     if (next === 0 && toughness.current > 0) {
       ui.notifications.info(`${actor.name}'s Toughness was broken!`);
-      if (breakCharacter) await applyWeaknessBreakDamage(attacker, actor);
+      if (breakCharacter) await applyWeaknessBreakDamage(attacker, target);
       await delayBrokenCombatant(target);
     }
   }

@@ -1207,3 +1207,6 @@
 .tsru-party-character-list small,.tsru-party-note { color:#bdc6d1; }
 .tsru-party-character-list button>i { color:#e5cc70; font-size:20px; }
 .tsru-gm-party-controls { display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px; grid-column:1/-1; padding-bottom:7px; border-bottom:1px solid #454e5c; }
+
+.tsru-break-popup.is-plain-damage { gap:0; }
+.tsru-break-popup.is-plain-damage span { color:#fff; background:none; -webkit-text-fill-color:#fff; font-size:clamp(34px,4.8vw,74px); }
