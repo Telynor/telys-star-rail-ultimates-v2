@@ -2351,15 +2351,22 @@ function breakDisplayTarget(target) {
 async function showBreakResult(payload) {
   if (payload.sceneId && canvas?.scene?.id !== payload.sceneId) return;
   const token = canvas?.tokens?.get(payload.tokenId) ?? breakDisplayTarget(game.actors.get(payload.actorId));
-  if (!token || !canvas?.app?.stage) return;
-  const point = canvas.app.stage.toGlobal(new PIXI.Point(token.center.x, token.center.y - token.h / 2));
-  const rect = canvas.app.view.getBoundingClientRect();
-  const scaleX = rect.width / canvas.app.renderer.screen.width;
-  const scaleY = rect.height / canvas.app.renderer.screen.height;
+  const view = canvas?.app?.view ?? document.querySelector("#board canvas");
+  const rect = view?.getBoundingClientRect?.();
+  let left = window.innerWidth / 2;
+  let top = window.innerHeight / 2;
+  if (token && rect) {
+    const worldPoint = new PIXI.Point(token.center.x, token.center.y - token.h * 0.35);
+    const screenPoint = canvas?.stage?.worldTransform?.apply?.(worldPoint) ?? token.getGlobalPosition?.(new PIXI.Point()) ?? worldPoint;
+    const screenWidth = Number(canvas?.app?.renderer?.screen?.width) || rect.width;
+    const screenHeight = Number(canvas?.app?.renderer?.screen?.height) || rect.height;
+    left = rect.left + screenPoint.x * (rect.width / screenWidth);
+    top = rect.top + screenPoint.y * (rect.height / screenHeight);
+  }
   const popup = document.createElement("div");
   popup.className = "tsru-break-popup";
-  popup.style.left = `${rect.left + point.x * scaleX}px`;
-  popup.style.top = `${rect.top + point.y * scaleY}px`;
+  popup.style.left = `${left}px`;
+  popup.style.top = `${top}px`;
   popup.style.setProperty("--tsru-break-color", /^#[0-9a-f]{3,8}$/i.test(payload.color ?? "") ? payload.color : "#ed4855");
   const label = document.createElement("strong");
   label.textContent = payload.superBreak ? "Super Break" : "Break";
@@ -2481,7 +2488,7 @@ async function delayBrokenCombatant(target) {
   } finally { state.suppressCombatHook = false; }
 }
 
-async function restoreBrokenCombatant(combatant) {
+async function restoreBrokenCombatant(combatant, {preserveActive = true} = {}) {
   const stored = combatant?.getFlag(MODULE_ID, "brokenInitiative");
   if (!combatant || !isAuthority()) return;
   const actor = combatant.actor;
@@ -2497,9 +2504,28 @@ async function restoreBrokenCombatant(combatant) {
     if (stored?.delayed && stored.initiative !== null) await combatant.update({initiative:stored.initiative});
     if (stored) await combatant.unsetFlag(MODULE_ID, "brokenInitiative");
     const activeIndex = combat?.turns.findIndex(entry => entry.id === activeId) ?? -1;
-    if (activeIndex >= 0 && activeIndex !== combat.turn) await combat.update({turn:activeIndex});
+    if (preserveActive && activeIndex >= 0 && activeIndex !== combat.turn) await combat.update({turn:activeIndex});
   } finally { state.suppressCombatHook = false; }
   refreshToughnessBars();
+}
+
+async function skipBrokenCombatantTurn(combat, combatant) {
+  const stored = combatant?.getFlag(MODULE_ID, "brokenInitiative");
+  if (!isAuthority() || !combat?.started || !stored || combatant.actor?.type !== "npc" || getToughness(combatant.actor).current !== 0) return false;
+  const beforeTurns=[...combat.turns];
+  const currentIndex=beforeTurns.findIndex(entry=>entry.id===combatant.id);
+  const nextId=beforeTurns[currentIndex+1]?.id ?? null;
+  const round=combat.round;
+  await restoreBrokenCombatant(combatant,{preserveActive:false});
+  state.suppressCombatHook=true;
+  try {
+    const nextIndex=nextId ? combat.turns.findIndex(entry=>entry.id===nextId) : -1;
+    if (nextIndex >= 0) await combat.update({round,turn:nextIndex});
+    else await combat.update({round:round+1,turn:0});
+  } finally { state.suppressCombatHook=false; }
+  state.lastCombatTurns.set(combat.id,combatTurnSnapshot(combat));
+  ui.notifications.info(`${combatant.name}'s broken turn was skipped.`);
+  return true;
 }
 
 async function applyToughnessDamage(attacker, targets, amount, eventKey = "") {
@@ -4136,6 +4162,7 @@ Hooks.on("updateCombat", async combat => {
     }
   }
   await removeOrphanedTemporaryTurns(combat);
+  if (await skipBrokenCombatantTurn(combat, combat.combatant)) return;
   const ultimateQueue = state.ultimateQueues.get(combat.id);
   if (ultimateQueue?.waitTurnId && combat.combatant?.id !== ultimateQueue.waitTurnId) {
     ultimateQueue.resumeCombatantId = combat.combatant?.id ?? null;
