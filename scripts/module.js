@@ -14,6 +14,9 @@ const DEFAULT_CONFIG = Object.freeze({
   energyLockCombatId: "",
   energyLockRound: null,
   breakCharacter: false,
+  superBreakCharacter: false,
+  breakFontFile: "",
+  superBreakFontFile: "",
   breakEffectScore: 10,
   breakDamageDice: 1,
   breakDamageDie: 6,
@@ -871,6 +874,7 @@ function combatTurnSnapshot(combat) {
   return combatant ? {
     id: combatant.id,
     actorId: combatant.actorId ?? combatant.actor?.id ?? null,
+    round: combat.round,
     ultimate: Boolean(combatant.getFlag(MODULE_ID, "temporaryUltimate")),
     elation: isElationActionCombatant(combatant)
   } : null;
@@ -1961,6 +1965,7 @@ async function executeUltimate(actorId, requestingUserId) {
 
 async function onSocket(payload) {
   if (!payload?.type) return;
+  if (payload.type === "breakResult") { await showBreakResult(payload); return; }
   if (payload.type === "ahaConfigChanged") {
     state.punchlineMeter?.destroy();
     refreshAhaButton();
@@ -2294,19 +2299,52 @@ async function limitBreakAttackHpDamage(attacker, target, amount, eventId, optio
   await target.update({"system.attributes.hp.value": Math.max(0, Math.min(Number(hp.max) || Infinity, initialHp - 1))});
 }
 
-async function applyWeaknessBreakDamage(attacker, target) {
+function breakDisplayTarget(target) {
+  return (canvas?.tokens?.placeables ?? []).find(token => token.actor?.id === target?.id) ?? null;
+}
+
+async function showBreakResult(payload) {
+  if (payload.sceneId && canvas?.scene?.id !== payload.sceneId) return;
+  const token = canvas?.tokens?.get(payload.tokenId) ?? breakDisplayTarget(game.actors.get(payload.actorId));
+  if (!token || !canvas?.app?.stage) return;
+  const point = canvas.app.stage.toGlobal(new PIXI.Point(token.center.x, token.center.y - token.h / 2));
+  const rect = canvas.app.view.getBoundingClientRect();
+  const scaleX = rect.width / canvas.app.renderer.screen.width;
+  const scaleY = rect.height / canvas.app.renderer.screen.height;
+  const popup = document.createElement("div");
+  popup.className = "tsru-break-popup";
+  popup.style.left = `${rect.left + point.x * scaleX}px`;
+  popup.style.top = `${rect.top + point.y * scaleY}px`;
+  popup.style.setProperty("--tsru-break-color", /^#[0-9a-f]{3,8}$/i.test(payload.color ?? "") ? payload.color : "#ed4855");
+  const label = document.createElement("strong");
+  label.textContent = payload.superBreak ? "Super Break" : "Break";
+  const amount = document.createElement("span");
+  amount.textContent = String(Math.max(0, Math.floor(Number(payload.damage) || 0)));
+  popup.append(label, amount);
+  document.body.append(popup);
+  window.setTimeout(() => popup.remove(), 1250);
+  try { label.style.fontFamily = await loadSplashFont(payload.fontFile); }
+  catch (error) { console.warn(`${MODULE_ID} | Could not load Break font`, error); }
+}
+
+async function applyWeaknessBreakDamage(attacker, target, {superBreak = false} = {}) {
   const config = getConfig(attacker);
-  if (!config.breakCharacter) return 0;
+  if (!config.breakCharacter || (superBreak && !config.superBreakCharacter)) return 0;
   const count = clamp(Math.floor(config.breakDamageDice), 1, 20);
   const faces = [4, 6, 8, 10, 12, 20].includes(Number(config.breakDamageDie)) ? Number(config.breakDamageDie) : 6;
-  const modifier = breakEffectModifier(config);
+  const modifier = Math.max(1, breakEffectModifier(config));
   const roll = await new Roll(`${count}d${faces}`).evaluate();
-  const damage = Math.max(0, Math.floor((Number(roll.total) || 0) * modifier));
+  const damage = Math.max(0, Math.floor(superBreak ? (Number(roll.total) || 0) + breakEffectModifier(config) + 1 : (Number(roll.total) || 0) * modifier));
   if (damage > 0) {
     const hp = target.system?.attributes?.hp;
-    if (hp && Number.isFinite(Number(hp.value))) await target.update({"system.attributes.hp.value": Math.max(0, Number(hp.value) - damage)});
+    if (hp && Number.isFinite(Number(hp.value))) await target.update({"system.attributes.hp.value":Math.max(0, Number(hp.value) - damage)});
   }
-  await roll.toMessage({speaker: ChatMessage.getSpeaker({actor: attacker}), flavor: `${attacker.name} — Weakness Break (${count}d${faces} × ${signedNumber(modifier)})${damage ? `: ${damage} HP damage` : ": no HP damage"}`});
+  const token = breakDisplayTarget(target);
+  const element = getElements().find(entry => entry.id === config.elementId);
+  const display = {type:"breakResult", actorId:target.id, tokenId:token?.id ?? "", sceneId:canvas?.scene?.id ?? "", damage, superBreak, color:element?.chargeColor ?? config.chargeColor, fontFile:superBreak ? config.superBreakFontFile : config.breakFontFile};
+  await showBreakResult(display);
+  game.socket.emit(SOCKET, display);
+  await roll.toMessage({speaker: ChatMessage.getSpeaker({actor: attacker}), flavor: `${attacker.name} — ${superBreak ? "Super Break" : "Break"} (${count}d${faces} ${superBreak ? `+ ${breakEffectModifier(config) + 1}` : `× ${modifier}`}): ${damage} HP damage`});
   return damage;
 }
 
@@ -2376,6 +2414,49 @@ async function processAppliedDamage(target, amount, options = {}) {
   await applyToughnessDamage(attacker, [targetActor], toughnessDamage, eventKey);
 }
 
+async function delayBrokenCombatant(target) {
+  const combat = game.combat;
+  const actor = toughnessTargetParts(target).actor;
+  if (!combat?.started || !actor) return;
+  const tokenId = toughnessTargetParts(target).tokenDocument?.id;
+  const combatant = combat.combatants.find(entry => entry.actor?.id === actor.id && (!tokenId || entry.tokenId === tokenId) && !entry.getFlag(MODULE_ID, "temporaryUltimate") && !isElationActionCombatant(entry));
+  if (!combatant || combatant.getFlag(MODULE_ID, "brokenInitiative")) return;
+  const index = combat.turns.findIndex(entry => entry.id === combatant.id);
+  const canDelay = index > combat.turn && combatant.initiative !== null;
+  const original = combatant.initiative;
+  await combatant.setFlag(MODULE_ID, "brokenInitiative", {initiative:original, round:combat.round, delayed:canDelay});
+  if (!canDelay) return;
+  const activeId = combat.combatant?.id;
+  const lowest = Math.min(...combat.combatants.map(entry => Number(entry.initiative)).filter(Number.isFinite));
+  state.suppressCombatHook = true;
+  try {
+    await combatant.update({initiative:lowest - 1});
+    const activeIndex = combat.turns.findIndex(entry => entry.id === activeId);
+    if (activeIndex >= 0 && activeIndex !== combat.turn) await combat.update({turn:activeIndex});
+  } finally { state.suppressCombatHook = false; }
+}
+
+async function restoreBrokenCombatant(combatant) {
+  const stored = combatant?.getFlag(MODULE_ID, "brokenInitiative");
+  if (!combatant || !isAuthority()) return;
+  const actor = combatant.actor;
+  if (!stored && (actor?.type !== "npc" || getToughness(actor).current !== 0)) return;
+  const toughness = getToughness(actor);
+  if (toughness.enabled && toughness.current === 0) {
+    await actor.update({[`flags.${MODULE_ID}.toughness.current`]:toughness.max});
+    ui.notifications.info(`${actor.name}'s Toughness recovered to full.`);
+  }
+  const combat = combatant.parent, activeId = combat?.combatant?.id;
+  state.suppressCombatHook = true;
+  try {
+    if (stored?.delayed && stored.initiative !== null) await combatant.update({initiative:stored.initiative});
+    if (stored) await combatant.unsetFlag(MODULE_ID, "brokenInitiative");
+    const activeIndex = combat?.turns.findIndex(entry => entry.id === activeId) ?? -1;
+    if (activeIndex >= 0 && activeIndex !== combat.turn) await combat.update({turn:activeIndex});
+  } finally { state.suppressCombatHook = false; }
+  refreshToughnessBars();
+}
+
 async function applyToughnessDamage(attacker, targets, amount, eventKey = "") {
   if (!isAuthority() || !attacker || amount <= 0) return 0;
   const targetList = [...targets].filter(Boolean);
@@ -2397,7 +2478,14 @@ async function applyToughnessDamage(attacker, targets, amount, eventKey = "") {
     if (toughnessWeaknessMode(target) === "none") continue;
     const toughness = getToughness(actor);
     const matchesWeakness = Boolean(elementId && effectiveToughnessWeaknesses(target).includes(elementId));
-    if (!toughness.enabled || (!breakCharacter && !freeForAll && !matchesWeakness) || toughness.current <= 0) continue;
+    if (!toughness.enabled || (!breakCharacter && !freeForAll && !matchesWeakness)) continue;
+    if (toughness.current <= 0) {
+      if (breakCharacter && getConfig(attacker).superBreakCharacter) {
+        await applyWeaknessBreakDamage(attacker, actor, {superBreak:true});
+        applied = true;
+      }
+      continue;
+    }
     const next = clamp(toughness.current - amount, 0, toughness.max);
     const discoveredWeaknesses = matchesWeakness ? [...new Set([...toughness.discoveredWeaknesses, elementId])] : toughness.discoveredWeaknesses;
     await actor.update({
@@ -2407,7 +2495,8 @@ async function applyToughnessDamage(attacker, targets, amount, eventKey = "") {
     applied = true;
     if (next === 0 && toughness.current > 0) {
       ui.notifications.info(`${actor.name}'s Toughness was broken!`);
-      await applyWeaknessBreakDamage(attacker, actor);
+      if (breakCharacter) await applyWeaknessBreakDamage(attacker, actor);
+      await delayBrokenCombatant(target);
     }
   }
   if (!isManualApplication && processedKey && applied) {
@@ -3238,7 +3327,7 @@ function activateConfigListeners(actor, tab, app) {
       data[field.name] = field.type === "checkbox" ? field.checked : field.value;
     });
     for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "talentPointsCurrent", "talentPointsMax", "punchlineGain", "splashDuration", "titleX", "titleY", "titleSize"]) data[key] = Number(data[key]);
-    for (const key of ["enabled", "showPercent", "skillEnabled", "mainParty", "lockEnergyAfterUltimate", "breakCharacter"]) data[key] = Boolean(data[key]);
+    for (const key of ["enabled", "showPercent", "skillEnabled", "mainParty", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter"]) data[key] = Boolean(data[key]);
     data.max = Math.max(1, data.max || 100);
     data.current = clamp(data.current, 0, data.max);
     const savedConfig = getConfig(actor);
@@ -3971,7 +4060,8 @@ Hooks.on("updateCombat", async combat => {
   const currentTurn = combatTurnSnapshot(combat);
   state.lastCombatTurns.set(combat.id, currentTurn);
   if (state.suppressCombatHook) return;
-  if (previousTurn?.id && previousTurn.id !== currentTurn?.id) {
+  if (previousTurn?.id && (previousTurn.id !== currentTurn?.id || previousTurn.round !== combat.round)) {
+    await restoreBrokenCombatant(combat.combatants.get(previousTurn.id));
     if (previousTurn.ultimate && previousTurn.actorId) {
       await completeUltimate(previousTurn.actorId);
       await removeOrphanedTemporaryTurns(combat);
@@ -4002,14 +4092,7 @@ Hooks.on("updateCombat", async combat => {
   }
   if (!combat.combatants.find(isAhaCombatant)) await maybeEnsureAhaCombatant(combat);
   const current = combat.combatant;
-  if (combat.started && current?.actor?.type === "npc") {
-    const toughness = getToughness(current.actor);
-    if (toughness.enabled && toughness.current === 0) {
-      await current.actor.update({[`flags.${MODULE_ID}.toughness.current`]: toughness.max});
-      ui.notifications.info(`${current.actor.name}'s Toughness recovered to full.`);
-      refreshToughnessBars();
-    }
-  }
+
   if (combat.started && current) {
     const turnKey = `${combat.id}:${combat.round}:${current.id}`;
     const previous = state.lastTalentTurns.get(combat.id);
