@@ -24,6 +24,7 @@ const DEFAULT_CONFIG = Object.freeze({
   skillButtonImage: "",
   talentPointsCurrent: 0,
   talentPointsMax: 0,
+  talentCombatId: "",
   talentScript: "",
   punchlineGain: 1,
   elationActionScript: "",
@@ -601,19 +602,32 @@ function punchlineScriptHelpers(actor) {
   });
 }
 
+function talentCombatForActor(actor) {
+  const combat = game.combat;
+  if (!combat?.started || actor?.type !== "character") return null;
+  const scene = combat.scene ?? game.scenes?.get(combat.sceneId);
+  if (!scene?.tokens) return null;
+  // Hidden tokens are still on the battlefield and remain eligible.
+  return scene.tokens.some(token => token.actorId === actor.id || token.actor?.id === actor.id) ? combat : null;
+}
+
 function currentTalentPoints(actor) {
+  const combat = talentCombatForActor(actor);
+  if (!combat) return 0;
   const config = getConfig(actor);
+  if (config.talentCombatId !== combat.id) return 0;
   return clamp(Math.floor(Number(config.talentPointsCurrent) || 0), 0, Math.max(0, Math.floor(Number(config.talentPointsMax) || 0)));
 }
 
 async function setTalentPoints(actor, value) {
-  if (!isAuthority() || actor?.type !== "character") return currentTalentPoints(actor);
+  const combat = talentCombatForActor(actor);
+  if (!isAuthority() || !combat) return currentTalentPoints(actor);
   const config = getConfig(actor);
   const maximum = Math.max(0, Math.floor(Number(config.talentPointsMax) || 0));
   const next = clamp(Math.floor(Number(value) || 0), 0, maximum);
   const before = currentTalentPoints(actor);
-  if (next !== before) await actor.update({[`flags.${MODULE_ID}.ultimate.talentPointsCurrent`]: next});
-  Hooks.callAll("tsruTalentPointsChanged", actor, before, next);
+  if (next !== before || config.talentCombatId !== combat.id) await actor.update({[`flags.${MODULE_ID}.ultimate.talentPointsCurrent`]: next, [`flags.${MODULE_ID}.ultimate.talentCombatId`]: combat.id});
+  if (next !== before) Hooks.callAll("tsruTalentPointsChanged", actor, before, next);
   return next;
 }
 
@@ -680,7 +694,7 @@ function scriptRuntimeHelpers(actor) {
 
 async function runTalentScript(actor, event) {
   const script = getConfig(actor).talentScript?.trim();
-  if (!script || state.activeTalents.has(actor.id)) return;
+  if (!script || !talentCombatForActor(actor) || state.activeTalents.has(actor.id)) return;
   state.activeTalents.add(actor.id);
   try {
     const token = actor.getActiveTokens(true, true)?.[0] ?? null;
@@ -694,7 +708,8 @@ async function runTalentScript(actor, event) {
 }
 
 async function dispatchTalentEvent(type, detail = {}, eventKey = "") {
-  if (!isAuthority()) return;
+  if (!isAuthority() || !game.combat?.started) return;
+  if (detail.sourceActor?.type === "character" && !talentCombatForActor(detail.sourceActor)) return;
   const key = eventKey ? `talent:${type}:${eventKey}` : "";
   if (key && state.talentEvents.has(key)) return;
   if (key) {
@@ -709,7 +724,7 @@ async function dispatchTalentEvent(type, detail = {}, eventKey = "") {
     turn: detail.combat?.turn ?? game.combat?.turn ?? null,
     ...detail
   });
-  const actors = game.actors.filter(actor => actor.type === "character" && Boolean(getConfig(actor).talentScript?.trim()));
+  const actors = game.actors.filter(actor => talentCombatForActor(actor) && Boolean(getConfig(actor).talentScript?.trim()));
   for (const actor of actors) await runTalentScript(actor, event);
 }
 
@@ -1334,7 +1349,7 @@ async function injectCharacterBadges(app, html) {
   } else host.addClass("tsru-species-badge-host");
   if (speciesHostFound) {
     const talentMaximum = Math.max(0, Math.floor(Number(config.talentPointsMax) || 0));
-    const talentCurrent = clamp(config.talentPointsCurrent, 0, talentMaximum);
+    const talentCurrent = currentTalentPoints(actor);
     host.before(`<div class="tsru-sheet-talent-counter" data-tsru-talent-counter title="Talent Points reset to 0 when combat starts"><span><i class="fas fa-star"></i> Talent Points</span><strong><b data-tsru-talent-current>${talentCurrent}</b><i>/</i><b data-tsru-talent-max>${talentMaximum}</b></strong></div>`);
   }
   if (!element?.icon && !path?.icon) return;
@@ -1348,7 +1363,7 @@ function refreshTalentCounter(actor) {
   if (!actor) return;
   const config = getConfig(actor);
   const maximum = Math.max(0, Math.floor(Number(config.talentPointsMax) || 0));
-  const current = clamp(config.talentPointsCurrent, 0, maximum);
+  const current = currentTalentPoints(actor);
   for (const app of Object.values(ui.windows ?? {})) {
     if (app.actor?.id !== actor.id) continue;
     const root = app.element?.jquery ? app.element : $(app.element ?? []);
@@ -2999,7 +3014,7 @@ class StarRailGMPanel extends FormApplication {
     const canvasCharacterIds = new Set((canvas?.tokens?.placeables ?? []).filter(token => token.actor?.type === "character").map(token => token.actor.id));
     const characters = game.actors
       .filter(actor => actor.type === "character" && (getConfig(actor).mainParty || canvasCharacterIds.has(actor.id)))
-      .map(actor => ({actor, config: getConfig(actor), modifier: signedNumber(regenModifier(getConfig(actor))), collapsed: Boolean(collapsedCards[`character:${actor.id}`])}));
+      .map(actor => ({actor, config: getConfig(actor), talentCurrent: currentTalentPoints(actor), talentEligible: Boolean(talentCombatForActor(actor)), modifier: signedNumber(regenModifier(getConfig(actor))), collapsed: Boolean(collapsedCards[`character:${actor.id}`])}));
     const normalCombatants = game.combat?.combatants?.filter(entry => !isAhaCombatant(entry) && !isElationActionCombatant(entry) && !entry.getFlag(MODULE_ID, "temporaryUltimate") && !entry.getFlag(MODULE_ID, "actionAdvance")) ?? [];
     const combatants = game.combat?.started ? normalCombatants.map(entry => ({id: entry.id, name: entry.name, initiative: entry.initiative, img: entry.img})) : [];
     const initiativeTokenIds = new Set(normalCombatants.map(entry => entry.tokenId).filter(Boolean));
@@ -3071,7 +3086,10 @@ class StarRailGMPanel extends FormApplication {
       else if (field === "talentPointsMax") {
         value = Math.max(0, value);
         await actor.update({[`flags.${MODULE_ID}.ultimate.talentPointsMax`]: value, [`flags.${MODULE_ID}.ultimate.talentPointsCurrent`]: clamp(config.talentPointsCurrent, 0, value)});
-      } else if (field === "talentPointsCurrent") await setTalentPoints(actor, value);
+      } else if (field === "talentPointsCurrent") {
+        if (!talentCombatForActor(actor)) ui.notifications.warn("Talent Points can only be tracked during combat for characters with tokens on the battlefield.");
+        else await setTalentPoints(actor, value);
+      }
       else await actor.update({[`flags.${MODULE_ID}.ultimate.${field}`]: Math.max(0, value)});
       this.refreshLiveValues();
     });
@@ -3144,7 +3162,7 @@ class StarRailGMPanel extends FormApplication {
       const config = getConfig(actor);
       root.find(`[data-actor-id="${actor.id}"][data-actor-field="current"]`).val(config.current);
       root.find(`[data-actor-id="${actor.id}"][data-actor-field="max"]`).val(config.max);
-      root.find(`[data-actor-id="${actor.id}"][data-actor-field="talentPointsCurrent"]`).val(config.talentPointsCurrent);
+      root.find(`[data-actor-id="${actor.id}"][data-actor-field="talentPointsCurrent"]`).val(currentTalentPoints(actor)).prop("disabled", !talentCombatForActor(actor));
       root.find(`[data-actor-id="${actor.id}"][data-actor-field="talentPointsMax"]`).val(config.talentPointsMax);
       root.find(`[data-actor-id="${actor.id}"][data-actor-field="mainParty"]`).prop("checked", config.mainParty);
       root.find(`[data-actor-id="${actor.id}"][data-actor-field="lockEnergyAfterUltimate"]`).prop("checked", config.lockEnergyAfterUltimate);
@@ -3366,7 +3384,8 @@ function activateConfigListeners(actor, tab, app) {
       ui.notifications.warn(`${actor.name} cannot regain Energy until the next round.`);
     }
     data.talentPointsMax = Math.max(0, Math.floor(data.talentPointsMax || 0));
-    data.talentPointsCurrent = clamp(Math.floor(data.talentPointsCurrent || 0), 0, data.talentPointsMax);
+    data.talentPointsCurrent = talentCombatForActor(actor) ? clamp(Math.floor(data.talentPointsCurrent || 0), 0, data.talentPointsMax) : 0;
+    data.talentCombatId = talentCombatForActor(actor)?.id ?? "";
     await actor.setFlag(MODULE_ID, "ultimate", data);
     ui.notifications.info(`${actor.name}'s Ultimate configuration saved.`);
     refreshOrb(actor);
@@ -4079,10 +4098,13 @@ Hooks.on("deleteCombat", async combat => {
     if (combatant.getFlag(MODULE_ID, "temporaryUltimate")) state.ultimateLocks.delete(combatant.actorId);
   }
   refreshAllOrbs();
+  for (const actor of game.actors.filter(entry => entry.type === "character")) refreshTalentCounter(actor);
+  state.gmPanel?.render(false);
 });
 
 Hooks.on("updateCombat", async combat => {
   refreshToughnessBars();
+  for (const actor of game.actors.filter(entry => entry.type === "character")) refreshTalentCounter(actor);
   state.gmPanel?.render(false);
   if (!isAuthority()) return;
   await clearExpiredEnergyLocks(combat);
@@ -4168,11 +4190,10 @@ Hooks.on("combatStart", async combat => {
   state.lastCombatTurns.set(combat.id, combatTurnSnapshot(combat));
   if (isAuthority()) {
     await setSkillPoints(getSkillPointConfig().starting);
-    for (const actor of game.actors.filter(entry => entry.type === "character" && currentTalentPoints(entry) !== 0)) {
-      await actor.update({[`flags.${MODULE_ID}.ultimate.talentPointsCurrent`]: 0});
-    }
+    for (const actor of game.actors.filter(entry => talentCombatForActor(entry))) await setTalentPoints(actor, 0);
     await dispatchTalentEvent("combatStart", {combat}, combat.id);
   }
+  for (const actor of game.actors.filter(entry => entry.type === "character")) refreshTalentCounter(actor);
   await maybeEnsureAhaCombatant(combat, {force: true});
 });
 Hooks.on("deleteCombatant", combatant => {
@@ -4188,4 +4209,10 @@ Hooks.on("deleteCombatant", combatant => {
     state.activeElationActions.delete(combatant.id);
   }
   window.setTimeout(refreshToughnessBars, 100);
+});
+
+for (const hook of ["createToken", "deleteToken"]) Hooks.on(hook, token => {
+  const actor = token.actor ?? game.actors.get(token.actorId);
+  if (actor?.type === "character") refreshTalentCounter(actor);
+  state.gmPanel?.render(false);
 });
