@@ -32,6 +32,7 @@ function normalizeQuest(quest = {}) {
   const firstType = types().find(t => t.enabled)?.id ?? types()[0]?.id ?? "";
   return {
     id: quest.id || foundry.utils.randomID(),
+    background: String(quest.background || ""),
     title: String(quest.title || "New Mission"), typeId: String(quest.typeId || firstType),
     location: String(quest.location || ""), description: String(quest.description || ""),
     status: ["active", "complete"].includes(quest.status) ? quest.status : "active",
@@ -184,13 +185,13 @@ class QuestSettings extends FormApplication {
       background: String(fd.get(`rarities.${i}.background`) ?? rarity.background).trim()
     }));
   }
-  async _updateObject(_event, formData) {
-    this.capture(this.element);
+  async _updateObject(event, formData) {
+    this.capture(event?.currentTarget?.matches?.("form.tsru-quest-settings-form") ? event.currentTarget : this.element);
     await game.settings.set(MODULE_ID, "questTypes", this._types);
     await game.settings.set(MODULE_ID, "questRarities", this._rarities);
     const form = this.element?.jquery ? this.element[0]?.querySelector("form.tsru-quest-settings-form") ?? this.element[0] : this.element?.querySelector("form.tsru-quest-settings-form") ?? this.element;
     await game.settings.set(MODULE_ID, "questAllIcon", form?.querySelector('[name="questAllIcon"]')?.value?.trim() || formData.questAllIcon || "icons/svg/book.svg");
-    ui.notifications.info("Quest types and reward rarities saved.");
+    ui.notifications.info(`Mission configuration saved (${this._types.filter(type => type.background).length} mission backgrounds, ${this._rarities.filter(rarity => rarity.background).length} reward backgrounds).`);
     refreshQuestWindows();
     this.render(false);
   }
@@ -218,7 +219,7 @@ class QuestManager extends FormApplication {
       selectedQuest: selected ? {...selected, typeOptions:typeList.map(t=>({...t,selected:t.id===selected.typeId})), rarityOptions:rarityList, mainPartyActors:mainParty.map(actorOption), otherActors:otherActors.map(actorOption), currentStage:selected.stages[selected.stageIndex]??selected.stages[0]} : null, search:this.search};
   }
   activateListeners(html) {
-    super.activateListeners(html);
+    super.activateListeners(html); activatePickers(html);
     html.find("[data-new-quest]").on("click", async () => { const all = quests(); const q = normalizeQuest(); all.push(q); this.selectedQuestId=q.id; await saveQuests(all, {quest:q}); this.render(false); });
     html.find("[data-delete-quest]").on("click", async e => { if (!await Dialog.confirm({title:"Delete Mission",content:"<p>Permanently delete this mission?</p>"})) return; await saveQuests(quests().filter(q => q.id !== e.currentTarget.dataset.deleteQuest), {notify:false}); this.selectedQuestId=""; this.render(false); });
     html.find("[data-select-manager-quest]").on("click", e => { this.selectedQuestId=e.currentTarget.dataset.selectManagerQuest; this.render(false); });
@@ -292,7 +293,7 @@ class QuestLog extends FormApplication {
     const selected=list.find(q=>q.id===this.selected)??list[0]??null; this.selected=selected?.id??"";
     const rars=rarities();
     const seen=seenQuestIds();
-    const enrich=q=>{const type=typeList.find(t=>t.id===q.typeId)??{};const stage=q.stages[q.stageIndex]??q.stages[0];return {...q,isNew:q.isNew&&!seen.has(q.id),type,stage,objectives:(stage?.objectives??[]).filter(o=>game.user.isGM||!o.hidden||o.revealed),rewards:q.rewards.map(r=>({...r,rarity:rars.find(x=>x.id===r.rarityId)??{}})).sort((a,b)=>(Number(a.rarity.order)||0)-(Number(b.rarity.order)||0))};};
+    const enrich=q=>{const type=typeList.find(t=>t.id===q.typeId)??{};const stage=q.stages[q.stageIndex]??q.stages[0];return {...q,cardBackground:q.background||type.background||"",isNew:q.isNew&&!seen.has(q.id),type,stage,objectives:(stage?.objectives??[]).filter(o=>game.user.isGM||!o.hidden||o.revealed),rewards:q.rewards.map(r=>({...r,rarity:rars.find(x=>x.id===r.rarityId)??{}})).sort((a,b)=>(Number(a.rarity.order)||0)-(Number(b.rarity.order)||0))};};
     const enriched=list.map(enrich); const groups=typeList.map(t=>({type:t,quests:enriched.filter(q=>q.typeId===t.id)})).filter(g=>g.quests.length);
     return {allIcon:game.settings.get(MODULE_ID,"questAllIcon"),types:typeList.map(t=>({...t,active:this.filter===t.id})),allActive:this.filter==="all",groups,flat:enriched,selected:selected?enrich(selected):null,allMode:this.filter==="all",gm:game.user.isGM};
   }
