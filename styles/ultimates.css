@@ -1298,3 +1298,61 @@
 .tsru-technique-button:disabled { opacity: .45; filter: grayscale(1); }
 .tsru-technique-chat h3 { display: flex; align-items: center; gap: 8px; color: #f3d36d; }
 .tsru-technique-chat h3 img { width: 38px; height: 38px; object-fit: cover; border-radius: 50%; }
+
+
+/* v2.22.1: collapsible Ultimate Configuration sections. */
+.tsru-sheet-tab .tsru-config-reveal-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 12;
+  display: flex;
+  justify-content: flex-end;
+  padding: 6px 8px;
+  margin: 0 0 8px;
+  background: linear-gradient(180deg, rgba(12,18,28,.98), rgba(12,18,28,.84));
+  border-bottom: 1px solid rgba(245,205,92,.45);
+}
+.tsru-sheet-tab .tsru-config-reveal-toolbar button {
+  flex: 0 0 auto;
+  width: auto;
+  padding: 5px 12px;
+  color: #10151e;
+  background: #f0cf66;
+  border: 1px solid #fff0aa;
+  border-radius: 4px;
+  font-weight: 700;
+}
+.tsru-sheet-tab .tsru-config-section > h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 32px;
+}
+.tsru-sheet-tab .tsru-config-section > h3 .tsru-section-toggle {
+  flex: 0 0 32px;
+  width: 32px;
+  height: 28px;
+  min-height: 28px;
+  padding: 0;
+  margin: 0 0 0 auto;
+  color: #f3d36d;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(245,205,92,.42);
+  border-radius: 4px;
+}
+.tsru-sheet-tab .tsru-collapsible-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+}
+.tsru-sheet-tab .tsru-config-section.is-collapsed {
+  padding-bottom: 6px;
+}
+.tsru-sheet-tab .tsru-config-section.is-collapsed > .tsru-collapsible-content {
+  display: none !important;
+}
+.tsru-sheet-tab .tsru-config-section.is-collapsed > h3 {
+  margin-bottom: 0;
+  border-bottom: 0;
+}

@@ -3549,6 +3549,7 @@ function registerSettings() {
   game.settings.register(MODULE_ID, "skillButtonLayouts", {scope: "client", config: false, type: Object, default: {}});
   game.settings.register(MODULE_ID, "eidolonConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_EIDOLON_CONFIG)});
   game.settings.register(MODULE_ID, "gmPanelCollapsedCards", {scope: "client", config: false, type: Object, default: {}});
+  game.settings.register(MODULE_ID, "ultimateSectionStates", {scope: "client", config: false, type: Object, default: {}});
   game.settings.register(MODULE_ID, "breakFonts", {scope:"world",config:false,type:Object,default:{breakFontFile:"",superBreakFontFile:""}});
   game.settings.registerMenu(MODULE_ID, "breakAppearance", {name:"Break Text Appearance",label:"Configure Break Fonts",hint:"Set the universal Break and Super Break popup fonts for every character.",icon:"fas fa-hammer",type:BreakAppearanceConfig,restricted:true});
   game.settings.registerMenu(MODULE_ID, "elementManager", {
@@ -3705,8 +3706,91 @@ async function openUltimateConfig(actor, sheetApp = null) {
   dialog.render(true);
 }
 
+function ultimateSectionStateKey(section, index) {
+  const title = section.querySelector(":scope > h3")?.textContent?.trim()?.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "section";
+  return `${index}-${title}`;
+}
+
+async function saveUltimateSectionStates(actorId, states) {
+  const allStates = foundry.utils.deepClone(game.settings.get(MODULE_ID, "ultimateSectionStates") ?? {});
+  allStates[actorId] = states;
+  await game.settings.set(MODULE_ID, "ultimateSectionStates", allStates);
+}
+
+function initializeCollapsibleUltimateSections(actor, tab) {
+  const root = tab?.jquery ? tab[0] : tab;
+  if (!(root instanceof HTMLElement)) return;
+  const allStates = game.settings.get(MODULE_ID, "ultimateSectionStates") ?? {};
+  const actorStates = foundry.utils.deepClone(allStates[actor.id] ?? {});
+  const sections = [...root.querySelectorAll(".tsru-config-section")];
+
+  let toolbar = root.querySelector(":scope > .tsru-config-reveal-toolbar");
+  if (!toolbar) {
+    toolbar = document.createElement("div");
+    toolbar.className = "tsru-config-reveal-toolbar";
+    toolbar.innerHTML = '<button type="button" data-action="reveal-all-config"><i class="fas fa-eye"></i> Reveal All</button>';
+    root.prepend(toolbar);
+  }
+
+  for (const [index, section] of sections.entries()) {
+    const heading = section.querySelector(":scope > h3");
+    if (!heading) continue;
+    const key = ultimateSectionStateKey(section, index);
+    section.dataset.tsruSectionKey = key;
+    let content = section.querySelector(":scope > .tsru-collapsible-content");
+    if (!content) {
+      content = document.createElement("div");
+      content.className = "tsru-collapsible-content";
+      for (const child of [...section.children]) if (child !== heading) content.appendChild(child);
+      section.appendChild(content);
+    }
+    let toggle = heading.querySelector(":scope > .tsru-section-toggle");
+    if (!toggle) {
+      toggle = document.createElement("button");
+      toggle.type = "button";
+      toggle.className = "tsru-section-toggle";
+      toggle.innerHTML = '<i class="fas fa-chevron-up"></i><span class="sr-only">Collapse section</span>';
+      heading.appendChild(toggle);
+    }
+    const applyState = collapsed => {
+      section.classList.toggle("is-collapsed", collapsed);
+      toggle.setAttribute("aria-expanded", String(!collapsed));
+      toggle.title = collapsed ? "Reveal this section" : "Minimize this section";
+      toggle.querySelector("i").className = collapsed ? "fas fa-chevron-down" : "fas fa-chevron-up";
+      toggle.querySelector("span").textContent = collapsed ? "Reveal section" : "Minimize section";
+    };
+    applyState(Boolean(actorStates[key]));
+    toggle.addEventListener("click", async event => {
+      event.preventDefault();
+      event.stopPropagation();
+      actorStates[key] = !section.classList.contains("is-collapsed");
+      applyState(actorStates[key]);
+      await saveUltimateSectionStates(actor.id, actorStates);
+    });
+  }
+
+  toolbar.querySelector("[data-action='reveal-all-config']").onclick = async event => {
+    event.preventDefault();
+    event.stopPropagation();
+    for (const section of sections) {
+      const key = section.dataset.tsruSectionKey;
+      if (key) actorStates[key] = false;
+      section.classList.remove("is-collapsed");
+      const toggle = section.querySelector(":scope > h3 > .tsru-section-toggle");
+      if (toggle) {
+        toggle.setAttribute("aria-expanded", "true");
+        toggle.title = "Minimize this section";
+        toggle.querySelector("i").className = "fas fa-chevron-up";
+        toggle.querySelector("span").textContent = "Minimize section";
+      }
+    }
+    await saveUltimateSectionStates(actor.id, actorStates);
+  };
+}
+
 function activateConfigListeners(actor, tab, app) {
   tab.find("input, select, textarea, button").prop("disabled", false);
+  initializeCollapsibleUltimateSections(actor, tab);
   tab.find("input:not([readonly])").prop("readonly", false);
   tab.on("input.tsru change.tsru", "input, select, textarea", event => event.stopPropagation());
   tab.find("[data-action='save-config']").on("click", async event => {
