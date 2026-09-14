@@ -35,6 +35,13 @@
       <div class="tsru-field tsru-field-wide"><label><strong>Floating Skill button</strong><small>The party must have at least 1 shared Skill Point before it can be pressed.</small></label><button type="button" data-action="show-skill-button"><i class="fas fa-hand-sparkles"></i> Show Skill Button</button></div>
     </div>
 
+    <div class="tsru-config-section tsru-technique-config-section">
+      <h3><i class="fas fa-bolt"></i> Technique</h3>
+      <div class="tsru-field tsru-field-toggle"><span class="tsru-field-label"><strong>Enable Technique button</strong><small>Shows this character in the shared Technique Point panel for its owner and the GM while outside combat.</small></span><input type="checkbox" name="techniqueEnabled" {{checked config.techniqueEnabled}}></div>
+      <div class="tsru-field tsru-field-wide"><label><strong>Technique information</strong><small>Posted to chat when the character spends 1 shared Technique Point. Techniques are blocked whenever initiative is active.</small></label><textarea name="techniqueText" rows="7" placeholder="Describe this character's Technique.">{{config.techniqueText}}</textarea></div>
+      <div class="tsru-field tsru-field-wide"><label><strong>Technique button artwork</strong><small>Displayed in the floating Technique panel. Defaults to the actor portrait.</small></label><div class="tsru-file-control"><input type="text" name="techniqueButtonImage" value="{{config.techniqueButtonImage}}" placeholder="Use actor portrait"><button type="button" class="file-picker" data-type="image" data-target="techniqueButtonImage" title="Browse Files"><i class="fas fa-file-import"></i></button></div></div>
+    </div>
+
     <div class="tsru-config-section tsru-talent-config-section">
       <h3><i class="fas fa-star"></i> Talent</h3>
       <div class="tsru-field"><label><strong>Current Talent Points</strong><small>Talent Points currently held. This is automatically reset to 0 whenever combat starts.</small></label><input type="number" name="talentPointsCurrent" min="0" max="{{config.talentPointsMax}}" step="1" value="{{config.talentPointsCurrent}}"></div>

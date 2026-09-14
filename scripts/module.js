@@ -24,6 +24,9 @@ const DEFAULT_CONFIG = Object.freeze({
   skillScript: "",
   skillText: "",
   skillButtonImage: "",
+  techniqueEnabled: false,
+  techniqueText: "",
+  techniqueButtonImage: "",
   talentPointsCurrent: 0,
   talentPointsMax: 0,
   talentCombatId: "",
@@ -59,6 +62,9 @@ const state = {
   skillLocks: new Set(),
   pendingSkills: new Map(),
   skillSpendLock: false,
+  talentPointHud: null,
+  techniqueHud: null,
+  techniqueSpendLock: false,
   ahaButton: null,
   punchlineMeter: null,
   pendingElationActions: new Map(),
@@ -101,6 +107,11 @@ const DEFAULT_AHA_CONFIG = Object.freeze({
   color: "#ff4fd8",
   initiativeEnabled: false,
   combatantImage: "icons/svg/mystery-man.svg"
+});
+
+const DEFAULT_TECHNIQUE_POINT_CONFIG = Object.freeze({
+  maximum: 5,
+  starting: 3
 });
 
 const DEFAULT_SKILL_POINT_CONFIG = Object.freeze({
@@ -1132,6 +1143,188 @@ function registerAhaToolbarFallback() {
   }, true);
 }
 
+
+function getTechniquePointConfig() {
+  const stored = game.settings.get(MODULE_ID, "techniquePointConfig") ?? {};
+  const config = foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_TECHNIQUE_POINT_CONFIG), stored, {inplace: false});
+  config.maximum = Math.max(1, Math.floor(Number(config.maximum) || DEFAULT_TECHNIQUE_POINT_CONFIG.maximum));
+  config.starting = clamp(Math.floor(Number(config.starting)), 0, config.maximum);
+  return config;
+}
+
+function currentTechniquePoints() {
+  return clamp(Math.floor(Number(game.settings.get(MODULE_ID, "techniquePoints"))), 0, getTechniquePointConfig().maximum);
+}
+
+async function setTechniquePoints(value, {broadcast = true} = {}) {
+  if (!isAuthority()) return currentTechniquePoints();
+  const next = clamp(Math.floor(Number(value)), 0, getTechniquePointConfig().maximum);
+  await game.settings.set(MODULE_ID, "techniquePoints", next);
+  if (broadcast) game.socket.emit(SOCKET, {type: "techniquePointsChanged", value: next, sourceUserId: game.user.id});
+  refreshResourceHuds();
+  Hooks.callAll("tsruTechniquePointsChanged", next);
+  return next;
+}
+
+function combatHasInitiative() {
+  return Boolean(game.combat?.started);
+}
+
+function visibleTalentActors() {
+  if (!combatHasInitiative()) return [];
+  return game.actors.filter(actor => actor.type === "character" && talentCombatForActor(actor) && (game.user.isGM || actor.isOwner) && Number(getConfig(actor).talentPointsMax) > 0);
+}
+
+function visibleTechniqueActors() {
+  if (combatHasInitiative()) return [];
+  return game.actors.filter(actor => actor.type === "character" && getConfig(actor).techniqueEnabled && (game.user.isGM || actor.isOwner));
+}
+
+function resourceHudLayout(key, fallback) {
+  return foundry.utils.mergeObject(fallback, game.settings.get(MODULE_ID, key) ?? {}, {inplace: false});
+}
+
+async function saveResourceHudLayout(key, changes, fallback) {
+  await game.settings.set(MODULE_ID, key, foundry.utils.mergeObject(resourceHudLayout(key, fallback), changes, {inplace: false}));
+}
+
+function activateResourceHudDrag(element, handle, settingKey, fallback) {
+  let drag = null;
+  handle.addEventListener("pointerdown", event => {
+    event.preventDefault();
+    const rect = element.getBoundingClientRect();
+    drag = {dx: event.clientX - rect.left, dy: event.clientY - rect.top};
+    handle.setPointerCapture(event.pointerId);
+  });
+  handle.addEventListener("pointermove", event => {
+    if (!drag) return;
+    element.style.left = `${clamp(event.clientX - drag.dx, 0, window.innerWidth - 60)}px`;
+    element.style.top = `${clamp(event.clientY - drag.dy, 0, window.innerHeight - 40)}px`;
+  });
+  handle.addEventListener("pointerup", async event => {
+    if (!drag) return;
+    drag = null;
+    handle.releasePointerCapture(event.pointerId);
+    const rect = element.getBoundingClientRect();
+    await saveResourceHudLayout(settingKey, {x: Math.round(rect.left), y: Math.round(rect.top)}, fallback);
+  });
+}
+
+function requestTalentAdjustment(actor, delta) {
+  if (!actor || !talentCombatForActor(actor)) return ui.notifications.warn("Talent Points can only be adjusted for a token in the active combat.");
+  if (!game.user.isGM && !actor.isOwner) return ui.notifications.error("You do not own this character.");
+  if (isAuthority()) return setTalentPoints(actor, currentTalentPoints(actor) + delta).then(refreshResourceHuds);
+  const gm = activeGM();
+  if (!gm) return ui.notifications.error("A GM must be connected to adjust Talent Points.");
+  game.socket.emit(SOCKET, {type: "changeTalentPoints", actorId: actor.id, delta, sourceUserId: game.user.id});
+}
+
+class TalentPointHud {
+  constructor() { this.element = null; }
+  render() {
+    const actors = visibleTalentActors();
+    if (!actors.length) return this.destroy();
+    const fallback = {x: 24, y: 180};
+    const layout = resourceHudLayout("talentHudLayout", fallback);
+    if (!this.element) {
+      this.element = document.createElement("section");
+      this.element.className = "tsru-resource-hud tsru-talent-hud";
+      this.element.innerHTML = '<header><span><i class="fas fa-star"></i> Talent Points</span><i class="fas fa-grip-lines tsru-resource-drag"></i></header><div class="tsru-resource-list"></div>';
+      document.body.appendChild(this.element);
+      activateResourceHudDrag(this.element, this.element.querySelector(".tsru-resource-drag"), "talentHudLayout", fallback);
+      this.element.addEventListener("click", event => {
+        const button = event.target.closest("[data-talent-delta]");
+        if (!button) return;
+        requestTalentAdjustment(game.actors.get(button.dataset.actorId), Number(button.dataset.talentDelta));
+      });
+    }
+    this.element.style.left = `${clamp(layout.x, 0, window.innerWidth - 60)}px`;
+    this.element.style.top = `${clamp(layout.y, 0, window.innerHeight - 40)}px`;
+    this.element.querySelector(".tsru-resource-list").innerHTML = actors.map(actor => {
+      const config = getConfig(actor);
+      return `<div class="tsru-resource-row"><img src="${escapeHTML(actor.img || "icons/svg/mystery-man.svg")}" alt=""><span class="tsru-resource-name">${escapeHTML(actor.name)}</span><button type="button" data-actor-id="${actor.id}" data-talent-delta="-1" title="Remove 1 Talent Point"><i class="fas fa-minus"></i></button><strong>${currentTalentPoints(actor)}/${Math.max(0, Number(config.talentPointsMax) || 0)}</strong><button type="button" data-actor-id="${actor.id}" data-talent-delta="1" title="Add 1 Talent Point"><i class="fas fa-plus"></i></button></div>`;
+    }).join("");
+    return this;
+  }
+  destroy() { this.element?.remove(); this.element = null; if (state.talentPointHud === this) state.talentPointHud = null; }
+}
+
+async function requestTechnique(actor) {
+  if (combatHasInitiative()) return ui.notifications.warn("Techniques cannot be used while initiative is active.");
+  if (!actor || (!game.user.isGM && !actor.isOwner)) return ui.notifications.error("You do not own this character.");
+  if (!getConfig(actor).techniqueEnabled) return ui.notifications.warn("This character's Technique is disabled.");
+  if (currentTechniquePoints() < 1) return ui.notifications.warn("The party has no Technique Points remaining.");
+  if (isAuthority()) return executeTechnique(actor.id, game.user.id);
+  if (!activeGM()) return ui.notifications.error("A GM must be connected to spend a shared Technique Point.");
+  game.socket.emit(SOCKET, {type: "activateTechnique", actorId: actor.id, requestingUserId: game.user.id});
+}
+
+async function executeTechnique(actorId, requestingUserId) {
+  if (!isAuthority() || state.techniqueSpendLock || combatHasInitiative()) return;
+  const actor = game.actors.get(actorId);
+  const requester = game.users.get(requestingUserId);
+  if (!actor || actor.type !== "character" || (!requester?.isGM && !actor.testUserPermission(requester, "OWNER"))) return;
+  const config = getConfig(actor);
+  if (!config.techniqueEnabled || currentTechniquePoints() < 1) return;
+  state.techniqueSpendLock = true;
+  try {
+    await setTechniquePoints(currentTechniquePoints() - 1);
+    const body = await TextEditor.enrichHTML(config.techniqueText || "<em>No Technique description has been entered.</em>", {async: true, secrets: actor.isOwner});
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({actor}),
+      content: `<article class="tsru-technique-chat"><h3><img src="${escapeHTML(config.techniqueButtonImage || actor.img || "icons/svg/lightning.svg")}" alt="">${escapeHTML(actor.name)} — Technique</h3><div>${body}</div></article>`
+    });
+    ui.notifications.info(`${actor.name} used their Technique. ${currentTechniquePoints()} Technique Point(s) remain.`);
+  } finally {
+    state.techniqueSpendLock = false;
+    refreshResourceHuds();
+  }
+}
+
+class TechniqueHud {
+  constructor() { this.element = null; }
+  render() {
+    const actors = visibleTechniqueActors();
+    if (!actors.length) return this.destroy();
+    const fallback = {x: 24, y: 420};
+    const layout = resourceHudLayout("techniqueHudLayout", fallback);
+    if (!this.element) {
+      this.element = document.createElement("section");
+      this.element.className = "tsru-resource-hud tsru-technique-hud";
+      this.element.innerHTML = '<header><span><i class="fas fa-bolt"></i> Technique Points: <strong class="tsru-technique-count"></strong></span><i class="fas fa-grip-lines tsru-resource-drag"></i></header><div class="tsru-technique-buttons"></div>';
+      document.body.appendChild(this.element);
+      activateResourceHudDrag(this.element, this.element.querySelector(".tsru-resource-drag"), "techniqueHudLayout", fallback);
+      this.element.addEventListener("click", event => {
+        const button = event.target.closest("[data-technique-actor]");
+        if (button) requestTechnique(game.actors.get(button.dataset.techniqueActor));
+      });
+    }
+    this.element.style.left = `${clamp(layout.x, 0, window.innerWidth - 60)}px`;
+    this.element.style.top = `${clamp(layout.y, 0, window.innerHeight - 40)}px`;
+    this.element.querySelector(".tsru-technique-count").textContent = `${currentTechniquePoints()}/${getTechniquePointConfig().maximum}`;
+    this.element.querySelector(".tsru-technique-buttons").innerHTML = actors.map(actor => {
+      const config = getConfig(actor);
+      const disabled = currentTechniquePoints() < 1 ? "disabled" : "";
+      return `<button type="button" class="tsru-technique-button" data-technique-actor="${actor.id}" ${disabled} title="Use ${escapeHTML(actor.name)}'s Technique (costs 1 Technique Point)"><img src="${escapeHTML(config.techniqueButtonImage || actor.img || "icons/svg/lightning.svg")}" alt=""><span>${escapeHTML(actor.name)}</span></button>`;
+    }).join("");
+    return this;
+  }
+  destroy() { this.element?.remove(); this.element = null; if (state.techniqueHud === this) state.techniqueHud = null; }
+}
+
+function refreshResourceHuds() {
+  const talentActors = visibleTalentActors();
+  if (talentActors.length) {
+    if (!state.talentPointHud) state.talentPointHud = new TalentPointHud();
+    state.talentPointHud.render();
+  } else state.talentPointHud?.destroy();
+  const techniqueActors = visibleTechniqueActors();
+  if (techniqueActors.length) {
+    if (!state.techniqueHud) state.techniqueHud = new TechniqueHud();
+    state.techniqueHud.render();
+  } else state.techniqueHud?.destroy();
+}
+
 function getSkillPointConfig() {
   const stored = game.settings.get(MODULE_ID, "skillPointConfig") ?? {};
   const config = foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_SKILL_POINT_CONFIG), stored, {inplace: false});
@@ -1998,6 +2191,19 @@ async function onSocket(payload) {
     else if (payload.operation === "set") await setPunchline(payload.amount);
     return;
   }
+  if (payload.type === "changeTalentPoints" && isAuthority()) {
+    const requester = game.users.get(payload.sourceUserId);
+    const actor = game.actors.get(payload.actorId);
+    if (!actor || (!requester?.isGM && !actor.testUserPermission(requester, "OWNER")) || !talentCombatForActor(actor)) return;
+    await setTalentPoints(actor, currentTalentPoints(actor) + clamp(Number(payload.delta), -1, 1));
+    refreshResourceHuds();
+    return;
+  }
+  if (payload.type === "activateTechnique" && isAuthority()) {
+    await executeTechnique(payload.actorId, payload.requestingUserId);
+    return;
+  }
+  if (payload.type === "techniquePointsChanged") { refreshResourceHuds(); return; }
   if (payload.type === "changeSkillPoints" && isAuthority()) {
     const requester = game.users.get(payload.sourceUserId);
     const actor = await actorFromUuid(payload.actorUuid);
@@ -2945,6 +3151,31 @@ class AhaMenu extends FormApplication {
   render() { new AhaConfig().render(true); return this; }
 }
 
+class TechniquePointConfig extends FormApplication {
+  static get defaultOptions() {
+    return foundry.utils.mergeObject(super.defaultOptions, {
+      id: "tsru-technique-point-config",
+      title: "Technique Point Configuration",
+      template: `modules/${MODULE_ID}/templates/technique-point-config.hbs`,
+      width: 480,
+      height: "auto",
+      closeOnSubmit: true
+    });
+  }
+  getData() { return {config: getTechniquePointConfig(), current: currentTechniquePoints()}; }
+  async _updateObject(_event, formData) {
+    const maximum = Math.max(1, Math.floor(Number(formData.maximum) || DEFAULT_TECHNIQUE_POINT_CONFIG.maximum));
+    const config = {maximum, starting: clamp(Math.floor(Number(formData.starting)), 0, maximum)};
+    await game.settings.set(MODULE_ID, "techniquePointConfig", config);
+    await setTechniquePoints(clamp(Math.floor(Number(formData.current)), 0, maximum));
+    refreshResourceHuds();
+    ui.notifications.info("Shared Technique Point configuration saved.");
+  }
+}
+class TechniquePointMenu extends FormApplication {
+  render() { new TechniquePointConfig().render(true); return this; }
+}
+
 class SkillPointConfig extends FormApplication {
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
@@ -3308,6 +3539,10 @@ function registerSettings() {
   game.settings.register(MODULE_ID, "ahaLayout", {scope: "client", config: false, type: Object, default: {x: 220, y: 180, size: 128, visible: false}});
   game.settings.register(MODULE_ID, "punchline", {scope: "world", config: false, type: Number, default: 0});
   game.settings.register(MODULE_ID, "punchlineLayout", {scope: "client", config: false, type: Object, default: {x: 580, y: 145, size: 54, visible: true}});
+  game.settings.register(MODULE_ID, "techniquePointConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_TECHNIQUE_POINT_CONFIG)});
+  game.settings.register(MODULE_ID, "techniquePoints", {scope: "world", config: false, type: Number, default: DEFAULT_TECHNIQUE_POINT_CONFIG.starting});
+  game.settings.register(MODULE_ID, "talentHudLayout", {scope: "client", config: false, type: Object, default: {x: 24, y: 180}});
+  game.settings.register(MODULE_ID, "techniqueHudLayout", {scope: "client", config: false, type: Object, default: {x: 24, y: 420}});
   game.settings.register(MODULE_ID, "skillPointConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_SKILL_POINT_CONFIG)});
   game.settings.register(MODULE_ID, "skillPoints", {scope: "world", config: false, type: Number, default: DEFAULT_SKILL_POINT_CONFIG.starting});
   game.settings.register(MODULE_ID, "skillMeterLayout", {scope: "client", config: false, type: Object, default: {x: 420, y: 80, size: 42, visible: true}});
@@ -3338,6 +3573,14 @@ function registerSettings() {
     hint: "Choose the GM-only floating button artwork, color, and WebM shown to connected players.",
     icon: "fas fa-masks-theater",
     type: AhaMenu,
+    restricted: true
+  });
+  game.settings.registerMenu(MODULE_ID, "techniquePointsMenu", {
+    name: "Technique Point Configuration",
+    label: "Configure Technique Points",
+    hint: "Configure the shared out-of-combat Technique Point pool.",
+    icon: "fas fa-bolt",
+    type: TechniquePointMenu,
     restricted: true
   });
   game.settings.registerMenu(MODULE_ID, "skillPointsMenu", {
@@ -3474,7 +3717,7 @@ function activateConfigListeners(actor, tab, app) {
       data[field.name] = field.type === "checkbox" ? field.checked : field.value;
     });
     for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "talentPointsCurrent", "talentPointsMax", "punchlineGain", "splashDuration", "titleX", "titleY", "titleSize"]) data[key] = Number(data[key]);
-    for (const key of ["enabled", "showPercent", "skillEnabled", "mainParty", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter"]) data[key] = Boolean(data[key]);
+    for (const key of ["enabled", "showPercent", "skillEnabled", "techniqueEnabled", "mainParty", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter"]) data[key] = Boolean(data[key]);
     data.max = Math.max(1, data.max || 100);
     data.current = clamp(data.current, 0, data.max);
     const savedConfig = getConfig(actor);
@@ -3489,6 +3732,7 @@ function activateConfigListeners(actor, tab, app) {
     ui.notifications.info(`${actor.name}'s Ultimate configuration saved.`);
     refreshOrb(actor);
     refreshSkillUI();
+    refreshResourceHuds();
     if (app?.render) app.render(false);
   });
   tab.find(".file-picker").on("click", event => {
@@ -3962,6 +4206,9 @@ function registerApi() {
     },
     requestUltimate,
     requestSkill,
+    requestTechnique,
+    getTechniquePoints: currentTechniquePoints,
+    setTechniquePoints,
     getSkillPoints: currentSkillPoints,
     setSkillPoints,
     getTalentPoints: currentTalentPoints,
@@ -3974,9 +4221,11 @@ function registerApi() {
     openGMPanel: openStarRailGMPanel,
     openAhaConfig: () => new AhaConfig().render(true),
     openSkillPointConfig: () => new SkillPointConfig().render(true),
+    openTechniquePointConfig: () => new TechniquePointConfig().render(true),
     openEidolonConfig: () => new EidolonAppearanceConfig().render(true),
     triggerSpecialAha,
     showSkillUI,
+    refreshResourceHuds,
     getPunchline: currentPunchline,
     setPunchline,
     addPunchline,
@@ -4015,6 +4264,7 @@ Hooks.once("ready", () => {
   refreshAhaButton();
   refreshPunchlineHUD();
   refreshSkillUI();
+  refreshResourceHuds();
   preloadAhaVideo();
   registerAhaToolbarFallback();
   if (game.modules.get("midi-qol")?.active) Hooks.on("midi-qol.RollComplete", processMidiWorkflow);
@@ -4149,6 +4399,7 @@ Hooks.on("updateActor", (actor, changes) => {
   refreshOrb(actor);
   refreshSkillUI();
   refreshTalentCounter(actor);
+  refreshResourceHuds();
   refreshToughnessBars();
   state.gmPanel?.refreshLiveValues();
   if (foundry.utils.hasProperty(changes, `flags.${MODULE_ID}.eidolons`)) {
@@ -4158,13 +4409,14 @@ Hooks.on("updateActor", (actor, changes) => {
     reconcileUltimateLock(actor.id);
   }
 });
-Hooks.on("updateToken", () => { refreshToughnessBars(); state.gmPanel?.render(false); });
+Hooks.on("updateToken", () => { refreshToughnessBars(); refreshResourceHuds(); state.gmPanel?.render(false); });
 Hooks.on("targetToken", user => { if (user.id === game.user.id) state.gmPanel?.refreshTargetHighlights(); });
 Hooks.on("controlToken", () => state.gmPanel?.refreshTargetHighlights());
-Hooks.on("deleteActor", actor => { state.orbs.get(actor.id)?.destroy(); state.skillButtons.get(actor.id)?.destroy(); });
-Hooks.on("updateUser", user => { if (user.id === game.user.id) { refreshAllOrbs(); refreshSkillUI(); } });
+Hooks.on("deleteActor", actor => { state.orbs.get(actor.id)?.destroy(); state.skillButtons.get(actor.id)?.destroy(); refreshResourceHuds(); });
+Hooks.on("updateUser", user => { if (user.id === game.user.id) { refreshAllOrbs(); refreshSkillUI(); refreshResourceHuds(); } });
 Hooks.on("updateSetting", setting => {
   if (setting?.key?.startsWith(`${MODULE_ID}.skillPoint`)) refreshSkillUI();
+  if (setting?.key?.startsWith(`${MODULE_ID}.techniquePoint`)) refreshResourceHuds();
   if (setting?.key === `${MODULE_ID}.ahaConfig` || setting?.key === `${MODULE_ID}.punchline`) {
     if (!getAhaConfig().elationEnabled) document.querySelectorAll(".tsru-aha-overlay").forEach(element => element.remove());
     refreshAhaButton();
@@ -4176,6 +4428,7 @@ Hooks.on("canvasReady", () => { refreshAllOrbs(); refreshSkillUI(); refreshPunch
 Hooks.on("canvasReady", refreshAhaButton);
 
 Hooks.on("deleteCombat", async combat => {
+  refreshResourceHuds();
   await dispatchTalentEvent("combatEnd", {combat}, combat.id);
   state.lastTalentTurns.delete(combat.id);
   state.lastCombatTurns.delete(combat.id);
@@ -4207,6 +4460,7 @@ Hooks.on("deleteCombat", async combat => {
 
 Hooks.on("updateCombat", async combat => {
   refreshToughnessBars();
+  refreshResourceHuds();
   for (const actor of game.actors.filter(entry => entry.type === "character")) refreshTalentCounter(actor);
   state.gmPanel?.render(false);
   if (!isAuthority()) return;
