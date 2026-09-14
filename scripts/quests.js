@@ -143,11 +143,11 @@ async function distributeRewards(questId) {
   const all = quests();
   const quest = all.find(q => q.id === questId);
   if (!quest || quest.rewardsClaimed) return ui.notifications.warn("These rewards have already been distributed.");
-  const recipients = game.actors.filter(actor => {
-    if (actor.type !== "character" || !actorUltimate(actor).mainParty) return false;
+  const recipients = [...new Set(quest.actorIds ?? [])].map(id=>game.actors.get(id)).filter(actor => {
+    if (actor?.type !== "character") return false;
     return nonGmOwners(actor).length > 0 || Boolean(actorUltimate(actor).receivesRewards);
   });
-  if (!recipients.length) return ui.notifications.warn("No eligible party characters can receive rewards. Players must select a main character; GMPCs also need Receives Rewards enabled.");
+  if (!recipients.length) return ui.notifications.warn("No selected quest recipients are eligible. Select characters on the mission; GMPCs also need Receives Rewards enabled.");
   for (const reward of quest.rewards ?? []) {
     const total = Math.max(1, Number(reward.quantity) || 1);
     if (quest.rewardMode === "copy") {
@@ -270,7 +270,7 @@ class QuestManager extends FormApplication {
   }
   activateListeners(html) {
     super.activateListeners(html); activatePickers(html);
-    html.find("[data-new-quest]").on("click", async () => { const all = quests(); const q = normalizeQuest(); all.push(q); this.selectedQuestId=q.id; await saveQuests(all, {quest:q}); this.render(false); });
+    html.find("[data-new-quest]").on("click", async () => { const all = quests(); const q = normalizeQuest({actorIds:questActors().filter(actor=>Boolean(actorUltimate(actor).mainParty)).map(actor=>actor.id)}); all.push(q); this.selectedQuestId=q.id; await saveQuests(all, {quest:q}); this.render(false); });
     html.find("[data-delete-quest]").on("click", async e => { if (!await Dialog.confirm({title:"Delete Mission",content:"<p>Permanently delete this mission?</p>"})) return; await saveQuests(quests().filter(q => q.id !== e.currentTarget.dataset.deleteQuest), {notify:false}); this.selectedQuestId=""; this.render(false); });
     html.find("[data-select-manager-quest]").on("click", e => { this.selectedQuestId=e.currentTarget.dataset.selectManagerQuest; this.render(false); });
     html.find("[data-mission-search]").on("input", e => {

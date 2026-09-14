@@ -1210,3 +1210,9 @@
 
 .tsru-break-popup.is-plain-damage { gap:0; }
 .tsru-break-popup.is-plain-damage span { color:#fff; background:none; -webkit-text-fill-color:#fff; font-size:clamp(34px,4.8vw,74px); }
+
+/* Custom mission and reward art is the card itself, not an image inside a fallback frame. */
+.tsru-quest-block.has-art { border:0; border-left:0; background:transparent; }
+.tsru-quest-block.has-art .tsru-quest-card-art { object-fit:fill; background:transparent; }
+.tsru-rewards-preview article.has-art { border:0; background:transparent; }
+.tsru-rewards-preview article.has-art .tsru-reward-card-art { object-fit:fill; background:transparent; }

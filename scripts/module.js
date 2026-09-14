@@ -2347,7 +2347,24 @@ class BreakAppearanceConfig extends FormApplication {
 
 function breakDisplayTarget(target) {
   const {actor,tokenDocument}=toughnessTargetParts(target);
-  return canvas?.tokens?.get(tokenDocument?.id) ?? (canvas?.tokens?.placeables ?? []).find(token => token.actor?.id === actor?.id) ?? null;
+  const preferred=[...(game.user?.targets??[]),...(canvas?.tokens?.controlled??[])].find(token=>token.actor?.id===actor?.id);
+  return canvas?.tokens?.get(tokenDocument?.id) ?? preferred ?? (canvas?.tokens?.placeables ?? []).find(token => token.actor?.id === actor?.id) ?? null;
+}
+
+function installDamageScrollingTextOverride() {
+  const layer=canvas?.interface;
+  if (!layer?.createScrollingText || layer.__tsruDamageTextOriginal) return;
+  try {
+    const original=layer.createScrollingText;
+    Object.defineProperty(layer,"__tsruDamageTextOriginal",{value:original,configurable:true});
+    layer.createScrollingText=function(origin,content,options={}) {
+      const numeric=/^[+\-−]?\s*\d+(?:\.\d+)?$/.test(String(content??"").trim());
+      if (numeric && !state.customDamageScrollingText) return Promise.resolve(null);
+      return original.call(this,origin,content,options);
+    };
+  } catch(error) {
+    console.warn(`${MODULE_ID} | Could not replace Foundry damage scrolling text`,error);
+  }
 }
 
 async function broadcastDamageResult(target, damage, {plainDamage=false, superBreak=false, color="", fontFile=""}={}) {
@@ -2360,39 +2377,57 @@ async function broadcastDamageResult(target, damage, {plainDamage=false, superBr
 
 async function showBreakResult(payload) {
   if (payload.sceneId && canvas?.scene?.id !== payload.sceneId) return;
-  const token = canvas?.tokens?.get(payload.tokenId) ?? breakDisplayTarget(game.actors.get(payload.actorId));
-  const view = canvas?.app?.view ?? document.querySelector("#board canvas");
-  const rect = view?.getBoundingClientRect?.();
-  let left = window.innerWidth / 2;
-  let top = window.innerHeight / 2;
-  if (token && rect) {
+  const token=canvas?.tokens?.get(payload.tokenId) ?? breakDisplayTarget(game.actors.get(payload.actorId));
+  const damage=String(Math.max(0,Math.floor(Number(payload.damage)||0)));
+  const label=payload.superBreak?"Super Break":"Break";
+  let fontFamily="Arial, sans-serif";
+  try { fontFamily=await loadSplashFont(payload.fontFile); }
+  catch(error) { console.warn(`${MODULE_ID} | Could not load damage popup font`,error); }
+  installDamageScrollingTextOverride();
+  if (token && canvas?.interface?.createScrollingText) {
     const stageScale=Math.abs(Number(canvas?.stage?.scale?.y))||1;
-    const worldPoint = new PIXI.Point(token.center.x, token.center.y - token.h / 2 - 12 / stageScale);
-    const screenPoint = canvas?.stage?.worldTransform?.apply?.(worldPoint) ?? token.getGlobalPosition?.(new PIXI.Point()) ?? worldPoint;
-    const screenWidth = Number(canvas?.app?.renderer?.screen?.width) || rect.width;
-    const screenHeight = Number(canvas?.app?.renderer?.screen?.height) || rect.height;
-    left = rect.left + screenPoint.x * (rect.width / screenWidth);
-    top = rect.top + screenPoint.y * (rect.height / screenHeight);
+    const origin={x:token.center.x,y:token.center.y-token.h/2-(10/stageScale)};
+    const color=/^#[0-9a-f]{3,8}$/i.test(payload.color??"")?payload.color:"#ed4855";
+    state.customDamageScrollingText=true;
+    try {
+      await canvas.interface.createScrollingText(origin,payload.plainDamage?damage:`${label}\n${damage}`,{
+        anchor:CONST.TEXT_ANCHOR_POINTS?.BOTTOM??CONST.TEXT_ANCHOR_POINTS?.CENTER,
+        direction:CONST.TEXT_ANCHOR_POINTS?.TOP,
+        distance:42/stageScale,
+        duration:1150,
+        jitter:.08,
+        fontFamily,
+        fontSize:payload.plainDamage?48:40,
+        fontWeight:"900",
+        fill:payload.plainDamage?"#ffffff":[color,"#ffffff"],
+        fillGradientType:1,
+        stroke:"#202239",
+        strokeThickness:4
+      });
+      return;
+    } catch(error) {
+      console.warn(`${MODULE_ID} | Foundry scrolling damage text failed; using DOM fallback`,error);
+    } finally { state.customDamageScrollingText=false; }
   }
-  const popup = document.createElement("div");
-  popup.className = `tsru-break-popup${payload.plainDamage ? " is-plain-damage" : ""}`;
-  popup.style.left = `${left}px`;
-  popup.style.top = `${top}px`;
-  popup.style.setProperty("--tsru-break-color", /^#[0-9a-f]{3,8}$/i.test(payload.color ?? "") ? payload.color : "#ed4855");
-  const amount = document.createElement("span");
-  amount.textContent = String(Math.max(0, Math.floor(Number(payload.damage) || 0)));
-  let fontTarget=amount;
-  if (!payload.plainDamage) {
-    const label = document.createElement("strong");
-    label.textContent = payload.superBreak ? "Super Break" : "Break";
-    popup.append(label);
-    fontTarget=label;
+  const view=canvas?.app?.view??document.querySelector("#board canvas");
+  const rect=view?.getBoundingClientRect?.();
+  let left=window.innerWidth/2,top=window.innerHeight/2;
+  if(token&&rect){
+    const stageScale=Math.abs(Number(canvas?.stage?.scale?.y))||1;
+    const worldPoint=new PIXI.Point(token.center.x,token.center.y-token.h/2-12/stageScale);
+    const screenPoint=canvas?.stage?.worldTransform?.apply?.(worldPoint)??token.getGlobalPosition?.(new PIXI.Point())??worldPoint;
+    const screenWidth=Number(canvas?.app?.renderer?.screen?.width)||rect.width;
+    const screenHeight=Number(canvas?.app?.renderer?.screen?.height)||rect.height;
+    left=rect.left+screenPoint.x*(rect.width/screenWidth);
+    top=rect.top+screenPoint.y*(rect.height/screenHeight);
   }
-  popup.append(amount);
-  document.body.append(popup);
-  window.setTimeout(() => popup.remove(), 1250);
-  try { fontTarget.style.fontFamily = await loadSplashFont(payload.fontFile); }
-  catch (error) { console.warn(`${MODULE_ID} | Could not load damage popup font`, error); }
+  const popup=document.createElement("div");
+  popup.className=`tsru-break-popup${payload.plainDamage?" is-plain-damage":""}`;
+  popup.style.left=`${left}px`; popup.style.top=`${top}px`;
+  popup.style.setProperty("--tsru-break-color",/^#[0-9a-f]{3,8}$/i.test(payload.color??"")?payload.color:"#ed4855");
+  if(!payload.plainDamage){const heading=document.createElement("strong");heading.textContent=label;heading.style.fontFamily=fontFamily;popup.append(heading);}
+  const amount=document.createElement("span");amount.textContent=damage;if(payload.plainDamage)amount.style.fontFamily=fontFamily;popup.append(amount);
+  document.body.append(popup);window.setTimeout(()=>popup.remove(),1250);
 }
 
 async function applyWeaknessBreakDamage(attacker, target, {superBreak = false} = {}) {
@@ -2440,12 +2475,22 @@ function damageRollsFromAppliedMessage(message) {
   return rolls.filter(roll => !String(roll?.constructor?.name ?? "").toLowerCase().includes("d20roll"));
 }
 
+function processDnd5eAppliedDamage(...args) {
+  const target=args.find(value=>value?.documentName==="Actor" || value?.documentName==="Token" || value?.actor?.documentName==="Actor");
+  const options=[...args].reverse().find(value=>value && typeof value==="object" && value!==target) ?? {};
+  const numeric=args.find(value=>typeof value==="number" && Number.isFinite(value));
+  const amount=numeric ?? Number(options.amount ?? options.damage ?? options.appliedDamage ?? options.total ?? 0);
+  if (!target || !Number.isFinite(Number(amount)) || Number(amount)<=0) return;
+  return processAppliedDamage(target,Number(amount),options);
+}
+
 async function processAppliedDamage(target, amount, options = {}) {
   if (!isAuthority() || !target) return;
   const origin = options.origin;
-  const sourceUuid = options.midi?.sourceActorUuid;
-  let attacker = sourceUuid ? await fromUuid(sourceUuid).catch(() => null) : null;
+  const sourceUuid = options.midi?.sourceActorUuid ?? options.sourceActorUuid ?? options.workflow?.actor?.uuid;
+  let attacker = options.sourceActor ?? options.workflow?.actor ?? (sourceUuid ? await fromUuid(sourceUuid).catch(() => null) : null);
   attacker = attacker?.actor ?? attacker;
+  if (!attacker && options.item?.actor) attacker=options.item.actor;
   if (!attacker && origin?.speaker?.actor) attacker = game.actors.get(origin.speaker.actor);
   if (!attacker && origin?.speaker?.token) attacker = canvas?.tokens?.get(origin.speaker.token)?.actor;
   if (!attacker || attacker.documentName !== "Actor") return;
@@ -3975,8 +4020,11 @@ Hooks.once("ready", () => {
   if (game.modules.get("midi-qol")?.active) Hooks.on("midi-qol.RollComplete", processMidiWorkflow);
   if (game.modules.get("midi-qol")?.active) Hooks.on("midi-qol.damageRollComplete", processMidiWorkflow);
   Hooks.on("dnd5e.rollDamageV2", processDnd5eDamageRolls);
-  Hooks.on("dnd5e.applyDamage", processAppliedDamage);
+  Hooks.on("dnd5e.applyDamage", (...args) => processDnd5eAppliedDamage(...args));
+  installDamageScrollingTextOverride();
 });
+
+Hooks.on("canvasReady", installDamageScrollingTextOverride);
 
 Hooks.on("renderActorSheet", injectUltimateTab);
 Hooks.on("renderCharacterActorSheet", injectUltimateTab);
