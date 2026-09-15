@@ -1585,6 +1585,20 @@ function equippedLightCone(actor) {
   return cones.find(item => lightConeUsesAttunement(item)) ?? null;
 }
 
+async function ensureLightConeFolder() {
+  let folder = Array.from(game.folders ?? []).find(entry => entry.type === "Item" && entry.name === "Light Cones");
+  if (!folder) folder = await Folder.create({name: "Light Cones", type: "Item"});
+  return folder;
+}
+
+function lightConeFolderOptions(selectedId = "") {
+  return Array.from(game.folders ?? [])
+    .filter(folder => folder.type === "Item")
+    .sort((a, b) => String(a.name).localeCompare(String(b.name)))
+    .map(folder => `<option value="${escapeHTML(folder.id)}" ${folder.id === selectedId ? "selected" : ""}>${escapeHTML(folder.name)}</option>`)
+    .join("");
+}
+
 async function resolveDroppedLightConeItem(event) {
   const transfer = event.originalEvent?.dataTransfer ?? event.dataTransfer;
   const data = TextEditor.getDragEventData?.(event.originalEvent ?? event) ?? {};
@@ -1654,10 +1668,13 @@ async function openLightConeGenerator() {
   const paths = getPaths();
   if (!paths.length) return ui.notifications.warn("Create at least one Path before generating a Light Cone.");
   const options = paths.map(path => `<option value="${escapeHTML(path.id)}">${escapeHTML(path.name)}</option>`).join("");
+  const defaultFolder = await ensureLightConeFolder();
+  const folderOptions = lightConeFolderOptions(defaultFolder.id);
   const content = `<form class="tsru-light-cone-generator">
     <div class="form-group"><label>Name</label><div class="form-fields"><input type="text" name="name" placeholder="Light Cone name"></div></div>
     <div class="form-group"><label>Path</label><div class="form-fields"><select name="pathId">${options}</select></div></div>
     <div class="form-group"><label>Light Cone Image</label><div class="form-fields"><input type="text" name="image" value="icons/svg/item-bag.svg"><button type="button" class="file-picker" data-type="image" data-target="image"><i class="fas fa-file-import"></i></button></div></div>
+    <div class="form-group"><label>Target Item Folder</label><div class="form-fields"><select name="folderId">${folderOptions}</select></div></div>
     <div class="form-group stacked"><label>Description</label><textarea name="description" rows="10" placeholder="Light Cone effects"></textarea></div>
     <p class="notes">The Path restriction line will be inserted automatically at the top in bold uppercase text.</p>
   </form>`;
@@ -1675,6 +1692,7 @@ async function openLightConeGenerator() {
           if (!name) return ui.notifications.warn("Enter a Light Cone name.");
           if (!path) return ui.notifications.warn("Select a valid Path.");
           const image = String(html.find('[name="image"]').val() || "icons/svg/item-bag.svg").trim();
+          const folderId = String(html.find('[name="folderId"]').val() || defaultFolder.id);
           const body = String(html.find('[name="description"]').val() || "").trim();
           const restriction = `<p><strong>THE FOLLOWING EFFECTS ONLY WORK ON CHARACTERS OF THE PATH OF ${escapeHTML(path.name).toUpperCase()}</strong></p>`;
           const description = `${restriction}\n${body}`;
@@ -1683,6 +1701,7 @@ async function openLightConeGenerator() {
             name,
             type: "loot",
             img: image,
+            folder: folderId,
             system: {description: {value: description}, quantity: 1, attunement: 1},
             flags: {[MODULE_ID]: {lightCone}}
           });
@@ -1711,10 +1730,13 @@ async function openLightConeWizard(item) {
   const current = getLightConeData(item);
   const paths = getPaths();
   const options = ['<option value="">Any Path</option>', ...paths.map(path => `<option value="${escapeHTML(path.id)}" ${path.id === current.pathId ? "selected" : ""}>${escapeHTML(path.name)}</option>`)].join("");
+  const defaultFolder = await ensureLightConeFolder();
+  const folderOptions = lightConeFolderOptions(defaultFolder.id);
   const content = `<form class="tsru-light-cone-wizard">
     <p class="notes">Convert <strong>${escapeHTML(item.name)}</strong> into a Light Cone. Its existing Item data is preserved.</p>
     <div class="form-group"><label>Light Cone Image</label><div class="form-fields"><input type="text" name="image" value="${escapeHTML(current.image)}"><button type="button" class="file-picker" data-type="image" data-target="image"><i class="fas fa-file-import"></i></button></div></div>
     <div class="form-group"><label>Path</label><div class="form-fields"><select name="pathId">${options}</select></div></div>
+    <div class="form-group"><label>Target Item Folder</label><div class="form-fields"><select name="folderId">${folderOptions}</select></div></div>
     <div class="form-group stacked"><label>Description</label><textarea name="description" rows="9">${escapeHTML(current.description)}</textarea></div>
     <p class="notes">The converted Item requires one attunement slot. Equip and attune it on a character to display it on that sheet.</p>
   </form>`;
@@ -1732,12 +1754,19 @@ async function openLightConeWizard(item) {
             image: String(html.find('[name="image"]').val() || item.img || ""),
             description: String(html.find('[name="description"]').val() || "")
           };
+          const folderId = String(html.find('[name="folderId"]').val() || defaultFolder.id);
           const updates = {
             [`flags.${MODULE_ID}.lightCone`]: lightCone,
             img: lightCone.image,
             "system.description.value": lightCone.description
           };
-          const target = item.pack ? await Item.create(item.toObject()) : item;
+          let target = item;
+          if (item.pack || item.parent?.documentName === "Actor") {
+            const source = item.toObject();
+            delete source._id;
+            source.folder = folderId;
+            target = await Item.create(source);
+          } else updates.folder = folderId;
           if (foundry.utils.hasProperty(target, "system.attunement")) updates["system.attunement"] = Math.max(1, Number(target.system.attunement) || 1);
           await target.update(updates);
           ui.notifications.info(`${target.name} is now configured as a Light Cone.`);
