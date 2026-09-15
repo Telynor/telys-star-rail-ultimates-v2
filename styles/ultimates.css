@@ -146,8 +146,9 @@
 .tsru-skill-widget.is-unavailable .tsru-skill-button img { opacity: .42; }
 .tsru-macro-draggable{cursor:grab!important}.tsru-macro-draggable:active{cursor:grabbing!important}
 .tsru-ultimate-macro{position:relative!important;isolation:isolate;overflow:visible!important;--tsru-hotbar-energy:0%;--tsru-hotbar-energy-ratio:0;--tsru-hotbar-glow:2px;--tsru-hotbar-energy-color:#20e6ff;box-shadow:0 0 var(--tsru-hotbar-glow) var(--tsru-hotbar-energy-color)!important;transition:box-shadow .2s ease}
-.tsru-ultimate-macro .tsru-hotbar-energy-fill{position:absolute;z-index:2;pointer-events:none;left:3px;right:3px;bottom:3px;height:min(var(--tsru-hotbar-energy),calc(100% - 6px));max-height:calc(100% - 6px);box-sizing:border-box;overflow:hidden;border-top:0 solid color-mix(in srgb,var(--tsru-hotbar-energy-color) 90%,white);border-radius:0 0 6px 6px;background:color-mix(in srgb,var(--tsru-hotbar-energy-color) 62%,transparent);box-shadow:inset 0 1px 0 var(--tsru-hotbar-energy-color);transition:height .2s ease}
+.tsru-ultimate-macro .tsru-hotbar-energy-fill{position:absolute;z-index:2;pointer-events:none;left:0;right:0;bottom:0;height:min(var(--tsru-hotbar-energy),100%);max-height:100%;box-sizing:border-box;overflow:hidden;border-top:0 solid color-mix(in srgb,var(--tsru-hotbar-energy-color) 90%,white);border-radius:0 0 10px 10px;background:color-mix(in srgb,var(--tsru-hotbar-energy-color) 62%,transparent);box-shadow:inset 0 1px 0 var(--tsru-hotbar-energy-color);transition:height .2s ease}
 .tsru-ultimate-macro.has-energy .tsru-hotbar-energy-fill{border-top-width:2px}
+.tsru-ultimate-macro.is-ready .tsru-hotbar-energy-fill{border-radius:10px}
 .tsru-ultimate-macro .tsru-hotbar-energy-label{position:absolute;z-index:3;pointer-events:none;right:2px;bottom:1px;padding:0 2px;border-radius:2px;background:#05070bbb;color:#fff;font:700 9px/13px sans-serif;text-shadow:0 1px 2px #000}
 .tsru-ultimate-macro.is-ready{animation:tsru-hotbar-ultimate-ready 1.15s ease-in-out infinite alternate}
 @keyframes tsru-hotbar-ultimate-ready{from{filter:brightness(1)}to{filter:brightness(1.22)}}
