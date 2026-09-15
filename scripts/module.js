@@ -1656,9 +1656,26 @@ function lightConeAttunementUpdate(item, equipped) {
   if (foundry.utils.hasProperty(item, "system.attuned")) changes["system.attuned"] = Boolean(equipped);
   if (foundry.utils.hasProperty(item, "system.attunement")) {
     const current = item.system.attunement;
-    changes["system.attunement"] = typeof current === "boolean" ? Boolean(equipped) : (Number.isFinite(Number(current)) ? (equipped ? 2 : 1) : (equipped ? "attuned" : "required"));
+    if (typeof current === "boolean") changes["system.attunement"] = Boolean(equipped);
+    else if (typeof current === "number") changes["system.attunement"] = equipped ? 2 : 1;
+    else changes["system.attunement"] = equipped ? "attuned" : "required";
   }
   return changes;
+}
+
+function itemIsAttuned(item) {
+  const attunement = item?.system?.attunement;
+  return item?.system?.attuned === true || attunement === 2 || String(attunement || "").toLowerCase() === "attuned";
+}
+
+function actorAttunementCapacity(actor) {
+  const attributes = actor?.system?.attributes ?? {};
+  const configured = Number(attributes.attunement?.max ?? attributes.attunementMax ?? 3);
+  return Number.isFinite(configured) ? Math.max(0, configured) : 3;
+}
+
+function actorAttunedItemCount(actor) {
+  return Array.from(actor?.items ?? []).filter(itemIsAttuned).length;
 }
 
 async function unequipLightCone(item) {
@@ -1677,6 +1694,11 @@ async function selectLightConeItem(item) {
   if (!(game.user.isGM || actor?.isOwner) || actor?.documentName !== "Actor" || actor.type !== "character") return;
   const current = equippedLightCone(actor);
   if (current?.id === item.id) return unequipLightCone(item);
+  if (!current && !itemIsAttuned(item)) {
+    const used = actorAttunedItemCount(actor);
+    const maximum = actorAttunementCapacity(actor);
+    if (used >= maximum) return ui.notifications.warn(`${actor.name} already has the maximum of ${maximum} attuned items.`);
+  }
   if (current) {
     const confirmed = await Dialog.confirm({
       title: "Switch Light Cones?",
