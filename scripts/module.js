@@ -1337,6 +1337,77 @@ async function executeTechnique(actorId, requestingUserId) {
   }
 }
 
+function activateStarRailActionDrag(element, actor, action) {
+  if (!element || !actor) return;
+  element.draggable = true;
+  element.classList.add("tsru-macro-draggable");
+  element.addEventListener("dragstart", event => {
+    const config = getConfig(actor);
+    const actionDetails = {
+      skill: {label: "Skill", img: config.skillButtonImage || actor.img},
+      technique: {label: "Technique", img: config.techniqueButtonImage || actor.img},
+      ultimate: {label: config.ultimateName || "Ultimate", img: config.ultimateButtonImage || config.orbImage || actor.img}
+    }[action];
+    if (!actionDetails) return;
+    event.dataTransfer.setData("text/plain", JSON.stringify({type:"TSRUAction",action,actorId:actor.id,actorUuid:actor.uuid,name:`${actor.name} — ${actionDetails.label}`,img:actionDetails.img || "icons/svg/d20.svg"}));
+    event.dataTransfer.effectAllowed = "copy";
+  });
+}
+
+async function createStarRailActionMacro(data, slot) {
+  if (data?.type !== "TSRUAction" || !["skill", "technique", "ultimate"].includes(data.action)) return true;
+  const actor = game.actors.get(data.actorId) ?? await fromUuid(data.actorUuid).catch(() => null);
+  if (!actor || actor.type !== "character") { ui.notifications.error("The character for this Star Rail action no longer exists."); return false; }
+  if (!game.user.isGM && !actor.isOwner) { ui.notifications.error("You can only create action macros for characters you own."); return false; }
+  let macro = game.macros.find(entry => entry.getFlag(MODULE_ID,"action") === data.action && entry.getFlag(MODULE_ID,"actorId") === actor.id && entry.isOwner);
+  if (!macro) {
+    const method = {skill:"requestSkill",technique:"requestTechnique",ultimate:"requestUltimate"}[data.action];
+    macro = await Macro.create({name:data.name,type:"script",img:data.img || actor.img || "icons/svg/d20.svg",command:`const actor = game.actors.get("${actor.id}");\nif (!actor) return ui.notifications.error("Character not found.");\nreturn game.modules.get("${MODULE_ID}")?.api?.${method}(actor);`,flags:{[MODULE_ID]:{action:data.action,actorId:actor.id}}});
+  }
+  await game.user.assignHotbarMacro(macro,slot);
+  requestAnimationFrame(refreshUltimateHotbarMacros);
+  return false;
+}
+
+function ultimateMacroDisplay(actor) {
+  const config = getConfig(actor);
+  const maximum = Math.max(1, Number(config.max) || 1);
+  const percent = clamp((Number(config.current) / maximum) * 100, 0, 100);
+  const ready = Boolean(config.enabled) && percent >= 100;
+  const element = getElements().find(entry => entry.id === config.elementId);
+  const color = ready
+    ? (element?.readyColor || config.readyColor || DEFAULT_CONFIG.readyColor)
+    : (element?.chargeColor || config.chargeColor || DEFAULT_CONFIG.chargeColor);
+  return {percent, ready, color};
+}
+
+function refreshUltimateHotbarMacros() {
+  if (!game?.user) return;
+  for (const slot of document.querySelectorAll("#hotbar [data-macro-id], #action-bar [data-macro-id], .hotbar [data-macro-id]")) {
+    const macro = game.macros.get(slot.dataset.macroId);
+    const isUltimate = macro?.getFlag(MODULE_ID, "action") === "ultimate";
+    slot.classList.toggle("tsru-ultimate-macro", isUltimate);
+    slot.querySelectorAll(":scope > .tsru-hotbar-energy-fill, :scope > .tsru-hotbar-energy-label").forEach(node => node.remove());
+    if (!isUltimate) continue;
+    const actor = game.actors.get(macro.getFlag(MODULE_ID, "actorId"));
+    if (!actor) continue;
+    const display = ultimateMacroDisplay(actor);
+    slot.style.setProperty("--tsru-hotbar-energy", `${display.percent}%`);
+    slot.style.setProperty("--tsru-hotbar-energy-ratio", String(display.percent / 100));
+    slot.style.setProperty("--tsru-hotbar-glow", `${2 + (12 * display.percent / 100)}px`);
+    slot.style.setProperty("--tsru-hotbar-energy-color", display.color);
+    slot.classList.toggle("is-ready", display.ready);
+    const fill = document.createElement("span");
+    fill.className = "tsru-hotbar-energy-fill";
+    fill.setAttribute("aria-hidden", "true");
+    const label = document.createElement("span");
+    label.className = "tsru-hotbar-energy-label";
+    label.textContent = `${Math.round(display.percent)}%`;
+    label.setAttribute("aria-label", `${actor.name} Ultimate Energy: ${Math.round(display.percent)}%`);
+    slot.append(fill, label);
+  }
+}
+
 class TechniqueHud {
   constructor() { this.element = null; }
   render() {
@@ -1360,9 +1431,10 @@ class TechniqueHud {
     this.element.querySelector(".tsru-technique-count").textContent = `${currentTechniquePoints()}/${getTechniquePointConfig().maximum}`;
     this.element.querySelector(".tsru-technique-buttons").innerHTML = actors.map(actor => {
       const config = getConfig(actor);
-      const disabled = currentTechniquePoints() < 1 ? "disabled" : "";
-      return `<button type="button" class="tsru-technique-button" data-technique-actor="${actor.id}" ${disabled} title="Use ${escapeHTML(actor.name)}'s Technique (costs 1 Technique Point)"><img src="${escapeHTML(config.techniqueButtonImage || actor.img || "icons/svg/lightning.svg")}" alt=""><span>${escapeHTML(actor.name)}</span></button>`;
+      const unavailable = currentTechniquePoints() < 1;
+      return `<button type="button" class="tsru-technique-button ${unavailable ? "is-unavailable" : ""}" data-technique-actor="${actor.id}" aria-disabled="${unavailable}" title="Use ${escapeHTML(actor.name)}'s Technique (costs 1 Technique Point)"><img src="${escapeHTML(config.techniqueButtonImage || actor.img || "icons/svg/lightning.svg")}" alt=""><span>${escapeHTML(actor.name)}</span></button>`;
     }).join("");
+    for (const button of this.element.querySelectorAll("[data-technique-actor]")) activateStarRailActionDrag(button, game.actors.get(button.dataset.techniqueActor), "technique");
     return this;
   }
   destroy() { this.element?.remove(); this.element = null; if (state.techniqueHud === this) state.techniqueHud = null; }
@@ -1438,6 +1510,7 @@ class SkillPointMeter {
       this.element.innerHTML = `<div class="tsru-skill-meter-drag" title="Move Skill Point meter"><i class="fas fa-grip-lines"></i></div><div class="tsru-skill-meter-content"><div class="tsru-skill-point-number"></div><div class="tsru-skill-point-separator" aria-hidden="true"></div><div class="tsru-skill-pips"></div></div><div class="tsru-skill-meter-underline"></div><button type="button" class="tsru-skill-meter-close" title="Hide Skill Point meter"><i class="fas fa-xmark"></i></button><div class="tsru-skill-meter-resize" title="Resize"></div>`;
       document.body.appendChild(this.element);
       this.activateListeners();
+      activateStarRailActionDrag(this.element.querySelector(".tsru-skill-button"), this.actor, "skill");
     }
     const config = getSkillPointConfig();
     const current = currentSkillPoints();
@@ -1503,7 +1576,8 @@ class SkillButton {
     this.element.style.setProperty("--tsru-skill-color", element?.readyColor || DEFAULT_CONFIG.readyColor);
     this.element.classList.toggle("is-unavailable", !available);
     const button = this.element.querySelector(".tsru-skill-button");
-    button.disabled = !available;
+    button.disabled = false;
+    button.setAttribute("aria-disabled", String(!available));
     button.title = available ? `${this.actor.name}: Use Skill (costs 1 Skill Point)` : state.skillLocks.has(this.actor.id) ? "This Skill is currently resolving." : "No Skill Points remain.";
     button.querySelector("img").src = config.skillButtonImage || this.actor.img || "icons/svg/sword.svg";
     return this;
@@ -2029,6 +2103,7 @@ class UltimateOrb {
         <div class="tsru-orb-resize" title="Resize"></div>`;
       document.body.appendChild(this.element);
       this.activateListeners();
+      activateStarRailActionDrag(this.element, this.actor, "ultimate");
     }
 
     const percent = clamp((config.current / config.max) * 100, 0, 100);
@@ -2337,6 +2412,10 @@ class CombatPartyHud {
         <div class="tsru-combat-party-ultimate-wrap">${config.trialCharacter ? '<b class="tsru-combat-party-trial">Trial</b>' : ""}<button type="button" data-tsru-party-ultimate data-actor-id="${actor.id}" class="${ready ? "is-ready" : ""}" ${(!owned || !ready) ? "disabled" : ""} title="${owned ? (ready ? "Activate Ultimate" : "Ultimate is not ready") : "Only this character's owner can activate their Ultimate"}"><span class="tsru-hud-orb-fill"></span><img src="${escapeHTML(config.ultimateButtonImage || config.orbImage || actor.img || "icons/svg/mystery-man.svg")}" alt="">${config.showPercent ? `<strong>${Math.round(energyPercent)}%</strong>` : ""}</button></div>
       </article>`;
     }).join("")}</div>`;
+    for (const wrap of this.element.querySelectorAll(".tsru-combat-party-ultimate-wrap")) {
+      const actor = game.actors.get(wrap.closest("[data-actor-id]")?.dataset.actorId);
+      if (actor && (game.user.isGM || actor.isOwner)) activateStarRailActionDrag(wrap, actor, "ultimate");
+    }
     return this;
   }
   destroy() { this.element?.remove(); this.element = null; if (state.partyCombatHud === this) state.partyCombatHud = null; }
@@ -5498,6 +5577,15 @@ Hooks.on("renderActorSheet", activateLightConeInventoryContext);
 Hooks.on("renderCharacterActorSheet", activateLightConeInventoryContext);
 Hooks.on("getActorSheetHeaderButtons", addActorHeaderButton);
 Hooks.on("getSceneControlButtons", addHudTool);
+Hooks.on("hotbarDrop", (_bar, data, slot) => {
+  if (data?.type !== "TSRUAction") return true;
+  createStarRailActionMacro(data, slot).catch(error => { console.error(`${MODULE_ID} | Could not create action macro`, error); ui.notifications.error(`Could not create Star Rail macro: ${error.message}`); });
+  return false;
+});
+Hooks.on("renderHotbar", () => requestAnimationFrame(refreshUltimateHotbarMacros));
+Hooks.on("createMacro", () => requestAnimationFrame(refreshUltimateHotbarMacros));
+Hooks.on("updateMacro", () => requestAnimationFrame(refreshUltimateHotbarMacros));
+Hooks.on("deleteMacro", () => requestAnimationFrame(refreshUltimateHotbarMacros));
 Hooks.on("createChatMessage", processCoreAttackMessage);
 
 function renderManualDamageControl(controlElement, message, suppliedApplications = null, suppliedDone = null) {
@@ -5605,6 +5693,7 @@ Hooks.on("updateActor", (actor, changes, options) => {
   refreshToughnessBars();
   state.gmPanel?.refreshLiveValues();
   refreshCombatPartyHud();
+  refreshUltimateHotbarMacros();
   if (!options?.tsruAutosave && foundry.utils.hasProperty(changes, `flags.${MODULE_ID}.eidolons`)) {
     for (const app of Object.values(ui.windows ?? {})) if ((app.actor ?? app.document)?.id === actor.id) app.render(false);
   }
