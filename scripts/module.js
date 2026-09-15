@@ -3788,43 +3788,75 @@ function initializeCollapsibleUltimateSections(actor, tab) {
   };
 }
 
+async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp = false, app = null} = {}) {
+  const data = foundry.utils.deepClone(getConfig(actor));
+  tab.find("[name]").each((_index, field) => {
+    data[field.name] = field.type === "checkbox" ? field.checked : field.value;
+  });
+  for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "talentPointsCurrent", "talentPointsMax", "punchlineGain", "splashDuration", "titleX", "titleY", "titleSize"]) data[key] = Number(data[key]);
+  for (const key of ["enabled", "showPercent", "skillEnabled", "techniqueEnabled", "mainParty", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter"]) data[key] = Boolean(data[key]);
+  data.max = Math.max(1, data.max || 100);
+  data.current = clamp(data.current, 0, data.max);
+  const savedConfig = getConfig(actor);
+  if (isEnergyLocked(actor) && data.current > savedConfig.current) {
+    data.current = savedConfig.current;
+    if (notify) ui.notifications.warn(`${actor.name} cannot regain Energy until the next round.`);
+  }
+  data.talentPointsMax = Math.max(0, Math.floor(data.talentPointsMax || 0));
+  data.talentPointsCurrent = talentCombatForActor(actor) ? clamp(Math.floor(data.talentPointsCurrent || 0), 0, data.talentPointsMax) : 0;
+  data.talentCombatId = talentCombatForActor(actor)?.id ?? "";
+  await actor.update({[`flags.${MODULE_ID}.ultimate`]: data}, {tsruAutosave: !notify});
+  refreshOrb(actor);
+  refreshSkillUI();
+  refreshResourceHuds();
+  if (notify) ui.notifications.info(`${actor.name}'s Ultimate configuration saved.`);
+  if (renderApp && app?.render) app.render(false);
+  return data;
+}
+
 function activateConfigListeners(actor, tab, app) {
   tab.find("input, select, textarea, button").prop("disabled", false);
   initializeCollapsibleUltimateSections(actor, tab);
   tab.find("input:not([readonly])").prop("readonly", false);
   tab.on("input.tsru change.tsru", "input, select, textarea", event => event.stopPropagation());
+  let autosaveTimer = null;
+  let autosaveRunning = false;
+  let autosaveQueued = false;
+  const runAutosave = async () => {
+    if (autosaveRunning) { autosaveQueued = true; return; }
+    autosaveRunning = true;
+    try {
+      await saveUltimateConfigFromTab(actor, tab);
+      tab.addClass("tsru-autosave-saved");
+      window.setTimeout(() => tab.removeClass("tsru-autosave-saved"), 500);
+    } catch (error) {
+      console.error(`${MODULE_ID} | Ultimate autosave failed`, error);
+      ui.notifications.error(`Could not autosave ${actor.name}'s Ultimate configuration.`);
+    } finally {
+      autosaveRunning = false;
+      if (autosaveQueued) { autosaveQueued = false; runAutosave(); }
+    }
+  };
+  const scheduleAutosave = immediate => {
+    window.clearTimeout(autosaveTimer);
+    autosaveTimer = window.setTimeout(runAutosave, immediate ? 0 : 550);
+  };
+  tab.on("input.tsru-autosave change.tsru-autosave", "[name]", event => {
+    if ($(event.target).closest(".tsru-energy-override").length) return;
+    scheduleAutosave(event.type === "change" && ["checkbox", "select-one", "radio"].includes(event.target.type));
+  });
   tab.find("[data-action='save-config']").on("click", async event => {
     event.preventDefault();
     event.stopPropagation();
-    const data = foundry.utils.deepClone(getConfig(actor));
-    tab.find("[name]").each((_index, field) => {
-      data[field.name] = field.type === "checkbox" ? field.checked : field.value;
-    });
-    for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "talentPointsCurrent", "talentPointsMax", "punchlineGain", "splashDuration", "titleX", "titleY", "titleSize"]) data[key] = Number(data[key]);
-    for (const key of ["enabled", "showPercent", "skillEnabled", "techniqueEnabled", "mainParty", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter"]) data[key] = Boolean(data[key]);
-    data.max = Math.max(1, data.max || 100);
-    data.current = clamp(data.current, 0, data.max);
-    const savedConfig = getConfig(actor);
-    if (isEnergyLocked(actor) && data.current > savedConfig.current) {
-      data.current = savedConfig.current;
-      ui.notifications.warn(`${actor.name} cannot regain Energy until the next round.`);
-    }
-    data.talentPointsMax = Math.max(0, Math.floor(data.talentPointsMax || 0));
-    data.talentPointsCurrent = talentCombatForActor(actor) ? clamp(Math.floor(data.talentPointsCurrent || 0), 0, data.talentPointsMax) : 0;
-    data.talentCombatId = talentCombatForActor(actor)?.id ?? "";
-    await actor.setFlag(MODULE_ID, "ultimate", data);
-    ui.notifications.info(`${actor.name}'s Ultimate configuration saved.`);
-    refreshOrb(actor);
-    refreshSkillUI();
-    refreshResourceHuds();
-    if (app?.render) app.render(false);
+    window.clearTimeout(autosaveTimer);
+    await saveUltimateConfigFromTab(actor, tab, {notify: true, renderApp: true, app});
   });
   tab.find(".file-picker").on("click", event => {
     const button = event.currentTarget;
     const target = button.dataset.target;
-    new FilePicker({type: button.dataset.type || "image", current: tab.find(`[name="${target}"]`).val(), callback: path => tab.find(`[name="${target}"]`).val(path)}).browse();
+    new FilePicker({type: button.dataset.type || "image", current: tab.find(`[name="${target}"]`).val(), callback: path => tab.find(`[name="${target}"]`).val(path).trigger("change")}).browse();
   });
-  tab.find("input[data-color-for]").on("change", event => tab.find(`[name="${event.currentTarget.dataset.colorFor}"]`).val(event.currentTarget.value));
+  tab.find("input[data-color-for]").on("change", event => tab.find(`[name="${event.currentTarget.dataset.colorFor}"]`).val(event.currentTarget.value).trigger("change"));
   tab.find("[data-action='preview-splash']").on("click", () => {
     const element = getElements().find(entry => entry.id === tab.find("[name='elementId']").val());
     showSplash({actorName: actor.name, image: tab.find("[name='splashImage']").val(), duration: Number(tab.find("[name='splashDuration']").val()) || 1, ultimateName: tab.find("[name='ultimateName']").val(), ultimateSubtitle: tab.find("[name='ultimateSubtitle']").val(), titleX: Number(tab.find("[name='titleX']").val()), titleY: Number(tab.find("[name='titleY']").val()), titleSize: Number(tab.find("[name='titleSize']").val()), titleAlign: tab.find("[name='titleAlign']").val(), fontFile: tab.find("[name='fontFile']").val(), subtitleFontFile: tab.find("[name='subtitleFontFile']").val(), color: element?.chargeColor || DEFAULT_CONFIG.chargeColor});
@@ -3922,9 +3954,63 @@ function populateEidolonEditor(actor, tab, number) {
   refreshEidolonPreview(tab, number);
 }
 
+async function saveEidolonCurrencyFromTab(actor, tab, {notify = false} = {}) {
+  const data = getEidolons(actor);
+  data.currencyUuid = String(tab.find('[name="eidolonCurrencyUuid"]').val() || "").trim();
+  await actor.update({[`flags.${MODULE_ID}.eidolons`]: data}, {tsruAutosave: !notify});
+  if (notify) ui.notifications.info(`${actor.name}'s Eidolon activation currency was saved.`);
+}
+
+async function saveEidolonSlotFromEditor(actor, scope, number, {notify = false} = {}) {
+  const data = getEidolons(actor);
+  const slot = data.slots[number - 1];
+  const editor = scope.find(`[data-eidolon-editor="${number}"]`);
+  if (!slot || !editor.length) return;
+  slot.title = String(editor.find(`[name="eidolon.${number}.title"]`).val() || `Eidolon ${number}`);
+  slot.artwork = String(editor.find(`[name="eidolon.${number}.artwork"]`).val() || "");
+  slot.offsetX = clamp(editor.find(`[name="eidolon.${number}.offsetX"]`).val(), -100, 100);
+  slot.offsetY = clamp(editor.find(`[name="eidolon.${number}.offsetY"]`).val(), -100, 100);
+  slot.scale = clamp(editor.find(`[name="eidolon.${number}.scale"]`).val(), 25, 400);
+  slot.active = editor.find(`[name="eidolon.${number}.active"]`).prop("checked");
+  await actor.update({[`flags.${MODULE_ID}.eidolons`]: data}, {tsruAutosave: !notify});
+  if (notify) ui.notifications.info(`${actor.name}'s E${number} appearance was saved.`);
+}
+
 function activateEidolonListeners(actor, tab, app) {
   tab.find("[data-action='activate-eidolon']").on("click", async event => activateEidolon(actor, Number(event.currentTarget.dataset.eidolon)));
   if (!game.user.isGM) return;
+
+  const slotTimers = new Map();
+  const slotRunning = new Set();
+  const slotQueued = new Set();
+  const runSlotAutosave = async (number, scope) => {
+    if (slotRunning.has(number)) { slotQueued.add(number); return; }
+    slotRunning.add(number);
+    try {
+      await saveEidolonSlotFromEditor(actor, scope, number);
+      scope.addClass("tsru-autosave-saved");
+      window.setTimeout(() => scope.removeClass("tsru-autosave-saved"), 500);
+    } catch (error) {
+      console.error(`${MODULE_ID} | Eidolon autosave failed`, error);
+      ui.notifications.error(`Could not autosave ${actor.name}'s E${number} configuration.`);
+    } finally {
+      slotRunning.delete(number);
+      if (slotQueued.delete(number)) runSlotAutosave(number, scope);
+    }
+  };
+  const scheduleSlotAutosave = (number, scope, immediate = false) => {
+    window.clearTimeout(slotTimers.get(number));
+    slotTimers.set(number, window.setTimeout(() => runSlotAutosave(number, scope), immediate ? 0 : 550));
+  };
+  let currencyTimer = null;
+  const scheduleCurrencyAutosave = immediate => {
+    window.clearTimeout(currencyTimer);
+    currencyTimer = window.setTimeout(() => saveEidolonCurrencyFromTab(actor, tab).catch(error => {
+      console.error(`${MODULE_ID} | Eidolon currency autosave failed`, error);
+      ui.notifications.error(`Could not autosave ${actor.name}'s Eidolon currency.`);
+    }), immediate ? 0 : 550);
+  };
+
   tab.find("[data-action='configure-eidolon']").on("click", event => {
     const number = Number(event.currentTarget.dataset.eidolon);
     populateEidolonEditor(actor, tab, number);
@@ -3953,17 +4039,14 @@ function activateEidolonListeners(actor, tab, app) {
       type: event.currentTarget.dataset.type || "image",
       current: scope.find(`[name="${target}"]`).val(),
       callback: path => {
-        scope.find(`[name="${target}"]`).val(path).trigger("input");
+        scope.find(`[name="${target}"]`).val(path).trigger("input").trigger("change");
         restorePopout();
       }
     });
     const originalClose = picker.close.bind(picker);
     picker.close = async (...args) => {
-      try {
-        return await originalClose(...args);
-      } finally {
-        restorePopout();
-      }
+      try { return await originalClose(...args); }
+      finally { restorePopout(); }
     };
     if (popout.length) popout.prop("hidden", true);
     Promise.resolve(picker.browse()).catch(error => {
@@ -3972,8 +4055,11 @@ function activateEidolonListeners(actor, tab, app) {
     });
   });
   tab.find("[data-eidolon-editor] input").on("input change", event => {
-    const number = Number(event.currentTarget.closest("[data-eidolon-editor]").dataset.eidolonEditor);
-    refreshEidolonPreview($(event.currentTarget).closest("[data-eidolon-popout]"), number);
+    const editorElement = event.currentTarget.closest("[data-eidolon-editor]");
+    const number = Number(editorElement.dataset.eidolonEditor);
+    const popout = $(event.currentTarget).closest("[data-eidolon-popout]");
+    refreshEidolonPreview(popout, number);
+    scheduleSlotAutosave(number, popout, event.type === "change" && ["checkbox", "radio"].includes(event.currentTarget.type));
   });
   tab.find("[data-eidolon-preview-art]").on("pointerdown", event => {
     const slot = Number(event.currentTarget.dataset.eidolonPreviewArt);
@@ -3993,43 +4079,40 @@ function activateEidolonListeners(actor, tab, app) {
       yInput.val(clamp(initialY + ((moveEvent.clientY - startY) / rect.height) * 100, -100, 100));
       refreshEidolonPreview(popout, slot);
     };
-    const end = () => {
+    const finish = () => {
       event.currentTarget.removeEventListener("pointermove", move);
-      event.currentTarget.removeEventListener("pointerup", end);
-      event.currentTarget.removeEventListener("pointercancel", end);
+      event.currentTarget.removeEventListener("pointerup", finish);
+      event.currentTarget.removeEventListener("pointercancel", finish);
+      scheduleSlotAutosave(slot, popout, true);
     };
     event.currentTarget.addEventListener("pointermove", move);
-    event.currentTarget.addEventListener("pointerup", end);
-    event.currentTarget.addEventListener("pointercancel", end);
+    event.currentTarget.addEventListener("pointerup", finish);
+    event.currentTarget.addEventListener("pointercancel", finish);
   });
+  tab.find('[name="eidolonCurrencyUuid"]').on("input change", event => scheduleCurrencyAutosave(event.type === "change"));
   tab.find('[name="eidolonCurrencyUuid"]').on("drop", event => {
     event.preventDefault();
     try {
       const dropped = JSON.parse(event.originalEvent?.dataTransfer?.getData("text/plain") || "{}");
-      if (dropped.type === "Item" && dropped.uuid) event.currentTarget.value = dropped.uuid;
+      if (dropped.type === "Item" && dropped.uuid) {
+        event.currentTarget.value = dropped.uuid;
+        $(event.currentTarget).trigger("change");
+      }
     } catch (_error) {}
   });
   tab.find("[data-action='save-eidolon-currency']").on("click", async () => {
-    const data = getEidolons(actor);
-    data.currencyUuid = String(tab.find('[name="eidolonCurrencyUuid"]').val() || "").trim();
-    await actor.setFlag(MODULE_ID, "eidolons", data);
-    ui.notifications.info(`${actor.name}'s Eidolon activation currency was saved.`);
+    window.clearTimeout(currencyTimer);
+    await saveEidolonCurrencyFromTab(actor, tab, {notify: true});
   });
   tab.find("[data-action='save-eidolon']").on("click", async event => {
     const number = Number(event.currentTarget.dataset.eidolon);
-    const data = getEidolons(actor);
-    const slot = data.slots[number - 1];
+    window.clearTimeout(slotTimers.get(number));
     const popout = $(event.currentTarget).closest("[data-eidolon-popout]");
-    const editor = popout.find(`[data-eidolon-editor="${number}"]`);
-    slot.title = String(editor.find(`[name="eidolon.${number}.title"]`).val() || `Eidolon ${number}`);
-    slot.artwork = String(editor.find(`[name="eidolon.${number}.artwork"]`).val() || "");
-    slot.offsetX = clamp(editor.find(`[name="eidolon.${number}.offsetX"]`).val(), -100, 100);
-    slot.offsetY = clamp(editor.find(`[name="eidolon.${number}.offsetY"]`).val(), -100, 100);
-    slot.scale = clamp(editor.find(`[name="eidolon.${number}.scale"]`).val(), 25, 400);
-    slot.active = editor.find(`[name="eidolon.${number}.active"]`).prop("checked");
-    popout.prop("hidden", true).removeClass("open").remove();
-    await actor.setFlag(MODULE_ID, "eidolons", data);
-    ui.notifications.info(`${actor.name}'s E${number} appearance was saved.`);
+    await saveEidolonSlotFromEditor(actor, popout, number, {notify: true});
+    const returnParent = popout.data("tsru-return-parent");
+    popout.prop("hidden", true).removeClass("open");
+    if (returnParent?.isConnected) popout.appendTo(returnParent);
+    else popout.remove();
   });
 }
 
@@ -4479,14 +4562,14 @@ Hooks.on("tsruEnergyChanged", (actor, before, after, reason) => dispatchTalentEv
 Hooks.on("tsruPunchlineChanged", value => { state.gmPanel?.refreshLiveValues(); dispatchTalentEvent("punchlineChanged", {value}); });
 Hooks.on("tsruSkillPointsChanged", value => { state.gmPanel?.refreshLiveValues(); dispatchTalentEvent("skillPointsChanged", {value}); });
 Hooks.on("tsruTalentPointsChanged", (actor, before, after) => { refreshTalentCounter(actor); dispatchTalentEvent("talentPointsChanged", {sourceActor: actor, before, after, amount: after - before}); });
-Hooks.on("updateActor", (actor, changes) => {
+Hooks.on("updateActor", (actor, changes, options) => {
   refreshOrb(actor);
   refreshSkillUI();
   refreshTalentCounter(actor);
   refreshResourceHuds();
   refreshToughnessBars();
   state.gmPanel?.refreshLiveValues();
-  if (foundry.utils.hasProperty(changes, `flags.${MODULE_ID}.eidolons`)) {
+  if (!options?.tsruAutosave && foundry.utils.hasProperty(changes, `flags.${MODULE_ID}.eidolons`)) {
     for (const app of Object.values(ui.windows ?? {})) if ((app.actor ?? app.document)?.id === actor.id) app.render(false);
   }
   if (actor.type === "character" && Number(getConfig(actor).current) >= Number(getConfig(actor).max) && state.ultimateLocks.has(actor.id)) {
