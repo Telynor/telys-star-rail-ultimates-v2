@@ -2185,9 +2185,8 @@ class CombatPartyHud {
         <div class="tsru-combat-party-portrait"><img src="${escapeHTML(portrait)}" alt="${escapeHTML(actor.name)}"></div>
         <strong class="tsru-combat-party-name">${escapeHTML(actor.name)}</strong>
         <div class="tsru-combat-party-hp"><i></i><span>${hpValue}/${hpMax}</span></div>
-        <div class="tsru-combat-party-bottom">${combatHudTalentMarkup(actor, config)}<div class="tsru-combat-party-energy"><i></i><span>${Math.floor(Number(config.current) || 0)}/${Math.max(1, Math.floor(Number(config.max) || 1))}</span></div>
-          <div class="tsru-combat-party-ultimate-wrap">${config.trialCharacter ? '<b class="tsru-combat-party-trial">Trial</b>' : ""}<button type="button" data-tsru-party-ultimate data-actor-id="${actor.id}" class="${ready ? "is-ready" : ""}" ${(!owned || !ready) ? "disabled" : ""} title="${owned ? (ready ? "Activate Ultimate" : "Ultimate is not ready") : "Only this character's owner can activate their Ultimate"}"><img src="${escapeHTML(config.ultimateButtonImage || config.orbImage || actor.img || "icons/svg/mystery-man.svg")}" alt=""><i></i></button></div>
-        </div>
+        ${combatHudTalentMarkup(actor, config)}
+        <div class="tsru-combat-party-ultimate-wrap">${config.trialCharacter ? '<b class="tsru-combat-party-trial">Trial</b>' : ""}<button type="button" data-tsru-party-ultimate data-actor-id="${actor.id}" class="${ready ? "is-ready" : ""}" ${(!owned || !ready) ? "disabled" : ""} title="${owned ? (ready ? "Activate Ultimate" : "Ultimate is not ready") : "Only this character's owner can activate their Ultimate"}"><span class="tsru-hud-orb-fill"></span><img src="${escapeHTML(config.ultimateButtonImage || config.orbImage || actor.img || "icons/svg/mystery-man.svg")}" alt="">${config.showPercent ? `<strong>${Math.round(energyPercent)}%</strong>` : ""}</button></div>
       </article>`;
     }).join("")}</div>`;
     return this;
