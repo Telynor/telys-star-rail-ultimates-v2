@@ -2782,7 +2782,7 @@ function installDamageScrollingTextOverride() {
       if (!numeric || state.customDamageScrollingText) return original.call(this, origin, content, options);
       const recent = state.lastDamageDisplay?.expires > Date.now() ? state.lastDamageDisplay : null;
       const style = damageDisplayStyle(recent?.type || "damage");
-      const topColor = style.inheritElement ? (recent?.color || "#ffffff") : style.topColor;
+      const topColor = (recent?.forceElementColor || style.inheritElement) ? (recent?.color || "#ffffff") : style.topColor;
       const statusLabel = recent?.label || (recent?.critical ? "CRIT Hit" : "");
       const shown = statusLabel ? `${statusLabel}\n${content}` : content;
       return Promise.resolve(loadSplashFont(style.fontFile)).catch(() => "Arial, sans-serif").then(fontFamily => original.call(this, origin, shown, {
@@ -2804,18 +2804,23 @@ function installDamageScrollingTextOverride() {
   }
 }
 
-async function broadcastDamageResult(target, damage, {plainDamage=false, critical=false, superBreak=false, color="", fontFile=""}={}) {
+async function broadcastDamageResult(target, damage, {plainDamage=false, critical=false, superBreak=false, forceElementColor=false, color="", fontFile=""}={}) {
   const {actor}=toughnessTargetParts(target);
   const token=breakDisplayTarget(target);
-  const display={type:plainDamage?"damageResult":"breakResult",actorId:actor?.id??"",tokenId:token?.id??"",sceneId:canvas?.scene?.id??"",damage,plainDamage,critical,superBreak,color,fontFile};
+  const display={type:plainDamage?"damageResult":"breakResult",actorId:actor?.id??"",tokenId:token?.id??"",sceneId:canvas?.scene?.id??"",damage,plainDamage,critical,superBreak,forceElementColor,color,fontFile};
   await showBreakResult(display);
   game.socket.emit(SOCKET,display);
 }
 
 function damageResultColor(attacker, {_hpDamage = false} = {}) {
   const config = getConfig(attacker);
-  const element = getElements().find(entry => entry.id === config.elementId);
-  return element?.readyColor || element?.color || element?.chargeColor || "#ffffff";
+  const assigned = String(config.elementId ?? "").trim();
+  const element = getElements().find(entry =>
+    String(entry.id ?? "") === assigned ||
+    (assigned && String(entry.name ?? "").toLowerCase() === assigned.toLowerCase())
+  );
+  const candidates = [element?.readyColor, element?.color, element?.chargeColor, config.readyColor, config.chargeColor];
+  return candidates.find(color => /^#[0-9a-f]{6}$/i.test(String(color ?? ""))) || "#ffffff";
 }
 
 function damageRollWasCritical(source) {
@@ -2837,10 +2842,12 @@ async function broadcastDamageOnce(attacker, target, amount, eventId, {critical 
   if (state.processedMessages.has(key)) return false;
   state.processedMessages.add(key);
   window.setTimeout(() => state.processedMessages.delete(key), 120000);
-  state.lastDamageDisplay = {color:damageResultColor(attacker, {hpDamage:true}), critical:Boolean(critical), expires:Date.now() + 15000};
+  const forceElementColor = Boolean(getConfig(attacker).breakCharacter && value === 1);
+  state.lastDamageDisplay = {color:damageResultColor(attacker, {hpDamage:true}), critical:Boolean(critical), forceElementColor, expires:Date.now() + 15000};
   await broadcastDamageResult(target, value, {
     plainDamage: true,
     critical,
+    forceElementColor,
     color: damageResultColor(attacker, {hpDamage:true}),
     fontFile: getBreakFonts().damageFontFile
   });
@@ -2873,7 +2880,7 @@ async function showBreakResult(payload) {
     top = rect.top + screenPoint.y * (rect.height / screenHeight);
   }
 
-  const configuredTop = style.inheritElement ? payload.color : style.topColor;
+  const configuredTop = (payload.forceElementColor || style.inheritElement) ? payload.color : style.topColor;
   const topColor = safePopupColor(configuredTop, "#ffffff");
   const bottomColor = safePopupColor(style.bottomColor, "#ffffff");
   const popup = document.createElement("div");
@@ -3125,6 +3132,7 @@ async function processDnd5eDamageRolls(rolls, data = {}) {
   state.lastDamageDisplay = {
     color: damageResultColor(attacker, {hpDamage:true}),
     critical: damageRollWasCritical({rolls:rollList}),
+    forceElementColor: Boolean(getConfig(attacker).breakCharacter),
     attackerId: attacker.id,
     expires: Date.now() + 15000
   };
@@ -3157,6 +3165,7 @@ async function processCoreAttackMessage(message) {
     state.lastDamageDisplay = {
       color: damageResultColor(attacker, {hpDamage:true}),
       critical: damageRollWasCritical(message) || damageRollWasCritical(midiWorkflow),
+      forceElementColor: Boolean(getConfig(attacker).breakCharacter),
       attackerId: attacker.id,
       expires: Date.now() + 15000
     };
@@ -3210,6 +3219,7 @@ async function processMidiWorkflow(workflow) {
     state.lastDamageDisplay = {
       color: damageResultColor(attacker, {hpDamage:true}),
       critical: damageRollWasCritical(workflow),
+      forceElementColor: Boolean(getConfig(attacker).breakCharacter),
       attackerId: attacker.id,
       expires: Date.now() + 15000
     };
