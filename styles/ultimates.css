@@ -1632,3 +1632,25 @@
 
 .tsru-eidolon-crop-hint { margin:8px 0 0; color:#c9c4d3; font-size:12px; text-align:center; }
 .tsru-eidolon-crop-hint i { color:#e5c878; margin-right:4px; }
+
+/* Light Cones ------------------------------------------------------------- */
+.tsru-light-cone-card { width:100%; margin-top:14px; border:1px solid rgba(229,200,120,.7); border-radius:5px; overflow:hidden; background:#11131a; box-shadow:0 5px 16px rgba(0,0,0,.45); color:#eee; transition:filter .2s,opacity .2s; }
+.tsru-light-cone-card.path-mismatch { filter:grayscale(1); opacity:.52; }
+.tsru-light-cone-image { position:relative; width:100%; aspect-ratio:2 / 3; overflow:hidden; background:#08090d; }
+.tsru-light-cone-image > img { width:100%; height:100%; display:block; object-fit:cover; }
+.tsru-light-cone-description { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; overflow:auto; padding:14px; background:rgba(5,6,10,.92); color:#f2f0e7; opacity:0; transition:opacity .18s; pointer-events:none; }
+.tsru-light-cone-image:hover .tsru-light-cone-description { opacity:1; }
+.tsru-light-cone-card footer { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:7px 9px; background:linear-gradient(90deg,#191b24,#27232a); }
+.tsru-light-cone-card footer strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#f3df9d; }
+.tsru-light-cone-card footer span { flex:0 0 auto; color:#aaa6b3; font-size:11px; }
+.tsru-light-cone-roll-info { margin-top:7px; border:1px solid rgba(229,200,120,.55); border-radius:4px; background:#12141b; }
+.tsru-light-cone-roll-info summary { padding:6px 8px; color:#e9d58f; font-weight:700; cursor:pointer; }
+.tsru-light-cone-roll-info button { display:flex; align-items:center; gap:8px; width:calc(100% - 10px); margin:0 5px 5px; padding:5px 8px; color:#eee; }
+.tsru-light-cone-roll-info button img { width:30px; height:40px; object-fit:cover; border:1px solid #a58e4d; }
+.tsru-light-cone-chat { border:1px solid #9b864b; border-radius:5px; overflow:hidden; background:#11131a; color:#eee; }
+.tsru-light-cone-chat header { display:flex; align-items:center; gap:10px; padding:8px; background:linear-gradient(90deg,#2b2517,#181a22); }
+.tsru-light-cone-chat header img { width:52px; height:78px; object-fit:cover; border:1px solid #d2b967; }
+.tsru-light-cone-chat h3 { margin:0; color:#f0d989; }
+.tsru-light-cone-chat header span { color:#aaa6b3; font-size:12px; }
+.tsru-light-cone-chat-description { padding:10px; }
+.tsru-light-cone-wizard textarea { min-height:150px; resize:vertical; }

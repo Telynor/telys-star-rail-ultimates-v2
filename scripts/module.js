@@ -1556,6 +1556,144 @@ function activateImageDrops(html) {
   });
 }
 
+
+function getLightConeData(item) {
+  const stored = item?.getFlag?.(MODULE_ID, "lightCone") ?? {};
+  return {
+    enabled: Boolean(stored.enabled),
+    pathId: String(stored.pathId || ""),
+    description: String(stored.description ?? item?.system?.description?.value ?? ""),
+    image: String(stored.image || item?.img || "icons/svg/item-bag.svg")
+  };
+}
+
+function isLightCone(item) {
+  return Boolean(item?.getFlag?.(MODULE_ID, "lightCone")?.enabled);
+}
+
+function lightConeUsesAttunement(item) {
+  const attuned = item?.system?.attuned;
+  const attunement = item?.system?.attunement;
+  if (attuned === true) return true;
+  if (typeof attunement === "boolean") return attunement;
+  if (Number.isFinite(Number(attunement))) return Number(attunement) >= 2;
+  return /attuned/i.test(String(attunement || ""));
+}
+
+function equippedLightCone(actor) {
+  const cones = Array.from(actor?.items ?? []).filter(isLightCone);
+  return cones.find(item => item.system?.equipped !== false && lightConeUsesAttunement(item)) ?? null;
+}
+
+async function openLightConeWizard(item) {
+  if (!game.user.isGM) return ui.notifications.warn("Only a GM can convert or configure Light Cones.");
+  if (!item) return ui.notifications.error("No Item was selected.");
+  const current = getLightConeData(item);
+  const paths = getPaths();
+  const options = ['<option value="">Any Path</option>', ...paths.map(path => `<option value="${escapeHTML(path.id)}" ${path.id === current.pathId ? "selected" : ""}>${escapeHTML(path.name)}</option>`)].join("");
+  const content = `<form class="tsru-light-cone-wizard">
+    <p class="notes">Convert <strong>${escapeHTML(item.name)}</strong> into a Light Cone. Its existing Item data is preserved.</p>
+    <div class="form-group"><label>Light Cone Image</label><div class="form-fields"><input type="text" name="image" value="${escapeHTML(current.image)}"><button type="button" class="file-picker" data-type="image" data-target="image"><i class="fas fa-file-import"></i></button></div></div>
+    <div class="form-group"><label>Path</label><div class="form-fields"><select name="pathId">${options}</select></div></div>
+    <div class="form-group stacked"><label>Description</label><textarea name="description" rows="9">${escapeHTML(current.description)}</textarea></div>
+    <p class="notes">The converted Item requires one attunement slot. Equip and attune it on a character to display it on that sheet.</p>
+  </form>`;
+  const dialog = new Dialog({
+    title: `${current.enabled ? "Configure" : "Import"} Light Cone — ${item.name}`,
+    content,
+    buttons: {
+      ok: {
+        icon: '<i class="fas fa-wand-magic-sparkles"></i>',
+        label: "OK",
+        callback: async html => {
+          const lightCone = {
+            enabled: true,
+            pathId: String(html.find('[name="pathId"]').val() || ""),
+            image: String(html.find('[name="image"]').val() || item.img || ""),
+            description: String(html.find('[name="description"]').val() || "")
+          };
+          const updates = {
+            [`flags.${MODULE_ID}.lightCone`]: lightCone,
+            img: lightCone.image,
+            "system.description.value": lightCone.description
+          };
+          if (foundry.utils.hasProperty(item, "system.attunement")) updates["system.attunement"] = Math.max(1, Number(item.system.attunement) || 1);
+          await item.update(updates);
+          ui.notifications.info(`${item.name} is now configured as a Light Cone.`);
+          item.sheet?.render(false);
+          item.parent?.sheet?.render(false);
+        }
+      },
+      cancel: {icon: '<i class="fas fa-times"></i>', label: "Cancel"}
+    },
+    default: "ok"
+  });
+  Hooks.once("renderDialog", rendered => {
+    if (rendered !== dialog) return;
+    rendered.element.find(".file-picker").on("click", event => {
+      const target = event.currentTarget.dataset.target;
+      new FilePicker({type: "image", current: rendered.element.find(`[name="${target}"]`).val(), callback: path => rendered.element.find(`[name="${target}"]`).val(path)}).browse();
+    });
+  });
+  dialog.render(true);
+}
+
+function addLightConeHeaderButton(app, buttons) {
+  const item = app.item ?? app.document;
+  if (!game.user.isGM || item?.documentName !== "Item") return;
+  buttons.unshift({
+    label: isLightCone(item) ? "Light Cone" : "Import Light Cone",
+    class: "tsru-light-cone-wizard-button",
+    icon: "fas fa-id-card",
+    onclick: () => openLightConeWizard(item)
+  });
+}
+
+function injectLightConeHeaderButton(app, html) {
+  const item = app.item ?? app.document;
+  if (!game.user.isGM || item?.documentName !== "Item") return;
+  const root = html?.jquery ? html : $(html ?? app.element);
+  const header = root.closest(".window-app, .application").find(".window-header").first().add(root.find(".window-header").first()).first();
+  if (!header.length || header.find("[data-tsru-light-cone-wizard]").length) return;
+  const button = $(`<button type="button" data-tsru-light-cone-wizard class="header-control" title="Configure Light Cone"><i class="fas fa-id-card"></i> ${isLightCone(item) ? "Light Cone" : "Import Light Cone"}</button>`);
+  const controls = header.find(".window-controls").first();
+  if (controls.length) controls.prepend(button);
+  else header.find("button.close, [data-action='close']").first().before(button);
+  button.on("click.tsru", event => { event.preventDefault(); event.stopPropagation(); openLightConeWizard(item); });
+}
+
+async function injectLightConePanel(app, root, host) {
+  const actor = app.actor ?? app.document;
+  const renderKey = foundry.utils.randomID();
+  root.attr("data-tsru-light-cone-render", renderKey);
+  root.find("[data-tsru-light-cone]").remove();
+  const item = equippedLightCone(actor);
+  if (!item) return;
+  const cone = getLightConeData(item);
+  const actorPathId = String(getConfig(actor).pathId || "");
+  const mismatch = Boolean(cone.pathId && actorPathId && cone.pathId !== actorPathId);
+  const path = getPaths().find(entry => entry.id === cone.pathId);
+  const description = await TextEditor.enrichHTML(cone.description, {async: true, secrets: actor.isOwner});
+  if (root.attr("data-tsru-light-cone-render") !== renderKey) return;
+  const panel = $(`<article class="tsru-light-cone-card ${mismatch ? "path-mismatch" : ""}" data-tsru-light-cone data-item-uuid="${escapeHTML(item.uuid)}">
+    <div class="tsru-light-cone-image"><img src="${escapeHTML(cone.image)}" alt="${escapeHTML(item.name)}"><div class="tsru-light-cone-description">${description || "<em>No description configured.</em>"}</div></div>
+    <footer><strong>${escapeHTML(item.name)}</strong><span>${escapeHTML(path?.name || "Any Path")}</span></footer>
+  </article>`);
+  const column = host?.parent?.().length ? host.parent() : root.find(".sheet-body, [data-application-part='body']").first();
+  column.append(panel);
+}
+
+async function postLightConeToChat(item, actor) {
+  if (!item || !actor || !(game.user.isGM || actor.isOwner)) return;
+  const cone = getLightConeData(item);
+  const path = getPaths().find(entry => entry.id === cone.pathId);
+  const description = await TextEditor.enrichHTML(cone.description, {async: true, secrets: actor.isOwner});
+  await ChatMessage.create({
+    speaker: ChatMessage.getSpeaker({actor}),
+    content: `<section class="tsru-light-cone-chat"><header><img src="${escapeHTML(cone.image)}"><div><h3>${escapeHTML(item.name)}</h3><span>${escapeHTML(path?.name || "Any Path")} Light Cone</span></div></header><div class="tsru-light-cone-chat-description">${description || "<em>No description configured.</em>"}</div></section>`
+  });
+}
+
 async function injectCharacterBadges(app, html) {
   const actor = app.actor ?? app.document;
   if (actor?.documentName !== "Actor" || actor.type !== "character") return;
@@ -1581,6 +1719,7 @@ async function injectCharacterBadges(app, html) {
     if (!portrait.length) return;
     host = portrait.parent().addClass("tsru-portrait-badge-host");
   } else host.addClass("tsru-species-badge-host");
+  injectLightConePanel(app, root, host);
   if (speciesHostFound) {
     const talentMaximum = Math.max(0, Math.floor(Number(config.talentPointsMax) || 0));
     const talentCurrent = currentTalentPoints(actor);
@@ -4798,6 +4937,7 @@ Hooks.on("renderActorSheet", observeCharacterSheetTabs);
 Hooks.on("renderCharacterActorSheet", observeCharacterSheetTabs);
 Hooks.on("renderActorSheet", injectToughnessHeaderButton);
 Hooks.on("renderApplicationV2", (app, html) => {
+  if (app.document?.documentName === "Item") injectLightConeHeaderButton(app, html);
   const actor = app.actor ?? app.document;
   if (actor?.documentName === "Actor" && actor.type === "character") {
     injectUltimateTab(app, html);
@@ -4820,6 +4960,8 @@ Hooks.on("renderCharacterActorSheet", injectEnergyAbility);
 Hooks.on("renderActorSheet", injectCharacterBadges);
 Hooks.on("renderCharacterActorSheet", injectCharacterBadges);
 Hooks.on("getActorSheetHeaderButtons", addActorHeaderButton);
+Hooks.on("getItemSheetHeaderButtons", addLightConeHeaderButton);
+Hooks.on("renderItemSheet", injectLightConeHeaderButton);
 Hooks.on("getSceneControlButtons", addHudTool);
 Hooks.on("createChatMessage", processCoreAttackMessage);
 
@@ -4881,6 +5023,14 @@ function renderManualDamageControl(controlElement, message, suppliedApplications
 
 Hooks.on("renderChatMessage", (message, html) => {
   const root = html?.jquery ? html : $(html);
+  const lightConeActor = actorFromChatMessage(message);
+  const lightCone = Array.isArray(message.rolls) && message.rolls.length && lightConeActor ? equippedLightCone(lightConeActor) : null;
+  if (lightCone && !root.find("[data-tsru-light-cone-info]").length) {
+    const info = $(`<details class="tsru-light-cone-roll-info" data-tsru-light-cone-info><summary><i class="fas fa-id-card"></i> Light Cone Info</summary><button type="button"><img src="${escapeHTML(getLightConeData(lightCone).image)}"><span>Post ${escapeHTML(lightCone.name)} to chat</span></button></details>`);
+    const destination = root.find(".message-content").last();
+    (destination.length ? destination : root).append(info);
+    info.find("button").on("click.tsru", () => postLightConeToChat(lightCone, lightConeActor));
+  }
   const roller = actorFromChatMessage(message);
   if (isManualChatDamageEligible(message) && (game.user.isGM || roller?.isOwner)) {
     const control = $(`<div class="tsru-chat-damage-control" data-tsru-chat-damage-control="${escapeHTML(message.id)}"></div>`);
