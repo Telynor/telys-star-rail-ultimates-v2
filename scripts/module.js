@@ -1667,6 +1667,7 @@ async function unequipLightCone(item) {
   const attunement = lightConeAttunementUpdate(item, false);
   if (Object.keys(attunement).length) await item.update(attunement, {tsruLightConeSelection: true});
   await actor.unsetFlag(MODULE_ID, "selectedLightConeItemId");
+  clearLightConeContextBackdrop(actor.sheet?.element?.jquery ? actor.sheet.element[0] : actor.sheet?.element);
   actor.sheet?.render(false);
   ui.notifications.info(`${item.name} was unequipped as ${actor.name}'s Light Cone.`);
 }
@@ -1699,8 +1700,17 @@ async function selectLightConeItem(item) {
     if (Object.keys(rollback).length) await item.update(rollback, {tsruLightConeSelection: true}).catch(() => {});
     throw error;
   }
+  clearLightConeContextBackdrop(actor.sheet?.element?.jquery ? actor.sheet.element[0] : actor.sheet?.element);
   actor.sheet?.render(false);
   ui.notifications.info(`${item.name} is now equipped as ${actor.name}'s Light Cone.`);
+}
+
+function clearLightConeContextBackdrop(rootElement) {
+  $("#tsru-light-cone-context-fallback").remove();
+  const root = $(rootElement ?? []);
+  root.filter(".context").add(root.find(".context")).removeClass("context");
+  root.filter(".context-menu-open").add(root.find(".context-menu-open")).removeClass("context-menu-open");
+  document.body?.classList.remove("context", "context-menu-open");
 }
 
 function activateLightConeInventoryContext(app, html) {
@@ -1709,7 +1719,9 @@ function activateLightConeInventoryContext(app, html) {
   const renderedRoot = html?.jquery ? html[0] : html;
   const appRoot = app.element?.jquery ? app.element[0] : app.element;
   const rootElement = appRoot ?? renderedRoot;
-  if (!rootElement || rootElement.dataset.tsruLightConeContext === "true") return;
+  if (!rootElement) return;
+  clearLightConeContextBackdrop(rootElement);
+  if (rootElement.dataset.tsruLightConeContext === "true") return;
   rootElement.dataset.tsruLightConeContext = "true";
 
   rootElement.addEventListener("contextmenu", event => {
@@ -1722,10 +1734,13 @@ function activateLightConeInventoryContext(app, html) {
 
     const activate = activateEvent => {
       activateEvent.preventDefault();
-      activateEvent.stopPropagation();
       $("#tsru-light-cone-context-fallback").remove();
-      if (isEquipped) unequipLightCone(item);
-      else selectLightConeItem(item);
+      const operation = isEquipped ? unequipLightCone(item) : selectLightConeItem(item);
+      window.setTimeout(() => {
+        document.body?.dispatchEvent(new MouseEvent("click", {bubbles: true, cancelable: true}));
+        clearLightConeContextBackdrop(rootElement);
+      }, 0);
+      return operation;
     };
     const label = isEquipped ? "Unequip Light Cone" : "Select as Light Cone";
     const icon = isEquipped ? "fa-link-slash" : "fa-id-card";
