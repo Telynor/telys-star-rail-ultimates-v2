@@ -2812,9 +2812,8 @@ async function broadcastDamageResult(target, damage, {plainDamage=false, critica
   game.socket.emit(SOCKET,display);
 }
 
-function damageResultColor(attacker, {hpDamage = false} = {}) {
+function damageResultColor(attacker, {_hpDamage = false} = {}) {
   const config = getConfig(attacker);
-  if (hpDamage && config.breakCharacter) return "#ffffff";
   const element = getElements().find(entry => entry.id === config.elementId);
   return element?.readyColor || element?.color || element?.chargeColor || "#ffffff";
 }
