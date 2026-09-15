@@ -1656,7 +1656,12 @@ function lightConeAttunementUpdate(item, equipped) {
   const statePath = `flags.${MODULE_ID}.lightConeAttunementState`;
   const properties = new Set(Array.from(item?.system?.properties ?? []));
   const saved = item?.getFlag?.(MODULE_ID, "lightConeAttunementState");
+  const supportsAttunement = foundry.utils.hasProperty(item, "system.attunement")
+    && foundry.utils.hasProperty(item, "system.attuned");
   if (equipped) {
+    // Loot items have no attunement fields in D&D5e. Their selected Light Cone
+    // consumes a virtual slot in the prepared sheet context instead.
+    if (!supportsAttunement) return changes;
     if (!saved) {
       changes[statePath] = {
         attunement: item?.system?.attunement,
@@ -1692,17 +1697,32 @@ function actorAttunementCapacity(actor) {
 }
 
 function actorAttunedItemCount(actor) {
-  return Array.from(actor?.items ?? []).filter(itemIsAttuned).length;
+  const nativeCount = Array.from(actor?.items ?? []).filter(itemIsAttuned).length;
+  const cone = equippedLightCone(actor);
+  return nativeCount + (cone && !itemIsAttuned(cone) ? 1 : 0);
 }
 
 async function repairSelectedLightConeAttunements() {
   if (!game.user.isGM) return;
   for (const actor of game.actors.filter(entry => entry.type === "character")) {
     const item = equippedLightCone(actor);
-    if (!item || itemIsAttuned(item)) continue;
-    const changes = lightConeAttunementUpdate(item, true);
+    if (!item) continue;
+    const supportsAttunement = foundry.utils.hasProperty(item, "system.attunement")
+      && foundry.utils.hasProperty(item, "system.attuned");
+    let changes = {};
+    // Clean up the magical property added to loot by v2.25.5; loot uses the
+    // virtual selected-Light-Cone slot because its schema cannot be attuned.
+    if (!supportsAttunement && item.getFlag(MODULE_ID, "lightConeAttunementState")) changes = lightConeAttunementUpdate(item, false);
+    else if (supportsAttunement && !itemIsAttuned(item)) changes = lightConeAttunementUpdate(item, true);
     if (Object.keys(changes).length) await item.update(changes, {tsruLightConeSelection: true});
   }
+}
+
+function prepareLightConeAttunementContext(app, _partId, context) {
+  const actor = app?.actor ?? app?.document;
+  const attunement = context?.system?.attributes?.attunement;
+  if (actor?.documentName !== "Actor" || actor.type !== "character" || !attunement) return;
+  attunement.value = actorAttunedItemCount(actor);
 }
 
 async function unequipLightCone(item) {
@@ -5145,6 +5165,8 @@ Hooks.once("ready", () => {
   installDamageScrollingTextOverride();
   repairSelectedLightConeAttunements().catch(error => console.error(`${MODULE_ID} | Failed to repair Light Cone attunement`, error));
 });
+
+Hooks.on("dnd5e.prepareSheetContext", prepareLightConeAttunementContext);
 
 Hooks.on("canvasReady", installDamageScrollingTextOverride);
 
