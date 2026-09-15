@@ -4277,9 +4277,55 @@ async function saveEidolonSlotFromEditor(actor, scope, number, {notify = false} 
   if (notify) ui.notifications.info(`${actor.name}'s E${number} appearance was saved.`);
 }
 
+async function selectExistingEidolons(actor) {
+  if (!game.user.isGM) return ui.notifications.warn("Only a GM can import existing Eidolons.");
+  const sources = Array.from(game.actors ?? [])
+    .filter(source => source.type === "character" && source.id !== actor.id)
+    .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  if (!sources.length) return ui.notifications.warn("There are no other player-character sheets to import Eidolons from.");
+
+  const options = sources.map(source => `<option value="${escapeHTML(source.id)}">${escapeHTML(source.name)}</option>`).join("");
+  const content = `<form class="tsru-eidolon-import"><div class="form-group"><label>Select character</label><div class="form-fields"><select name="sourceActorId">${options}</select></div></div><p class="notes">Copies all six Eidolon titles, artwork, crop positions, scale, and activation state. The destination sheet's activation currency is preserved.</p></form>`;
+  new Dialog({
+    title: `Select Existing Eidolons — ${actor.name}`,
+    content,
+    buttons: {
+      ok: {
+        icon: '<i class="fas fa-check"></i>',
+        label: "OK",
+        callback: async html => {
+          const sourceId = String(html.find('[name="sourceActorId"]').val() || "");
+          const source = game.actors.get(sourceId);
+          if (!source) return ui.notifications.error("The selected character sheet could not be found.");
+          const sourceData = getEidolons(source);
+          const destinationData = getEidolons(actor);
+          destinationData.slots = sourceData.slots.map((slot, index) => ({
+            number: index + 1,
+            active: Boolean(slot.active),
+            title: String(slot.title || `Eidolon ${index + 1}`),
+            artwork: String(slot.artwork || ""),
+            offsetX: clamp(slot.offsetX, -100, 100),
+            offsetY: clamp(slot.offsetY, -100, 100),
+            scale: clamp(slot.scale, 25, 400)
+          }));
+          await actor.update({[`flags.${MODULE_ID}.eidolons`]: destinationData});
+          ui.notifications.info(`Imported Eidolons from ${source.name} to ${actor.name}.`);
+          for (const sheet of Object.values(ui.windows ?? {})) {
+            if ((sheet.actor ?? sheet.document)?.id === actor.id) sheet.render(false);
+          }
+        }
+      },
+      cancel: {icon: '<i class="fas fa-times"></i>', label: "Cancel"}
+    },
+    default: "ok"
+  }).render(true);
+}
+
 function activateEidolonListeners(actor, tab, app) {
   tab.find("[data-action='activate-eidolon']").on("click", async event => activateEidolon(actor, Number(event.currentTarget.dataset.eidolon)));
   if (!game.user.isGM) return;
+
+  tab.find("[data-action='select-existing-eidolons']").on("click", () => selectExistingEidolons(actor));
 
   const slotTimers = new Map();
   const slotRunning = new Set();
