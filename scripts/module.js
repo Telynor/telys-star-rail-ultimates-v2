@@ -1571,18 +1571,9 @@ function isLightCone(item) {
   return Boolean(item?.getFlag?.(MODULE_ID, "lightCone")?.enabled);
 }
 
-function lightConeUsesAttunement(item) {
-  const attuned = item?.system?.attuned;
-  const attunement = item?.system?.attunement;
-  if (attuned === true) return true;
-  if (typeof attunement === "boolean") return attunement;
-  if (Number.isFinite(Number(attunement))) return Number(attunement) >= 2;
-  return /attuned/i.test(String(attunement || ""));
-}
-
 function equippedLightCone(actor) {
-  const cones = Array.from(actor?.items ?? []).filter(isLightCone);
-  return cones.find(item => lightConeUsesAttunement(item)) ?? null;
+  const itemId = String(actor?.getFlag?.(MODULE_ID, "selectedLightConeItemId") || "");
+  return itemId ? actor.items?.get(itemId) ?? null : null;
 }
 
 async function ensureLightConeFolder() {
@@ -1638,7 +1629,7 @@ async function openLightConeGenerator() {
             type: "loot",
             img: image,
             folder: folderId,
-            system: {description: {value: description}, quantity: 1, attunement: 1},
+            system: {description: {value: description}, quantity: 1},
             flags: {[MODULE_ID]: {lightCone}}
           });
           ui.notifications.info(`Created Light Cone: ${name}.`);
@@ -1660,73 +1651,77 @@ async function openLightConeGenerator() {
   dialog.render(true);
 }
 
-function lightConeAttuneUpdate(item) {
-  const changes = {};
-  if (foundry.utils.hasProperty(item, "system.attuned")) changes["system.attuned"] = true;
-  if (foundry.utils.hasProperty(item, "system.attunement")) {
-    const current = item.system.attunement;
-    changes["system.attunement"] = typeof current === "boolean" ? true : (Number.isFinite(Number(current)) ? 2 : "attuned");
-  }
-  if (!Object.keys(changes).length) changes["system.attunement"] = 2;
-  return changes;
-}
-
-async function selectAndAttuneLightCone(item) {
+async function selectLightConeItem(item) {
   const actor = item?.parent;
-  if (!game.user.isGM || actor?.documentName !== "Actor" || actor.type !== "character" || !isLightCone(item)) return;
-  const current = Array.from(actor.items ?? []).find(candidate => candidate.id !== item.id && isLightCone(candidate) && lightConeUsesAttunement(candidate));
+  if (!game.user.isGM || actor?.documentName !== "Actor" || actor.type !== "character") return;
+  const current = equippedLightCone(actor);
+  if (current?.id === item.id) return ui.notifications.info(`${item.name} is already selected for ${actor.name}.`);
   if (current) {
     const confirmed = await Dialog.confirm({
       title: "Switch Light Cones?",
-      content: `<p><strong>${escapeHTML(actor.name)}</strong> is currently using <strong>${escapeHTML(current.name)}</strong>.</p><p>Unattune it and select <strong>${escapeHTML(item.name)}</strong> instead?</p>`,
+      content: `<p><strong>${escapeHTML(actor.name)}</strong> is currently displaying <strong>${escapeHTML(current.name)}</strong>.</p><p>Select <strong>${escapeHTML(item.name)}</strong> instead?</p>`,
       yes: () => true,
       no: () => false,
       defaultYes: false
     });
     if (!confirmed) return ui.notifications.info(`${current.name} remains selected for ${actor.name}.`);
-    await current.update(lightConeUnattuneUpdate(current), {tsruLightConeSwitch: true});
   }
-  await item.update(lightConeAttuneUpdate(item), {tsruLightConeSwitch: true});
+  await actor.setFlag(MODULE_ID, "selectedLightConeItemId", item.id);
   actor.sheet?.render(false);
-  ui.notifications.info(`${item.name} is now selected and attuned for ${actor.name}.`);
+  ui.notifications.info(`${item.name} is now displayed as ${actor.name}'s Light Cone.`);
 }
 
 function activateLightConeInventoryContext(app, html) {
   const actor = app.actor ?? app.document;
   if (!game.user.isGM || actor?.documentName !== "Actor" || actor.type !== "character") return;
-  const root = html?.jquery ? html : $(html ?? app.element);
-  const rootElement = root[0];
+  const renderedRoot = html?.jquery ? html[0] : html;
+  const appRoot = app.element?.jquery ? app.element[0] : app.element;
+  const rootElement = appRoot ?? renderedRoot;
   if (!rootElement || rootElement.dataset.tsruLightConeContext === "true") return;
   rootElement.dataset.tsruLightConeContext = "true";
 
   rootElement.addEventListener("contextmenu", event => {
-    const row = event.target.closest?.("[data-item-id], [data-document-id]");
-    const itemId = row?.dataset?.itemId || row?.dataset?.documentId;
+    const row = event.target.closest?.("[data-item-id], [data-document-id], [data-entry-id], [data-id].item, .item");
+    const itemId = row?.dataset?.itemId || row?.dataset?.documentId || row?.dataset?.entryId || row?.dataset?.id;
     const item = actor.items.get(itemId);
-    if (!item || !isLightCone(item) || lightConeUsesAttunement(item)) return;
+    if (!item || equippedLightCone(actor)?.id === item.id) return;
+    const pointer = {x: event.clientX, y: event.clientY};
+
+    const activate = activateEvent => {
+      activateEvent.preventDefault();
+      activateEvent.stopPropagation();
+      $("#tsru-light-cone-context-fallback").remove();
+      selectLightConeItem(item);
+    };
+    const optionMarkup = '<i class="fas fa-id-card fa-fw"></i><span>Select as Light Cone</span>';
 
     const addOption = attempts => {
-      const menus = $("#context-menu:visible, .context-menu:visible, [data-application-part='context-menu']:visible");
+      const menus = $("#context-menu:visible, .context-menu:visible, [data-application-part='context-menu']:visible, [role='menu']:visible").not("#tsru-light-cone-context-fallback");
       const menu = menus.last();
-      const nestedList = menu.find(".context-items, ol, ul, menu").first();
-      const list = nestedList.length ? nestedList : menu;
-      if (!menu.length) {
-        if (attempts < 20) requestAnimationFrame(() => addOption(attempts + 1));
+      if (menu.length) {
+        const nestedList = menu.find(".context-items, ol, ul, menu").first();
+        const list = nestedList.length ? nestedList : menu;
+        menu.find("[data-tsru-select-light-cone]").remove();
+        const option = $(`<li class="context-item" data-tsru-select-light-cone tabindex="0">${optionMarkup}</li>`);
+        list.append(option);
+        option.on("click.tsru", activate);
+        option.on("keydown.tsru", keyEvent => {
+          if (keyEvent.key === "Enter" || keyEvent.key === " ") activate(keyEvent);
+        });
         return;
       }
-      menu.find("[data-tsru-select-light-cone]").remove();
-      const option = $('<li class="context-item" data-tsru-select-light-cone tabindex="0"><i class="fas fa-id-card fa-fw"></i><span>Select Light Cone and Attune</span></li>');
-      list.append(option);
-      const activate = activateEvent => {
-        activateEvent.preventDefault();
-        activateEvent.stopPropagation();
-        menu.hide();
-        selectAndAttuneLightCone(item);
-      };
-      option.on("click.tsru", activate);
-      option.on("keydown.tsru", keyEvent => {
-        if (keyEvent.key === "Enter" || keyEvent.key === " ") activate(keyEvent);
-      });
+      if (attempts < 12) return requestAnimationFrame(() => addOption(attempts + 1));
+      $("#tsru-light-cone-context-fallback").remove();
+      const fallback = $(`<nav id="tsru-light-cone-context-fallback" class="tsru-light-cone-context-fallback" role="menu"><button type="button">${optionMarkup}</button></nav>`);
+      fallback.css({left: `${pointer.x}px`, top: `${pointer.y}px`}).appendTo(document.body);
+      fallback.find("button").on("click.tsru", activate);
+      window.setTimeout(() => {
+        const dismiss = dismissEvent => {
+          if (!dismissEvent.target.closest?.("#tsru-light-cone-context-fallback")) fallback.remove();
+          document.removeEventListener("pointerdown", dismiss, true);
+        };
+        document.addEventListener("pointerdown", dismiss, true);
+      }, 0);
     };
     requestAnimationFrame(() => addOption(0));
   }, true);
@@ -4996,51 +4991,6 @@ Hooks.once("ready", () => {
   Hooks.on("dnd5e.rollDamageV2", processDnd5eDamageRolls);
   Hooks.on("dnd5e.applyDamage", (...args) => processDnd5eAppliedDamage(...args));
   installDamageScrollingTextOverride();
-});
-
-function lightConeAttunementRequested(item, changes) {
-  if (foundry.utils.hasProperty(changes, "system.attuned")) return Boolean(foundry.utils.getProperty(changes, "system.attuned"));
-  if (foundry.utils.hasProperty(changes, "system.attunement")) {
-    const value = foundry.utils.getProperty(changes, "system.attunement");
-    if (typeof value === "boolean") return value;
-    if (Number.isFinite(Number(value))) return Number(value) >= 2;
-    return /attuned/i.test(String(value || ""));
-  }
-  return false;
-}
-
-function lightConeUnattuneUpdate(item) {
-  const changes = {};
-  if (foundry.utils.hasProperty(item, "system.attuned")) changes["system.attuned"] = false;
-  if (foundry.utils.hasProperty(item, "system.attunement")) {
-    const current = item.system.attunement;
-    changes["system.attunement"] = typeof current === "boolean" ? false : (Number.isFinite(Number(current)) ? 1 : "required");
-  }
-  return changes;
-}
-
-Hooks.on("preUpdateItem", (item, changes, options, userId) => {
-  if (options?.tsruLightConeSwitch || userId !== game.user.id || !isLightCone(item) || lightConeUsesAttunement(item) || !lightConeAttunementRequested(item, changes)) return;
-  const actor = item.parent;
-  if (actor?.documentName !== "Actor" || actor.type !== "character") return;
-  const current = Array.from(actor.items ?? []).find(candidate => candidate.id !== item.id && isLightCone(candidate) && lightConeUsesAttunement(candidate));
-  if (!current) return;
-  const requestedChanges = foundry.utils.deepClone(changes);
-  window.setTimeout(async () => {
-    const confirmed = await Dialog.confirm({
-      title: "Switch Light Cones?",
-      content: `<p><strong>${escapeHTML(actor.name)}</strong> is currently using <strong>${escapeHTML(current.name)}</strong>.</p><p>Unattune it and attune <strong>${escapeHTML(item.name)}</strong> instead?</p>`,
-      yes: () => true,
-      no: () => false,
-      defaultYes: false
-    });
-    if (!confirmed) return ui.notifications.info(`${item.name} was not attuned; ${current.name} remains selected.`);
-    await current.update(lightConeUnattuneUpdate(current), {tsruLightConeSwitch: true});
-    await item.update(requestedChanges, {tsruLightConeSwitch: true});
-    actor.sheet?.render(false);
-    ui.notifications.info(`${actor.name} switched from ${current.name} to ${item.name}.`);
-  }, 0);
-  return false;
 });
 
 Hooks.on("canvasReady", installDamageScrollingTextOverride);
