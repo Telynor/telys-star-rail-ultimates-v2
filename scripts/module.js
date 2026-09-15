@@ -1810,24 +1810,41 @@ function activateLightConeInventoryContext(app, html) {
   const actor = app.actor ?? app.document;
   if (!game.user.isGM || actor?.documentName !== "Actor" || actor.type !== "character") return;
   const root = html?.jquery ? html : $(html ?? app.element);
-  if (!root.length || root.attr("data-tsru-light-cone-context") === "true") return;
-  root.attr("data-tsru-light-cone-context", "true");
-  const ContextMenuClass = foundry.applications?.ux?.ContextMenu ?? globalThis.ContextMenu;
-  if (!ContextMenuClass) return;
-  new ContextMenuClass(root, "[data-item-id]", [{
-    name: "Convert to Light Cone",
-    icon: '<i class="fas fa-id-card"></i>',
-    condition: target => {
-      const element = target?.jquery ? target[0] : target;
-      const item = actor.items.get(element?.dataset?.itemId || element?.closest?.("[data-item-id]")?.dataset?.itemId);
-      return Boolean(item && !isLightCone(item));
-    },
-    callback: target => {
-      const element = target?.jquery ? target[0] : target;
-      const item = actor.items.get(element?.dataset?.itemId || element?.closest?.("[data-item-id]")?.dataset?.itemId);
-      if (item) openLightConeWizard(item, {replaceEmbedded: true});
-    }
-  }]);
+  const rootElement = root[0];
+  if (!rootElement || rootElement.dataset.tsruLightConeContext === "true") return;
+  rootElement.dataset.tsruLightConeContext = "true";
+
+  rootElement.addEventListener("contextmenu", event => {
+    const row = event.target.closest?.("[data-item-id], [data-document-id]");
+    const itemId = row?.dataset?.itemId || row?.dataset?.documentId;
+    const item = actor.items.get(itemId);
+    if (!item || isLightCone(item)) return;
+
+    const addOption = attempts => {
+      const menus = $("#context-menu:visible, .context-menu:visible, [data-application-part='context-menu']:visible");
+      const menu = menus.last();
+      const nestedList = menu.find(".context-items, ol, ul, menu").first();
+      const list = nestedList.length ? nestedList : menu;
+      if (!menu.length) {
+        if (attempts < 20) requestAnimationFrame(() => addOption(attempts + 1));
+        return;
+      }
+      menu.find("[data-tsru-convert-light-cone]").remove();
+      const option = $(`<li class="context-item" data-tsru-convert-light-cone tabindex="0"><i class="fas fa-id-card fa-fw"></i><span>Convert to Light Cone</span></li>`);
+      list.append(option);
+      const activate = activateEvent => {
+        activateEvent.preventDefault();
+        activateEvent.stopPropagation();
+        menu.hide();
+        openLightConeWizard(item, {replaceEmbedded: true});
+      };
+      option.on("click.tsru", activate);
+      option.on("keydown.tsru", keyEvent => {
+        if (keyEvent.key === "Enter" || keyEvent.key === " ") activate(keyEvent);
+      });
+    };
+    requestAnimationFrame(() => addOption(0));
+  }, true);
 }
 
 function addLightConeHeaderButton(app, buttons) {
