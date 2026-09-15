@@ -2135,13 +2135,35 @@ function combatHudTalentMarkup(actor, config) {
 }
 
 class CombatPartyHud {
-  constructor() { this.element = null; }
+  constructor() { this.element = null; this.drag = null; }
   render() {
     const actors = combatPartyActors();
     if (!actors.length) return this.destroy();
     if (!this.element) {
       this.element = document.createElement("section");
       this.element.className = "tsru-combat-party-hud";
+      this.element.addEventListener("pointerdown", event => {
+        const handle = event.target.closest("[data-tsru-hud-drag]");
+        if (!handle || event.button !== 0) return;
+        event.preventDefault();
+        const rect = this.element.getBoundingClientRect();
+        this.drag = {dx: event.clientX - rect.left, dy: event.clientY - rect.top};
+        handle.setPointerCapture(event.pointerId);
+      });
+      this.element.addEventListener("pointermove", event => {
+        if (!this.drag) return;
+        this.element.style.setProperty("--hud-translate", "0px");
+        this.element.style.left = `${clamp(event.clientX - this.drag.dx, 0, window.innerWidth - 50)}px`;
+        this.element.style.top = `${clamp(event.clientY - this.drag.dy, 0, window.innerHeight - 30)}px`;
+        this.element.style.bottom = "auto";
+      });
+      this.element.addEventListener("pointerup", async event => {
+        if (!this.drag) return;
+        this.drag = null;
+        event.target.closest("[data-tsru-hud-drag]")?.releasePointerCapture?.(event.pointerId);
+        const rect = this.element.getBoundingClientRect();
+        await saveCombatPartyHudLayout({x: Math.round(rect.left), y: Math.round(rect.top)});
+      });
       this.element.addEventListener("click", async event => {
         const control = event.target.closest("[data-tsru-hud-control]");
         if (control) {
@@ -2163,13 +2185,24 @@ class CombatPartyHud {
     }
     const layout = combatPartyHudLayout();
     this.element.style.setProperty("--hud-user-scale", layout.scale);
+    if (Number.isFinite(layout.x) && Number.isFinite(layout.y)) {
+      this.element.style.setProperty("--hud-translate", "0px");
+      this.element.style.left = `${clamp(layout.x, 0, window.innerWidth - 50)}px`;
+      this.element.style.top = `${clamp(layout.y, 0, window.innerHeight - 30)}px`;
+      this.element.style.bottom = "auto";
+    } else {
+      this.element.style.setProperty("--hud-translate", "-50%");
+      this.element.style.left = "50%";
+      this.element.style.top = "auto";
+      this.element.style.bottom = "12px";
+    }
     if (layout.minimized) {
       this.element.classList.add("is-minimized");
       this.element.innerHTML = '<button type="button" class="tsru-combat-hud-expand" data-tsru-hud-control="expand"><i class="fas fa-users"></i> Party HUD</button>';
       return this;
     }
     this.element.classList.remove("is-minimized");
-    this.element.innerHTML = `<header class="tsru-combat-party-controls"><button type="button" data-tsru-hud-control="smaller" title="Make HUD smaller"><i class="fas fa-minus"></i></button><span>${Math.round(layout.scale * 100)}%</span><button type="button" data-tsru-hud-control="larger" title="Make HUD larger"><i class="fas fa-plus"></i></button><button type="button" data-tsru-hud-control="minimize" title="Minimize party HUD"><i class="fas fa-window-minimize"></i></button></header><div class="tsru-combat-party-line">${actors.map(actor => {
+    this.element.innerHTML = `<header class="tsru-combat-party-controls"><span class="tsru-combat-party-drag" data-tsru-hud-drag title="Drag combat party HUD"><i class="fas fa-grip-lines"></i></span><button type="button" data-tsru-hud-control="smaller" title="Make HUD smaller"><i class="fas fa-minus"></i></button><span>${Math.round(layout.scale * 100)}%</span><button type="button" data-tsru-hud-control="larger" title="Make HUD larger"><i class="fas fa-plus"></i></button><button type="button" data-tsru-hud-control="minimize" title="Minimize party HUD"><i class="fas fa-window-minimize"></i></button></header><div class="tsru-combat-party-line">${actors.map(actor => {
       const config = getConfig(actor);
       const hp = actor.system?.attributes?.hp ?? {};
       const hpValue = Math.max(0, Number(hp.value) || 0);
@@ -2196,7 +2229,9 @@ class CombatPartyHud {
 
 function combatPartyHudLayout() {
   const stored = game.settings.get(MODULE_ID, "combatPartyHudLayout") ?? {};
-  return {scale: clamp(Number(stored.scale) || 1, .5, 1.75), minimized: Boolean(stored.minimized)};
+  const hasX = stored.x !== null && stored.x !== undefined && Number.isFinite(Number(stored.x));
+  const hasY = stored.y !== null && stored.y !== undefined && Number.isFinite(Number(stored.y));
+  return {scale: clamp(Number(stored.scale) || 1, .5, 1.75), minimized: Boolean(stored.minimized), x: hasX ? Number(stored.x) : null, y: hasY ? Number(stored.y) : null};
 }
 
 async function saveCombatPartyHudLayout(changes) {
@@ -4318,7 +4353,7 @@ function registerSettings() {
   game.settings.register(MODULE_ID, "paths", {scope: "world", config: false, type: Array, default: []});
   game.settings.register(MODULE_ID, "elementsDraft", {scope: "client", config: false, type: Array, default: []});
   game.settings.register(MODULE_ID, "orbLayouts", {scope: "client", config: false, type: Object, default: {}});
-  game.settings.register(MODULE_ID, "combatPartyHudLayout", {scope: "client", config: false, type: Object, default: {scale: 1, minimized: false}});
+  game.settings.register(MODULE_ID, "combatPartyHudLayout", {scope: "client", config: false, type: Object, default: {scale: 1, minimized: false, x: null, y: null}});
   game.settings.register(MODULE_ID, "ahaConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_AHA_CONFIG)});
   game.settings.register(MODULE_ID, "ahaLayout", {scope: "client", config: false, type: Object, default: {x: 220, y: 180, size: 128, visible: false}});
   game.settings.register(MODULE_ID, "punchline", {scope: "world", config: false, type: Number, default: 0});
