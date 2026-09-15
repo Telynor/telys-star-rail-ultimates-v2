@@ -37,6 +37,7 @@ const DEFAULT_CONFIG = Object.freeze({
   combatHudPortraitX: 50,
   combatHudPortraitY: 50,
   combatHudPortraitScale: 100,
+  combatHudPortraitFlip: false,
   punchlineGain: 1,
   elationActionScript: "",
   elationActionText: "",
@@ -2135,10 +2136,46 @@ function combatHudDesignerPreview(actor = null, config = null, design = getComba
   const portrait = config.combatHudPortrait || actor?.img || "icons/svg/mystery-man.svg";
   const orb = config.ultimateButtonImage || config.orbImage || actor?.img || "icons/svg/mystery-man.svg";
   const talent = config.talentIcon || "icons/svg/aura.svg";
-  return `<article class="tsru-combat-party-member tsru-combat-hud-design-sample" style="${combatHudDesignStyle(design)};--hud-x:${clamp(config.combatHudPortraitX,0,100)}%;--hud-y:${clamp(config.combatHudPortraitY,0,100)}%;--hud-scale:${clamp(config.combatHudPortraitScale,50,300)/100};--energy:72%;--energy-color:#20e6ff;--hp:78%">
+  return `<article class="tsru-combat-party-member tsru-combat-hud-design-sample" style="${combatHudDesignStyle(design)};--hud-x:${clamp(config.combatHudPortraitX,0,100)}%;--hud-y:${clamp(config.combatHudPortraitY,0,100)}%;--hud-scale:${clamp(config.combatHudPortraitScale,50,300)/100};--hud-flip:${config.combatHudPortraitFlip ? -1 : 1};--energy:72%;--energy-color:#20e6ff;--hp:78%">
     <div class="tsru-combat-party-portrait"><img src="${escapeHTML(portrait)}" alt=""></div><strong class="tsru-combat-party-name">${escapeHTML(actor?.name || "Character Preview")}</strong>
     <div class="tsru-combat-party-hp"><i></i><span>78/100</span></div><div class="tsru-combat-party-talent"><img src="${escapeHTML(talent)}" alt=""><strong>2/7</strong></div>
     <div class="tsru-combat-party-ultimate-wrap"><button type="button" disabled><span class="tsru-hud-orb-fill"></span><img src="${escapeHTML(orb)}" alt=""><strong>72%</strong></button></div></article>`;
+}
+
+function activateCombatHudDesignCanvas(root, design, rerender) {
+  const preview = root.find("[data-tsru-design-preview]");
+  const decorate = () => {
+    const sample = preview.find(".tsru-combat-hud-design-sample");
+    const parts = [[sample,"member"],[sample.find(".tsru-combat-party-portrait"),"portrait"],[sample.find(".tsru-combat-party-hp"),"hp"],[sample.find(".tsru-combat-party-ultimate-wrap"),"orb"],[sample.find(".tsru-combat-party-talent"),"talent"],[sample.find(".tsru-combat-party-name"),"name"]];
+    for (const [element,key] of parts) if (element.length) { element.attr("data-hud-design-part",key); if (!element.children(".tsru-hud-design-resize").length) element.append('<i class="tsru-hud-design-resize" title="Drag to resize"></i>'); }
+  };
+  decorate();
+  let interaction = null;
+  preview.on("pointerdown.tsru-design", "[data-hud-design-part]", event => {
+    if (event.button !== 0) return;
+    event.preventDefault(); event.stopImmediatePropagation();
+    const part = event.currentTarget.dataset.hudDesignPart;
+    interaction = {part, resize:Boolean($(event.target).closest(".tsru-hud-design-resize").length), x:event.clientX, y:event.clientY, original:{...design}};
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  });
+  preview.on("pointermove.tsru-design", "[data-hud-design-part]", event => {
+    if (!interaction) return;
+    const dx=event.clientX-interaction.x, dy=event.clientY-interaction.y;
+    event.currentTarget.style.transform=`translate(${dx}px,${dy}px)`;
+  });
+  preview.on("pointerup.tsru-design pointercancel.tsru-design", "[data-hud-design-part]", event => {
+    if (!interaction) return;
+    const {part,resize,original}=interaction, dx=event.clientX-interaction.x, dy=event.clientY-interaction.y; interaction=null;
+    const set=(key,value)=>{design[key]=Math.max(0,Math.round(value)); root.find(`[name="${key}"]`).val(design[key]);};
+    if (part==="member" && resize) { set("memberWidth",original.memberWidth+dx); set("memberHeight",original.memberHeight+dy); }
+    if (part==="portrait") { if(resize){set("portraitRight",original.portraitRight-dx);set("portraitBottom",original.portraitBottom-dy);}else{set("portraitLeft",original.portraitLeft+dx);set("portraitRight",original.portraitRight-dx);set("portraitTop",original.portraitTop+dy);set("portraitBottom",original.portraitBottom-dy);} }
+    if (part==="hp") { if(resize){set("hpRight",original.hpRight-dx);set("hpHeight",original.hpHeight+dy);}else{set("hpLeft",original.hpLeft+dx);set("hpRight",original.hpRight-dx);set("hpBottom",original.hpBottom-dy);} }
+    if (part==="orb") { if(resize)set("orbSize",original.orbSize+dx);else{set("orbRight",original.orbRight-dx);set("orbBottom",original.orbBottom-dy);} }
+    if (part==="talent") { if(resize)set("talentSize",original.talentSize+dx);else{set("talentLeft",original.talentLeft+dx);set("talentBottom",original.talentBottom-dy);} }
+    if (part==="name") { if(resize)set("nameWidth",original.nameWidth+dx);else{set("nameLeft",original.nameLeft+dx);set("nameBottom",original.nameBottom-dy);} }
+    rerender(); decorate();
+  });
+  return decorate;
 }
 
 async function openCombatHudDesigner() {
@@ -2161,10 +2198,15 @@ async function openCombatHudDesigner() {
   Hooks.once("renderDialog", rendered => {
     if (rendered !== dialog) return;
     const root = rendered.element;
-    root.on("input change",".tsru-combat-hud-design-fields input",()=>{
+    let decorateDesign = null;
+    const renderDraft = () => {
       const draft={...design}; root.find(".tsru-combat-hud-design-fields [name]").each((_i,field)=>draft[field.name]=Number(field.value));
+      Object.assign(design,draft);
       root.find("[data-tsru-design-preview]").html(combatHudDesignerPreview(null,null,draft));
-    });
+      decorateDesign?.();
+    };
+    root.on("input change",".tsru-combat-hud-design-fields input",renderDraft);
+    decorateDesign = activateCombatHudDesignCanvas(root,design,renderDraft);
   });
   dialog.render(true);
 }
@@ -2287,7 +2329,7 @@ class CombatPartyHud {
       const element = getElements().find(entry => entry.id === config.elementId);
       const energyColor = ready ? (element?.readyColor || DEFAULT_CONFIG.readyColor) : (element?.chargeColor || DEFAULT_CONFIG.chargeColor);
       const portrait = config.combatHudPortrait || actor.img || "icons/svg/mystery-man.svg";
-      return `<article class="tsru-combat-party-member ${owned ? "is-owned" : ""}" data-actor-id="${actor.id}" style="${combatHudDesignStyle()};--hud-x:${clamp(config.combatHudPortraitX, 0, 100)}%;--hud-y:${clamp(config.combatHudPortraitY, 0, 100)}%;--hud-scale:${clamp(config.combatHudPortraitScale, 50, 300) / 100};--energy:${energyPercent}%;--energy-color:${energyColor};--hp:${hpPercent}%">
+      return `<article class="tsru-combat-party-member ${owned ? "is-owned" : ""}" data-actor-id="${actor.id}" style="${combatHudDesignStyle()};--hud-x:${clamp(config.combatHudPortraitX, 0, 100)}%;--hud-y:${clamp(config.combatHudPortraitY, 0, 100)}%;--hud-scale:${clamp(config.combatHudPortraitScale, 50, 300) / 100};--hud-flip:${config.combatHudPortraitFlip ? -1 : 1};--energy:${energyPercent}%;--energy-color:${energyColor};--hp:${hpPercent}%">
         <div class="tsru-combat-party-portrait"><img src="${escapeHTML(portrait)}" alt="${escapeHTML(actor.name)}"></div>
         <strong class="tsru-combat-party-name">${escapeHTML(actor.name)}</strong>
         <div class="tsru-combat-party-hp"><i></i><span>${hpValue}/${hpMax}</span></div>
@@ -4687,7 +4729,7 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
     data[field.name] = field.type === "checkbox" ? field.checked : field.value;
   });
   for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "talentPointsCurrent", "talentPointsMax", "punchlineGain", "splashDuration", "titleX", "titleY", "titleSize", "combatHudPortraitX", "combatHudPortraitY", "combatHudPortraitScale"]) data[key] = Number(data[key]);
-  for (const key of ["enabled", "showPercent", "skillEnabled", "techniqueEnabled", "mainParty", "trialCharacter", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter"]) data[key] = Boolean(data[key]);
+  for (const key of ["enabled", "showPercent", "skillEnabled", "techniqueEnabled", "mainParty", "trialCharacter", "combatHudPortraitFlip", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter"]) data[key] = Boolean(data[key]);
   data.max = Math.max(1, data.max || 100);
   data.current = clamp(data.current, 0, data.max);
   const savedConfig = getConfig(actor);
@@ -4712,15 +4754,47 @@ function activateConfigListeners(actor, tab, app) {
   tab.find("input, select, textarea, button").prop("disabled", false);
   initializeCollapsibleUltimateSections(actor, tab);
   tab.find("input:not([readonly])").prop("readonly", false);
+  activateImageDrops(tab);
   tab.on("input.tsru change.tsru", "input, select, textarea", event => event.stopPropagation());
   const refreshCombatPortraitPreview = () => {
     const preview = tab.find("[data-tsru-combat-hud-preview]");
     if (!preview.length) return;
-    const draft = {...getConfig(actor), combatHudPortrait:String(tab.find("[name='combatHudPortrait']").val() || ""), combatHudPortraitX:Number(tab.find("[name='combatHudPortraitX']").val()), combatHudPortraitY:Number(tab.find("[name='combatHudPortraitY']").val()), combatHudPortraitScale:Number(tab.find("[name='combatHudPortraitScale']").val()), talentIcon:String(tab.find("[name='talentIcon']").val() || ""), ultimateButtonImage:String(tab.find("[name='ultimateButtonImage']").val() || "")};
+    const draft = {...getConfig(actor), combatHudPortrait:String(tab.find("[name='combatHudPortrait']").val() || ""), combatHudPortraitX:Number(tab.find("[name='combatHudPortraitX']").val()), combatHudPortraitY:Number(tab.find("[name='combatHudPortraitY']").val()), combatHudPortraitScale:Number(tab.find("[name='combatHudPortraitScale']").val()), combatHudPortraitFlip:Boolean(tab.find("[name='combatHudPortraitFlip']").prop("checked")), talentIcon:String(tab.find("[name='talentIcon']").val() || ""), ultimateButtonImage:String(tab.find("[name='ultimateButtonImage']").val() || "")};
     preview.html(combatHudDesignerPreview(actor,draft));
   };
-  tab.on("input.tsru-preview change.tsru-preview", "[name='combatHudPortrait'], [name='combatHudPortraitX'], [name='combatHudPortraitY'], [name='combatHudPortraitScale'], [name='talentIcon'], [name='ultimateButtonImage']", refreshCombatPortraitPreview);
+  tab.on("input.tsru-preview change.tsru-preview", "[name='combatHudPortrait'], [name='combatHudPortraitX'], [name='combatHudPortraitY'], [name='combatHudPortraitScale'], [name='combatHudPortraitFlip'], [name='talentIcon'], [name='ultimateButtonImage']", refreshCombatPortraitPreview);
   refreshCombatPortraitPreview();
+  const cropPreview = tab.find("[data-tsru-combat-hud-preview]");
+  cropPreview.on("dragover.tsru-crop", event => { event.preventDefault(); cropPreview.addClass("is-dragover"); });
+  cropPreview.on("dragleave.tsru-crop", () => cropPreview.removeClass("is-dragover"));
+  cropPreview.on("drop.tsru-crop", event => {
+    event.preventDefault(); cropPreview.removeClass("is-dragover");
+    const path = droppedAssetPath(event);
+    if (path) tab.find("[name='combatHudPortrait']").val(path).trigger("change");
+  });
+  let cropDrag = null;
+  cropPreview.on("pointerdown.tsru-crop", ".tsru-combat-party-portrait", event => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    cropDrag = {x:event.clientX,y:event.clientY,startX:Number(tab.find("[name='combatHudPortraitX']").val())||50,startY:Number(tab.find("[name='combatHudPortraitY']").val())||50,image:$(event.currentTarget).find("img")};
+  });
+  $(document).off(`.tsru-crop-${actor.id}`).on(`pointermove.tsru-crop-${actor.id}`, event => {
+    if (!cropDrag) return;
+    const rect=cropPreview[0].getBoundingClientRect();
+    const x=clamp(cropDrag.startX+(event.clientX-cropDrag.x)/Math.max(1,rect.width)*100,0,100), y=clamp(cropDrag.startY+(event.clientY-cropDrag.y)/Math.max(1,rect.height)*100,0,100);
+    cropDrag.nextX=x; cropDrag.nextY=y; cropDrag.image.css({objectPosition:`${x}% ${y}%`,transformOrigin:`${x}% ${y}%`});
+  });
+  $(document).on(`pointerup.tsru-crop-${actor.id}`, () => {
+    if (!cropDrag) return;
+    tab.find("[name='combatHudPortraitX']").val(Math.round(cropDrag.nextX ?? cropDrag.startX));
+    tab.find("[name='combatHudPortraitY']").val(Math.round(cropDrag.nextY ?? cropDrag.startY)).trigger("change");
+    cropDrag=null;
+  });
+  cropPreview.on("wheel.tsru-crop", ".tsru-combat-party-portrait", event => {
+    event.preventDefault();
+    const input=tab.find("[name='combatHudPortraitScale']"), next=clamp((Number(input.val())||100)+(event.originalEvent.deltaY<0?5:-5),50,300);
+    input.val(next).trigger("input");
+  });
   let autosaveTimer = null;
   let autosaveRunning = false;
   let autosaveQueued = false;
