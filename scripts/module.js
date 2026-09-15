@@ -2753,7 +2753,7 @@ function installDamageScrollingTextOverride() {
         fontSize: style.fontSize,
         fontWeight: style.bold ? "900" : "400",
         fill: style.gradient ? [safePopupColor(topColor), safePopupColor(style.bottomColor)] : "#ffffff",
-        fillGradientType: 1,
+        fillGradientType: 0,
         fillGradientStops: [0, 1],
         stroke: "#202028",
         strokeThickness: 2,
