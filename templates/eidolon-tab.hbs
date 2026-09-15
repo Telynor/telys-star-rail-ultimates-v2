@@ -33,6 +33,7 @@
         {{#if ../interface.backgroundImage}}<img class="tsru-eidolon-background" src="{{../interface.backgroundImage}}" alt="">{{/if}}
         <div class="tsru-eidolon-art-slot" data-eidolon-preview-art="{{this.number}}" style="--mask:{{this.mask}};{{#if this.maskImage}}--mask-image:url('{{this.maskImage}}');{{/if}}--art-x:{{this.offsetX}}%;--art-y:{{this.offsetY}}%;--art-scale:{{this.scalePercent}}"><img src="{{this.artwork}}" alt="E{{this.number}} preview"></div>
       </div>
+      <p class="tsru-eidolon-crop-hint"><i class="fas fa-crop-simple"></i> The complete artwork is fitted into the canvas first. Drag it and adjust Zoom to position it beneath the Eidolon cookie cutter.</p>
       <div class="tsru-eidolon-popout-controls" data-eidolon-editor="{{this.number}}">
         <label>Title<input type="text" name="eidolon.{{this.number}}.title" value="{{this.title}}"></label>
         <label>Artwork<span class="tsru-file-control"><input type="text" name="eidolon.{{this.number}}.artwork" value="{{this.artwork}}"><button type="button" class="file-picker" data-type="image" data-target="eidolon.{{this.number}}.artwork"><i class="fas fa-file-import"></i></button></span></label>
