@@ -1803,6 +1803,17 @@ async function injectLightConePanel(app, root, host) {
   (host?.length ? host : root).append(panel);
 }
 
+function lightConeCommonContainer(elements, rootElement) {
+  const nodes = elements.filter(Boolean);
+  if (!nodes.length) return null;
+  let candidate = nodes[0].parentElement;
+  while (candidate && candidate !== rootElement) {
+    if (nodes.every(node => candidate.contains(node))) return candidate;
+    candidate = candidate.parentElement;
+  }
+  return null;
+}
+
 function injectLightConeSheetPanel(app, html) {
   const actor = app.actor ?? app.document;
   if (actor?.documentName !== "Actor" || actor.type !== "character") return;
@@ -1811,13 +1822,33 @@ function injectLightConeSheetPanel(app, html) {
   const rootElement = appRoot ?? renderedRoot;
   if (!rootElement) return;
   const root = $(rootElement);
-  const typeName = String(actor.system?.details?.type?.value || actor.system?.details?.type || "").trim().toLocaleLowerCase();
-  const species = root.find('.species, [class*="species"], [data-action*="species"], section, div').filter((_index, node) => {
-    const text = node.textContent?.replace(/\s+/g, " ").trim().toLocaleLowerCase() ?? "";
-    const rect = node.getBoundingClientRect();
-    return rect.width >= 150 && rect.width <= 500 && rect.height >= 35 && rect.height <= 110 && ((typeName && text.startsWith(typeName)) || text.startsWith("humanoid"));
-  }).toArray().sort((a, b) => (a.getBoundingClientRect().width * a.getBoundingClientRect().height) - (b.getBoundingClientRect().width * b.getBoundingClientRect().height))[0];
-  const host = species ? $(species).parent() : root.find("[data-application-part='details'], .sheet-body .tab.active, .sheet-body, [data-application-part='body']").first();
+  root.find("[data-tsru-light-cone]").remove();
+
+  const identityIds = Array.from(actor.items ?? [])
+    .filter(item => item.type === "race" || item.type === "background")
+    .map(item => item.id);
+  const identityRows = identityIds.flatMap(id => root.find(`[data-item-id="${id}"], [data-document-id="${id}"], [data-entry-id="${id}"]`).toArray());
+  let hostElement = lightConeCommonContainer(identityRows, rootElement);
+
+  if (!hostElement && identityRows.length === 1) hostElement = identityRows[0].parentElement;
+  if (!hostElement) {
+    const identityControls = root.find("button, [role='button'], [data-action]").filter((_index, node) => /^(add|select)\s+(race|background)$/i.test(node.textContent?.replace(/\s+/g, " ").trim() || "")).toArray();
+    hostElement = lightConeCommonContainer(identityControls, rootElement);
+    if (!hostElement && identityControls.length === 1) hostElement = identityControls[0].parentElement;
+  }
+
+  if (!hostElement) {
+    const mainTab = root.find('.tab[data-tab="details"], section[data-tab="details"], .tab[data-tab="character"], section[data-tab="character"], [data-application-part="details"]').filter((_index, node) => !node.closest("[data-tsru-light-cone]")).first();
+    const rightColumn = mainTab.find(':scope > .right, :scope > [class*="right-column"], :scope > [class*="details-column"], :scope > :last-child').last();
+    if (rightColumn.length) hostElement = rightColumn[0];
+  }
+
+  const hostRect = hostElement?.getBoundingClientRect?.();
+  if (!hostElement || hostElement === rootElement || (hostRect?.width && hostRect.width > 520) || $(hostElement).is(".sheet-body, [data-application-part='body'], .tab")) {
+    console.warn(`${MODULE_ID} | Light Cone frame host was not found for ${actor.name}; refusing to place it over an arbitrary sheet tab.`);
+    return;
+  }
+  const host = $(hostElement).addClass("tsru-light-cone-sheet-host");
   injectLightConePanel(app, root, host);
 }
 
