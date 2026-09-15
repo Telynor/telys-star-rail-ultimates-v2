@@ -1585,6 +1585,19 @@ function equippedLightCone(actor) {
   return cones.find(item => lightConeUsesAttunement(item)) ?? null;
 }
 
+async function resolveDroppedLightConeItem(event) {
+  const transfer = event.originalEvent?.dataTransfer ?? event.dataTransfer;
+  const data = TextEditor.getDragEventData?.(event.originalEvent ?? event) ?? {};
+  let item = data.uuid ? await fromUuid(data.uuid).catch(() => null) : null;
+  if (!item) {
+    try {
+      const plain = JSON.parse(transfer?.getData("text/plain") || "{}");
+      if (plain.uuid) item = await fromUuid(plain.uuid).catch(() => null);
+    } catch (_error) {}
+  }
+  return item?.documentName === "Item" ? item : null;
+}
+
 async function openLightConeImporter() {
   if (!game.user.isGM) return ui.notifications.warn("Only a GM can import Light Cones.");
   const items = [
@@ -1596,11 +1609,12 @@ async function openLightConeImporter() {
 
   const options = items.map(item => `<option value="${escapeHTML(item.uuid)}">${escapeHTML(item.name)}${item.parent ? ` — ${escapeHTML(item.parent.name)}` : ""}</option>`).join("");
   const content = `<form class="tsru-light-cone-importer">
-    <p class="notes">Choose an existing Item, or paste/drop an Item UUID, then continue to configure its Light Cone image, Path, and description.</p>
+    <p class="notes">Choose an Item, paste its UUID, or drag any world, character, or compendium Item onto the drop zone.</p>
+    <div class="tsru-light-cone-item-drop" data-light-cone-item-drop><i class="fas fa-arrow-down-to-bracket"></i><strong>Drop Item to Convert</strong><span>Its name, image, and description will be copied automatically.</span></div>
     <div class="form-group"><label>Existing Item</label><div class="form-fields"><select name="itemChoice">${options}</select></div></div>
     <div class="form-group"><label>Item UUID</label><div class="form-fields"><input type="text" name="itemUuid" placeholder="Item.xxxxxxxxxxxxxxxx"></div></div>
   </form>`;
-  new Dialog({
+  const dialog = new Dialog({
     title: "Light Cone Converter / Importer",
     content,
     buttons: {
@@ -1617,7 +1631,78 @@ async function openLightConeImporter() {
       cancel: {icon: '<i class="fas fa-times"></i>', label: "Cancel"}
     },
     default: "next"
-  }).render(true);
+  });
+  Hooks.once("renderDialog", rendered => {
+    if (rendered !== dialog) return;
+    const drop = rendered.element.find("[data-light-cone-item-drop]");
+    drop.on("dragover", event => { event.preventDefault(); drop.addClass("is-dragover"); });
+    drop.on("dragleave", () => drop.removeClass("is-dragover"));
+    drop.on("drop", async event => {
+      event.preventDefault();
+      drop.removeClass("is-dragover");
+      const item = await resolveDroppedLightConeItem(event);
+      if (!item) return ui.notifications.warn("Drop a Foundry Item here.");
+      await dialog.close();
+      openLightConeWizard(item);
+    });
+  });
+  dialog.render(true);
+}
+
+async function openLightConeGenerator() {
+  if (!game.user.isGM) return ui.notifications.warn("Only a GM can generate Light Cones.");
+  const paths = getPaths();
+  if (!paths.length) return ui.notifications.warn("Create at least one Path before generating a Light Cone.");
+  const options = paths.map(path => `<option value="${escapeHTML(path.id)}">${escapeHTML(path.name)}</option>`).join("");
+  const content = `<form class="tsru-light-cone-generator">
+    <div class="form-group"><label>Name</label><div class="form-fields"><input type="text" name="name" placeholder="Light Cone name"></div></div>
+    <div class="form-group"><label>Path</label><div class="form-fields"><select name="pathId">${options}</select></div></div>
+    <div class="form-group"><label>Light Cone Image</label><div class="form-fields"><input type="text" name="image" value="icons/svg/item-bag.svg"><button type="button" class="file-picker" data-type="image" data-target="image"><i class="fas fa-file-import"></i></button></div></div>
+    <div class="form-group stacked"><label>Description</label><textarea name="description" rows="10" placeholder="Light Cone effects"></textarea></div>
+    <p class="notes">The Path restriction line will be inserted automatically at the top in bold uppercase text.</p>
+  </form>`;
+  const dialog = new Dialog({
+    title: "Generate New Light Cone",
+    content,
+    buttons: {
+      create: {
+        icon: '<i class="fas fa-plus"></i>',
+        label: "Create",
+        callback: async html => {
+          const name = String(html.find('[name="name"]').val() || "").trim();
+          const pathId = String(html.find('[name="pathId"]').val() || "");
+          const path = paths.find(entry => entry.id === pathId);
+          if (!name) return ui.notifications.warn("Enter a Light Cone name.");
+          if (!path) return ui.notifications.warn("Select a valid Path.");
+          const image = String(html.find('[name="image"]').val() || "icons/svg/item-bag.svg").trim();
+          const body = String(html.find('[name="description"]').val() || "").trim();
+          const restriction = `<p><strong>THE FOLLOWING EFFECTS ONLY WORK ON CHARACTERS OF THE PATH OF ${escapeHTML(path.name).toUpperCase()}</strong></p>`;
+          const description = `${restriction}\n${body}`;
+          const lightCone = {enabled: true, pathId, image, description};
+          const item = await Item.create({
+            name,
+            type: "loot",
+            img: image,
+            system: {description: {value: description}, quantity: 1, attunement: 1},
+            flags: {[MODULE_ID]: {lightCone}}
+          });
+          ui.notifications.info(`Created Light Cone: ${name}.`);
+          item?.sheet?.render(true);
+        }
+      },
+      cancel: {icon: '<i class="fas fa-times"></i>', label: "Cancel"}
+    },
+    default: "create"
+  });
+  Hooks.once("renderDialog", rendered => {
+    if (rendered !== dialog) return;
+    rendered.element.find(".file-picker").on("click", event => {
+      const target = event.currentTarget.dataset.target;
+      const input = rendered.element.find(`[name="${target}"]`);
+      new FilePicker({type: "image", current: input.val(), callback: path => input.val(path)}).browse();
+    });
+  });
+  dialog.render(true);
 }
 
 async function openLightConeWizard(item) {
@@ -1652,11 +1737,12 @@ async function openLightConeWizard(item) {
             img: lightCone.image,
             "system.description.value": lightCone.description
           };
-          if (foundry.utils.hasProperty(item, "system.attunement")) updates["system.attunement"] = Math.max(1, Number(item.system.attunement) || 1);
-          await item.update(updates);
-          ui.notifications.info(`${item.name} is now configured as a Light Cone.`);
-          item.sheet?.render(false);
-          item.parent?.sheet?.render(false);
+          const target = item.pack ? await Item.create(item.toObject()) : item;
+          if (foundry.utils.hasProperty(target, "system.attunement")) updates["system.attunement"] = Math.max(1, Number(target.system.attunement) || 1);
+          await target.update(updates);
+          ui.notifications.info(`${target.name} is now configured as a Light Cone.`);
+          target.sheet?.render(false);
+          target.parent?.sheet?.render(false);
         }
       },
       cancel: {icon: '<i class="fas fa-times"></i>', label: "Cancel"}
@@ -4912,6 +4998,7 @@ function registerApi() {
     openTechniquePointConfig: () => new TechniquePointConfig().render(true),
     openEidolonConfig: () => new EidolonAppearanceConfig().render(true),
     openLightConeImporter,
+    openLightConeGenerator,
     triggerSpecialAha,
     showSkillUI,
     refreshResourceHuds,
