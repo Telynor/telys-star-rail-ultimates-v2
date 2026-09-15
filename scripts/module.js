@@ -2484,8 +2484,7 @@ async function applyChatRollAsDamage(message, target, requestingUser, applicatio
   const eventKey = `manual-chat-damage:${message.id}:${resolvedApplicationId}:${targetUuid}`;
   await applyDirectChatDamage(targetActor, hpDamage);
   if (attacker.type === "character" && hpDamage > 0) {
-    const element = getElements().find(entry => entry.id === config.elementId);
-    await broadcastDamageResult(target, hpDamage, {plainDamage:true, color:element?.readyColor ?? config.readyColor, fontFile:getBreakFonts().damageFontFile});
+    await broadcastDamageOnce(attacker, target, hpDamage, eventKey, {critical:damageRollWasCritical(message)});
   }
   const appliedToughness = toughnessDamage > 0 ? await applyToughnessDamage(attacker, [target], toughnessDamage, eventKey) : 0;
   const detail = {sourceActor: attacker, targetActor, amount: hpDamage, origin: message, manual: true};
@@ -2534,7 +2533,7 @@ const DEFAULT_DAMAGE_DISPLAY = Object.freeze({
   damageBold: true,
   breakBold: true,
   superBreakBold: true,
-  damageGradient: false,
+  damageGradient: true,
   breakGradient: true,
   superBreakGradient: true
 });
@@ -2594,14 +2593,14 @@ class BreakAppearanceConfig extends FormApplication {
       try { fontFamily = await loadSplashFont(html.find(`[name="${prefix}FontFile"]`).val()); }
       catch (_error) {}
       if (sequence !== previewSequence) return;
-      popup.toggleClass("is-plain-damage", type === "damage");
+      popup.toggleClass("is-plain-damage", type === "damage" || type === "critical");
       popup.toggleClass("has-gradient", gradient);
       popup.toggleClass("no-gradient", !gradient);
       popup.css("--tsru-break-color", color);
       popup.css("--tsru-popup-font", fontFamily);
       popup.css("--tsru-popup-size", `${size}px`);
       popup.css("--tsru-popup-weight", bold ? "900" : "400");
-      popup.find("strong").toggle(type !== "damage").text(type === "superBreak" ? "Super Break" : "Break");
+      popup.find("strong").toggle(type !== "damage").text(type === "critical" ? "CRIT Hit" : type === "superBreak" ? "Super Break" : "Break");
       popup.find("span").text(type === "damage" ? "81433" : "81433");
     };
     html.on("input change", "input, select", refreshPreview);
@@ -2643,12 +2642,46 @@ function installDamageScrollingTextOverride() {
   }
 }
 
-async function broadcastDamageResult(target, damage, {plainDamage=false, superBreak=false, color="", fontFile=""}={}) {
+async function broadcastDamageResult(target, damage, {plainDamage=false, critical=false, superBreak=false, color="", fontFile=""}={}) {
   const {actor}=toughnessTargetParts(target);
   const token=breakDisplayTarget(target);
-  const display={type:plainDamage?"damageResult":"breakResult",actorId:actor?.id??"",tokenId:token?.id??"",sceneId:canvas?.scene?.id??"",damage,plainDamage,superBreak,color,fontFile};
+  const display={type:plainDamage?"damageResult":"breakResult",actorId:actor?.id??"",tokenId:token?.id??"",sceneId:canvas?.scene?.id??"",damage,plainDamage,critical,superBreak,color,fontFile};
   await showBreakResult(display);
   game.socket.emit(SOCKET,display);
+}
+
+function damageResultColor(attacker) {
+  const config = getConfig(attacker);
+  const element = getElements().find(entry => entry.id === config.elementId);
+  return element?.readyColor || "#ffffff";
+}
+
+function damageRollWasCritical(source) {
+  return Boolean(
+    source?.isCritical ||
+    source?.critical ||
+    source?.attackRoll?.isCritical ||
+    source?.attackRoll?.options?.critical ||
+    source?.attackRolls?.some?.(roll => roll?.isCritical || roll?.options?.critical) ||
+    source?.rolls?.some?.(roll => roll?.isCritical || roll?.options?.critical)
+  );
+}
+
+async function broadcastDamageOnce(attacker, target, amount, eventId, {critical = false} = {}) {
+  const value = Math.max(0, Math.floor(Number(amount) || 0));
+  const targetActor = target?.actor ?? target?.document?.actor ?? target;
+  if (!attacker || attacker.type !== "character" || !targetActor || value <= 0) return false;
+  const key = `damage-popup:${eventId || "unknown"}:${targetActor.uuid || targetActor.id}:${value}`;
+  if (state.processedMessages.has(key)) return false;
+  state.processedMessages.add(key);
+  window.setTimeout(() => state.processedMessages.delete(key), 120000);
+  await broadcastDamageResult(target, value, {
+    plainDamage: true,
+    critical,
+    color: damageResultColor(attacker),
+    fontFile: getBreakFonts().damageFontFile
+  });
+  return true;
 }
 
 async function showBreakResult(payload) {
@@ -2656,7 +2689,7 @@ async function showBreakResult(payload) {
   const token = canvas?.tokens?.get(payload.tokenId) ?? breakDisplayTarget(game.actors.get(payload.actorId));
   const damage = String(Math.max(0, Math.floor(Number(payload.damage) || 0)));
   const type = payload.plainDamage ? "damage" : payload.superBreak ? "superBreak" : "break";
-  const label = payload.superBreak ? "Super Break" : "Break";
+  const label = payload.plainDamage ? (payload.critical ? "CRIT Hit" : "") : payload.superBreak ? "Super Break" : "Break";
   const style = damageDisplayStyle(type);
   let fontFamily = "Arial, sans-serif";
   try { fontFamily = await loadSplashFont(style.fontFile || payload.fontFile); }
@@ -2686,7 +2719,7 @@ async function showBreakResult(payload) {
   popup.style.setProperty("--tsru-popup-font", fontFamily);
   popup.style.setProperty("--tsru-popup-size", `${style.fontSize}px`);
   popup.style.setProperty("--tsru-popup-weight", style.bold ? "900" : "400");
-  if (!payload.plainDamage) {
+  if (label) {
     const heading = document.createElement("strong");
     heading.textContent = label;
     popup.append(heading);
@@ -2712,7 +2745,7 @@ async function applyWeaknessBreakDamage(attacker, target, {superBreak = false} =
     if (hp && Number.isFinite(Number(hp.value))) await targetActor.update({"system.attributes.hp.value":Math.max(0, Number(hp.value) - damage)});
   }
   const element = getElements().find(entry => entry.id === config.elementId);
-  await broadcastDamageResult(target,damage,{superBreak,color:element?.readyColor??config.readyColor,fontFile:superBreak?getBreakFonts().superBreakFontFile:getBreakFonts().breakFontFile});
+  await broadcastDamageResult(target,damage,{superBreak,color:element?.readyColor??"#ffffff",fontFile:superBreak?getBreakFonts().superBreakFontFile:getBreakFonts().breakFontFile});
   await roll.toMessage({speaker: ChatMessage.getSpeaker({actor: attacker}), flavor: `${attacker.name} — ${superBreak ? "Super Break" : "Break"} (${count}d${faces} ${superBreak ? `+ ${breakEffectModifier(config) + 1}` : `× ${modifier}`}): ${damage} HP damage`});
   return damage;
 }
@@ -2768,14 +2801,8 @@ async function processAppliedDamage(target, amount, options = {}) {
 
   if (Number(amount) > 0) {
     const shownDamage=getConfig(attacker).breakCharacter ? Math.min(1,Math.floor(Number(amount))) : Math.floor(Number(amount));
-    const popupKey=`damage-popup:${damageEventId}:${targetActor.uuid}:${shownDamage}`;
-    if (attacker.type==="character" && shownDamage>0 && !state.processedMessages.has(popupKey)) {
-      state.processedMessages.add(popupKey);
-      window.setTimeout(()=>state.processedMessages.delete(popupKey),120000);
-      const attackerConfig = getConfig(attacker);
-      const element = getElements().find(entry => entry.id === attackerConfig.elementId);
-      await broadcastDamageResult(target, shownDamage, {plainDamage:true, color:element?.readyColor ?? attackerConfig.readyColor, fontFile:getBreakFonts().damageFontFile});
-    }
+    const critical = damageRollWasCritical(options.midi ?? options.workflow ?? origin);
+    await broadcastDamageOnce(attacker, target, shownDamage, damageEventId, {critical});
     const detail = {sourceActor: attacker, targetActor, amount: Number(amount), origin, midi: options.midi ?? null};
     await dispatchTalentEvent("damageDealt", detail, `${damageEventId}:${targetActor.uuid}`);
     await dispatchTalentEvent("damageTaken", detail, `${damageEventId}:${targetActor.uuid}`);
@@ -3021,6 +3048,11 @@ async function processMidiWorkflow(workflow) {
     state.processedMessages.add(damageKey);
     window.setTimeout(() => state.processedMessages.delete(damageKey), 120000);
     await applyToughnessDamage(attacker, toughnessTargets, diceDamage, key);
+  }
+  const displayDamage = getConfig(attacker).breakCharacter ? Math.min(1, fullDamageTotal(damageRolls)) : fullDamageTotal(damageRolls);
+  if (attacker?.type === "character" && displayDamage > 0) {
+    const critical = damageRollWasCritical(workflow);
+    for (const target of toughnessTargets) await broadcastDamageOnce(attacker, target, displayDamage, key, {critical});
   }
   for (const target of targets) {
     const actor = target.actor ?? target.document?.actor;

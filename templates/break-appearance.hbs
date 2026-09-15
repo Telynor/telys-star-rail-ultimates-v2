@@ -6,7 +6,7 @@
 
   <section class="tsru-damage-preview-panel">
     <div class="tsru-damage-preview-controls">
-      <label><strong>Preview style</strong><select name="previewType"><option value="damage">Regular Damage</option><option value="break">Break</option><option value="superBreak">Super Break</option></select></label>
+      <label><strong>Preview style</strong><select name="previewType"><option value="damage">Regular Damage</option><option value="critical">Critical Hit</option><option value="break">Break</option><option value="superBreak">Super Break</option></select></label>
       <label><strong>Preview Element</strong><select name="previewElement">{{#each elements}}<option value="{{this.id}}" data-ready-color="{{this.readyColor}}" {{#if this.previewSelected}}selected{{/if}}>{{this.name}}</option>{{else}}<option value="" data-ready-color="#ed4855">Default Element</option>{{/each}}</select></label>
     </div>
     <div class="tsru-damage-style-preview" style="--tsru-break-color:{{previewColor}};">

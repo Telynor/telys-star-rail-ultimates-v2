@@ -1542,3 +1542,48 @@
   width: 18px;
   height: 18px;
 }
+
+
+/* v2.22.6: HSR-style status label and bright Element-to-white number treatment. */
+.tsru-break-popup {
+  min-width: max-content;
+  overflow: visible;
+}
+.tsru-break-popup strong,
+.tsru-break-popup span {
+  display: inline-block !important;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 1px rgba(28, 28, 34, .96) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.72) !important;
+  filter: none !important;
+}
+.tsru-break-popup strong {
+  font-size: calc(var(--tsru-popup-size, 48px) * .58) !important;
+  line-height: 1 !important;
+  letter-spacing: .02em;
+  text-transform: none;
+}
+.tsru-break-popup span,
+.tsru-break-popup.is-plain-damage span {
+  font-size: var(--tsru-popup-size, 48px) !important;
+  line-height: 1 !important;
+}
+.tsru-break-popup.has-gradient strong,
+.tsru-break-popup.has-gradient span,
+.tsru-break-popup.is-plain-damage.has-gradient span {
+  background-image: linear-gradient(
+    to bottom,
+    var(--tsru-break-color, #ffffff) 0%,
+    var(--tsru-break-color, #ffffff) 30%,
+    #ffffff 82%,
+    #ffffff 100%
+  ) !important;
+  background-color: transparent !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+}
+.tsru-damage-style-preview .tsru-break-popup {
+  filter: none !important;
+}
