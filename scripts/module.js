@@ -1582,7 +1582,42 @@ function lightConeUsesAttunement(item) {
 
 function equippedLightCone(actor) {
   const cones = Array.from(actor?.items ?? []).filter(isLightCone);
-  return cones.find(item => item.system?.equipped !== false && lightConeUsesAttunement(item)) ?? null;
+  return cones.find(item => lightConeUsesAttunement(item)) ?? null;
+}
+
+async function openLightConeImporter() {
+  if (!game.user.isGM) return ui.notifications.warn("Only a GM can import Light Cones.");
+  const items = [
+    ...Array.from(game.items ?? []),
+    ...Array.from(game.actors ?? []).flatMap(actor => Array.from(actor.items ?? []))
+  ].filter((item, index, all) => all.findIndex(candidate => candidate.uuid === item.uuid) === index)
+    .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  if (!items.length) return ui.notifications.warn("There are no Items available to convert.");
+
+  const options = items.map(item => `<option value="${escapeHTML(item.uuid)}">${escapeHTML(item.name)}${item.parent ? ` — ${escapeHTML(item.parent.name)}` : ""}</option>`).join("");
+  const content = `<form class="tsru-light-cone-importer">
+    <p class="notes">Choose an existing Item, or paste/drop an Item UUID, then continue to configure its Light Cone image, Path, and description.</p>
+    <div class="form-group"><label>Existing Item</label><div class="form-fields"><select name="itemChoice">${options}</select></div></div>
+    <div class="form-group"><label>Item UUID</label><div class="form-fields"><input type="text" name="itemUuid" placeholder="Item.xxxxxxxxxxxxxxxx"></div></div>
+  </form>`;
+  new Dialog({
+    title: "Light Cone Converter / Importer",
+    content,
+    buttons: {
+      next: {
+        icon: '<i class="fas fa-arrow-right"></i>',
+        label: "Next",
+        callback: async html => {
+          const uuid = String(html.find('[name="itemUuid"]').val() || html.find('[name="itemChoice"]').val() || "").trim();
+          const item = await fromUuid(uuid).catch(() => null);
+          if (item?.documentName !== "Item") return ui.notifications.error("The selected UUID is not an Item.");
+          openLightConeWizard(item);
+        }
+      },
+      cancel: {icon: '<i class="fas fa-times"></i>', label: "Cancel"}
+    },
+    default: "next"
+  }).render(true);
 }
 
 async function openLightConeWizard(item) {
@@ -4876,6 +4911,7 @@ function registerApi() {
     openSkillPointConfig: () => new SkillPointConfig().render(true),
     openTechniquePointConfig: () => new TechniquePointConfig().render(true),
     openEidolonConfig: () => new EidolonAppearanceConfig().render(true),
+    openLightConeImporter,
     triggerSpecialAha,
     showSkillUI,
     refreshResourceHuds,
@@ -4927,6 +4963,51 @@ Hooks.once("ready", () => {
   installDamageScrollingTextOverride();
 });
 
+function lightConeAttunementRequested(item, changes) {
+  if (foundry.utils.hasProperty(changes, "system.attuned")) return Boolean(foundry.utils.getProperty(changes, "system.attuned"));
+  if (foundry.utils.hasProperty(changes, "system.attunement")) {
+    const value = foundry.utils.getProperty(changes, "system.attunement");
+    if (typeof value === "boolean") return value;
+    if (Number.isFinite(Number(value))) return Number(value) >= 2;
+    return /attuned/i.test(String(value || ""));
+  }
+  return false;
+}
+
+function lightConeUnattuneUpdate(item) {
+  const changes = {};
+  if (foundry.utils.hasProperty(item, "system.attuned")) changes["system.attuned"] = false;
+  if (foundry.utils.hasProperty(item, "system.attunement")) {
+    const current = item.system.attunement;
+    changes["system.attunement"] = typeof current === "boolean" ? false : (Number.isFinite(Number(current)) ? 1 : "required");
+  }
+  return changes;
+}
+
+Hooks.on("preUpdateItem", (item, changes, options, userId) => {
+  if (options?.tsruLightConeSwitch || userId !== game.user.id || !isLightCone(item) || lightConeUsesAttunement(item) || !lightConeAttunementRequested(item, changes)) return;
+  const actor = item.parent;
+  if (actor?.documentName !== "Actor" || actor.type !== "character") return;
+  const current = Array.from(actor.items ?? []).find(candidate => candidate.id !== item.id && isLightCone(candidate) && lightConeUsesAttunement(candidate));
+  if (!current) return;
+  const requestedChanges = foundry.utils.deepClone(changes);
+  window.setTimeout(async () => {
+    const confirmed = await Dialog.confirm({
+      title: "Switch Light Cones?",
+      content: `<p><strong>${escapeHTML(actor.name)}</strong> is currently using <strong>${escapeHTML(current.name)}</strong>.</p><p>Unattune it and attune <strong>${escapeHTML(item.name)}</strong> instead?</p>`,
+      yes: () => true,
+      no: () => false,
+      defaultYes: false
+    });
+    if (!confirmed) return ui.notifications.info(`${item.name} was not attuned; ${current.name} remains selected.`);
+    await current.update(lightConeUnattuneUpdate(current), {tsruLightConeSwitch: true});
+    await item.update(requestedChanges, {tsruLightConeSwitch: true});
+    actor.sheet?.render(false);
+    ui.notifications.info(`${actor.name} switched from ${current.name} to ${item.name}.`);
+  }, 0);
+  return false;
+});
+
 Hooks.on("canvasReady", installDamageScrollingTextOverride);
 
 Hooks.on("renderActorSheet", injectUltimateTab);
@@ -4937,7 +5018,6 @@ Hooks.on("renderActorSheet", observeCharacterSheetTabs);
 Hooks.on("renderCharacterActorSheet", observeCharacterSheetTabs);
 Hooks.on("renderActorSheet", injectToughnessHeaderButton);
 Hooks.on("renderApplicationV2", (app, html) => {
-  if (app.document?.documentName === "Item") injectLightConeHeaderButton(app, html);
   const actor = app.actor ?? app.document;
   if (actor?.documentName === "Actor" && actor.type === "character") {
     injectUltimateTab(app, html);
@@ -4960,8 +5040,6 @@ Hooks.on("renderCharacterActorSheet", injectEnergyAbility);
 Hooks.on("renderActorSheet", injectCharacterBadges);
 Hooks.on("renderCharacterActorSheet", injectCharacterBadges);
 Hooks.on("getActorSheetHeaderButtons", addActorHeaderButton);
-Hooks.on("getItemSheetHeaderButtons", addLightConeHeaderButton);
-Hooks.on("renderItemSheet", injectLightConeHeaderButton);
 Hooks.on("getSceneControlButtons", addHudTool);
 Hooks.on("createChatMessage", processCoreAttackMessage);
 
