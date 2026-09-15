@@ -1653,12 +1653,29 @@ async function openLightConeGenerator() {
 
 function lightConeAttunementUpdate(item, equipped) {
   const changes = {};
-  if (foundry.utils.hasProperty(item, "system.attuned")) changes["system.attuned"] = Boolean(equipped);
-  if (foundry.utils.hasProperty(item, "system.attunement")) {
-    const current = item.system.attunement;
-    if (typeof current === "boolean") changes["system.attunement"] = Boolean(equipped);
-    else if (typeof current === "number") changes["system.attunement"] = equipped ? 2 : 1;
-    else changes["system.attunement"] = equipped ? "attuned" : "required";
+  const statePath = `flags.${MODULE_ID}.lightConeAttunementState`;
+  const properties = new Set(Array.from(item?.system?.properties ?? []));
+  const saved = item?.getFlag?.(MODULE_ID, "lightConeAttunementState");
+  if (equipped) {
+    if (!saved) {
+      changes[statePath] = {
+        attunement: item?.system?.attunement,
+        attuned: Boolean(item?.system?.attuned),
+        hadMagic: properties.has("mgc")
+      };
+    }
+    // D&D5e 5.3 clears attunement during data preparation unless the item has
+    // the magical property, so Light Cones need it for as long as they are selected.
+    properties.add("mgc");
+    changes["system.properties"] = Array.from(properties);
+    if (foundry.utils.hasProperty(item, "system.attunement")) changes["system.attunement"] = "optional";
+    if (foundry.utils.hasProperty(item, "system.attuned")) changes["system.attuned"] = true;
+  } else {
+    if (saved && !saved.hadMagic) properties.delete("mgc");
+    changes["system.properties"] = Array.from(properties);
+    if (foundry.utils.hasProperty(item, "system.attunement")) changes["system.attunement"] = saved?.attunement ?? "";
+    if (foundry.utils.hasProperty(item, "system.attuned")) changes["system.attuned"] = saved?.attuned ?? false;
+    if (saved) changes[`flags.${MODULE_ID}.-=lightConeAttunementState`] = null;
   }
   return changes;
 }
@@ -1676,6 +1693,16 @@ function actorAttunementCapacity(actor) {
 
 function actorAttunedItemCount(actor) {
   return Array.from(actor?.items ?? []).filter(itemIsAttuned).length;
+}
+
+async function repairSelectedLightConeAttunements() {
+  if (!game.user.isGM) return;
+  for (const actor of game.actors.filter(entry => entry.type === "character")) {
+    const item = equippedLightCone(actor);
+    if (!item || itemIsAttuned(item)) continue;
+    const changes = lightConeAttunementUpdate(item, true);
+    if (Object.keys(changes).length) await item.update(changes, {tsruLightConeSelection: true});
+  }
 }
 
 async function unequipLightCone(item) {
@@ -5116,6 +5143,7 @@ Hooks.once("ready", () => {
   Hooks.on("dnd5e.rollDamageV2", processDnd5eDamageRolls);
   Hooks.on("dnd5e.applyDamage", (...args) => processDnd5eAppliedDamage(...args));
   installDamageScrollingTextOverride();
+  repairSelectedLightConeAttunements().catch(error => console.error(`${MODULE_ID} | Failed to repair Light Cone attunement`, error));
 });
 
 Hooks.on("canvasReady", installDamageScrollingTextOverride);
