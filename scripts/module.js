@@ -132,6 +132,15 @@ const DEFAULT_SKILL_POINT_CONFIG = Object.freeze({
   numberFontFile: ""
 });
 
+const DEFAULT_COMBAT_HUD_DESIGN = Object.freeze({
+  memberWidth: 184, memberHeight: 150,
+  portraitLeft: 0, portraitRight: 25, portraitTop: 0, portraitBottom: 17,
+  hpLeft: 22, hpRight: 0, hpBottom: 20, hpHeight: 9,
+  orbRight: 7, orbBottom: 34, orbSize: 54,
+  talentLeft: 5, talentBottom: 20, talentSize: 32,
+  nameLeft: 8, nameBottom: 0, nameWidth: 128
+});
+
 const DEFAULT_TOUGHNESS = Object.freeze({enabled: true, current: 100, max: 100, weaknesses: [], temporaryWeaknesses: [], discoveredWeaknesses: []});
 
 const DEFAULT_EIDOLON_CONFIG = Object.freeze({
@@ -2096,6 +2105,70 @@ class UltimateOrb {
   }
 }
 
+function getCombatHudDesign() {
+  const stored = game.settings.get(MODULE_ID, "combatHudDesign") ?? {};
+  const design = foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_COMBAT_HUD_DESIGN), stored, {inplace: false});
+  for (const key of Object.keys(DEFAULT_COMBAT_HUD_DESIGN)) design[key] = Math.max(0, Number(design[key]) || 0);
+  design.memberWidth = clamp(design.memberWidth, 100, 400);
+  design.memberHeight = clamp(design.memberHeight, 80, 320);
+  design.orbSize = clamp(design.orbSize, 24, 140);
+  design.talentSize = clamp(design.talentSize, 18, 100);
+  design.hpHeight = clamp(design.hpHeight, 3, 30);
+  return design;
+}
+
+function combatHudDesignStyle(design = getCombatHudDesign()) {
+  const vars = {
+    "member-w": design.memberWidth, "member-h": design.memberHeight,
+    "portrait-l": design.portraitLeft, "portrait-r": design.portraitRight, "portrait-t": design.portraitTop, "portrait-b": design.portraitBottom,
+    "hp-l": design.hpLeft, "hp-r": design.hpRight, "hp-b": design.hpBottom, "hp-h": design.hpHeight,
+    "orb-r": design.orbRight, "orb-b": design.orbBottom, "orb-size": design.orbSize,
+    "talent-l": design.talentLeft, "talent-b": design.talentBottom, "talent-size": design.talentSize,
+    "name-l": design.nameLeft, "name-b": design.nameBottom, "name-w": design.nameWidth
+  };
+  return Object.entries(vars).map(([key, value]) => `--${key}:${Number(value)}px`).join(";");
+}
+
+function combatHudDesignerPreview(actor = null, config = null, design = getCombatHudDesign()) {
+  actor ??= game.actors.find(entry => entry.type === "character") ?? null;
+  config ??= actor ? getConfig(actor) : DEFAULT_CONFIG;
+  const portrait = config.combatHudPortrait || actor?.img || "icons/svg/mystery-man.svg";
+  const orb = config.ultimateButtonImage || config.orbImage || actor?.img || "icons/svg/mystery-man.svg";
+  const talent = config.talentIcon || "icons/svg/aura.svg";
+  return `<article class="tsru-combat-party-member tsru-combat-hud-design-sample" style="${combatHudDesignStyle(design)};--hud-x:${clamp(config.combatHudPortraitX,0,100)}%;--hud-y:${clamp(config.combatHudPortraitY,0,100)}%;--hud-scale:${clamp(config.combatHudPortraitScale,50,300)/100};--energy:72%;--energy-color:#20e6ff;--hp:78%">
+    <div class="tsru-combat-party-portrait"><img src="${escapeHTML(portrait)}" alt=""></div><strong class="tsru-combat-party-name">${escapeHTML(actor?.name || "Character Preview")}</strong>
+    <div class="tsru-combat-party-hp"><i></i><span>78/100</span></div><div class="tsru-combat-party-talent"><img src="${escapeHTML(talent)}" alt=""><strong>2/7</strong></div>
+    <div class="tsru-combat-party-ultimate-wrap"><button type="button" disabled><span class="tsru-hud-orb-fill"></span><img src="${escapeHTML(orb)}" alt=""><strong>72%</strong></button></div></article>`;
+}
+
+async function openCombatHudDesigner() {
+  if (!game.user.isGM) return ui.notifications.warn("Only a GM can configure the universal combat HUD design.");
+  const design = getCombatHudDesign();
+  const labels = {
+    memberWidth:"Character width",memberHeight:"Character height",portraitLeft:"Portrait left",portraitRight:"Portrait right",portraitTop:"Portrait top",portraitBottom:"Portrait bottom",
+    hpLeft:"HP left",hpRight:"HP right",hpBottom:"HP bottom",hpHeight:"HP height",orbRight:"Orb right",orbBottom:"Orb bottom",orbSize:"Orb size",
+    talentLeft:"Talent left",talentBottom:"Talent bottom",talentSize:"Talent size",nameLeft:"Name left",nameBottom:"Name bottom",nameWidth:"Name width"
+  };
+  const fields = Object.entries(labels).map(([key,label]) => `<label><span>${label}</span><input type="number" name="${key}" min="0" max="400" value="${design[key]}"></label>`).join("");
+  const content = `<form class="tsru-combat-hud-designer"><p>These measurements define the universal relationship between splash art, HP bars, Talent icons, names, and Ultimate orbs. Individual sheets inherit this geometry.</p><div class="tsru-combat-hud-design-preview" data-tsru-design-preview>${combatHudDesignerPreview(null,null,design)}</div><div class="tsru-combat-hud-design-fields">${fields}</div></form>`;
+  const dialog = new Dialog({title:"Combat HUD Designer",content,buttons:{save:{icon:'<i class="fas fa-save"></i>',label:"Save Universal Design",callback:async html=>{
+    const next = {...design};
+    html.find("[name]").each((_i,field)=>next[field.name]=Number(field.value));
+    await game.settings.set(MODULE_ID,"combatHudDesign",next);
+    refreshCombatPartyHud();
+    ui.notifications.info("Universal combat HUD design saved.");
+  }},cancel:{icon:'<i class="fas fa-times"></i>',label:"Cancel"}},default:"save"},{width:720,height:780,resizable:true,classes:["tsru-combat-hud-designer-dialog"]});
+  Hooks.once("renderDialog", rendered => {
+    if (rendered !== dialog) return;
+    const root = rendered.element;
+    root.on("input change",".tsru-combat-hud-design-fields input",()=>{
+      const draft={...design}; root.find(".tsru-combat-hud-design-fields [name]").each((_i,field)=>draft[field.name]=Number(field.value));
+      root.find("[data-tsru-design-preview]").html(combatHudDesignerPreview(null,null,draft));
+    });
+  });
+  dialog.render(true);
+}
+
 function combatPartyActors() {
   const combat = game.combat;
   if (!combat?.started) return [];
@@ -2214,7 +2287,7 @@ class CombatPartyHud {
       const element = getElements().find(entry => entry.id === config.elementId);
       const energyColor = ready ? (element?.readyColor || DEFAULT_CONFIG.readyColor) : (element?.chargeColor || DEFAULT_CONFIG.chargeColor);
       const portrait = config.combatHudPortrait || actor.img || "icons/svg/mystery-man.svg";
-      return `<article class="tsru-combat-party-member ${owned ? "is-owned" : ""}" data-actor-id="${actor.id}" style="--hud-x:${clamp(config.combatHudPortraitX, 0, 100)}%;--hud-y:${clamp(config.combatHudPortraitY, 0, 100)}%;--hud-scale:${clamp(config.combatHudPortraitScale, 50, 300) / 100};--energy:${energyPercent}%;--energy-color:${energyColor};--hp:${hpPercent}%">
+      return `<article class="tsru-combat-party-member ${owned ? "is-owned" : ""}" data-actor-id="${actor.id}" style="${combatHudDesignStyle()};--hud-x:${clamp(config.combatHudPortraitX, 0, 100)}%;--hud-y:${clamp(config.combatHudPortraitY, 0, 100)}%;--hud-scale:${clamp(config.combatHudPortraitScale, 50, 300) / 100};--energy:${energyPercent}%;--energy-color:${energyColor};--hp:${hpPercent}%">
         <div class="tsru-combat-party-portrait"><img src="${escapeHTML(portrait)}" alt="${escapeHTML(actor.name)}"></div>
         <strong class="tsru-combat-party-name">${escapeHTML(actor.name)}</strong>
         <div class="tsru-combat-party-hp"><i></i><span>${hpValue}/${hpMax}</span></div>
@@ -4354,6 +4427,7 @@ function registerSettings() {
   game.settings.register(MODULE_ID, "elementsDraft", {scope: "client", config: false, type: Array, default: []});
   game.settings.register(MODULE_ID, "orbLayouts", {scope: "client", config: false, type: Object, default: {}});
   game.settings.register(MODULE_ID, "combatPartyHudLayout", {scope: "client", config: false, type: Object, default: {scale: 1, minimized: false, x: null, y: null}});
+  game.settings.register(MODULE_ID, "combatHudDesign", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_COMBAT_HUD_DESIGN)});
   game.settings.register(MODULE_ID, "ahaConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_AHA_CONFIG)});
   game.settings.register(MODULE_ID, "ahaLayout", {scope: "client", config: false, type: Object, default: {x: 220, y: 180, size: 128, visible: false}});
   game.settings.register(MODULE_ID, "punchline", {scope: "world", config: false, type: Number, default: 0});
@@ -4640,15 +4714,12 @@ function activateConfigListeners(actor, tab, app) {
   tab.find("input:not([readonly])").prop("readonly", false);
   tab.on("input.tsru change.tsru", "input, select, textarea", event => event.stopPropagation());
   const refreshCombatPortraitPreview = () => {
-    const image = tab.find("[data-tsru-combat-hud-preview] img");
-    if (!image.length) return;
-    image.attr("src", String(tab.find("[name='combatHudPortrait']").val() || actor.img || "icons/svg/mystery-man.svg"));
-    const x = clamp(tab.find("[name='combatHudPortraitX']").val(), 0, 100);
-    const y = clamp(tab.find("[name='combatHudPortraitY']").val(), 0, 100);
-    const scale = clamp(tab.find("[name='combatHudPortraitScale']").val(), 50, 300) / 100;
-    image.css({objectPosition: `${x}% ${y}%`, transform: `scale(${scale})`, transformOrigin: `${x}% ${y}%`});
+    const preview = tab.find("[data-tsru-combat-hud-preview]");
+    if (!preview.length) return;
+    const draft = {...getConfig(actor), combatHudPortrait:String(tab.find("[name='combatHudPortrait']").val() || ""), combatHudPortraitX:Number(tab.find("[name='combatHudPortraitX']").val()), combatHudPortraitY:Number(tab.find("[name='combatHudPortraitY']").val()), combatHudPortraitScale:Number(tab.find("[name='combatHudPortraitScale']").val()), talentIcon:String(tab.find("[name='talentIcon']").val() || ""), ultimateButtonImage:String(tab.find("[name='ultimateButtonImage']").val() || "")};
+    preview.html(combatHudDesignerPreview(actor,draft));
   };
-  tab.on("input.tsru-preview change.tsru-preview", "[name='combatHudPortrait'], [name='combatHudPortraitX'], [name='combatHudPortraitY'], [name='combatHudPortraitScale']", refreshCombatPortraitPreview);
+  tab.on("input.tsru-preview change.tsru-preview", "[name='combatHudPortrait'], [name='combatHudPortraitX'], [name='combatHudPortraitY'], [name='combatHudPortraitScale'], [name='talentIcon'], [name='ultimateButtonImage']", refreshCombatPortraitPreview);
   refreshCombatPortraitPreview();
   let autosaveTimer = null;
   let autosaveRunning = false;
@@ -5259,6 +5330,7 @@ function registerApi() {
     openTechniquePointConfig: () => new TechniquePointConfig().render(true),
     openEidolonConfig: () => new EidolonAppearanceConfig().render(true),
     openLightConeGenerator,
+    openCombatHudDesigner,
     triggerSpecialAha,
     showSkillUI,
     refreshResourceHuds,
@@ -5475,6 +5547,10 @@ Hooks.on("updateSetting", setting => {
   if (setting?.key?.startsWith(`${MODULE_ID}.skillPoint`)) refreshSkillUI();
   if (setting?.key?.startsWith(`${MODULE_ID}.techniquePoint`)) refreshResourceHuds();
   if (setting?.key === `${MODULE_ID}.partySelections`) refreshCombatPartyHud();
+  if (setting?.key === `${MODULE_ID}.combatHudDesign`) {
+    refreshCombatPartyHud();
+    for (const app of Object.values(ui.windows ?? {})) if ((app.actor ?? app.document)?.type === "character") app.render(false);
+  }
   if (setting?.key === `${MODULE_ID}.ahaConfig` || setting?.key === `${MODULE_ID}.punchline`) {
     if (!getAhaConfig().elationEnabled) document.querySelectorAll(".tsru-aha-overlay").forEach(element => element.remove());
     refreshAhaButton();

@@ -182,6 +182,7 @@ class HSRHub extends FormApplication {
           const count = await api()?.showUltimateUI?.();
           if (count) ui.notifications.info("Combat party HUD shown.");
         }],
+        "hud-designer": ["Combat HUD Designer", () => api()?.openCombatHudDesigner?.()],
         skills: ["Skills & Skill Points", () => api()?.showSkillUI?.()],
         gm: ["Star Rail GM Panel", () => api()?.openGMPanel?.()],
         "aha-config": ["Aha Instant Configuration", () => api()?.openAhaConfig?.()],
