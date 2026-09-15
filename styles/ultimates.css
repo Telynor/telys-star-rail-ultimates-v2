@@ -1045,6 +1045,8 @@
 .tsru-gm-panel-header { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px; border-bottom: 1px solid #89703c; margin-bottom: 14px; padding-bottom: 12px; }
 .tsru-gm-panel-header h2 { margin: 0 0 3px; color: #f1d68c; }
 .tsru-gm-panel-header p, .tsru-gm-section > p { margin: 0; color: #aeb0b7; }
+.tsru-gm-place-action{display:grid;grid-template-columns:minmax(160px,1fr) minmax(110px,.45fr) auto;gap:8px;align-items:center;margin-top:10px}.tsru-gm-place-action button{white-space:nowrap}
+@container (max-width:560px){.tsru-gm-place-action{grid-template-columns:1fr}.tsru-gm-place-action button{width:100%}}
 .tsru-gm-live-resources { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin-bottom: 14px; }
 .tsru-gm-resource-card, .tsru-gm-section { border: 1px solid #544726; border-radius: 8px; background: rgba(7,9,13,.82); }
 .tsru-gm-resource-card { padding: 12px; }

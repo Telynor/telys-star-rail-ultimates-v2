@@ -2467,7 +2467,7 @@ async function showCombatPartyHud({notify = true} = {}) {
 }
 
 function refreshOrb(actor) {
-  if (actor) state.orbs.get(actor.id)?.destroy();
+  if (actor) state.orbs.get(actor.id)?.render();
 }
 
 function refreshAllOrbs() {
@@ -2492,6 +2492,32 @@ async function showOrb(actor, {notify = true} = {}) {
     return false;
   }
   return showCombatPartyHud({notify});
+}
+
+async function placeGMActionButton(actor, action) {
+  if (!game.user?.isGM) return ui.notifications.warn("Only a GM can place character action buttons.");
+  if (!actor || actor.type !== "character") return ui.notifications.warn("Choose a character first.");
+  const config = getConfig(actor);
+  if (action === "skill") {
+    if (!config.skillEnabled) return ui.notifications.warn(`${actor.name}'s Skill button is disabled on their sheet.`);
+    await saveSkillButtonLayout(actor.id, {visible: true});
+    refreshSkillUI();
+    ui.notifications.info(`${actor.name}'s Skill button was placed.`);
+    return true;
+  }
+  if (action === "ultimate") {
+    if (!config.enabled) return ui.notifications.warn(`${actor.name}'s Ultimate system is disabled on their sheet.`);
+    await saveLayout(actor.id, {visible: true});
+    let orb = state.orbs.get(actor.id);
+    if (!orb) {
+      orb = new UltimateOrb(actor);
+      state.orbs.set(actor.id, orb);
+    }
+    orb.render();
+    ui.notifications.info(`${actor.name}'s Ultimate button was placed.`);
+    return true;
+  }
+  return ui.notifications.warn("Choose Skill or Ultimate.");
 }
 
 async function loadSplashFont(fontFile) {
@@ -4392,7 +4418,8 @@ class StarRailGMPanel extends FormApplication {
         elements: elements.map(element => ({...element, permanent: config.weaknesses.includes(element.id), temporary: weaknessMode === "all" || temporary.includes(element.id)}))
       };
     });
-    return {characters, sceneEnemies, punchline: currentPunchline(), skillPoints: currentSkillPoints(), skillPointMax: getSkillPointConfig().maximum, combatants, hasCombat: Boolean(game.combat?.started)};
+    const actionCharacters = game.actors.filter(actor => actor.type === "character").sort((left, right) => left.name.localeCompare(right.name)).map(actor => ({id: actor.id, name: actor.name}));
+    return {characters, actionCharacters, sceneEnemies, punchline: currentPunchline(), skillPoints: currentSkillPoints(), skillPointMax: getSkillPointConfig().maximum, combatants, hasCombat: Boolean(game.combat?.started)};
   }
   activateListeners(html) {
     super.activateListeners(html);
@@ -4456,6 +4483,11 @@ class StarRailGMPanel extends FormApplication {
       if (!id) return ui.notifications.warn("Choose a combatant first.");
       await insertActionAdvanceTurn(id);
       this.render(false);
+    });
+    html.find("[data-action='place-action-button']").on("click", async () => {
+      const actor = game.actors.get(html.find('[name="actionButtonActor"]').val());
+      const action = html.find('[name="actionButtonType"]').val();
+      await placeGMActionButton(actor, action);
     });
     html.find("[data-action='reset-canvas-toughness']").on("click", resetCanvasToughness);
     html.find("[data-action='save-temporary-weaknesses']").on("click", async event => {
