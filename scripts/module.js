@@ -2745,8 +2745,9 @@ async function broadcastDamageResult(target, damage, {plainDamage=false, critica
   game.socket.emit(SOCKET,display);
 }
 
-function damageResultColor(attacker) {
+function damageResultColor(attacker, {hpDamage = false} = {}) {
   const config = getConfig(attacker);
+  if (hpDamage && config.breakCharacter) return "#ffffff";
   const element = getElements().find(entry => entry.id === config.elementId);
   return element?.readyColor || "#ffffff";
 }
@@ -2770,11 +2771,11 @@ async function broadcastDamageOnce(attacker, target, amount, eventId, {critical 
   if (state.processedMessages.has(key)) return false;
   state.processedMessages.add(key);
   window.setTimeout(() => state.processedMessages.delete(key), 120000);
-  state.lastDamageDisplay = {color:damageResultColor(attacker), critical:Boolean(critical), expires:Date.now() + 2500};
+  state.lastDamageDisplay = {color:damageResultColor(attacker, {hpDamage:true}), critical:Boolean(critical), expires:Date.now() + 15000};
   await broadcastDamageResult(target, value, {
     plainDamage: true,
     critical,
-    color: damageResultColor(attacker),
+    color: damageResultColor(attacker, {hpDamage:true}),
     fontFile: getBreakFonts().damageFontFile
   });
   return true;
@@ -3047,6 +3048,12 @@ async function processDnd5eDamageRolls(rolls, data = {}) {
   const attacker = subject?.actor ?? subject?.item?.actor ?? subject?.parent?.actor ?? subject?.parent;
   if (!attacker || attacker.documentName !== "Actor") return;
   const rollList = Array.isArray(rolls) ? rolls : [rolls];
+  state.lastDamageDisplay = {
+    color: damageResultColor(attacker, {hpDamage:true}),
+    critical: damageRollWasCritical({rolls:rollList}),
+    attackerId: attacker.id,
+    expires: Date.now() + 15000
+  };
   const amount = getConfig(attacker).breakCharacter ? fullDamageTotal(rollList) : rawDiceTotal(rollList);
   if (amount <= 0) return;
   const targets = [...(game.user?.targets ?? [])];
@@ -3071,6 +3078,14 @@ async function processCoreAttackMessage(message) {
   const midiWorkflowId = message.flags?.["midi-qol"]?.workflowId ?? message.flags?.["midi-qol"]?.workflowUuid ?? message.flags?.["midi-qol"]?.itemUuid;
   const midiWorkflow = midiActive && midiWorkflowId ? globalThis.MidiQOL?.Workflow?.getWorkflow?.(midiWorkflowId) : null;
   const attacker = midiWorkflow?.actor ?? game.actors.get(message.speaker?.actor) ?? canvas?.tokens?.get(message.speaker?.token)?.actor;
+  if (attacker?.type === "character" && (damageMessage || macroDamageMessage)) {
+    state.lastDamageDisplay = {
+      color: damageResultColor(attacker, {hpDamage:true}),
+      critical: damageRollWasCritical(message) || damageRollWasCritical(midiWorkflow),
+      attackerId: attacker.id,
+      expires: Date.now() + 15000
+    };
+  }
   let targetIds = targetActorIdsFromMessage(message);
   if (!targetIds.size && midiWorkflow) {
     const workflowTargets = midiWorkflow.hitTargets?.size ? midiWorkflow.hitTargets : midiWorkflow.targets;
@@ -3092,7 +3107,6 @@ async function processCoreAttackMessage(message) {
   }
   if (attackMessage && attacker) await addEnergy(attacker, energyGain(getConfig(attacker), "attack"), "attack");
   if ((damageMessage || macroDamageMessage) && attacker) {
-    state.lastDamageDisplay = {color:damageResultColor(attacker), critical:damageRollWasCritical(message), expires:Date.now() + 2500};
     if (!midiActive) await awardPunchlineForAttack(attacker, `chat:${message.id}`);
     const toughnessDamage = getConfig(attacker).breakCharacter ? fullDamageTotal(message.rolls) : rawDiceTotal(message.rolls);
     await applyToughnessDamage(attacker, [...targetIds].map(id => game.actors.get(id)), toughnessDamage, midiWorkflowId || message.id);
@@ -3116,6 +3130,14 @@ async function processMidiWorkflow(workflow) {
   const toughnessTargets = usedAttackRoll ? hitTargets : (hitTargets.size ? hitTargets : targets);
   const damageRolls = midiDamageRolls(workflow);
   const diceDamage = getConfig(attacker).breakCharacter ? fullDamageTotal(damageRolls) : rawDiceTotal(damageRolls);
+  if (attacker?.type === "character" && diceDamage > 0) {
+    state.lastDamageDisplay = {
+      color: damageResultColor(attacker, {hpDamage:true}),
+      critical: damageRollWasCritical(workflow),
+      attackerId: attacker.id,
+      expires: Date.now() + 15000
+    };
+  }
   if (!isAuthority()) {
     if (attacker && diceDamage > 0 && toughnessTargets.size !== 0) {
       const targetUuids = [...toughnessTargets].map(target => target?.document?.uuid ?? target?.actor?.uuid).filter(Boolean);
