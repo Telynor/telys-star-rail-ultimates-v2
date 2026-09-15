@@ -1724,19 +1724,21 @@ async function openLightConeGenerator() {
   dialog.render(true);
 }
 
-async function openLightConeWizard(item) {
+async function openLightConeWizard(item, {replaceEmbedded = false} = {}) {
   if (!game.user.isGM) return ui.notifications.warn("Only a GM can convert or configure Light Cones.");
   if (!item) return ui.notifications.error("No Item was selected.");
+  if (replaceEmbedded && item.parent?.documentName !== "Actor") return ui.notifications.error("Inventory conversion requires an Item owned by a character.");
   const current = getLightConeData(item);
   const paths = getPaths();
   const options = ['<option value="">Any Path</option>', ...paths.map(path => `<option value="${escapeHTML(path.id)}" ${path.id === current.pathId ? "selected" : ""}>${escapeHTML(path.name)}</option>`)].join("");
-  const defaultFolder = await ensureLightConeFolder();
-  const folderOptions = lightConeFolderOptions(defaultFolder.id);
+  const defaultFolder = replaceEmbedded ? null : await ensureLightConeFolder();
+  const folderOptions = defaultFolder ? lightConeFolderOptions(defaultFolder.id) : "";
+  const destinationField = replaceEmbedded ? "" : `<div class="form-group"><label>Target Item Folder</label><div class="form-fields"><select name="folderId">${folderOptions}</select></div></div>`;
   const content = `<form class="tsru-light-cone-wizard">
-    <p class="notes">Convert <strong>${escapeHTML(item.name)}</strong> into a Light Cone. Its existing Item data is preserved.</p>
+    <p class="notes">${replaceEmbedded ? `Replace <strong>${escapeHTML(item.name)}</strong> in <strong>${escapeHTML(item.parent.name)}</strong>'s inventory with a Light Cone loot Item. The full stack quantity will be preserved.` : `Convert <strong>${escapeHTML(item.name)}</strong> into a Light Cone. Its existing Item data is preserved.`}</p>
     <div class="form-group"><label>Light Cone Image</label><div class="form-fields"><input type="text" name="image" value="${escapeHTML(current.image)}"><button type="button" class="file-picker" data-type="image" data-target="image"><i class="fas fa-file-import"></i></button></div></div>
     <div class="form-group"><label>Path</label><div class="form-fields"><select name="pathId">${options}</select></div></div>
-    <div class="form-group"><label>Target Item Folder</label><div class="form-fields"><select name="folderId">${folderOptions}</select></div></div>
+    ${destinationField}
     <div class="form-group stacked"><label>Description</label><textarea name="description" rows="9">${escapeHTML(current.description)}</textarea></div>
     <p class="notes">The converted Item requires one attunement slot. Equip and attune it on a character to display it on that sheet.</p>
   </form>`;
@@ -1754,6 +1756,22 @@ async function openLightConeWizard(item) {
             image: String(html.find('[name="image"]').val() || item.img || ""),
             description: String(html.find('[name="description"]').val() || "")
           };
+          if (replaceEmbedded) {
+            const actor = item.parent;
+            const quantity = Math.max(1, Number(item.system?.quantity) || 1);
+            const [target] = await actor.createEmbeddedDocuments("Item", [{
+              name: item.name,
+              type: "loot",
+              img: lightCone.image,
+              system: {description: {value: lightCone.description}, quantity, attunement: 1},
+              flags: {[MODULE_ID]: {lightCone}}
+            }]);
+            if (!target) return ui.notifications.error("The Light Cone could not be created, so the original Item was kept.");
+            await item.delete();
+            actor.sheet?.render(false);
+            ui.notifications.info(`Replaced ${quantity}× ${item.name} with an equal Light Cone stack in ${actor.name}'s inventory.`);
+            return;
+          }
           const folderId = String(html.find('[name="folderId"]').val() || defaultFolder.id);
           const updates = {
             [`flags.${MODULE_ID}.lightCone`]: lightCone,
@@ -1786,6 +1804,30 @@ async function openLightConeWizard(item) {
     });
   });
   dialog.render(true);
+}
+
+function activateLightConeInventoryContext(app, html) {
+  const actor = app.actor ?? app.document;
+  if (!game.user.isGM || actor?.documentName !== "Actor" || actor.type !== "character") return;
+  const root = html?.jquery ? html : $(html ?? app.element);
+  if (!root.length || root.attr("data-tsru-light-cone-context") === "true") return;
+  root.attr("data-tsru-light-cone-context", "true");
+  const ContextMenuClass = foundry.applications?.ux?.ContextMenu ?? globalThis.ContextMenu;
+  if (!ContextMenuClass) return;
+  new ContextMenuClass(root, "[data-item-id]", [{
+    name: "Convert to Light Cone",
+    icon: '<i class="fas fa-id-card"></i>',
+    condition: target => {
+      const element = target?.jquery ? target[0] : target;
+      const item = actor.items.get(element?.dataset?.itemId || element?.closest?.("[data-item-id]")?.dataset?.itemId);
+      return Boolean(item && !isLightCone(item));
+    },
+    callback: target => {
+      const element = target?.jquery ? target[0] : target;
+      const item = actor.items.get(element?.dataset?.itemId || element?.closest?.("[data-item-id]")?.dataset?.itemId);
+      if (item) openLightConeWizard(item, {replaceEmbedded: true});
+    }
+  }]);
 }
 
 function addLightConeHeaderButton(app, buttons) {
@@ -5140,6 +5182,7 @@ Hooks.on("renderApplicationV2", (app, html) => {
     injectEidolonTab(app, html);
     injectEnergyAbility(app, html);
     injectCharacterBadges(app, html);
+    activateLightConeInventoryContext(app, html);
     observeCharacterSheetTabs(app);
     requestAnimationFrame(() => {
       const root = app.element?.jquery ? app.element : $(app.element);
@@ -5147,6 +5190,7 @@ Hooks.on("renderApplicationV2", (app, html) => {
       injectEidolonTab(app, root);
       injectEnergyAbility(app, root);
       injectCharacterBadges(app, root);
+      activateLightConeInventoryContext(app, root);
     });
   }
   if (actor?.documentName === "Actor" && actor.type === "npc") injectToughnessHeaderButton(app, html);
@@ -5155,6 +5199,8 @@ Hooks.on("renderActorSheet", injectEnergyAbility);
 Hooks.on("renderCharacterActorSheet", injectEnergyAbility);
 Hooks.on("renderActorSheet", injectCharacterBadges);
 Hooks.on("renderCharacterActorSheet", injectCharacterBadges);
+Hooks.on("renderActorSheet", activateLightConeInventoryContext);
+Hooks.on("renderCharacterActorSheet", activateLightConeInventoryContext);
 Hooks.on("getActorSheetHeaderButtons", addActorHeaderButton);
 Hooks.on("getSceneControlButtons", addHudTool);
 Hooks.on("createChatMessage", processCoreAttackMessage);
