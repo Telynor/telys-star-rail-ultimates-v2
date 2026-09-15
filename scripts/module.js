@@ -2434,6 +2434,9 @@ function actorFromChatMessage(message) {
 }
 
 function manualChatDamageAmount(message) {
+  if (message?.getFlag?.(MODULE_ID, "breakDamageRoll")) {
+    return Math.max(0, Math.floor(Number(message.getFlag(MODULE_ID, "hpDamageAmount")) || 0));
+  }
   return Math.max(0, Math.floor(fullDamageTotal(Array.isArray(message?.rolls) ? message.rolls : [])));
 }
 
@@ -2449,7 +2452,7 @@ function isManualChatDamageEligible(message) {
   const combat = game.combat;
   if (!combat?.started || actor?.type !== "character" || manualChatDamageAmount(message) <= 0) return false;
   if (!combat.combatants.some(combatant => combatant.actorId === actor.id)) return false;
-  return !/weakness break/i.test(String(message.flavor ?? ""));
+  return message.getFlag(MODULE_ID, "breakDamageRoll") || !/weakness break/i.test(String(message.flavor ?? ""));
 }
 
 async function applyDirectChatDamage(target, amount) {
@@ -2465,6 +2468,8 @@ async function applyDirectChatDamage(target, amount) {
   return damage;
 }
 
+function superBreakLabel(superBreak) { return superBreak ? "Super Break" : "Break"; }
+
 async function applyChatRollAsDamage(message, target, requestingUser, applicationId = "") {
   if (!isAuthority()) return {ok: false, message: "Only the active GM can apply chat damage."};
   const {actor: targetActor} = toughnessTargetParts(target);
@@ -2477,15 +2482,27 @@ async function applyChatRollAsDamage(message, target, requestingUser, applicatio
   if (!combat?.combatants.some(combatant => combatant.actorId === targetActor.id || combatant.actor?.id === targetActor.id || combatant.actor?.uuid === targetActor.uuid)) return {ok: false, message: "The targeted creature is not in the current combat."};
   const total = manualChatDamageAmount(message);
   const config = getConfig(attacker);
-  const hpDamage = config.breakCharacter ? Math.min(1, total) : total;
+  const isBreakDamageRoll = Boolean(message.getFlag(MODULE_ID, "breakDamageRoll"));
+  const isSuperBreakDamageRoll = Boolean(message.getFlag(MODULE_ID, "superBreakDamageRoll"));
+  const hpDamage = isBreakDamageRoll ? total : config.breakCharacter ? Math.min(1, total) : total;
   const rolledDiceDamage = rawDiceTotal(message.rolls);
-  const toughnessDamage = config.breakCharacter ? total : (rolledDiceDamage > 0 ? rolledDiceDamage : total);
+  const toughnessDamage = isBreakDamageRoll ? 0 : config.breakCharacter ? total : (rolledDiceDamage > 0 ? rolledDiceDamage : total);
   const resolvedApplicationId = applicationId || foundry.utils.randomID();
   const targetUuid = toughnessTargetParts(target).tokenDocument?.uuid ?? targetActor.uuid;
   const eventKey = `manual-chat-damage:${message.id}:${resolvedApplicationId}:${targetUuid}`;
   await applyDirectChatDamage(targetActor, hpDamage);
   if (attacker.type === "character" && hpDamage > 0) {
-    await broadcastDamageOnce(attacker, target, hpDamage, eventKey, {critical:damageRollWasCritical(message)});
+    if (isBreakDamageRoll) {
+      const elementColor = damageResultColor(attacker);
+      await broadcastDamageResult(target, hpDamage, {
+        plainDamage: false,
+        superBreak: isSuperBreakDamageRoll,
+        color: elementColor,
+        fontFile: isSuperBreakDamageRoll ? getBreakFonts().superBreakFontFile : getBreakFonts().breakFontFile
+      });
+    } else {
+      await broadcastDamageOnce(attacker, target, hpDamage, eventKey, {critical:damageRollWasCritical(message)});
+    }
   }
   const appliedToughness = toughnessDamage > 0 ? await applyToughnessDamage(attacker, [target], toughnessDamage, eventKey) : 0;
   const detail = {sourceActor: attacker, targetActor, amount: hpDamage, origin: message, manual: true};
@@ -2496,10 +2513,10 @@ async function applyChatRollAsDamage(message, target, requestingUser, applicatio
     const targetConfig = getConfig(targetActor);
     if (targetConfig.attackedMode === "targeted" || targetConfig.attackedMode === "hit") await addEnergy(targetActor, energyGain(targetConfig, "attacked"), "hit");
   }
-  const application = {id: resolvedApplicationId, actorUuid: attacker.uuid, targetUuid, targetName: targetActor.name, amount: hpDamage, total, toughnessDamage: appliedToughness, toughnessAttempted: toughnessDamage, userId: requestingUser?.id, appliedAt: Date.now()};
+  const application = {id: resolvedApplicationId, actorUuid: attacker.uuid, targetUuid, targetName: targetActor.name, amount: hpDamage, total, damageKind: isSuperBreakDamageRoll ? "superBreak" : isBreakDamageRoll ? "break" : "normal", toughnessDamage: appliedToughness, toughnessAttempted: toughnessDamage, userId: requestingUser?.id, appliedAt: Date.now()};
   const applications = [...manualDamageApplications(message), application];
   await message.setFlag(MODULE_ID, "manualDamageApplications", applications);
-  return {ok: true, applications, done: false, message: `${total} roll damage applied to ${targetActor.name} (${hpDamage} HP, ${appliedToughness} Toughness).`};
+  return {ok: true, applications, done: false, message: isBreakDamageRoll ? `${superBreakLabel(isSuperBreakDamageRoll)} applied ${hpDamage} HP damage to ${targetActor.name}.` : `${total} roll damage applied to ${targetActor.name} (${hpDamage} HP, ${appliedToughness} Toughness).`};
 }
 
 async function finishManualChatDamage(message, requestingUser) {
@@ -2830,20 +2847,28 @@ async function showBreakResult(payload) {
 
 async function applyWeaknessBreakDamage(attacker, target, {superBreak = false} = {}) {
   const config = getConfig(attacker);
-  const targetActor=toughnessTargetParts(target).actor;
+  const targetActor = toughnessTargetParts(target).actor;
   if (!targetActor || !config.breakCharacter || (superBreak && !config.superBreakCharacter)) return 0;
   const count = clamp(Math.floor(config.breakDamageDice), 1, 20);
   const faces = [4, 6, 8, 10, 12, 20].includes(Number(config.breakDamageDie)) ? Number(config.breakDamageDie) : 6;
   const modifier = Math.max(1, breakEffectModifier(config));
   const roll = await new Roll(`${count}d${faces}`).evaluate();
   const damage = Math.max(0, Math.floor(superBreak ? (Number(roll.total) || 0) + breakEffectModifier(config) + 1 : (Number(roll.total) || 0) * modifier));
-  if (damage > 0) {
-    const hp = targetActor.system?.attributes?.hp;
-    if (hp && Number.isFinite(Number(hp.value))) await targetActor.update({"system.attributes.hp.value":Math.max(0, Number(hp.value) - damage)});
-  }
   const element = getElements().find(entry => entry.id === config.elementId);
-  await broadcastDamageResult(target,damage,{superBreak,color:element?.readyColor??"#ffffff",fontFile:superBreak?getBreakFonts().superBreakFontFile:getBreakFonts().breakFontFile});
-  await roll.toMessage({speaker: ChatMessage.getSpeaker({actor: attacker}), flavor: `${attacker.name} — ${superBreak ? "Super Break" : "Break"} (${count}d${faces} ${superBreak ? `+ ${breakEffectModifier(config) + 1}` : `× ${modifier}`}): ${damage} HP damage`});
+  await roll.toMessage({
+    speaker: ChatMessage.getSpeaker({actor: attacker}),
+    flavor: `${attacker.name} — ${superBreak ? "Super Break" : "Break"} (${count}d${faces} ${superBreak ? `+ ${breakEffectModifier(config) + 1}` : `× ${modifier}`}): ${damage} HP damage`,
+    flags: {
+      [MODULE_ID]: {
+        breakDamageRoll: true,
+        superBreakDamageRoll: Boolean(superBreak),
+        damageKind: superBreak ? "superBreak" : "break",
+        hpDamageAmount: damage,
+        elementColor: element?.readyColor || "#ffffff"
+      }
+    }
+  });
+  ui.notifications.info(`${superBreak ? "Super Break" : "Break"} rolled ${damage} HP damage. Use Apply Damage on the chat card.`);
   return damage;
 }
 
@@ -3071,6 +3096,7 @@ async function processCoreAttackMessage(message) {
   const attackMessage = isAttackMessage(message);
   const damageMessage = isDamageMessage(message);
   const macroDamageMessage = Boolean(message.rolls?.length) && message.user?.id === game.user.id && /attack|damage|weapon|spell/i.test(String(message.flavor ?? message.content ?? ""));
+  const taggedBreakDamage = Boolean(message.getFlag(MODULE_ID, "breakDamageRoll"));
   if (!attackMessage && !damageMessage && !macroDamageMessage) return;
   if (state.processedMessages.has(message.id)) return;
   state.processedMessages.add(message.id);
@@ -3097,7 +3123,7 @@ async function processCoreAttackMessage(message) {
   if (attackMessage && attacker) state.lastTargetsByActor.set(attacker.id, [...targetIds]);
   if (!targetIds.size && attacker) targetIds = new Set(state.lastTargetsByActor.get(attacker.id) ?? []);
   if (!isAuthority()) {
-    if (attacker?.isOwner && (damageMessage || macroDamageMessage)) {
+    if (!taggedBreakDamage && attacker?.isOwner && (damageMessage || macroDamageMessage)) {
       const ownedTargets = [...(game.user.targets ?? [])];
       const targetUuids = ownedTargets.map(target => target.document?.uuid ?? target.actor?.uuid).filter(Boolean);
       const amount = getConfig(attacker).breakCharacter ? fullDamageTotal(message.rolls) : rawDiceTotal(message.rolls);
@@ -3107,6 +3133,7 @@ async function processCoreAttackMessage(message) {
   }
   if (attackMessage && attacker) await addEnergy(attacker, energyGain(getConfig(attacker), "attack"), "attack");
   if ((damageMessage || macroDamageMessage) && attacker) {
+    if (taggedBreakDamage) return;
     if (!midiActive) await awardPunchlineForAttack(attacker, `chat:${message.id}`);
     const toughnessDamage = getConfig(attacker).breakCharacter ? fullDamageTotal(message.rolls) : rawDiceTotal(message.rolls);
     await applyToughnessDamage(attacker, [...targetIds].map(id => game.actors.get(id)), toughnessDamage, midiWorkflowId || message.id);
@@ -4695,6 +4722,9 @@ function renderManualDamageControl(controlElement, message, suppliedApplications
   if (!controlElement || !message) return;
   const control = $(controlElement);
   const amount = manualChatDamageAmount(message);
+  const breakDamageRoll = Boolean(message.getFlag(MODULE_ID, "breakDamageRoll"));
+  const superBreakDamageRoll = Boolean(message.getFlag(MODULE_ID, "superBreakDamageRoll"));
+  const applyDamageLabel = breakDamageRoll ? `Apply ${amount} ${superBreakDamageRoll ? "Super Break" : "Break"} as HP Damage` : `Apply ${amount} as damage`;
   const applications = Array.isArray(suppliedApplications) ? suppliedApplications : manualDamageApplications(message);
   const done = suppliedDone ?? Boolean(message.getFlag(MODULE_ID, "manualDamageDone"));
   control.empty();
@@ -4705,7 +4735,7 @@ function renderManualDamageControl(controlElement, message, suppliedApplications
     control.append('<div class="tsru-chat-damage-finished"><i class="fas fa-flag-checkered"></i><span>Done applying damage</span></div>');
     return;
   }
-  const applyButton = $(`<button type="button" class="tsru-chat-damage-apply"><i class="fas fa-crosshairs"></i><span>Apply ${amount} as damage to targeted creature</span></button>`);
+  const applyButton = $(`<button type="button" class="tsru-chat-damage-apply"><i class="fas fa-crosshairs"></i><span>${applyDamageLabel}</span></button>`);
   const doneButton = $('<button type="button" class="tsru-chat-damage-done"><i class="fas fa-flag-checkered"></i><span>Done applying damage</span></button>');
   control.append(applyButton, doneButton);
   applyButton.on("click.tsru", async event => {
@@ -4728,7 +4758,7 @@ function renderManualDamageControl(controlElement, message, suppliedApplications
       window.setTimeout(() => {
         if (button.isConnected && button.disabled) {
           button.disabled = false;
-          button.innerHTML = `<i class="fas fa-crosshairs"></i><span>Apply ${amount} as damage to targeted creature</span>`;
+          button.innerHTML = `<i class="fas fa-crosshairs"></i><span>${applyDamageLabel}</span>`;
         }
       }, 5000);
     }
