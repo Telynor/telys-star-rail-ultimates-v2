@@ -2490,6 +2490,17 @@ async function applyChatRollAsDamage(message, target, requestingUser, applicatio
   const resolvedApplicationId = applicationId || foundry.utils.randomID();
   const targetUuid = toughnessTargetParts(target).tokenDocument?.uuid ?? targetActor.uuid;
   const eventKey = `manual-chat-damage:${message.id}:${resolvedApplicationId}:${targetUuid}`;
+  if (isBreakDamageRoll) {
+    const breakType = isSuperBreakDamageRoll ? "superBreak" : "break";
+    state.lastDamageDisplay = {
+      type: breakType,
+      label: isSuperBreakDamageRoll ? "Super Break" : "Break",
+      color: damageResultColor(attacker),
+      critical: false,
+      attackerId: attacker.id,
+      expires: Date.now() + 15000
+    };
+  }
   await applyDirectChatDamage(targetActor, hpDamage);
   if (attacker.type === "character" && hpDamage > 0) {
     if (isBreakDamageRoll) {
@@ -2732,9 +2743,10 @@ function installDamageScrollingTextOverride() {
       const numeric = /^[+\-−]?\s*\d+(?:\.\d+)?$/.test(String(content ?? "").trim());
       if (!numeric || state.customDamageScrollingText) return original.call(this, origin, content, options);
       const recent = state.lastDamageDisplay?.expires > Date.now() ? state.lastDamageDisplay : null;
-      const style = damageDisplayStyle("damage");
+      const style = damageDisplayStyle(recent?.type || "damage");
       const topColor = style.inheritElement ? (recent?.color || "#ffffff") : style.topColor;
-      const shown = recent?.critical ? `CRIT Hit\n${content}` : content;
+      const statusLabel = recent?.label || (recent?.critical ? "CRIT Hit" : "");
+      const shown = statusLabel ? `${statusLabel}\n${content}` : content;
       return Promise.resolve(loadSplashFont(style.fontFile)).catch(() => "Arial, sans-serif").then(fontFamily => original.call(this, origin, shown, {
         ...options,
         fontFamily,
@@ -2766,7 +2778,7 @@ function damageResultColor(attacker, {hpDamage = false} = {}) {
   const config = getConfig(attacker);
   if (hpDamage && config.breakCharacter) return "#ffffff";
   const element = getElements().find(entry => entry.id === config.elementId);
-  return element?.readyColor || "#ffffff";
+  return element?.readyColor || element?.color || element?.chargeColor || "#ffffff";
 }
 
 function damageRollWasCritical(source) {
