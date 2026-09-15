@@ -193,7 +193,6 @@ class HSRHub extends FormApplication {
         elements: ["Element Manager", () => api()?.openElementManager?.()],
         paths: ["Path Manager", () => api()?.openPathManager?.()],
         eidolons: ["Eidolon Configuration", () => api()?.openEidolonConfig?.()],
-        "light-cones": ["Light Cone Converter / Importer", () => api()?.openLightConeImporter?.()],
         "light-cone-generator": ["Light Cone Generator", () => api()?.openLightConeGenerator?.()],
         "quest-manager": ["Mission Manager", () => new QuestManager().render(true)],
         "quest-settings": ["Mission Settings", () => new QuestSettings().render(true)]

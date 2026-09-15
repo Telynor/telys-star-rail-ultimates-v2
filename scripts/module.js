@@ -1599,70 +1599,6 @@ function lightConeFolderOptions(selectedId = "") {
     .join("");
 }
 
-async function resolveDroppedLightConeItem(event) {
-  const transfer = event.originalEvent?.dataTransfer ?? event.dataTransfer;
-  const data = TextEditor.getDragEventData?.(event.originalEvent ?? event) ?? {};
-  let item = data.uuid ? await fromUuid(data.uuid).catch(() => null) : null;
-  if (!item) {
-    try {
-      const plain = JSON.parse(transfer?.getData("text/plain") || "{}");
-      if (plain.uuid) item = await fromUuid(plain.uuid).catch(() => null);
-    } catch (_error) {}
-  }
-  return item?.documentName === "Item" ? item : null;
-}
-
-async function openLightConeImporter() {
-  if (!game.user.isGM) return ui.notifications.warn("Only a GM can import Light Cones.");
-  const items = [
-    ...Array.from(game.items ?? []),
-    ...Array.from(game.actors ?? []).flatMap(actor => Array.from(actor.items ?? []))
-  ].filter((item, index, all) => all.findIndex(candidate => candidate.uuid === item.uuid) === index)
-    .sort((a, b) => String(a.name).localeCompare(String(b.name)));
-  if (!items.length) return ui.notifications.warn("There are no Items available to convert.");
-
-  const options = items.map(item => `<option value="${escapeHTML(item.uuid)}">${escapeHTML(item.name)}${item.parent ? ` — ${escapeHTML(item.parent.name)}` : ""}</option>`).join("");
-  const content = `<form class="tsru-light-cone-importer">
-    <p class="notes">Choose an Item, paste its UUID, or drag any world, character, or compendium Item onto the drop zone.</p>
-    <div class="tsru-light-cone-item-drop" data-light-cone-item-drop><i class="fas fa-arrow-down-to-bracket"></i><strong>Drop Item to Convert</strong><span>Its name, image, and description will be copied automatically.</span></div>
-    <div class="form-group"><label>Existing Item</label><div class="form-fields"><select name="itemChoice">${options}</select></div></div>
-    <div class="form-group"><label>Item UUID</label><div class="form-fields"><input type="text" name="itemUuid" placeholder="Item.xxxxxxxxxxxxxxxx"></div></div>
-  </form>`;
-  const dialog = new Dialog({
-    title: "Light Cone Converter / Importer",
-    content,
-    buttons: {
-      next: {
-        icon: '<i class="fas fa-arrow-right"></i>',
-        label: "Next",
-        callback: async html => {
-          const uuid = String(html.find('[name="itemUuid"]').val() || html.find('[name="itemChoice"]').val() || "").trim();
-          const item = await fromUuid(uuid).catch(() => null);
-          if (item?.documentName !== "Item") return ui.notifications.error("The selected UUID is not an Item.");
-          openLightConeWizard(item);
-        }
-      },
-      cancel: {icon: '<i class="fas fa-times"></i>', label: "Cancel"}
-    },
-    default: "next"
-  });
-  Hooks.once("renderDialog", rendered => {
-    if (rendered !== dialog) return;
-    const drop = rendered.element.find("[data-light-cone-item-drop]");
-    drop.on("dragover", event => { event.preventDefault(); drop.addClass("is-dragover"); });
-    drop.on("dragleave", () => drop.removeClass("is-dragover"));
-    drop.on("drop", async event => {
-      event.preventDefault();
-      drop.removeClass("is-dragover");
-      const item = await resolveDroppedLightConeItem(event);
-      if (!item) return ui.notifications.warn("Drop a Foundry Item here.");
-      await dialog.close();
-      openLightConeWizard(item);
-    });
-  });
-  dialog.render(true);
-}
-
 async function openLightConeGenerator() {
   if (!game.user.isGM) return ui.notifications.warn("Only a GM can generate Light Cones.");
   const paths = getPaths();
@@ -1724,86 +1660,35 @@ async function openLightConeGenerator() {
   dialog.render(true);
 }
 
-async function openLightConeWizard(item, {replaceEmbedded = false} = {}) {
-  if (!game.user.isGM) return ui.notifications.warn("Only a GM can convert or configure Light Cones.");
-  if (!item) return ui.notifications.error("No Item was selected.");
-  if (replaceEmbedded && item.parent?.documentName !== "Actor") return ui.notifications.error("Inventory conversion requires an Item owned by a character.");
-  const current = getLightConeData(item);
-  const paths = getPaths();
-  const options = ['<option value="">Any Path</option>', ...paths.map(path => `<option value="${escapeHTML(path.id)}" ${path.id === current.pathId ? "selected" : ""}>${escapeHTML(path.name)}</option>`)].join("");
-  const defaultFolder = replaceEmbedded ? null : await ensureLightConeFolder();
-  const folderOptions = defaultFolder ? lightConeFolderOptions(defaultFolder.id) : "";
-  const destinationField = replaceEmbedded ? "" : `<div class="form-group"><label>Target Item Folder</label><div class="form-fields"><select name="folderId">${folderOptions}</select></div></div>`;
-  const content = `<form class="tsru-light-cone-wizard">
-    <p class="notes">${replaceEmbedded ? `Replace <strong>${escapeHTML(item.name)}</strong> in <strong>${escapeHTML(item.parent.name)}</strong>'s inventory with a Light Cone loot Item. The full stack quantity will be preserved.` : `Convert <strong>${escapeHTML(item.name)}</strong> into a Light Cone. Its existing Item data is preserved.`}</p>
-    <div class="form-group"><label>Light Cone Image</label><div class="form-fields"><input type="text" name="image" value="${escapeHTML(current.image)}"><button type="button" class="file-picker" data-type="image" data-target="image"><i class="fas fa-file-import"></i></button></div></div>
-    <div class="form-group"><label>Path</label><div class="form-fields"><select name="pathId">${options}</select></div></div>
-    ${destinationField}
-    <div class="form-group stacked"><label>Description</label><textarea name="description" rows="9">${escapeHTML(current.description)}</textarea></div>
-    <p class="notes">The converted Item requires one attunement slot. Equip and attune it on a character to display it on that sheet.</p>
-  </form>`;
-  const dialog = new Dialog({
-    title: `${current.enabled ? "Configure" : "Import"} Light Cone — ${item.name}`,
-    content,
-    buttons: {
-      ok: {
-        icon: '<i class="fas fa-wand-magic-sparkles"></i>',
-        label: "OK",
-        callback: async html => {
-          const lightCone = {
-            enabled: true,
-            pathId: String(html.find('[name="pathId"]').val() || ""),
-            image: String(html.find('[name="image"]').val() || item.img || ""),
-            description: String(html.find('[name="description"]').val() || "")
-          };
-          if (replaceEmbedded) {
-            const actor = item.parent;
-            const quantity = Math.max(1, Number(item.system?.quantity) || 1);
-            const [target] = await actor.createEmbeddedDocuments("Item", [{
-              name: item.name,
-              type: "loot",
-              img: lightCone.image,
-              system: {description: {value: lightCone.description}, quantity, attunement: 1},
-              flags: {[MODULE_ID]: {lightCone}}
-            }]);
-            if (!target) return ui.notifications.error("The Light Cone could not be created, so the original Item was kept.");
-            await item.delete();
-            actor.sheet?.render(false);
-            ui.notifications.info(`Replaced ${quantity}× ${item.name} with an equal Light Cone stack in ${actor.name}'s inventory.`);
-            return;
-          }
-          const folderId = String(html.find('[name="folderId"]').val() || defaultFolder.id);
-          const updates = {
-            [`flags.${MODULE_ID}.lightCone`]: lightCone,
-            img: lightCone.image,
-            "system.description.value": lightCone.description
-          };
-          let target = item;
-          if (item.pack || item.parent?.documentName === "Actor") {
-            const source = item.toObject();
-            delete source._id;
-            source.folder = folderId;
-            target = await Item.create(source);
-          } else updates.folder = folderId;
-          if (foundry.utils.hasProperty(target, "system.attunement")) updates["system.attunement"] = Math.max(1, Number(target.system.attunement) || 1);
-          await target.update(updates);
-          ui.notifications.info(`${target.name} is now configured as a Light Cone.`);
-          target.sheet?.render(false);
-          target.parent?.sheet?.render(false);
-        }
-      },
-      cancel: {icon: '<i class="fas fa-times"></i>', label: "Cancel"}
-    },
-    default: "ok"
-  });
-  Hooks.once("renderDialog", rendered => {
-    if (rendered !== dialog) return;
-    rendered.element.find(".file-picker").on("click", event => {
-      const target = event.currentTarget.dataset.target;
-      new FilePicker({type: "image", current: rendered.element.find(`[name="${target}"]`).val(), callback: path => rendered.element.find(`[name="${target}"]`).val(path)}).browse();
+function lightConeAttuneUpdate(item) {
+  const changes = {};
+  if (foundry.utils.hasProperty(item, "system.attuned")) changes["system.attuned"] = true;
+  if (foundry.utils.hasProperty(item, "system.attunement")) {
+    const current = item.system.attunement;
+    changes["system.attunement"] = typeof current === "boolean" ? true : (Number.isFinite(Number(current)) ? 2 : "attuned");
+  }
+  if (!Object.keys(changes).length) changes["system.attunement"] = 2;
+  return changes;
+}
+
+async function selectAndAttuneLightCone(item) {
+  const actor = item?.parent;
+  if (!game.user.isGM || actor?.documentName !== "Actor" || actor.type !== "character" || !isLightCone(item)) return;
+  const current = Array.from(actor.items ?? []).find(candidate => candidate.id !== item.id && isLightCone(candidate) && lightConeUsesAttunement(candidate));
+  if (current) {
+    const confirmed = await Dialog.confirm({
+      title: "Switch Light Cones?",
+      content: `<p><strong>${escapeHTML(actor.name)}</strong> is currently using <strong>${escapeHTML(current.name)}</strong>.</p><p>Unattune it and select <strong>${escapeHTML(item.name)}</strong> instead?</p>`,
+      yes: () => true,
+      no: () => false,
+      defaultYes: false
     });
-  });
-  dialog.render(true);
+    if (!confirmed) return ui.notifications.info(`${current.name} remains selected for ${actor.name}.`);
+    await current.update(lightConeUnattuneUpdate(current), {tsruLightConeSwitch: true});
+  }
+  await item.update(lightConeAttuneUpdate(item), {tsruLightConeSwitch: true});
+  actor.sheet?.render(false);
+  ui.notifications.info(`${item.name} is now selected and attuned for ${actor.name}.`);
 }
 
 function activateLightConeInventoryContext(app, html) {
@@ -1818,7 +1703,7 @@ function activateLightConeInventoryContext(app, html) {
     const row = event.target.closest?.("[data-item-id], [data-document-id]");
     const itemId = row?.dataset?.itemId || row?.dataset?.documentId;
     const item = actor.items.get(itemId);
-    if (!item || isLightCone(item)) return;
+    if (!item || !isLightCone(item) || lightConeUsesAttunement(item)) return;
 
     const addOption = attempts => {
       const menus = $("#context-menu:visible, .context-menu:visible, [data-application-part='context-menu']:visible");
@@ -1829,14 +1714,14 @@ function activateLightConeInventoryContext(app, html) {
         if (attempts < 20) requestAnimationFrame(() => addOption(attempts + 1));
         return;
       }
-      menu.find("[data-tsru-convert-light-cone]").remove();
-      const option = $(`<li class="context-item" data-tsru-convert-light-cone tabindex="0"><i class="fas fa-id-card fa-fw"></i><span>Convert to Light Cone</span></li>`);
+      menu.find("[data-tsru-select-light-cone]").remove();
+      const option = $('<li class="context-item" data-tsru-select-light-cone tabindex="0"><i class="fas fa-id-card fa-fw"></i><span>Select Light Cone and Attune</span></li>');
       list.append(option);
       const activate = activateEvent => {
         activateEvent.preventDefault();
         activateEvent.stopPropagation();
         menu.hide();
-        openLightConeWizard(item, {replaceEmbedded: true});
+        selectAndAttuneLightCone(item);
       };
       option.on("click.tsru", activate);
       option.on("keydown.tsru", keyEvent => {
@@ -1845,30 +1730,6 @@ function activateLightConeInventoryContext(app, html) {
     };
     requestAnimationFrame(() => addOption(0));
   }, true);
-}
-
-function addLightConeHeaderButton(app, buttons) {
-  const item = app.item ?? app.document;
-  if (!game.user.isGM || item?.documentName !== "Item") return;
-  buttons.unshift({
-    label: isLightCone(item) ? "Light Cone" : "Import Light Cone",
-    class: "tsru-light-cone-wizard-button",
-    icon: "fas fa-id-card",
-    onclick: () => openLightConeWizard(item)
-  });
-}
-
-function injectLightConeHeaderButton(app, html) {
-  const item = app.item ?? app.document;
-  if (!game.user.isGM || item?.documentName !== "Item") return;
-  const root = html?.jquery ? html : $(html ?? app.element);
-  const header = root.closest(".window-app, .application").find(".window-header").first().add(root.find(".window-header").first()).first();
-  if (!header.length || header.find("[data-tsru-light-cone-wizard]").length) return;
-  const button = $(`<button type="button" data-tsru-light-cone-wizard class="header-control" title="Configure Light Cone"><i class="fas fa-id-card"></i> ${isLightCone(item) ? "Light Cone" : "Import Light Cone"}</button>`);
-  const controls = header.find(".window-controls").first();
-  if (controls.length) controls.prepend(button);
-  else header.find("button.close, [data-action='close']").first().before(button);
-  button.on("click.tsru", event => { event.preventDefault(); event.stopPropagation(); openLightConeWizard(item); });
 }
 
 async function injectLightConePanel(app, root, host) {
@@ -5085,7 +4946,6 @@ function registerApi() {
     openSkillPointConfig: () => new SkillPointConfig().render(true),
     openTechniquePointConfig: () => new TechniquePointConfig().render(true),
     openEidolonConfig: () => new EidolonAppearanceConfig().render(true),
-    openLightConeImporter,
     openLightConeGenerator,
     triggerSpecialAha,
     showSkillUI,

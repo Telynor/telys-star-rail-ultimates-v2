@@ -1653,10 +1653,5 @@
 .tsru-light-cone-chat h3 { margin:0; color:#f0d989; }
 .tsru-light-cone-chat header span { color:#aaa6b3; font-size:12px; }
 .tsru-light-cone-chat-description { padding:10px; }
-.tsru-light-cone-wizard textarea { min-height:150px; resize:vertical; }
 
-.tsru-light-cone-item-drop { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; min-height:112px; margin:8px 0 14px; padding:14px; border:2px dashed #8e7b42; border-radius:6px; background:rgba(229,200,120,.06); color:#d9d4c4; text-align:center; transition:border-color .15s,background .15s,box-shadow .15s; }
-.tsru-light-cone-item-drop > i { color:#e5c878; font-size:25px; }
-.tsru-light-cone-item-drop > span { color:#aaa6b3; font-size:12px; }
-.tsru-light-cone-item-drop.is-dragover { border-color:#ffe690; background:rgba(229,200,120,.16); box-shadow:0 0 12px rgba(229,200,120,.32); }
 .tsru-light-cone-generator textarea { min-height:170px; resize:vertical; }
