@@ -1636,8 +1636,8 @@
 /* Light Cones ------------------------------------------------------------- */
 
 /* Combat party lineup ----------------------------------------------------- */
-.tsru-combat-party-hud{position:fixed;z-index:88;left:50%;bottom:12px;transform:translateX(var(--hud-translate,-50%)) scale(var(--hud-user-scale,1));transform-origin:top left;display:block;max-width:calc(100vw - 30px);padding:26px 12px 8px;pointer-events:none;filter:drop-shadow(0 5px 8px #000)}
-.tsru-combat-party-line{display:flex;align-items:flex-end;gap:8px;max-width:calc(100vw - 30px);overflow-x:auto}
+.tsru-combat-party-hud{position:fixed;z-index:88;left:50%;bottom:12px;transform:translateX(var(--hud-translate,-50%)) scale(var(--hud-user-scale,1));transform-origin:top left;display:block;width:max-content;max-width:none;padding:26px 12px 8px;overflow:visible;pointer-events:none;filter:drop-shadow(0 5px 8px #000)}
+.tsru-combat-party-line{display:flex;align-items:flex-end;gap:8px;width:max-content;max-width:none;overflow:visible}
 .tsru-combat-party-controls{position:absolute;top:0;right:12px;display:flex;align-items:center;gap:3px;pointer-events:auto}.tsru-combat-party-controls button,.tsru-combat-hud-expand{width:auto;min-width:25px;height:23px;margin:0;padding:2px 6px;border:1px solid #8d99aa;background:#111722;color:#f5e5ad}.tsru-combat-party-controls span{min-width:34px;color:#fff;font-size:10px;text-align:center;text-shadow:0 1px 2px #000}
 .tsru-combat-party-controls .tsru-combat-party-drag{display:grid;place-items:center;min-width:34px;height:23px;border:1px solid #8d99aa;background:#111722;color:#f5e5ad;cursor:move;touch-action:none}
 .tsru-combat-party-hud.is-minimized{padding:0;pointer-events:auto}.tsru-combat-hud-expand{height:30px;font-weight:800}
