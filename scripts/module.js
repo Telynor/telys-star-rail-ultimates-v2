@@ -1391,9 +1391,21 @@ function refreshUltimateHotbarMacros() {
     const storedMacroId = typeof storedMacro === "string" ? storedMacro : storedMacro?.id;
     const macroId = slot.dataset.macroId ?? slot.querySelector?.("[data-macro-id]")?.dataset.macroId ?? storedMacroId;
     const macro = game.macros.get(macroId);
-    const isUltimate = macro?.getFlag(MODULE_ID, "action") === "ultimate";
+    const action = macro?.getFlag(MODULE_ID, "action");
+    const isUltimate = action === "ultimate";
+    const isSkill = action === "skill";
     slot.classList.toggle("tsru-ultimate-macro", isUltimate);
-    slot.querySelectorAll(":scope > .tsru-hotbar-energy-fill, :scope > .tsru-hotbar-energy-label").forEach(node => node.remove());
+    slot.classList.toggle("tsru-skill-macro", isSkill);
+    slot.querySelectorAll(":scope > .tsru-hotbar-energy-fill, :scope > .tsru-hotbar-energy-label, :scope > .tsru-hotbar-action-label").forEach(node => node.remove());
+    if (isSkill) {
+      slot.classList.remove("has-energy", "is-ready");
+      const label = document.createElement("span");
+      label.className = "tsru-hotbar-action-label";
+      label.textContent = "SKILL";
+      label.setAttribute("aria-hidden", "true");
+      slot.append(label);
+      continue;
+    }
     if (!isUltimate) { slot.classList.remove("has-energy", "is-ready"); continue; }
     const actor = game.actors.get(macro.getFlag(MODULE_ID, "actorId"));
     if (!actor) continue;

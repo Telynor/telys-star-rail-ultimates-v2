@@ -152,6 +152,9 @@
 .tsru-ultimate-macro .tsru-hotbar-energy-label{position:absolute;z-index:3;pointer-events:none;right:2px;bottom:1px;padding:0 2px;border-radius:2px;background:#05070bbb;color:#fff;font:700 9px/13px sans-serif;text-shadow:0 1px 2px #000}
 .tsru-ultimate-macro.is-ready{animation:tsru-hotbar-ultimate-ready 1.15s ease-in-out infinite alternate}
 @keyframes tsru-hotbar-ultimate-ready{from{filter:brightness(1)}to{filter:brightness(1.22)}}
+.tsru-skill-macro{position:relative!important;isolation:isolate;overflow:hidden!important}
+.tsru-skill-macro img{width:100%!important;height:100%!important;max-width:none!important;aspect-ratio:1/1!important;object-fit:cover!important;object-position:center!important}
+.tsru-skill-macro .tsru-hotbar-action-label{position:absolute;z-index:5;left:0;right:0;top:50%;transform:translateY(-50%);pointer-events:none;padding:2px 1px;background:rgba(5,7,12,.72);border-top:1px solid rgba(255,255,255,.55);border-bottom:1px solid rgba(255,255,255,.55);color:#fff;font:900 11px/1.05 sans-serif;letter-spacing:.09em;text-align:center;text-shadow:0 1px 2px #000}
 .tsru-skill-point-config { padding: 8px; }
 .tsru-skill-point-config fieldset { margin: 8px 0 12px; padding: 9px 12px; border: 1px solid var(--color-border-light-2); border-radius: 5px; }
 .tsru-skill-point-config legend { padding: 0 7px; color: var(--tsru-gold); font-weight: 700; }
