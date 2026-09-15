@@ -58,6 +58,7 @@ const DEFAULT_CONFIG = Object.freeze({
   chargeColor: "#596171",
   readyColor: "#20e6ff",
   showPercent: true,
+  showHudPercent: true,
   elementId: "",
   pathId: ""
 });
@@ -508,11 +509,11 @@ async function clearExpiredEnergyLocks(combat) {
   if (updates.length) await Actor.updateDocuments(updates);
 }
 
-async function setEnergy(actor, value) {
+async function setEnergy(actor, value, {overrideLock = false} = {}) {
   if (!actor) return;
   const config = getConfig(actor);
   const current = clamp(value, 0, config.max);
-  if (current > config.current && isEnergyLocked(actor)) return config.current;
+  if (current > config.current && isEnergyLocked(actor) && !overrideLock) return config.current;
   await actor.update({[`flags.${MODULE_ID}.ultimate.current`]: current});
   return current;
 }
@@ -1383,8 +1384,13 @@ function ultimateMacroDisplay(actor) {
 
 function refreshUltimateHotbarMacros() {
   if (!game?.user) return;
-  for (const slot of document.querySelectorAll("#hotbar [data-macro-id], #action-bar [data-macro-id], .hotbar [data-macro-id]")) {
-    const macro = game.macros.get(slot.dataset.macroId);
+  const slots = new Set(document.querySelectorAll("#hotbar [data-slot], #action-bar [data-slot], .hotbar [data-slot], #hotbar [data-macro-id], #action-bar [data-macro-id], .hotbar [data-macro-id]"));
+  for (const slot of slots) {
+    const slotNumber = String(slot.dataset.slot ?? "");
+    const storedMacro = slotNumber ? game.user.hotbar?.[slotNumber] : null;
+    const storedMacroId = typeof storedMacro === "string" ? storedMacro : storedMacro?.id;
+    const macroId = slot.dataset.macroId ?? slot.querySelector?.("[data-macro-id]")?.dataset.macroId ?? storedMacroId;
+    const macro = game.macros.get(macroId);
     const isUltimate = macro?.getFlag(MODULE_ID, "action") === "ultimate";
     slot.classList.toggle("tsru-ultimate-macro", isUltimate);
     slot.querySelectorAll(":scope > .tsru-hotbar-energy-fill, :scope > .tsru-hotbar-energy-label").forEach(node => node.remove());
@@ -2409,12 +2415,12 @@ class CombatPartyHud {
         <strong class="tsru-combat-party-name">${escapeHTML(actor.name)}</strong>
         <div class="tsru-combat-party-hp"><i></i><span>${hpValue}/${hpMax}</span></div>
         ${combatHudTalentMarkup(actor, config)}
-        <div class="tsru-combat-party-ultimate-wrap">${config.trialCharacter ? '<b class="tsru-combat-party-trial">Trial</b>' : ""}<button type="button" data-tsru-party-ultimate data-actor-id="${actor.id}" class="${ready ? "is-ready" : ""}" ${(!owned || !ready) ? "disabled" : ""} title="${owned ? (ready ? "Activate Ultimate" : "Ultimate is not ready") : "Only this character's owner can activate their Ultimate"}"><span class="tsru-hud-orb-fill"></span><img src="${escapeHTML(config.ultimateButtonImage || config.orbImage || actor.img || "icons/svg/mystery-man.svg")}" alt="">${config.showPercent ? `<strong>${Math.round(energyPercent)}%</strong>` : ""}</button></div>
+        <div class="tsru-combat-party-ultimate-wrap ${ready ? "is-ready" : ""}">${config.trialCharacter ? '<b class="tsru-combat-party-trial">Trial</b>' : ""}<button type="button" data-tsru-party-ultimate data-actor-id="${actor.id}" class="${ready ? "is-ready" : "is-unavailable"} ${owned ? "" : "is-locked"}" aria-disabled="${!owned || !ready}" title="${owned ? (ready ? "Activate Ultimate" : "Ultimate is not ready; drag it to the hotbar to create its macro") : "Only this character's owner can activate their Ultimate"}"><span class="tsru-hud-orb-fill"></span><img src="${escapeHTML(config.ultimateButtonImage || config.orbImage || actor.img || "icons/svg/mystery-man.svg")}" alt="">${config.showHudPercent ? `<strong>${Math.round(energyPercent)}%</strong>` : ""}</button></div>
       </article>`;
     }).join("")}</div>`;
-    for (const wrap of this.element.querySelectorAll(".tsru-combat-party-ultimate-wrap")) {
-      const actor = game.actors.get(wrap.closest("[data-actor-id]")?.dataset.actorId);
-      if (actor && (game.user.isGM || actor.isOwner)) activateStarRailActionDrag(wrap, actor, "ultimate");
+    for (const button of this.element.querySelectorAll("[data-tsru-party-ultimate]")) {
+      const actor = game.actors.get(button.dataset.actorId);
+      if (actor && (game.user.isGM || actor.isOwner)) activateStarRailActionDrag(button, actor, "ultimate");
     }
     return this;
   }
@@ -4418,9 +4424,8 @@ class StarRailGMPanel extends FormApplication {
         value = Math.max(1, value);
         await actor.update({[`flags.${MODULE_ID}.ultimate.max`]: value, [`flags.${MODULE_ID}.ultimate.current`]: clamp(config.current, 0, value)});
       } else if (field === "current") {
-        const applied = await setEnergy(actor, value);
+        const applied = await setEnergy(actor, value, {overrideLock: true});
         input.value = applied ?? getConfig(actor).current;
-        if (Number(applied) !== clamp(value, 0, config.max) && isEnergyLocked(actor)) ui.notifications.warn(`${actor.name} cannot regain Energy until the next round.`);
       }
       else if (field === "regenScore") await actor.update({[`flags.${MODULE_ID}.ultimate.regenScore`]: clamp(value, 1, 30)});
       else if (field === "talentPointsMax") {
@@ -4808,7 +4813,7 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
     data[field.name] = field.type === "checkbox" ? field.checked : field.value;
   });
   for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "talentPointsCurrent", "talentPointsMax", "punchlineGain", "splashDuration", "titleX", "titleY", "titleSize", "combatHudPortraitX", "combatHudPortraitY", "combatHudPortraitScale"]) data[key] = Number(data[key]);
-  for (const key of ["enabled", "showPercent", "skillEnabled", "techniqueEnabled", "mainParty", "trialCharacter", "combatHudPortraitFlip", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter"]) data[key] = Boolean(data[key]);
+  for (const key of ["enabled", "showPercent", "showHudPercent", "skillEnabled", "techniqueEnabled", "mainParty", "trialCharacter", "combatHudPortraitFlip", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter"]) data[key] = Boolean(data[key]);
   data.max = Math.max(1, data.max || 100);
   data.current = clamp(data.current, 0, data.max);
   const savedConfig = getConfig(actor);
@@ -4921,15 +4926,14 @@ function activateConfigListeners(actor, tab, app) {
     event.stopPropagation();
     const config = getConfig(actor);
     const value = clamp(tab.find(".tsru-energy-override-value").val(), 0, config.max);
-    const applied = await setEnergy(actor, value);
+    const applied = await setEnergy(actor, value, {overrideLock: true});
     tab.find("[name='current']").val(applied);
     tab.find(".tsru-energy-override-value").val(applied);
     refreshOrb(actor);
-    if (Number(applied) !== value && isEnergyLocked(actor)) ui.notifications.warn(`${actor.name} cannot regain Energy until the next round.`);
-    else ui.notifications.info(`${actor.name}'s Energy was set to ${applied}/${config.max}.`);
+    ui.notifications.info(`${actor.name}'s Energy was set to ${applied}/${config.max}.`);
   });
-  tab.find("[data-action='reset-energy']").on("click", async () => { await setEnergy(actor, 0); app.render(false); });
-  tab.find("[data-action='fill-energy']").on("click", async () => { await setEnergy(actor, getConfig(actor).max); app.render(false); });
+  tab.find("[data-action='reset-energy']").on("click", async () => { await setEnergy(actor, 0, {overrideLock: true}); app.render(false); });
+  tab.find("[data-action='fill-energy']").on("click", async () => { await setEnergy(actor, getConfig(actor).max, {overrideLock: true}); app.render(false); });
   tab.find("[data-action='show-orb']").on("click", () => showOrb(actor));
   tab.find("[data-action='show-skill-button']").on("click", async () => { await saveSkillButtonLayout(actor.id, {visible: true}); refreshSkillUI(); });
   tab.find("[name='regenScore']").on("input", event => tab.find(".tsru-modifier").text(`Modifier: ${signedNumber(Math.floor(((Number(event.currentTarget.value) || 10) - 10) / 2))}`));
@@ -5709,6 +5713,11 @@ Hooks.on("updateUser", user => { if (user.id === game.user.id) { refreshAllOrbs(
 Hooks.on("updateSetting", setting => {
   if (setting?.key?.startsWith(`${MODULE_ID}.skillPoint`)) refreshSkillUI();
   if (setting?.key?.startsWith(`${MODULE_ID}.techniquePoint`)) refreshResourceHuds();
+  if (setting?.key === `${MODULE_ID}.elements`) {
+    refreshAllOrbs();
+    refreshCombatPartyHud();
+    refreshUltimateHotbarMacros();
+  }
   if (setting?.key === `${MODULE_ID}.partySelections`) refreshCombatPartyHud();
   if (setting?.key === `${MODULE_ID}.combatHudDesign`) {
     refreshCombatPartyHud();
