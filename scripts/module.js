@@ -1629,7 +1629,7 @@ async function openLightConeGenerator() {
             type: "loot",
             img: image,
             folder: folderId,
-            system: {description: {value: description}, quantity: 1},
+            system: {description: {value: description}, quantity: 1, attunement: 1},
             flags: {[MODULE_ID]: {lightCone}}
           });
           ui.notifications.info(`Created Light Cone: ${name}.`);
@@ -1651,29 +1651,61 @@ async function openLightConeGenerator() {
   dialog.render(true);
 }
 
+function lightConeAttunementUpdate(item, equipped) {
+  const changes = {};
+  if (foundry.utils.hasProperty(item, "system.attuned")) changes["system.attuned"] = Boolean(equipped);
+  if (foundry.utils.hasProperty(item, "system.attunement")) {
+    const current = item.system.attunement;
+    changes["system.attunement"] = typeof current === "boolean" ? Boolean(equipped) : (Number.isFinite(Number(current)) ? (equipped ? 2 : 1) : (equipped ? "attuned" : "required"));
+  }
+  return changes;
+}
+
+async function unequipLightCone(item) {
+  const actor = item?.parent;
+  if (!(game.user.isGM || actor?.isOwner) || equippedLightCone(actor)?.id !== item?.id) return;
+  const attunement = lightConeAttunementUpdate(item, false);
+  if (Object.keys(attunement).length) await item.update(attunement, {tsruLightConeSelection: true});
+  await actor.unsetFlag(MODULE_ID, "selectedLightConeItemId");
+  actor.sheet?.render(false);
+  ui.notifications.info(`${item.name} was unequipped as ${actor.name}'s Light Cone.`);
+}
+
 async function selectLightConeItem(item) {
   const actor = item?.parent;
-  if (!game.user.isGM || actor?.documentName !== "Actor" || actor.type !== "character") return;
+  if (!(game.user.isGM || actor?.isOwner) || actor?.documentName !== "Actor" || actor.type !== "character") return;
   const current = equippedLightCone(actor);
-  if (current?.id === item.id) return ui.notifications.info(`${item.name} is already selected for ${actor.name}.`);
+  if (current?.id === item.id) return unequipLightCone(item);
   if (current) {
     const confirmed = await Dialog.confirm({
       title: "Switch Light Cones?",
-      content: `<p><strong>${escapeHTML(actor.name)}</strong> is currently displaying <strong>${escapeHTML(current.name)}</strong>.</p><p>Select <strong>${escapeHTML(item.name)}</strong> instead?</p>`,
+      content: `<p><strong>${escapeHTML(actor.name)}</strong> is currently using <strong>${escapeHTML(current.name)}</strong>.</p><p>Unequip it and equip <strong>${escapeHTML(item.name)}</strong> instead?</p>`,
       yes: () => true,
       no: () => false,
       defaultYes: false
     });
-    if (!confirmed) return ui.notifications.info(`${current.name} remains selected for ${actor.name}.`);
+    if (!confirmed) return ui.notifications.info(`${current.name} remains equipped for ${actor.name}.`);
   }
-  await actor.setFlag(MODULE_ID, "selectedLightConeItemId", item.id);
+  const newAttunement = lightConeAttunementUpdate(item, true);
+  if (Object.keys(newAttunement).length) await item.update(newAttunement, {tsruLightConeSelection: true});
+  try {
+    if (current) {
+      const oldAttunement = lightConeAttunementUpdate(current, false);
+      if (Object.keys(oldAttunement).length) await current.update(oldAttunement, {tsruLightConeSelection: true});
+    }
+    await actor.setFlag(MODULE_ID, "selectedLightConeItemId", item.id);
+  } catch (error) {
+    const rollback = lightConeAttunementUpdate(item, false);
+    if (Object.keys(rollback).length) await item.update(rollback, {tsruLightConeSelection: true}).catch(() => {});
+    throw error;
+  }
   actor.sheet?.render(false);
-  ui.notifications.info(`${item.name} is now displayed as ${actor.name}'s Light Cone.`);
+  ui.notifications.info(`${item.name} is now equipped as ${actor.name}'s Light Cone.`);
 }
 
 function activateLightConeInventoryContext(app, html) {
   const actor = app.actor ?? app.document;
-  if (!game.user.isGM || actor?.documentName !== "Actor" || actor.type !== "character") return;
+  if (!(game.user.isGM || actor?.isOwner) || actor?.documentName !== "Actor" || actor.type !== "character") return;
   const renderedRoot = html?.jquery ? html[0] : html;
   const appRoot = app.element?.jquery ? app.element[0] : app.element;
   const rootElement = appRoot ?? renderedRoot;
@@ -1684,16 +1716,20 @@ function activateLightConeInventoryContext(app, html) {
     const row = event.target.closest?.("[data-item-id], [data-document-id], [data-entry-id], [data-id].item, .item");
     const itemId = row?.dataset?.itemId || row?.dataset?.documentId || row?.dataset?.entryId || row?.dataset?.id;
     const item = actor.items.get(itemId);
-    if (!item || equippedLightCone(actor)?.id === item.id) return;
+    if (!item) return;
+    const isEquipped = equippedLightCone(actor)?.id === item.id;
     const pointer = {x: event.clientX, y: event.clientY};
 
     const activate = activateEvent => {
       activateEvent.preventDefault();
       activateEvent.stopPropagation();
       $("#tsru-light-cone-context-fallback").remove();
-      selectLightConeItem(item);
+      if (isEquipped) unequipLightCone(item);
+      else selectLightConeItem(item);
     };
-    const optionMarkup = '<i class="fas fa-id-card fa-fw"></i><span>Select as Light Cone</span>';
+    const label = isEquipped ? "Unequip Light Cone" : "Select as Light Cone";
+    const icon = isEquipped ? "fa-link-slash" : "fa-id-card";
+    const optionMarkup = `<i class="fas ${icon} fa-fw"></i><span>${label}</span>`;
 
     const addOption = attempts => {
       const menus = $("#context-menu:visible, .context-menu:visible, [data-application-part='context-menu']:visible, [role='menu']:visible").not("#tsru-light-cone-context-fallback");
@@ -1733,19 +1769,41 @@ async function injectLightConePanel(app, root, host) {
   root.attr("data-tsru-light-cone-render", renderKey);
   root.find("[data-tsru-light-cone]").remove();
   const item = equippedLightCone(actor);
-  if (!item) return;
-  const cone = getLightConeData(item);
-  const actorPathId = String(getConfig(actor).pathId || "");
-  const mismatch = Boolean(cone.pathId && actorPathId && cone.pathId !== actorPathId);
-  const path = getPaths().find(entry => entry.id === cone.pathId);
-  const description = await TextEditor.enrichHTML(cone.description, {async: true, secrets: actor.isOwner});
+  let description = "";
+  let cone = null;
+  let path = null;
+  let mismatch = false;
+  if (item) {
+    cone = getLightConeData(item);
+    const actorPathId = String(getConfig(actor).pathId || "");
+    mismatch = Boolean(cone.pathId && actorPathId && cone.pathId !== actorPathId);
+    path = getPaths().find(entry => entry.id === cone.pathId);
+    description = await TextEditor.enrichHTML(cone.description, {async: true, secrets: actor.isOwner});
+  }
   if (root.attr("data-tsru-light-cone-render") !== renderKey) return;
-  const panel = $(`<article class="tsru-light-cone-card ${mismatch ? "path-mismatch" : ""}" data-tsru-light-cone data-item-uuid="${escapeHTML(item.uuid)}">
+  const panel = item ? $(`<article class="tsru-light-cone-card ${mismatch ? "path-mismatch" : ""}" data-tsru-light-cone data-item-uuid="${escapeHTML(item.uuid)}">
     <div class="tsru-light-cone-image"><img src="${escapeHTML(cone.image)}" alt="${escapeHTML(item.name)}"><div class="tsru-light-cone-description">${description || "<em>No description configured.</em>"}</div></div>
     <footer><strong>${escapeHTML(item.name)}</strong><span>${escapeHTML(path?.name || "Any Path")}</span></footer>
-  </article>`);
-  const column = host?.parent?.().length ? host.parent() : root.find(".sheet-body, [data-application-part='body']").first();
-  column.append(panel);
+  </article>`) : $('<article class="tsru-light-cone-card unequipped" data-tsru-light-cone><div class="tsru-light-cone-image tsru-light-cone-empty"><i class="fas fa-id-card"></i><span>No Light Cone Equipped</span></div><footer><strong>Unequipped</strong><span>Light Cone</span></footer></article>');
+  (host?.length ? host : root).append(panel);
+}
+
+function injectLightConeSheetPanel(app, html) {
+  const actor = app.actor ?? app.document;
+  if (actor?.documentName !== "Actor" || actor.type !== "character") return;
+  const renderedRoot = html?.jquery ? html[0] : html;
+  const appRoot = app.element?.jquery ? app.element[0] : app.element;
+  const rootElement = appRoot ?? renderedRoot;
+  if (!rootElement) return;
+  const root = $(rootElement);
+  const typeName = String(actor.system?.details?.type?.value || actor.system?.details?.type || "").trim().toLocaleLowerCase();
+  const species = root.find('.species, [class*="species"], [data-action*="species"], section, div').filter((_index, node) => {
+    const text = node.textContent?.replace(/\s+/g, " ").trim().toLocaleLowerCase() ?? "";
+    const rect = node.getBoundingClientRect();
+    return rect.width >= 150 && rect.width <= 500 && rect.height >= 35 && rect.height <= 110 && ((typeName && text.startsWith(typeName)) || text.startsWith("humanoid"));
+  }).toArray().sort((a, b) => (a.getBoundingClientRect().width * a.getBoundingClientRect().height) - (b.getBoundingClientRect().width * b.getBoundingClientRect().height))[0];
+  const host = species ? $(species).parent() : root.find("[data-application-part='details'], .sheet-body .tab.active, .sheet-body, [data-application-part='body']").first();
+  injectLightConePanel(app, root, host);
 }
 
 async function postLightConeToChat(item, actor) {
@@ -1784,7 +1842,6 @@ async function injectCharacterBadges(app, html) {
     if (!portrait.length) return;
     host = portrait.parent().addClass("tsru-portrait-badge-host");
   } else host.addClass("tsru-species-badge-host");
-  injectLightConePanel(app, root, host);
   if (speciesHostFound) {
     const talentMaximum = Math.max(0, Math.floor(Number(config.talentPointsMax) || 0));
     const talentCurrent = currentTalentPoints(actor);
@@ -5009,6 +5066,7 @@ Hooks.on("renderApplicationV2", (app, html) => {
     injectEidolonTab(app, html);
     injectEnergyAbility(app, html);
     injectCharacterBadges(app, html);
+    injectLightConeSheetPanel(app, html);
     activateLightConeInventoryContext(app, html);
     observeCharacterSheetTabs(app);
     requestAnimationFrame(() => {
@@ -5017,6 +5075,7 @@ Hooks.on("renderApplicationV2", (app, html) => {
       injectEidolonTab(app, root);
       injectEnergyAbility(app, root);
       injectCharacterBadges(app, root);
+      injectLightConeSheetPanel(app, root);
       activateLightConeInventoryContext(app, root);
     });
   }
@@ -5026,6 +5085,8 @@ Hooks.on("renderActorSheet", injectEnergyAbility);
 Hooks.on("renderCharacterActorSheet", injectEnergyAbility);
 Hooks.on("renderActorSheet", injectCharacterBadges);
 Hooks.on("renderCharacterActorSheet", injectCharacterBadges);
+Hooks.on("renderActorSheet", injectLightConeSheetPanel);
+Hooks.on("renderCharacterActorSheet", injectLightConeSheetPanel);
 Hooks.on("renderActorSheet", activateLightConeInventoryContext);
 Hooks.on("renderCharacterActorSheet", activateLightConeInventoryContext);
 Hooks.on("getActorSheetHeaderButtons", addActorHeaderButton);

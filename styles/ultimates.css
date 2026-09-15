@@ -1659,3 +1659,8 @@
 .tsru-light-cone-context-fallback { position:fixed; z-index:100000; min-width:210px; padding:4px; border:1px solid #75683c; border-radius:4px; background:#18191f; box-shadow:0 5px 18px rgba(0,0,0,.65); }
 .tsru-light-cone-context-fallback button { display:flex; align-items:center; gap:8px; width:100%; min-height:32px; margin:0; padding:6px 9px; border:0; background:transparent; color:#eee; text-align:left; }
 .tsru-light-cone-context-fallback button:hover { background:rgba(229,200,120,.16); color:#ffe69a; }
+
+.tsru-light-cone-card.unequipped { filter:none; opacity:.82; border-color:#585965; }
+.tsru-light-cone-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; color:#8f919e; background:linear-gradient(145deg,#11131a,#090a0f); }
+.tsru-light-cone-empty > i { font-size:52px; opacity:.45; }
+.tsru-light-cone-empty > span { font-size:13px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
