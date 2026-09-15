@@ -2483,7 +2483,10 @@ async function applyChatRollAsDamage(message, target, requestingUser, applicatio
   const targetUuid = toughnessTargetParts(target).tokenDocument?.uuid ?? targetActor.uuid;
   const eventKey = `manual-chat-damage:${message.id}:${resolvedApplicationId}:${targetUuid}`;
   await applyDirectChatDamage(targetActor, hpDamage);
-  if (attacker.type === "character" && hpDamage > 0) await broadcastDamageResult(target,hpDamage,{plainDamage:true,fontFile:getBreakFonts().breakFontFile});
+  if (attacker.type === "character" && hpDamage > 0) {
+    const element = getElements().find(entry => entry.id === config.elementId);
+    await broadcastDamageResult(target, hpDamage, {plainDamage:true, color:element?.readyColor ?? config.readyColor, fontFile:getBreakFonts().damageFontFile});
+  }
   const appliedToughness = toughnessDamage > 0 ? await applyToughnessDamage(attacker, [target], toughnessDamage, eventKey) : 0;
   const detail = {sourceActor: attacker, targetActor, amount: hpDamage, origin: message, manual: true};
   await dispatchTalentEvent("damageDealt", detail, eventKey);
@@ -2521,33 +2524,100 @@ async function limitBreakAttackHpDamage(attacker, target, amount, eventId, optio
   await target.update({"system.attributes.hp.value": Math.max(0, Math.min(Number(hp.max) || Infinity, initialHp - 1))});
 }
 
+const DEFAULT_DAMAGE_DISPLAY = Object.freeze({
+  damageFontFile: "",
+  breakFontFile: "",
+  superBreakFontFile: "",
+  damageFontSize: 56,
+  breakFontSize: 48,
+  superBreakFontSize: 48,
+  damageBold: true,
+  breakBold: true,
+  superBreakBold: true,
+  damageGradient: false,
+  breakGradient: true,
+  superBreakGradient: true
+});
+
 function getBreakFonts() {
-  return game.settings.get(MODULE_ID, "breakFonts") ?? {breakFontFile:"", superBreakFontFile:""};
+  const stored = game.settings.get(MODULE_ID, "breakFonts") ?? {};
+  const config = foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_DAMAGE_DISPLAY), stored, {inplace:false});
+  for (const type of ["damage", "break", "superBreak"]) {
+    config[`${type}FontSize`] = clamp(Number(config[`${type}FontSize`]) || DEFAULT_DAMAGE_DISPLAY[`${type}FontSize`], 16, 140);
+    config[`${type}Bold`] = Boolean(config[`${type}Bold`]);
+    config[`${type}Gradient`] = Boolean(config[`${type}Gradient`]);
+  }
+  return config;
+}
+
+function damageDisplayStyle(type) {
+  const config = getBreakFonts();
+  const prefix = type === "superBreak" ? "superBreak" : type === "break" ? "break" : "damage";
+  return {
+    fontFile: config[`${prefix}FontFile`] || "",
+    fontSize: config[`${prefix}FontSize`],
+    bold: config[`${prefix}Bold`],
+    gradient: config[`${prefix}Gradient`]
+  };
 }
 
 class BreakAppearanceConfig extends FormApplication {
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
-      id:"tsru-break-appearance", title:"Break Text Appearance",
+      id:"tsru-break-appearance", title:"Damage Display Appearance",
       template:`modules/${MODULE_ID}/templates/break-appearance.hbs`,
-      width:570, height:"auto", closeOnSubmit:true
+      width:720, height:"auto", resizable:true, closeOnSubmit:true
     });
   }
-  getData() { return {config:getBreakFonts()}; }
+  getData() {
+    const elements = getElements().map((element, index) => ({...element, previewSelected:index===0}));
+    return {config:getBreakFonts(), elements, previewColor:elements[0]?.readyColor || "#ed4855"};
+  }
   activateListeners(html) {
     super.activateListeners(html);
     html.find(".file-picker").on("click", event => {
       const input=html.find(`[name="${event.currentTarget.dataset.target}"]`);
-      new FilePicker({type:"any",current:input.val(),callback:path=>input.val(path).trigger("change")}).browse();
+      new FilePicker({type:"any",current:input.val(),callback:path=>input.val(path).trigger("input").trigger("change")}).browse();
     });
+    let previewSequence = 0;
+    const refreshPreview = async () => {
+      const sequence = ++previewSequence;
+      const type = String(html.find('[name="previewType"]').val() || "damage");
+      const prefix = type === "superBreak" ? "superBreak" : type === "break" ? "break" : "damage";
+      const color = html.find('[name="previewElement"] option:selected').data("readyColor") || "#ed4855";
+      const preview = html.find(".tsru-damage-style-preview");
+      const popup = preview.find(".tsru-break-popup");
+      const size = clamp(Number(html.find(`[name="${prefix}FontSize"]`).val()), 16, 140);
+      const bold = html.find(`[name="${prefix}Bold"]`).prop("checked");
+      const gradient = html.find(`[name="${prefix}Gradient"]`).prop("checked");
+      let fontFamily = "Arial, sans-serif";
+      try { fontFamily = await loadSplashFont(html.find(`[name="${prefix}FontFile"]`).val()); }
+      catch (_error) {}
+      if (sequence !== previewSequence) return;
+      popup.toggleClass("is-plain-damage", type === "damage");
+      popup.toggleClass("has-gradient", gradient);
+      popup.toggleClass("no-gradient", !gradient);
+      popup.css("--tsru-break-color", color);
+      popup.css("--tsru-popup-font", fontFamily);
+      popup.css("--tsru-popup-size", `${size}px`);
+      popup.css("--tsru-popup-weight", bold ? "900" : "400");
+      popup.find("strong").toggle(type !== "damage").text(type === "superBreak" ? "Super Break" : "Break");
+      popup.find("span").text(type === "damage" ? "81433" : "81433");
+    };
+    html.on("input change", "input, select", refreshPreview);
+    refreshPreview();
   }
   async _updateObject(_event, formData) {
     if (!game.user.isGM) return;
-    await game.settings.set(MODULE_ID, "breakFonts", {
-      breakFontFile:String(formData.breakFontFile ?? "").trim(),
-      superBreakFontFile:String(formData.superBreakFontFile ?? "").trim()
-    });
-    ui.notifications.info("Universal Break text fonts saved for all characters.");
+    const config = {};
+    for (const type of ["damage", "break", "superBreak"]) {
+      config[`${type}FontFile`] = String(formData[`${type}FontFile`] ?? "").trim();
+      config[`${type}FontSize`] = clamp(Number(formData[`${type}FontSize`]), 16, 140);
+      config[`${type}Bold`] = Boolean(formData[`${type}Bold`]);
+      config[`${type}Gradient`] = Boolean(formData[`${type}Gradient`]);
+    }
+    await game.settings.set(MODULE_ID, "breakFonts", config);
+    ui.notifications.info("Universal damage display appearance saved.");
   }
 }
 
@@ -2583,57 +2653,49 @@ async function broadcastDamageResult(target, damage, {plainDamage=false, superBr
 
 async function showBreakResult(payload) {
   if (payload.sceneId && canvas?.scene?.id !== payload.sceneId) return;
-  const token=canvas?.tokens?.get(payload.tokenId) ?? breakDisplayTarget(game.actors.get(payload.actorId));
-  const damage=String(Math.max(0,Math.floor(Number(payload.damage)||0)));
-  const label=payload.superBreak?"Super Break":"Break";
-  let fontFamily="Arial, sans-serif";
-  try { fontFamily=await loadSplashFont(payload.fontFile); }
-  catch(error) { console.warn(`${MODULE_ID} | Could not load damage popup font`,error); }
+  const token = canvas?.tokens?.get(payload.tokenId) ?? breakDisplayTarget(game.actors.get(payload.actorId));
+  const damage = String(Math.max(0, Math.floor(Number(payload.damage) || 0)));
+  const type = payload.plainDamage ? "damage" : payload.superBreak ? "superBreak" : "break";
+  const label = payload.superBreak ? "Super Break" : "Break";
+  const style = damageDisplayStyle(type);
+  let fontFamily = "Arial, sans-serif";
+  try { fontFamily = await loadSplashFont(style.fontFile || payload.fontFile); }
+  catch(error) { console.warn(`${MODULE_ID} | Could not load damage popup font`, error); }
   installDamageScrollingTextOverride();
-  if (token && canvas?.interface?.createScrollingText) {
-    const stageScale=Math.abs(Number(canvas?.stage?.scale?.y))||1;
-    const origin={x:token.center.x,y:token.center.y-token.h/2-(10/stageScale)};
-    const color=/^#[0-9a-f]{3,8}$/i.test(payload.color??"")?payload.color:"#ed4855";
-    state.customDamageScrollingText=true;
-    try {
-      await canvas.interface.createScrollingText(origin,payload.plainDamage?damage:`${label}\n${damage}`,{
-        anchor:CONST.TEXT_ANCHOR_POINTS?.BOTTOM??CONST.TEXT_ANCHOR_POINTS?.CENTER,
-        direction:CONST.TEXT_ANCHOR_POINTS?.TOP,
-        distance:42/stageScale,
-        duration:1150,
-        jitter:.08,
-        fontFamily,
-        fontSize:payload.plainDamage?48:40,
-        fontWeight:"900",
-        fill:payload.plainDamage?"#ffffff":[color,"#ffffff"],
-        fillGradientType:1,
-        stroke:"#202239",
-        strokeThickness:4
-      });
-      return;
-    } catch(error) {
-      console.warn(`${MODULE_ID} | Foundry scrolling damage text failed; using DOM fallback`,error);
-    } finally { state.customDamageScrollingText=false; }
+
+  const view = canvas?.app?.view ?? document.querySelector("#board canvas");
+  const rect = view?.getBoundingClientRect?.();
+  let left = window.innerWidth / 2;
+  let top = window.innerHeight / 2;
+  if (token && rect) {
+    const stageScale = Math.abs(Number(canvas?.stage?.scale?.y)) || 1;
+    const worldPoint = new PIXI.Point(token.center.x, token.center.y - token.h / 2 - 12 / stageScale);
+    const screenPoint = canvas?.stage?.worldTransform?.apply?.(worldPoint) ?? token.getGlobalPosition?.(new PIXI.Point()) ?? worldPoint;
+    const screenWidth = Number(canvas?.app?.renderer?.screen?.width) || rect.width;
+    const screenHeight = Number(canvas?.app?.renderer?.screen?.height) || rect.height;
+    left = rect.left + screenPoint.x * (rect.width / screenWidth);
+    top = rect.top + screenPoint.y * (rect.height / screenHeight);
   }
-  const view=canvas?.app?.view??document.querySelector("#board canvas");
-  const rect=view?.getBoundingClientRect?.();
-  let left=window.innerWidth/2,top=window.innerHeight/2;
-  if(token&&rect){
-    const stageScale=Math.abs(Number(canvas?.stage?.scale?.y))||1;
-    const worldPoint=new PIXI.Point(token.center.x,token.center.y-token.h/2-12/stageScale);
-    const screenPoint=canvas?.stage?.worldTransform?.apply?.(worldPoint)??token.getGlobalPosition?.(new PIXI.Point())??worldPoint;
-    const screenWidth=Number(canvas?.app?.renderer?.screen?.width)||rect.width;
-    const screenHeight=Number(canvas?.app?.renderer?.screen?.height)||rect.height;
-    left=rect.left+screenPoint.x*(rect.width/screenWidth);
-    top=rect.top+screenPoint.y*(rect.height/screenHeight);
+
+  const color = /^#[0-9a-f]{3,8}$/i.test(payload.color ?? "") ? payload.color : "#ed4855";
+  const popup = document.createElement("div");
+  popup.className = `tsru-break-popup${payload.plainDamage ? " is-plain-damage" : ""} ${style.gradient ? "has-gradient" : "no-gradient"}`;
+  popup.style.left = `${left}px`;
+  popup.style.top = `${top}px`;
+  popup.style.setProperty("--tsru-break-color", color);
+  popup.style.setProperty("--tsru-popup-font", fontFamily);
+  popup.style.setProperty("--tsru-popup-size", `${style.fontSize}px`);
+  popup.style.setProperty("--tsru-popup-weight", style.bold ? "900" : "400");
+  if (!payload.plainDamage) {
+    const heading = document.createElement("strong");
+    heading.textContent = label;
+    popup.append(heading);
   }
-  const popup=document.createElement("div");
-  popup.className=`tsru-break-popup${payload.plainDamage?" is-plain-damage":""}`;
-  popup.style.left=`${left}px`; popup.style.top=`${top}px`;
-  popup.style.setProperty("--tsru-break-color",/^#[0-9a-f]{3,8}$/i.test(payload.color??"")?payload.color:"#ed4855");
-  if(!payload.plainDamage){const heading=document.createElement("strong");heading.textContent=label;heading.style.fontFamily=fontFamily;popup.append(heading);}
-  const amount=document.createElement("span");amount.textContent=damage;if(payload.plainDamage)amount.style.fontFamily=fontFamily;popup.append(amount);
-  document.body.append(popup);window.setTimeout(()=>popup.remove(),1250);
+  const amount = document.createElement("span");
+  amount.textContent = damage;
+  popup.append(amount);
+  document.body.append(popup);
+  window.setTimeout(() => popup.remove(), 1250);
 }
 
 async function applyWeaknessBreakDamage(attacker, target, {superBreak = false} = {}) {
@@ -2650,7 +2712,7 @@ async function applyWeaknessBreakDamage(attacker, target, {superBreak = false} =
     if (hp && Number.isFinite(Number(hp.value))) await targetActor.update({"system.attributes.hp.value":Math.max(0, Number(hp.value) - damage)});
   }
   const element = getElements().find(entry => entry.id === config.elementId);
-  await broadcastDamageResult(target,damage,{superBreak,color:element?.chargeColor??config.chargeColor,fontFile:superBreak?getBreakFonts().superBreakFontFile:getBreakFonts().breakFontFile});
+  await broadcastDamageResult(target,damage,{superBreak,color:element?.readyColor??config.readyColor,fontFile:superBreak?getBreakFonts().superBreakFontFile:getBreakFonts().breakFontFile});
   await roll.toMessage({speaker: ChatMessage.getSpeaker({actor: attacker}), flavor: `${attacker.name} — ${superBreak ? "Super Break" : "Break"} (${count}d${faces} ${superBreak ? `+ ${breakEffectModifier(config) + 1}` : `× ${modifier}`}): ${damage} HP damage`});
   return damage;
 }
@@ -2710,7 +2772,9 @@ async function processAppliedDamage(target, amount, options = {}) {
     if (attacker.type==="character" && shownDamage>0 && !state.processedMessages.has(popupKey)) {
       state.processedMessages.add(popupKey);
       window.setTimeout(()=>state.processedMessages.delete(popupKey),120000);
-      await broadcastDamageResult(target,shownDamage,{plainDamage:true,fontFile:getBreakFonts().breakFontFile});
+      const attackerConfig = getConfig(attacker);
+      const element = getElements().find(entry => entry.id === attackerConfig.elementId);
+      await broadcastDamageResult(target, shownDamage, {plainDamage:true, color:element?.readyColor ?? attackerConfig.readyColor, fontFile:getBreakFonts().damageFontFile});
     }
     const detail = {sourceActor: attacker, targetActor, amount: Number(amount), origin, midi: options.midi ?? null};
     await dispatchTalentEvent("damageDealt", detail, `${damageEventId}:${targetActor.uuid}`);
@@ -3551,7 +3615,7 @@ function registerSettings() {
   game.settings.register(MODULE_ID, "gmPanelCollapsedCards", {scope: "client", config: false, type: Object, default: {}});
   game.settings.register(MODULE_ID, "ultimateSectionStates", {scope: "client", config: false, type: Object, default: {}});
   game.settings.register(MODULE_ID, "breakFonts", {scope:"world",config:false,type:Object,default:{breakFontFile:"",superBreakFontFile:""}});
-  game.settings.registerMenu(MODULE_ID, "breakAppearance", {name:"Break Text Appearance",label:"Configure Break Fonts",hint:"Set the universal Break and Super Break popup fonts for every character.",icon:"fas fa-hammer",type:BreakAppearanceConfig,restricted:true});
+  game.settings.registerMenu(MODULE_ID, "breakAppearance", {name:"Damage Display Appearance",label:"Configure Damage Display",hint:"Preview and configure regular damage, Break, and Super Break fonts, sizes, weights, and Element gradients.",icon:"fas fa-burst",type:BreakAppearanceConfig,restricted:true});
   game.settings.registerMenu(MODULE_ID, "elementManager", {
     name: "Manage Elements",
     label: "Open Element Manager",

@@ -1423,3 +1423,122 @@
 .tsru-quest-block.has-art > small {
   color: #8c7747 !important;
 }
+
+
+/* v2.22.5: configurable universal damage display and reliable glyph gradients. */
+.tsru-break-popup strong,
+.tsru-break-popup span {
+  font-family: var(--tsru-popup-font, Arial, sans-serif) !important;
+  font-weight: var(--tsru-popup-weight, 900) !important;
+  -webkit-text-stroke: 1px #292b47;
+  text-shadow: 0 2px 4px rgba(0,0,0,.9);
+}
+.tsru-break-popup strong {
+  font-size: var(--tsru-popup-size, 48px) !important;
+}
+.tsru-break-popup span,
+.tsru-break-popup.is-plain-damage span {
+  font-size: calc(var(--tsru-popup-size, 48px) * 1.22) !important;
+}
+.tsru-break-popup.has-gradient strong,
+.tsru-break-popup.has-gradient span,
+.tsru-break-popup.is-plain-damage.has-gradient span {
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  background-image: linear-gradient(to bottom, var(--tsru-break-color, #ed4855) 0%, var(--tsru-break-color, #ed4855) 22%, #ffffff 92%) !important;
+  background-size: 100% 100% !important;
+  background-repeat: no-repeat !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+}
+.tsru-break-popup.no-gradient strong,
+.tsru-break-popup.no-gradient span,
+.tsru-break-popup.is-plain-damage.no-gradient span {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background: none !important;
+}
+
+.tsru-break-appearance-form {
+  max-height: 82vh;
+  overflow: auto;
+}
+.tsru-break-appearance-form > header {
+  display: grid;
+  gap: 5px;
+}
+.tsru-damage-preview-panel {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(240,207,102,.52);
+  border-radius: 7px;
+  background: #0c121c;
+}
+.tsru-damage-preview-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.tsru-damage-preview-controls label {
+  display: grid;
+  gap: 4px;
+}
+.tsru-damage-preview-controls select {
+  color: #f5f7fa;
+  background: #202734;
+  border: 1px solid #778596;
+}
+.tsru-damage-style-preview {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 155px;
+  overflow: hidden;
+  border-radius: 5px;
+  background:
+    radial-gradient(circle at center, rgba(99,143,190,.22), transparent 62%),
+    linear-gradient(135deg, #192334, #080c13);
+}
+.tsru-damage-style-preview .tsru-break-popup {
+  position: static !important;
+  transform: none !important;
+  animation: none !important;
+  filter: drop-shadow(0 3px 4px #000);
+}
+.tsru-damage-format-grid {
+  display: grid;
+  gap: 10px;
+}
+.tsru-damage-format-grid fieldset {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+  padding: 10px 12px 12px;
+  border: 1px solid rgba(153,166,181,.55);
+  border-radius: 6px;
+}
+.tsru-damage-format-grid legend {
+  padding: 0 7px;
+  color: #f0cf66;
+  font-weight: 800;
+}
+.tsru-break-appearance-form .tsru-inline-format {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 18px;
+}
+.tsru-break-appearance-form .tsru-inline-format label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tsru-break-appearance-form .tsru-inline-format input[type="number"] {
+  width: 78px;
+}
+.tsru-break-appearance-form .tsru-inline-format input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+}

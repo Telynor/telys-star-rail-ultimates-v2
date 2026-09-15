@@ -1,7 +1,38 @@
 <form class="tsru-break-appearance-form">
-  <h2>Universal Break Text Fonts</h2>
-  <p>These fonts apply to every character's floating Break and Super Break text. Leave a field empty to use the default font. Supports TTF, OTF, and WOFF files.</p>
-  <div class="tsru-field"><label for="tsru-break-font"><strong>Break font</strong></label><div class="tsru-file-control"><input id="tsru-break-font" name="breakFontFile" value="{{config.breakFontFile}}" placeholder="Default font"><button type="button" class="file-picker" data-target="breakFontFile" title="Browse font files"><i class="fas fa-file-import"></i></button></div></div>
-  <div class="tsru-field"><label for="tsru-super-break-font"><strong>Super Break font</strong></label><div class="tsru-file-control"><input id="tsru-super-break-font" name="superBreakFontFile" value="{{config.superBreakFontFile}}" placeholder="Default font"><button type="button" class="file-picker" data-target="superBreakFontFile" title="Browse font files"><i class="fas fa-file-import"></i></button></div></div>
-  <footer><button type="submit"><i class="fas fa-save"></i> Save Shared Fonts</button></footer>
+  <header>
+    <h2>Universal Damage Display</h2>
+    <p>Configure the floating numbers used for regular damage, Break, and Super Break. Gradient colors inherit the attacking character's Element <strong>Fully Charged</strong> color and fade to white.</p>
+  </header>
+
+  <section class="tsru-damage-preview-panel">
+    <div class="tsru-damage-preview-controls">
+      <label><strong>Preview style</strong><select name="previewType"><option value="damage">Regular Damage</option><option value="break">Break</option><option value="superBreak">Super Break</option></select></label>
+      <label><strong>Preview Element</strong><select name="previewElement">{{#each elements}}<option value="{{this.id}}" data-ready-color="{{this.readyColor}}" {{#if this.previewSelected}}selected{{/if}}>{{this.name}}</option>{{else}}<option value="" data-ready-color="#ed4855">Default Element</option>{{/each}}</select></label>
+    </div>
+    <div class="tsru-damage-style-preview" style="--tsru-break-color:{{previewColor}};">
+      <div class="tsru-break-popup is-plain-damage no-gradient"><strong hidden>Break</strong><span>81433</span></div>
+    </div>
+  </section>
+
+  <section class="tsru-damage-format-grid">
+    <fieldset>
+      <legend>Regular Damage</legend>
+      <div class="tsru-field"><label><strong>Damage font</strong></label><div class="tsru-file-control"><input name="damageFontFile" value="{{config.damageFontFile}}" placeholder="Default font"><button type="button" class="file-picker" data-target="damageFontFile" title="Browse font files"><i class="fas fa-file-import"></i></button></div></div>
+      <div class="tsru-field tsru-inline-format"><label><strong>Font size</strong><input type="number" name="damageFontSize" min="16" max="140" value="{{config.damageFontSize}}"><span>px</span></label><label><input type="checkbox" name="damageBold" {{checked config.damageBold}}> Bold</label><label><input type="checkbox" name="damageGradient" {{checked config.damageGradient}}> Element gradient</label></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Break</legend>
+      <div class="tsru-field"><label><strong>Break font</strong></label><div class="tsru-file-control"><input name="breakFontFile" value="{{config.breakFontFile}}" placeholder="Default font"><button type="button" class="file-picker" data-target="breakFontFile" title="Browse font files"><i class="fas fa-file-import"></i></button></div></div>
+      <div class="tsru-field tsru-inline-format"><label><strong>Font size</strong><input type="number" name="breakFontSize" min="16" max="140" value="{{config.breakFontSize}}"><span>px</span></label><label><input type="checkbox" name="breakBold" {{checked config.breakBold}}> Bold</label><label><input type="checkbox" name="breakGradient" {{checked config.breakGradient}}> Element gradient</label></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Super Break</legend>
+      <div class="tsru-field"><label><strong>Super Break font</strong></label><div class="tsru-file-control"><input name="superBreakFontFile" value="{{config.superBreakFontFile}}" placeholder="Default font"><button type="button" class="file-picker" data-target="superBreakFontFile" title="Browse font files"><i class="fas fa-file-import"></i></button></div></div>
+      <div class="tsru-field tsru-inline-format"><label><strong>Font size</strong><input type="number" name="superBreakFontSize" min="16" max="140" value="{{config.superBreakFontSize}}"><span>px</span></label><label><input type="checkbox" name="superBreakBold" {{checked config.superBreakBold}}> Bold</label><label><input type="checkbox" name="superBreakGradient" {{checked config.superBreakGradient}}> Element gradient</label></div>
+    </fieldset>
+  </section>
+
+  <footer><button type="submit"><i class="fas fa-save"></i> Save Damage Display</button></footer>
 </form>
