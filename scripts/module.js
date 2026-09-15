@@ -1394,7 +1394,7 @@ function refreshUltimateHotbarMacros() {
     const isUltimate = macro?.getFlag(MODULE_ID, "action") === "ultimate";
     slot.classList.toggle("tsru-ultimate-macro", isUltimate);
     slot.querySelectorAll(":scope > .tsru-hotbar-energy-fill, :scope > .tsru-hotbar-energy-label").forEach(node => node.remove());
-    if (!isUltimate) continue;
+    if (!isUltimate) { slot.classList.remove("has-energy", "is-ready"); continue; }
     const actor = game.actors.get(macro.getFlag(MODULE_ID, "actorId"));
     if (!actor) continue;
     const display = ultimateMacroDisplay(actor);
@@ -1402,6 +1402,7 @@ function refreshUltimateHotbarMacros() {
     slot.style.setProperty("--tsru-hotbar-energy-ratio", String(display.percent / 100));
     slot.style.setProperty("--tsru-hotbar-glow", `${2 + (12 * display.percent / 100)}px`);
     slot.style.setProperty("--tsru-hotbar-energy-color", display.color);
+    slot.classList.toggle("has-energy", display.percent > 0);
     slot.classList.toggle("is-ready", display.ready);
     const fill = document.createElement("span");
     fill.className = "tsru-hotbar-energy-fill";
