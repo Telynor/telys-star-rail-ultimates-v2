@@ -78,6 +78,7 @@ const state = {
   receivedSplashIds: new Set(),
   lastTargetsByActor: new Map(),
   recentToughness: new Map(),
+  lastDamageDisplay: null,
   activeTalents: new Set(),
   talentEvents: new Set(),
   lastTalentTurns: new Map(),
@@ -2535,7 +2536,16 @@ const DEFAULT_DAMAGE_DISPLAY = Object.freeze({
   superBreakBold: true,
   damageGradient: true,
   breakGradient: true,
-  superBreakGradient: true
+  superBreakGradient: true,
+  damageInheritElement: true,
+  breakInheritElement: true,
+  superBreakInheritElement: true,
+  damageTopColor: "#ffd84d",
+  breakTopColor: "#ffd84d",
+  superBreakTopColor: "#ffd84d",
+  damageBottomColor: "#ffffff",
+  breakBottomColor: "#ffffff",
+  superBreakBottomColor: "#ffffff"
 });
 
 function getBreakFonts() {
@@ -2545,6 +2555,9 @@ function getBreakFonts() {
     config[`${type}FontSize`] = clamp(Number(config[`${type}FontSize`]) || DEFAULT_DAMAGE_DISPLAY[`${type}FontSize`], 16, 140);
     config[`${type}Bold`] = Boolean(config[`${type}Bold`]);
     config[`${type}Gradient`] = Boolean(config[`${type}Gradient`]);
+    config[`${type}InheritElement`] = config[`${type}InheritElement`] !== false;
+    if (!/^#[0-9a-f]{6}$/i.test(config[`${type}TopColor`] ?? "")) config[`${type}TopColor`] = "#ffd84d";
+    if (!/^#[0-9a-f]{6}$/i.test(config[`${type}BottomColor`] ?? "")) config[`${type}BottomColor`] = "#ffffff";
   }
   return config;
 }
@@ -2556,7 +2569,10 @@ function damageDisplayStyle(type) {
     fontFile: config[`${prefix}FontFile`] || "",
     fontSize: config[`${prefix}FontSize`],
     bold: config[`${prefix}Bold`],
-    gradient: config[`${prefix}Gradient`]
+    gradient: config[`${prefix}Gradient`],
+    inheritElement: config[`${prefix}InheritElement`],
+    topColor: config[`${prefix}TopColor`],
+    bottomColor: config[`${prefix}BottomColor`]
   };
 }
 
@@ -2594,14 +2610,20 @@ class BreakAppearanceConfig extends FormApplication {
       catch (_error) {}
       if (sequence !== previewSequence) return;
       popup.toggleClass("is-plain-damage", type === "damage" || type === "critical");
-      popup.toggleClass("has-gradient", gradient);
-      popup.toggleClass("no-gradient", !gradient);
-      popup.css("--tsru-break-color", color);
-      popup.css("--tsru-popup-font", fontFamily);
-      popup.css("--tsru-popup-size", `${size}px`);
-      popup.css("--tsru-popup-weight", bold ? "900" : "400");
-      popup.find("strong").toggle(type !== "damage").text(type === "critical" ? "CRIT Hit" : type === "superBreak" ? "Super Break" : "Break");
-      popup.find("span").text(type === "damage" ? "81433" : "81433");
+      const inheritElement = html.find(`[name="${prefix}InheritElement"]`).prop("checked");
+      const topColor = inheritElement ? color : html.find(`[name="${prefix}TopColor"]`).val();
+      const bottomColor = html.find(`[name="${prefix}BottomColor"]`).val() || "#ffffff";
+      const label = type === "critical" ? "CRIT Hit" : type === "superBreak" ? "Super Break" : type === "break" ? "Break" : "";
+      renderDamageSvg(popup[0], {
+        label,
+        damage: "81433",
+        fontFamily,
+        fontSize: size,
+        bold,
+        gradient,
+        topColor,
+        bottomColor
+      });
     };
     html.on("input change", "input, select", refreshPreview);
     refreshPreview();
@@ -2614,6 +2636,9 @@ class BreakAppearanceConfig extends FormApplication {
       config[`${type}FontSize`] = clamp(Number(formData[`${type}FontSize`]), 16, 140);
       config[`${type}Bold`] = Boolean(formData[`${type}Bold`]);
       config[`${type}Gradient`] = Boolean(formData[`${type}Gradient`]);
+      config[`${type}InheritElement`] = Boolean(formData[`${type}InheritElement`]);
+      config[`${type}TopColor`] = /^#[0-9a-f]{6}$/i.test(formData[`${type}TopColor`] ?? "") ? formData[`${type}TopColor`] : "#ffd84d";
+      config[`${type}BottomColor`] = /^#[0-9a-f]{6}$/i.test(formData[`${type}BottomColor`] ?? "") ? formData[`${type}BottomColor`] : "#ffffff";
     }
     await game.settings.set(MODULE_ID, "breakFonts", config);
     ui.notifications.info("Universal damage display appearance saved.");
@@ -2626,19 +2651,89 @@ function breakDisplayTarget(target) {
   return canvas?.tokens?.get(tokenDocument?.id) ?? preferred ?? (canvas?.tokens?.placeables ?? []).find(token => token.actor?.id === actor?.id) ?? null;
 }
 
+function safePopupColor(value, fallback = "#ffffff") {
+  return /^#[0-9a-f]{6}$/i.test(String(value ?? "")) ? String(value) : fallback;
+}
+
+function renderDamageSvg(container, {label = "", damage = "0", fontFamily = "Arial, sans-serif", fontSize = 48, bold = true, gradient = true, topColor = "#ffffff", bottomColor = "#ffffff"} = {}) {
+  if (!container) return;
+  container.replaceChildren();
+  const ns = "http://www.w3.org/2000/svg";
+  const size = clamp(Number(fontSize), 16, 140);
+  const labelSize = size * .52;
+  const width = Math.max(150, String(damage).length * size * .72, String(label).length * labelSize * .68);
+  const height = label ? size * 1.65 : size * 1.2;
+  const svg = document.createElementNS(ns, "svg");
+  svg.classList.add("tsru-damage-svg");
+  svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+  svg.setAttribute("width", String(width));
+  svg.setAttribute("height", String(height));
+  svg.setAttribute("overflow", "visible");
+  const id = `tsru-gradient-${foundry.utils.randomID()}`;
+  const defs = document.createElementNS(ns, "defs");
+  const linear = document.createElementNS(ns, "linearGradient");
+  linear.id = id;
+  linear.setAttribute("x1", "0"); linear.setAttribute("y1", "0");
+  linear.setAttribute("x2", "0"); linear.setAttribute("y2", "100%");
+  for (const [offset, color] of [["0%", safePopupColor(topColor)], ["38%", safePopupColor(topColor)], ["100%", safePopupColor(bottomColor)]]) {
+    const stop = document.createElementNS(ns, "stop");
+    stop.setAttribute("offset", offset);
+    stop.setAttribute("stop-color", color);
+    linear.appendChild(stop);
+  }
+  defs.appendChild(linear); svg.appendChild(defs);
+  const addText = (text, y, textSize) => {
+    const node = document.createElementNS(ns, "text");
+    node.textContent = text;
+    node.setAttribute("x", "50%");
+    node.setAttribute("y", String(y));
+    node.setAttribute("text-anchor", "middle");
+    node.setAttribute("dominant-baseline", "middle");
+    node.setAttribute("fill", gradient ? `url(#${id})` : "#ffffff");
+    node.setAttribute("stroke", "#18181e");
+    node.setAttribute("stroke-opacity", "0.95");
+    node.setAttribute("stroke-width", "1.5");
+    node.setAttribute("paint-order", "stroke fill");
+    node.style.fontFamily = fontFamily;
+    node.style.fontSize = `${textSize}px`;
+    node.style.fontWeight = bold ? "900" : "400";
+    node.style.filter = "drop-shadow(0 1px 1px rgba(0,0,0,.65))";
+    svg.appendChild(node);
+  };
+  if (label) addText(label, labelSize * .72, labelSize);
+  addText(String(damage), label ? labelSize + size * .62 : height * .52, size);
+  container.appendChild(svg);
+}
+
 function installDamageScrollingTextOverride() {
-  const layer=canvas?.interface;
+  const layer = canvas?.interface;
   if (!layer?.createScrollingText || layer.__tsruDamageTextOriginal) return;
   try {
-    const original=layer.createScrollingText;
-    Object.defineProperty(layer,"__tsruDamageTextOriginal",{value:original,configurable:true});
-    layer.createScrollingText=function(origin,content,options={}) {
-      const numeric=/^[+\-−]?\s*\d+(?:\.\d+)?$/.test(String(content??"").trim());
-      if (numeric && !state.customDamageScrollingText) return Promise.resolve(null);
-      return original.call(this,origin,content,options);
+    const original = layer.createScrollingText;
+    Object.defineProperty(layer, "__tsruDamageTextOriginal", {value:original, configurable:true});
+    layer.createScrollingText = function(origin, content, options = {}) {
+      const numeric = /^[+\-−]?\s*\d+(?:\.\d+)?$/.test(String(content ?? "").trim());
+      if (!numeric || state.customDamageScrollingText) return original.call(this, origin, content, options);
+      const recent = state.lastDamageDisplay?.expires > Date.now() ? state.lastDamageDisplay : null;
+      const style = damageDisplayStyle("damage");
+      const topColor = style.inheritElement ? (recent?.color || "#ffffff") : style.topColor;
+      const shown = recent?.critical ? `CRIT Hit\n${content}` : content;
+      return Promise.resolve(loadSplashFont(style.fontFile)).catch(() => "Arial, sans-serif").then(fontFamily => original.call(this, origin, shown, {
+        ...options,
+        fontFamily,
+        fontSize: style.fontSize,
+        fontWeight: style.bold ? "900" : "400",
+        fill: style.gradient ? [safePopupColor(topColor), safePopupColor(style.bottomColor)] : "#ffffff",
+        fillGradientType: 1,
+        fillGradientStops: [0, 1],
+        stroke: "#202028",
+        strokeThickness: 2,
+        duration: 1200,
+        distance: 42
+      }));
     };
   } catch(error) {
-    console.warn(`${MODULE_ID} | Could not replace Foundry damage scrolling text`,error);
+    console.warn(`${MODULE_ID} | Could not restyle Foundry damage scrolling text`, error);
   }
 }
 
@@ -2675,6 +2770,7 @@ async function broadcastDamageOnce(attacker, target, amount, eventId, {critical 
   if (state.processedMessages.has(key)) return false;
   state.processedMessages.add(key);
   window.setTimeout(() => state.processedMessages.delete(key), 120000);
+  state.lastDamageDisplay = {color:damageResultColor(attacker), critical:Boolean(critical), expires:Date.now() + 2500};
   await broadcastDamageResult(target, value, {
     plainDamage: true,
     critical,
@@ -2710,23 +2806,23 @@ async function showBreakResult(payload) {
     top = rect.top + screenPoint.y * (rect.height / screenHeight);
   }
 
-  const color = /^#[0-9a-f]{3,8}$/i.test(payload.color ?? "") ? payload.color : "#ed4855";
+  const configuredTop = style.inheritElement ? payload.color : style.topColor;
+  const topColor = safePopupColor(configuredTop, "#ffffff");
+  const bottomColor = safePopupColor(style.bottomColor, "#ffffff");
   const popup = document.createElement("div");
-  popup.className = `tsru-break-popup${payload.plainDamage ? " is-plain-damage" : ""} ${style.gradient ? "has-gradient" : "no-gradient"}`;
+  popup.className = `tsru-break-popup${payload.plainDamage ? " is-plain-damage" : ""}`;
   popup.style.left = `${left}px`;
   popup.style.top = `${top}px`;
-  popup.style.setProperty("--tsru-break-color", color);
-  popup.style.setProperty("--tsru-popup-font", fontFamily);
-  popup.style.setProperty("--tsru-popup-size", `${style.fontSize}px`);
-  popup.style.setProperty("--tsru-popup-weight", style.bold ? "900" : "400");
-  if (label) {
-    const heading = document.createElement("strong");
-    heading.textContent = label;
-    popup.append(heading);
-  }
-  const amount = document.createElement("span");
-  amount.textContent = damage;
-  popup.append(amount);
+  renderDamageSvg(popup, {
+    label,
+    damage,
+    fontFamily,
+    fontSize: style.fontSize,
+    bold: style.bold,
+    gradient: style.gradient,
+    topColor,
+    bottomColor
+  });
   document.body.append(popup);
   window.setTimeout(() => popup.remove(), 1250);
 }
@@ -2996,6 +3092,7 @@ async function processCoreAttackMessage(message) {
   }
   if (attackMessage && attacker) await addEnergy(attacker, energyGain(getConfig(attacker), "attack"), "attack");
   if ((damageMessage || macroDamageMessage) && attacker) {
+    state.lastDamageDisplay = {color:damageResultColor(attacker), critical:damageRollWasCritical(message), expires:Date.now() + 2500};
     if (!midiActive) await awardPunchlineForAttack(attacker, `chat:${message.id}`);
     const toughnessDamage = getConfig(attacker).breakCharacter ? fullDamageTotal(message.rolls) : rawDiceTotal(message.rolls);
     await applyToughnessDamage(attacker, [...targetIds].map(id => game.actors.get(id)), toughnessDamage, midiWorkflowId || message.id);

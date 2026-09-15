@@ -1,36 +1,37 @@
 <form class="tsru-break-appearance-form">
   <header>
     <h2>Universal Damage Display</h2>
-    <p>Configure the floating numbers used for regular damage, Break, and Super Break. Gradient colors inherit the attacking character's Element <strong>Fully Charged</strong> color and fade to white.</p>
+    <p>Preview and configure regular damage, critical hits, Break, and Super Break. When Element inheritance is enabled, the top of the gradient uses the attacking character's fully-charged Element color.</p>
   </header>
 
   <section class="tsru-damage-preview-panel">
     <div class="tsru-damage-preview-controls">
       <label><strong>Preview style</strong><select name="previewType"><option value="damage">Regular Damage</option><option value="critical">Critical Hit</option><option value="break">Break</option><option value="superBreak">Super Break</option></select></label>
-      <label><strong>Preview Element</strong><select name="previewElement">{{#each elements}}<option value="{{this.id}}" data-ready-color="{{this.readyColor}}" {{#if this.previewSelected}}selected{{/if}}>{{this.name}}</option>{{else}}<option value="" data-ready-color="#ed4855">Default Element</option>{{/each}}</select></label>
+      <label><strong>Preview Element</strong><select name="previewElement">{{#each elements}}<option value="{{this.id}}" data-ready-color="{{this.readyColor}}" {{#if this.previewSelected}}selected{{/if}}>{{this.name}}</option>{{else}}<option value="" data-ready-color="#ffffff">No Element — White</option>{{/each}}</select></label>
     </div>
-    <div class="tsru-damage-style-preview" style="--tsru-break-color:{{previewColor}};">
-      <div class="tsru-break-popup is-plain-damage no-gradient"><strong hidden>Break</strong><span>81433</span></div>
-    </div>
+    <div class="tsru-damage-style-preview"><div class="tsru-break-popup is-plain-damage"></div></div>
   </section>
 
   <section class="tsru-damage-format-grid">
     <fieldset>
-      <legend>Regular Damage</legend>
+      <legend>Regular Damage &amp; Critical Hits</legend>
       <div class="tsru-field"><label><strong>Damage font</strong></label><div class="tsru-file-control"><input name="damageFontFile" value="{{config.damageFontFile}}" placeholder="Default font"><button type="button" class="file-picker" data-target="damageFontFile" title="Browse font files"><i class="fas fa-file-import"></i></button></div></div>
-      <div class="tsru-field tsru-inline-format"><label><strong>Font size</strong><input type="number" name="damageFontSize" min="16" max="140" value="{{config.damageFontSize}}"><span>px</span></label><label><input type="checkbox" name="damageBold" {{checked config.damageBold}}> Bold</label><label><input type="checkbox" name="damageGradient" {{checked config.damageGradient}}> Element gradient</label></div>
+      <div class="tsru-field tsru-inline-format"><label><strong>Font size</strong><input type="number" name="damageFontSize" min="16" max="140" value="{{config.damageFontSize}}"><span>px</span></label><label><input type="checkbox" name="damageBold" {{checked config.damageBold}}> Bold</label><label><input type="checkbox" name="damageGradient" {{checked config.damageGradient}}> Gradient</label></div>
+      <div class="tsru-gradient-controls"><label><input type="checkbox" name="damageInheritElement" {{checked config.damageInheritElement}}> Use attacker Element color</label><label><strong>Top color</strong><input type="color" name="damageTopColor" value="{{config.damageTopColor}}"></label><label><strong>Bottom color</strong><input type="color" name="damageBottomColor" value="{{config.damageBottomColor}}"></label></div>
     </fieldset>
 
     <fieldset>
       <legend>Break</legend>
       <div class="tsru-field"><label><strong>Break font</strong></label><div class="tsru-file-control"><input name="breakFontFile" value="{{config.breakFontFile}}" placeholder="Default font"><button type="button" class="file-picker" data-target="breakFontFile" title="Browse font files"><i class="fas fa-file-import"></i></button></div></div>
-      <div class="tsru-field tsru-inline-format"><label><strong>Font size</strong><input type="number" name="breakFontSize" min="16" max="140" value="{{config.breakFontSize}}"><span>px</span></label><label><input type="checkbox" name="breakBold" {{checked config.breakBold}}> Bold</label><label><input type="checkbox" name="breakGradient" {{checked config.breakGradient}}> Element gradient</label></div>
+      <div class="tsru-field tsru-inline-format"><label><strong>Font size</strong><input type="number" name="breakFontSize" min="16" max="140" value="{{config.breakFontSize}}"><span>px</span></label><label><input type="checkbox" name="breakBold" {{checked config.breakBold}}> Bold</label><label><input type="checkbox" name="breakGradient" {{checked config.breakGradient}}> Gradient</label></div>
+      <div class="tsru-gradient-controls"><label><input type="checkbox" name="breakInheritElement" {{checked config.breakInheritElement}}> Use attacker Element color</label><label><strong>Top color</strong><input type="color" name="breakTopColor" value="{{config.breakTopColor}}"></label><label><strong>Bottom color</strong><input type="color" name="breakBottomColor" value="{{config.breakBottomColor}}"></label></div>
     </fieldset>
 
     <fieldset>
       <legend>Super Break</legend>
       <div class="tsru-field"><label><strong>Super Break font</strong></label><div class="tsru-file-control"><input name="superBreakFontFile" value="{{config.superBreakFontFile}}" placeholder="Default font"><button type="button" class="file-picker" data-target="superBreakFontFile" title="Browse font files"><i class="fas fa-file-import"></i></button></div></div>
-      <div class="tsru-field tsru-inline-format"><label><strong>Font size</strong><input type="number" name="superBreakFontSize" min="16" max="140" value="{{config.superBreakFontSize}}"><span>px</span></label><label><input type="checkbox" name="superBreakBold" {{checked config.superBreakBold}}> Bold</label><label><input type="checkbox" name="superBreakGradient" {{checked config.superBreakGradient}}> Element gradient</label></div>
+      <div class="tsru-field tsru-inline-format"><label><strong>Font size</strong><input type="number" name="superBreakFontSize" min="16" max="140" value="{{config.superBreakFontSize}}"><span>px</span></label><label><input type="checkbox" name="superBreakBold" {{checked config.superBreakBold}}> Bold</label><label><input type="checkbox" name="superBreakGradient" {{checked config.superBreakGradient}}> Gradient</label></div>
+      <div class="tsru-gradient-controls"><label><input type="checkbox" name="superBreakInheritElement" {{checked config.superBreakInheritElement}}> Use attacker Element color</label><label><strong>Top color</strong><input type="color" name="superBreakTopColor" value="{{config.superBreakTopColor}}"></label><label><strong>Bottom color</strong><input type="color" name="superBreakBottomColor" value="{{config.superBreakBottomColor}}"></label></div>
     </fieldset>
   </section>
 

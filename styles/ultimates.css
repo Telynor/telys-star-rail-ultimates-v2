@@ -1587,3 +1587,45 @@
 .tsru-damage-style-preview .tsru-break-popup {
   filter: none !important;
 }
+
+
+/* v2.22.7: SVG-backed gradients remain visible in Foundry's embedded Chromium. */
+.tsru-break-popup .tsru-damage-svg {
+  display: block;
+  max-width: none;
+  overflow: visible;
+  pointer-events: none;
+}
+.tsru-damage-style-preview .tsru-damage-svg {
+  width: min(100%, 430px);
+  height: 135px;
+}
+.tsru-gradient-controls {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto auto;
+  align-items: center;
+  gap: 10px 16px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(153,166,181,.28);
+}
+.tsru-gradient-controls label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.tsru-gradient-controls input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+.tsru-gradient-controls input[type="color"] {
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 30px;
+  padding: 2px;
+}
+@media (max-width: 620px) {
+  .tsru-gradient-controls {
+    grid-template-columns: 1fr;
+  }
+}
