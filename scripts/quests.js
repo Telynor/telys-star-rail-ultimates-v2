@@ -178,9 +178,9 @@ class HSRHub extends FormApplication {
       const actions = {
         quests: ["Mission Log", openQuestLog],
         party: ["Main Character", () => new PartyCharacterSelector().render(true)],
-        orbs: ["Ultimate Orbs", async () => {
+        orbs: ["Combat Party HUD", async () => {
           const count = await api()?.showUltimateUI?.();
-          ui.notifications.info(`Showing ${count || 0} Ultimate orb${count === 1 ? "" : "s"}.`);
+          if (count) ui.notifications.info("Combat party HUD shown.");
         }],
         skills: ["Skills & Skill Points", () => api()?.showSkillUI?.()],
         gm: ["Star Rail GM Panel", () => api()?.openGMPanel?.()],
@@ -405,7 +405,7 @@ function hubToolbarActions() {
   return {
     "tsru-quest-log": ["Mission Log", openQuestLog],
     "tsru-party-selector": ["Main Character", () => new PartyCharacterSelector().render(true)],
-    "tsru-orbs": ["Ultimate Orbs", () => api()?.showUltimateUI?.()],
+    "tsru-orbs": ["Combat Party HUD", () => api()?.showUltimateUI?.()],
     "tsru-skills": ["Skills & Skill Points", () => api()?.showSkillUI?.()],
     "tsru-hub-window": ["HSR Hub", openHub],
     "tsru-gm-panel": ["Star Rail GM Panel", () => api()?.openGMPanel?.()],
@@ -441,7 +441,7 @@ function consolidateToolbar(controls) {
   const hubTools=[
     ["tsru-quest-log","Mission Log","fas fa-clipboard-list",true,toolbarAction("Mission Log",openQuestLog)],
     ["tsru-party-selector","Select Main Character","fas fa-user-check",!game.user.isGM,toolbarAction("Main Character",()=>new PartyCharacterSelector().render(true))],
-    ["tsru-orbs","Show Ultimate Orbs","fas fa-burst",true,toolbarAction("Ultimate Orbs",()=>api()?.showUltimateUI?.())],
+    ["tsru-orbs","Show Combat Party HUD","fas fa-users",game.user.isGM,toolbarAction("Combat Party HUD",()=>api()?.showUltimateUI?.())],
     ["tsru-skills","Show Skills & Skill Points","fas fa-hand-sparkles",true,toolbarAction("Skills & Skill Points",()=>api()?.showSkillUI?.())],
     ["tsru-hub-window","Open HSR Hub","fas fa-grid-2",true,toolbarAction("HSR Hub",openHub)],
     ["tsru-gm-panel","Star Rail GM Panel","fas fa-sliders",game.user.isGM,toolbarAction("Star Rail GM Panel",()=>api()?.openGMPanel?.())],

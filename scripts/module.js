@@ -31,6 +31,12 @@ const DEFAULT_CONFIG = Object.freeze({
   talentPointsMax: 0,
   talentCombatId: "",
   talentScript: "",
+  talentIcon: "",
+  trialCharacter: false,
+  combatHudPortrait: "",
+  combatHudPortraitX: 50,
+  combatHudPortraitY: 50,
+  combatHudPortraitScale: 100,
   punchlineGain: 1,
   elationActionScript: "",
   elationActionText: "",
@@ -89,7 +95,8 @@ const state = {
   sheetObservers: new WeakMap(),
   suppressCombatHook: false,
   lastAhaTurnKey: "",
-  ahaVideoCache: {source: "", objectUrl: "", promise: null}
+  ahaVideoCache: {source: "", objectUrl: "", promise: null},
+  partyCombatHud: null
 };
 
 let ahaToolbarOpening = false;
@@ -2089,23 +2096,136 @@ class UltimateOrb {
   }
 }
 
+function combatPartyActors() {
+  const combat = game.combat;
+  if (!combat?.started) return [];
+  const seen = new Set();
+  const actors = Array.from(combat.combatants ?? []).filter(combatant => {
+    if (!game.user.isGM && (combatant.hidden || combatant.token?.hidden)) return false;
+    const actor = combatant.actor;
+    if (!actor || actor.type !== "character" || !getConfig(actor).mainParty || seen.has(actor.id)) return false;
+    seen.add(actor.id);
+    return true;
+  }).map(combatant => combatant.actor);
+  const playerOwned = actor => game.users.some(user => !user.isGM && actor.testUserPermission(user, "OWNER"));
+  const players = actors.filter(playerOwned);
+  const gmpcs = actors.filter(actor => !playerOwned(actor));
+  const byName = (a, b) => String(a.name).localeCompare(String(b.name), undefined, {sensitivity: "base"});
+  const selections = game.settings.get(MODULE_ID, "partySelections") ?? {};
+  const selectedIds = new Set(Object.entries(selections)
+    .filter(([userId]) => !game.users.get(userId)?.isGM)
+    .map(([, actorId]) => String(actorId || "")));
+  const selectedPlayers = players.filter(actor => selectedIds.has(actor.id)).sort(byName);
+  const otherPlayers = players.filter(actor => !selectedIds.has(actor.id)).sort(byName);
+  gmpcs.sort(byName);
+  if (!game.user.isGM) {
+    const selectedId = String(selections[game.user.id] || "");
+    const index = selectedPlayers.findIndex(actor => actor.id === selectedId && actor.isOwner);
+    if (index > 0) selectedPlayers.unshift(selectedPlayers.splice(index, 1)[0]);
+  }
+  return [...selectedPlayers, ...otherPlayers, ...gmpcs];
+}
+
+function combatHudTalentMarkup(actor, config) {
+  if (!config.talentIcon || (!config.talentScript && Number(config.talentPointsMax) <= 0)) return "";
+  const current = currentTalentPoints(actor);
+  const maximum = Math.max(0, Number(config.talentPointsMax) || 0);
+  const counter = maximum > 3 ? `${current}/${maximum}` : `${current}`;
+  return `<div class="tsru-combat-party-talent" title="${escapeHTML(actor.name)} Talent"><img src="${escapeHTML(config.talentIcon)}" alt=""><strong>${counter}</strong></div>`;
+}
+
+class CombatPartyHud {
+  constructor() { this.element = null; }
+  render() {
+    const actors = combatPartyActors();
+    if (!actors.length) return this.destroy();
+    if (!this.element) {
+      this.element = document.createElement("section");
+      this.element.className = "tsru-combat-party-hud";
+      this.element.addEventListener("click", async event => {
+        const control = event.target.closest("[data-tsru-hud-control]");
+        if (control) {
+          const layout = combatPartyHudLayout();
+          const action = control.dataset.tsruHudControl;
+          if (action === "minimize") await saveCombatPartyHudLayout({minimized: true});
+          if (action === "expand") await saveCombatPartyHudLayout({minimized: false});
+          if (action === "smaller") await saveCombatPartyHudLayout({scale: clamp(layout.scale - .1, .5, 1.75)});
+          if (action === "larger") await saveCombatPartyHudLayout({scale: clamp(layout.scale + .1, .5, 1.75)});
+          return refreshCombatPartyHud();
+        }
+        const button = event.target.closest("[data-tsru-party-ultimate]");
+        if (!button) return;
+        const actor = game.actors.get(button.dataset.actorId);
+        if (!actor || (!game.user.isGM && !actor.isOwner)) return ui.notifications.warn("You can only activate an Ultimate for a character you own.");
+        requestUltimate(actor);
+      });
+      document.body.appendChild(this.element);
+    }
+    const layout = combatPartyHudLayout();
+    this.element.style.setProperty("--hud-user-scale", layout.scale);
+    if (layout.minimized) {
+      this.element.classList.add("is-minimized");
+      this.element.innerHTML = '<button type="button" class="tsru-combat-hud-expand" data-tsru-hud-control="expand"><i class="fas fa-users"></i> Party HUD</button>';
+      return this;
+    }
+    this.element.classList.remove("is-minimized");
+    this.element.innerHTML = `<header class="tsru-combat-party-controls"><button type="button" data-tsru-hud-control="smaller" title="Make HUD smaller"><i class="fas fa-minus"></i></button><span>${Math.round(layout.scale * 100)}%</span><button type="button" data-tsru-hud-control="larger" title="Make HUD larger"><i class="fas fa-plus"></i></button><button type="button" data-tsru-hud-control="minimize" title="Minimize party HUD"><i class="fas fa-window-minimize"></i></button></header><div class="tsru-combat-party-line">${actors.map(actor => {
+      const config = getConfig(actor);
+      const hp = actor.system?.attributes?.hp ?? {};
+      const hpValue = Math.max(0, Number(hp.value) || 0);
+      const hpMax = Math.max(1, Number(hp.max) || 1);
+      const hpPercent = clamp((hpValue / hpMax) * 100, 0, 100);
+      const energyPercent = clamp((Number(config.current) / Math.max(1, Number(config.max))) * 100, 0, 100);
+      const ready = config.enabled && energyPercent >= 100 && !state.ultimateLocks.has(actor.id);
+      const owned = game.user.isGM || actor.isOwner;
+      const element = getElements().find(entry => entry.id === config.elementId);
+      const energyColor = ready ? (element?.readyColor || DEFAULT_CONFIG.readyColor) : (element?.chargeColor || DEFAULT_CONFIG.chargeColor);
+      const portrait = config.combatHudPortrait || actor.img || "icons/svg/mystery-man.svg";
+      return `<article class="tsru-combat-party-member ${owned ? "is-owned" : ""}" data-actor-id="${actor.id}" style="--hud-x:${clamp(config.combatHudPortraitX, 0, 100)}%;--hud-y:${clamp(config.combatHudPortraitY, 0, 100)}%;--hud-scale:${clamp(config.combatHudPortraitScale, 50, 300) / 100};--energy:${energyPercent}%;--energy-color:${energyColor};--hp:${hpPercent}%">
+        <div class="tsru-combat-party-portrait"><img src="${escapeHTML(portrait)}" alt="${escapeHTML(actor.name)}"></div>
+        <strong class="tsru-combat-party-name">${escapeHTML(actor.name)}</strong>
+        <div class="tsru-combat-party-hp"><i></i><span>${hpValue}/${hpMax}</span></div>
+        <div class="tsru-combat-party-bottom">${combatHudTalentMarkup(actor, config)}<div class="tsru-combat-party-energy"><i></i><span>${Math.floor(Number(config.current) || 0)}/${Math.max(1, Math.floor(Number(config.max) || 1))}</span></div>
+          <div class="tsru-combat-party-ultimate-wrap">${config.trialCharacter ? '<b class="tsru-combat-party-trial">Trial</b>' : ""}<button type="button" data-tsru-party-ultimate data-actor-id="${actor.id}" class="${ready ? "is-ready" : ""}" ${(!owned || !ready) ? "disabled" : ""} title="${owned ? (ready ? "Activate Ultimate" : "Ultimate is not ready") : "Only this character's owner can activate their Ultimate"}"><img src="${escapeHTML(config.ultimateButtonImage || config.orbImage || actor.img || "icons/svg/mystery-man.svg")}" alt=""><i></i></button></div>
+        </div>
+      </article>`;
+    }).join("")}</div>`;
+    return this;
+  }
+  destroy() { this.element?.remove(); this.element = null; if (state.partyCombatHud === this) state.partyCombatHud = null; }
+}
+
+function combatPartyHudLayout() {
+  const stored = game.settings.get(MODULE_ID, "combatPartyHudLayout") ?? {};
+  return {scale: clamp(Number(stored.scale) || 1, .5, 1.75), minimized: Boolean(stored.minimized)};
+}
+
+async function saveCombatPartyHudLayout(changes) {
+  await game.settings.set(MODULE_ID, "combatPartyHudLayout", {...combatPartyHudLayout(), ...changes});
+}
+
+function refreshCombatPartyHud() {
+  if (!game.combat?.started) { state.partyCombatHud?.destroy(); return; }
+  if (!state.partyCombatHud) state.partyCombatHud = new CombatPartyHud();
+  state.partyCombatHud.render();
+}
+
+async function showCombatPartyHud({notify = true} = {}) {
+  if (!game.combat?.started) { if (notify) ui.notifications.warn("The combat party HUD only appears while initiative is active."); return false; }
+  await saveCombatPartyHudLayout({minimized: false});
+  refreshCombatPartyHud();
+  const shown = Boolean(document.querySelector(".tsru-combat-party-hud:not(.is-minimized)"));
+  if (notify && shown) ui.notifications.info("Combat party HUD shown.");
+  return shown;
+}
+
 function refreshOrb(actor) {
-  if (!actor) return;
-  if (!canObserveActor(actor) || !userLayout(actor.id).visible) {
-    state.orbs.get(actor.id)?.destroy();
-    return;
-  }
-  let orb = state.orbs.get(actor.id);
-  if (!orb) {
-    orb = new UltimateOrb(actor);
-    state.orbs.set(actor.id, orb);
-  }
-  orb.render();
+  if (actor) state.orbs.get(actor.id)?.destroy();
 }
 
 function refreshAllOrbs() {
-  for (const actor of game.actors) refreshOrb(actor);
-  for (const [id, orb] of state.orbs) if (!game.actors.get(id)) orb.destroy();
+  for (const orb of [...state.orbs.values()]) orb.destroy();
+  refreshCombatPartyHud();
 }
 
 async function toggleOrb(actor) {
@@ -2124,20 +2244,7 @@ async function showOrb(actor, {notify = true} = {}) {
     if (notify) ui.notifications.warn(`${actor.name}'s Ultimate system is not enabled. Enable it and save the configuration first.`);
     return false;
   }
-  await saveLayout(actor.id, {visible: true});
-  try {
-    refreshOrb(actor);
-  } catch (error) {
-    console.error(`${MODULE_ID} | Could not render ${actor.name}'s Ultimate orb`, error);
-    if (notify) ui.notifications.error(`Could not show ${actor.name}'s Ultimate orb: ${error.message}`);
-    return false;
-  }
-  const rendered = Boolean(document.querySelector(`.tsru-orb-widget[data-actor-id="${actor.id}"]`));
-  if (notify) {
-    if (rendered) ui.notifications.info(`${actor.name}'s Ultimate orb is now visible.`);
-    else ui.notifications.error(`${actor.name}'s Ultimate orb could not be created. Check the console for details.`);
-  }
-  return rendered;
+  return showCombatPartyHud({notify});
 }
 
 async function loadSplashFont(fontFile) {
@@ -4212,6 +4319,7 @@ function registerSettings() {
   game.settings.register(MODULE_ID, "paths", {scope: "world", config: false, type: Array, default: []});
   game.settings.register(MODULE_ID, "elementsDraft", {scope: "client", config: false, type: Array, default: []});
   game.settings.register(MODULE_ID, "orbLayouts", {scope: "client", config: false, type: Object, default: {}});
+  game.settings.register(MODULE_ID, "combatPartyHudLayout", {scope: "client", config: false, type: Object, default: {scale: 1, minimized: false}});
   game.settings.register(MODULE_ID, "ahaConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_AHA_CONFIG)});
   game.settings.register(MODULE_ID, "ahaLayout", {scope: "client", config: false, type: Object, default: {x: 220, y: 180, size: 128, visible: false}});
   game.settings.register(MODULE_ID, "punchline", {scope: "world", config: false, type: Number, default: 0});
@@ -4306,7 +4414,7 @@ async function injectUltimateTab(app, html) {
   const elements = getElements().map(entry => ({...entry, selected: entry.id === config.elementId}));
   const paths = getPaths().map(entry => ({...entry, selected: entry.id === config.pathId}));
   const content = await renderTemplate(`modules/${MODULE_ID}/templates/ultimate-tab.hbs`, {
-    config, elements, paths,
+    actor, config, elements, paths,
     elationEnabled: getAhaConfig().elationEnabled,
     selectedElement: elements.find(entry => entry.selected),
     selectedPath: paths.find(entry => entry.selected),
@@ -4359,7 +4467,7 @@ async function openUltimateConfig(actor, sheetApp = null) {
   const elements = getElements().map(entry => ({...entry, selected: entry.id === config.elementId}));
   const paths = getPaths().map(entry => ({...entry, selected: entry.id === config.pathId}));
   const content = await renderTemplate(`modules/${MODULE_ID}/templates/ultimate-tab.hbs`, {
-    config, elements, paths,
+    actor, config, elements, paths,
     elationEnabled: getAhaConfig().elationEnabled,
     selectedElement: elements.find(entry => entry.selected),
     selectedPath: paths.find(entry => entry.selected),
@@ -4470,8 +4578,8 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
   tab.find("[name]").each((_index, field) => {
     data[field.name] = field.type === "checkbox" ? field.checked : field.value;
   });
-  for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "talentPointsCurrent", "talentPointsMax", "punchlineGain", "splashDuration", "titleX", "titleY", "titleSize"]) data[key] = Number(data[key]);
-  for (const key of ["enabled", "showPercent", "skillEnabled", "techniqueEnabled", "mainParty", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter"]) data[key] = Boolean(data[key]);
+  for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "talentPointsCurrent", "talentPointsMax", "punchlineGain", "splashDuration", "titleX", "titleY", "titleSize", "combatHudPortraitX", "combatHudPortraitY", "combatHudPortraitScale"]) data[key] = Number(data[key]);
+  for (const key of ["enabled", "showPercent", "skillEnabled", "techniqueEnabled", "mainParty", "trialCharacter", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter"]) data[key] = Boolean(data[key]);
   data.max = Math.max(1, data.max || 100);
   data.current = clamp(data.current, 0, data.max);
   const savedConfig = getConfig(actor);
@@ -4486,6 +4594,7 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
   refreshOrb(actor);
   refreshSkillUI();
   refreshResourceHuds();
+  refreshCombatPartyHud();
   if (notify) ui.notifications.info(`${actor.name}'s Ultimate configuration saved.`);
   if (renderApp && app?.render) app.render(false);
   return data;
@@ -4496,6 +4605,17 @@ function activateConfigListeners(actor, tab, app) {
   initializeCollapsibleUltimateSections(actor, tab);
   tab.find("input:not([readonly])").prop("readonly", false);
   tab.on("input.tsru change.tsru", "input, select, textarea", event => event.stopPropagation());
+  const refreshCombatPortraitPreview = () => {
+    const image = tab.find("[data-tsru-combat-hud-preview] img");
+    if (!image.length) return;
+    image.attr("src", String(tab.find("[name='combatHudPortrait']").val() || actor.img || "icons/svg/mystery-man.svg"));
+    const x = clamp(tab.find("[name='combatHudPortraitX']").val(), 0, 100);
+    const y = clamp(tab.find("[name='combatHudPortraitY']").val(), 0, 100);
+    const scale = clamp(tab.find("[name='combatHudPortraitScale']").val(), 50, 300) / 100;
+    image.css({objectPosition: `${x}% ${y}%`, transform: `scale(${scale})`, transformOrigin: `${x}% ${y}%`});
+  };
+  tab.on("input.tsru-preview change.tsru-preview", "[name='combatHudPortrait'], [name='combatHudPortraitX'], [name='combatHudPortraitY'], [name='combatHudPortraitScale']", refreshCombatPortraitPreview);
+  refreshCombatPortraitPreview();
   let autosaveTimer = null;
   let autosaveRunning = false;
   let autosaveQueued = false;
@@ -5029,22 +5149,13 @@ function addHudTool(controls) {
   if (!token) return;
   const tool = {
     name: "tsru-orbs",
-    title: "Show My Ultimate Orbs",
-    icon: "fas fa-burst",
+    title: "Show Combat Party HUD",
+    icon: "fas fa-users",
     order: 90,
     button: true,
-    visible: true,
-    onChange: async () => {
-      const actors = game.actors.filter(canObserveActor);
-      if (!actors.length) {
-        ui.notifications.warn("No enabled Ultimate characters are available to you. A GM must enable a character in its Ultimate tab first.");
-        return;
-      }
-      let shown = 0;
-      for (const actor of actors) if (await showOrb(actor, {notify: false})) shown++;
-      if (shown) ui.notifications.info(`Showing ${shown} Ultimate orb${shown === 1 ? "" : "s"}.`);
-      else ui.notifications.error("No Ultimate orbs could be displayed. Check the browser console for details.");
-    }
+    visible: game.user.isGM,
+    onClick: () => showCombatPartyHud(),
+    onChange: () => showCombatPartyHud()
   };
   if (Array.isArray(token.tools)) token.tools.push(tool);
   else token.tools.tsruOrbs = tool;
@@ -5124,6 +5235,7 @@ function registerApi() {
     showSplash,
     refreshOrbs: refreshAllOrbs,
     showOrb,
+    showCombatPartyHud,
     showAhaButton,
     triggerAhaInstant,
     openElementManager: () => new ElementManager().render(true),
@@ -5134,11 +5246,7 @@ function registerApi() {
       refreshAhaButton();
       return !layout.visible;
     },
-    showUltimateUI: async () => {
-      let shown = 0;
-      for (const actor of game.actors.filter(canObserveActor)) if (await showOrb(actor, {notify: false})) shown++;
-      return shown;
-    }
+    showUltimateUI: () => showCombatPartyHud({notify: false})
   };
 }
 
@@ -5164,6 +5272,7 @@ Hooks.once("ready", () => {
   Hooks.on("dnd5e.applyDamage", (...args) => processDnd5eAppliedDamage(...args));
   installDamageScrollingTextOverride();
   repairSelectedLightConeAttunements().catch(error => console.error(`${MODULE_ID} | Failed to repair Light Cone attunement`, error));
+  refreshCombatPartyHud();
 });
 
 Hooks.on("dnd5e.prepareSheetContext", prepareLightConeAttunementContext);
@@ -5315,6 +5424,7 @@ Hooks.on("updateActor", (actor, changes, options) => {
   refreshResourceHuds();
   refreshToughnessBars();
   state.gmPanel?.refreshLiveValues();
+  refreshCombatPartyHud();
   if (!options?.tsruAutosave && foundry.utils.hasProperty(changes, `flags.${MODULE_ID}.eidolons`)) {
     for (const app of Object.values(ui.windows ?? {})) if ((app.actor ?? app.document)?.id === actor.id) app.render(false);
   }
@@ -5326,10 +5436,11 @@ Hooks.on("updateToken", () => { refreshToughnessBars(); refreshResourceHuds(); s
 Hooks.on("targetToken", user => { if (user.id === game.user.id) state.gmPanel?.refreshTargetHighlights(); });
 Hooks.on("controlToken", () => state.gmPanel?.refreshTargetHighlights());
 Hooks.on("deleteActor", actor => { state.orbs.get(actor.id)?.destroy(); state.skillButtons.get(actor.id)?.destroy(); refreshResourceHuds(); });
-Hooks.on("updateUser", user => { if (user.id === game.user.id) { refreshAllOrbs(); refreshSkillUI(); refreshResourceHuds(); } });
+Hooks.on("updateUser", user => { if (user.id === game.user.id) { refreshAllOrbs(); refreshSkillUI(); refreshResourceHuds(); refreshCombatPartyHud(); } });
 Hooks.on("updateSetting", setting => {
   if (setting?.key?.startsWith(`${MODULE_ID}.skillPoint`)) refreshSkillUI();
   if (setting?.key?.startsWith(`${MODULE_ID}.techniquePoint`)) refreshResourceHuds();
+  if (setting?.key === `${MODULE_ID}.partySelections`) refreshCombatPartyHud();
   if (setting?.key === `${MODULE_ID}.ahaConfig` || setting?.key === `${MODULE_ID}.punchline`) {
     if (!getAhaConfig().elationEnabled) document.querySelectorAll(".tsru-aha-overlay").forEach(element => element.remove());
     refreshAhaButton();
@@ -5337,11 +5448,12 @@ Hooks.on("updateSetting", setting => {
     if (setting?.key === `${MODULE_ID}.ahaConfig`) preloadAhaVideo();
   }
 });
-Hooks.on("canvasReady", () => { refreshAllOrbs(); refreshSkillUI(); refreshPunchlineHUD(); refreshToughnessBars(); });
+Hooks.on("canvasReady", () => { refreshAllOrbs(); refreshSkillUI(); refreshPunchlineHUD(); refreshToughnessBars(); refreshCombatPartyHud(); });
 Hooks.on("canvasReady", refreshAhaButton);
 
 Hooks.on("deleteCombat", async combat => {
   refreshResourceHuds();
+  state.partyCombatHud?.destroy();
   await dispatchTalentEvent("combatEnd", {combat}, combat.id);
   state.lastTalentTurns.delete(combat.id);
   state.lastCombatTurns.delete(combat.id);
@@ -5374,6 +5486,7 @@ Hooks.on("deleteCombat", async combat => {
 Hooks.on("updateCombat", async combat => {
   refreshToughnessBars();
   refreshResourceHuds();
+  refreshCombatPartyHud();
   for (const actor of game.actors.filter(entry => entry.type === "character")) refreshTalentCounter(actor);
   state.gmPanel?.render(false);
   if (!isAuthority()) return;
@@ -5447,11 +5560,13 @@ Hooks.on("updateCombatant", async (combatant, changed) => {
 Hooks.on("createCombatant", combatant => {
   state.gmPanel?.render(false);
   window.setTimeout(refreshToughnessBars, 150);
+  window.setTimeout(refreshCombatPartyHud, 150);
   if (isAhaCombatant(combatant) || isElationActionCombatant(combatant)) return;
   window.setTimeout(() => maybeEnsureAhaCombatant(combatant.parent), 100);
 });
 
 Hooks.on("combatStart", async combat => {
+  refreshCombatPartyHud();
   state.lastCombatTurns.set(combat.id, combatTurnSnapshot(combat));
   if (isAuthority()) {
     await setSkillPoints(getSkillPointConfig().starting);
@@ -5474,6 +5589,7 @@ Hooks.on("deleteCombatant", combatant => {
     state.activeElationActions.delete(combatant.id);
   }
   window.setTimeout(refreshToughnessBars, 100);
+  window.setTimeout(refreshCombatPartyHud, 100);
 });
 
 for (const hook of ["createToken", "deleteToken"]) Hooks.on(hook, token => {
