@@ -903,8 +903,46 @@ function combatTurnSnapshot(combat) {
     actorId: combatant.actorId ?? combatant.actor?.id ?? null,
     round: combat.round,
     ultimate: Boolean(combatant.getFlag(MODULE_ID, "temporaryUltimate")),
-    elation: isElationActionCombatant(combatant)
+    elation: isElationActionCombatant(combatant),
+    actionAdvance: Boolean(combatant.getFlag(MODULE_ID, "actionAdvance"))
   } : null;
+}
+
+async function cleanupDepartedTemporaryTurn(combat, previousTurn) {
+  if (!isAuthority() || !combat || !previousTurn?.id) return false;
+  const temporary = combat.combatants.get(previousTurn.id);
+  const kind = previousTurn.actionAdvance || temporary?.getFlag(MODULE_ID, "actionAdvance") ? "actionAdvance"
+    : previousTurn.elation || isElationActionCombatant(temporary) ? "elation"
+    : previousTurn.ultimate || temporary?.getFlag(MODULE_ID, "temporaryUltimate") ? "ultimate"
+    : "";
+  if (!kind) return false;
+
+  try {
+    if (kind === "actionAdvance") {
+      const tracked = state.actionAdvances.get(combat.id);
+      if (tracked?.combatantId === previousTurn.id) await finishActionAdvance(combat, tracked);
+    } else if (kind === "elation") {
+      await completeElationAction(previousTurn.id);
+    } else if (kind === "ultimate" && previousTurn.actorId) {
+      await completeUltimate(previousTurn.actorId);
+    }
+  } catch (error) {
+    console.error(`${MODULE_ID} | ${kind} departure cleanup failed; forcing temporary turn removal`, error);
+  } finally {
+    if (combat.combatants.has(previousTurn.id)) {
+      state.suppressCombatHook = true;
+      try { await combat.deleteEmbeddedDocuments("Combatant", [previousTurn.id]); }
+      finally { state.suppressCombatHook = false; }
+    }
+    if (kind === "actionAdvance") state.actionAdvances.delete(combat.id);
+    if (kind === "elation") {
+      const pending = state.pendingElationActions.get(previousTurn.id);
+      if (pending?.timer) window.clearTimeout(pending.timer);
+      state.pendingElationActions.delete(previousTurn.id);
+      state.activeElationActions.delete(previousTurn.id);
+    }
+  }
+  return true;
 }
 
 async function removeOrphanedTemporaryTurns(combat) {
@@ -4895,16 +4933,10 @@ Hooks.on("updateCombat", async combat => {
   if (state.suppressCombatHook) return;
   if (previousTurn?.id && (previousTurn.id !== currentTurn?.id || previousTurn.round !== combat.round)) {
     await restoreBrokenCombatant(combat.combatants.get(previousTurn.id));
-    if (previousTurn.ultimate && previousTurn.actorId) {
-      await completeUltimate(previousTurn.actorId);
+    if (await cleanupDepartedTemporaryTurn(combat, previousTurn)) {
       await removeOrphanedTemporaryTurns(combat);
       state.lastCombatTurns.set(combat.id, combatTurnSnapshot(combat));
-      return;
-    }
-    if (previousTurn.elation) {
-      await completeElationAction(previousTurn.id);
-      await removeOrphanedTemporaryTurns(combat);
-      state.lastCombatTurns.set(combat.id, combatTurnSnapshot(combat));
+      state.gmPanel?.render(false);
       return;
     }
   }
