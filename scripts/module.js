@@ -1517,7 +1517,6 @@ class SkillPointMeter {
       this.element.innerHTML = `<div class="tsru-skill-meter-drag" title="Move Skill Point meter"><i class="fas fa-grip-lines"></i></div><div class="tsru-skill-meter-content"><div class="tsru-skill-point-number"></div><div class="tsru-skill-point-separator" aria-hidden="true"></div><div class="tsru-skill-pips"></div></div><div class="tsru-skill-meter-underline"></div><button type="button" class="tsru-skill-meter-close" title="Hide Skill Point meter"><i class="fas fa-xmark"></i></button><div class="tsru-skill-meter-resize" title="Resize"></div>`;
       document.body.appendChild(this.element);
       this.activateListeners();
-      activateStarRailActionDrag(this.element.querySelector(".tsru-skill-button"), this.actor, "skill");
     }
     const config = getSkillPointConfig();
     const current = currentSkillPoints();
@@ -1573,6 +1572,7 @@ class SkillButton {
       this.element.innerHTML = `<div class="tsru-skill-drag" title="Move Skill button"><i class="fas fa-grip-lines"></i></div><button type="button" class="tsru-skill-button"><img></button><div class="tsru-skill-label">Skill</div><button type="button" class="tsru-skill-close" title="Hide Skill button"><i class="fas fa-xmark"></i></button><div class="tsru-skill-resize" title="Resize"></div>`;
       document.body.appendChild(this.element);
       this.activateListeners();
+      activateStarRailActionDrag(this.element.querySelector(".tsru-skill-button"), this.actor, "skill");
     }
     const config = getConfig(this.actor);
     const element = getElements().find(entry => entry.id === config.elementId);
