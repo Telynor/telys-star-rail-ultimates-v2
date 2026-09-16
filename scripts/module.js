@@ -79,6 +79,7 @@ const state = {
   techniqueHud: null,
   techniqueSpendLock: false,
   ahaButton: null,
+  ahaCombatantPromises: new Map(),
   punchlineMeter: null,
   pendingElationActions: new Map(),
   activeElationActions: new Set(),
@@ -1095,13 +1096,19 @@ async function removeOrphanedTemporaryTurns(combat) {
   finally { state.suppressCombatHook = false; }
 }
 
-async function ensureAhaCombatant(combat) {
+async function ensureAhaCombatantUnlocked(combat) {
   if (!isAuthority() || !combat) return null;
   const config = getAhaConfig();
-  const existing = combat.combatants.find(isAhaCombatant);
+  const existingAha = combat.combatants.filter(isAhaCombatant);
+  const existing = existingAha[0] ?? null;
   if (!config.elationEnabled || !config.initiativeEnabled) {
-    if (existing) await combat.deleteEmbeddedDocuments("Combatant", [existing.id]);
+    if (existingAha.length) await combat.deleteEmbeddedDocuments("Combatant", existingAha.map(entry => entry.id));
     return null;
+  }
+  // Older versions could race several initiative-update hooks and create one
+  // Aha combatant per roll. Repair those encounters while retaining one entry.
+  if (existingAha.length > 1) {
+    await combat.deleteEmbeddedDocuments("Combatant", existingAha.slice(1).map(entry => entry.id));
   }
   const rolledInitiatives = combat.combatants
     .filter(combatant => !isAhaCombatant(combatant) && !isElationActionCombatant(combatant) && combatant.initiative !== null && Number.isFinite(Number(combatant.initiative)))
@@ -1121,6 +1128,18 @@ async function ensureAhaCombatant(combat) {
     flags: {[MODULE_ID]: {ahaInstantCombatant: true}}
   }]);
   return created ?? null;
+}
+
+async function ensureAhaCombatant(combat) {
+  if (!isAuthority() || !combat) return null;
+  const pending = state.ahaCombatantPromises.get(combat.id);
+  if (pending) return pending;
+  const task = ensureAhaCombatantUnlocked(combat);
+  state.ahaCombatantPromises.set(combat.id, task);
+  try { return await task; }
+  finally {
+    if (state.ahaCombatantPromises.get(combat.id) === task) state.ahaCombatantPromises.delete(combat.id);
+  }
 }
 
 async function clearElationActionTurns(combat, {resetPunchline = false, resume = false, resumeRound = null} = {}) {
@@ -6322,6 +6341,15 @@ Hooks.on("combatStart", async combat => {
   }
   for (const actor of game.actors.filter(entry => entry.type === "character")) refreshTalentCounter(actor);
   await maybeEnsureAhaCombatant(combat, {force: true});
+  // Foundry can emit combatStart before every client has observed the updated
+  // `started` state. Refresh again on the next task so combat-only HUDs do not
+  // remain hidden after being destroyed between encounters.
+  window.setTimeout(() => {
+    refreshResourceHuds();
+    refreshCombatPartyHud();
+    refreshPunchlineHUD();
+    refreshSkillUI();
+  }, 100);
 });
 Hooks.on("deleteCombatant", combatant => {
   const tracked = state.lastCombatTurns.get(combatant.parent?.id);
