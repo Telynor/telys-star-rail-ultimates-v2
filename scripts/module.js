@@ -1664,20 +1664,50 @@ class TalentButton {
 }
 
 function refreshTalentButtons() {
-  const actor=selectedMainCharacter();
-  for (const [id,button] of state.talentButtons) if (id !== actor?.id) button.destroy();
-  if (!actor || !talentButtonLayout(actor.id).visible || !talentCombatForActor(actor)) return;
-  let button=state.talentButtons.get(actor.id); if(!button){button=new TalentButton(actor);state.talentButtons.set(actor.id,button);} button.render();
+  const actors = game.user.isGM
+    ? game.actors.filter(actor => actor.type === "character" && talentButtonLayout(actor.id).visible && talentCombatForActor(actor) && talentPointLimits(actor).trigger > 0)
+    : [selectedMainCharacter()].filter(actor => actor && talentButtonLayout(actor.id).visible && talentCombatForActor(actor));
+  const actorIds = new Set(actors.map(actor => actor.id));
+  for (const [id,button] of [...state.talentButtons]) if (!actorIds.has(id)) button.destroy();
+  for (const actor of actors) {
+    let button=state.talentButtons.get(actor.id);
+    if(!button){button=new TalentButton(actor);state.talentButtons.set(actor.id,button);}
+    button.render();
+  }
 }
 
-async function showTalentUI() {
-  const actor=selectedMainCharacter();
+async function placeTalentButton(actor, {openPopup = false} = {}) {
   if (!actor) return ui.notifications.warn("Select your main character first.");
   if (!talentCombatForActor(actor)) return ui.notifications.warn("Talent controls are available while that character is on the battlefield in combat.");
   if (talentPointLimits(actor).trigger < 1) return ui.notifications.warn("This character does not have a Talent Point trigger configured.");
   await saveTalentButtonLayout(actor.id,{visible:true});
   refreshTalentButtons();
-  showTalentPopup(actor);
+  if (openPopup) showTalentPopup(actor);
+  else ui.notifications.info(`${actor.name}'s Talent button was placed.`);
+  return true;
+}
+
+function showGMTalentActorPicker() {
+  const actors = game.actors
+    .filter(actor => actor.type === "character" && talentPointLimits(actor).trigger > 0)
+    .sort((left, right) => String(left.name).localeCompare(String(right.name), undefined, {sensitivity:"base"}));
+  if (!actors.length) return ui.notifications.warn("No characters have a Talent Point trigger configured.");
+  const options = actors.map(actor => `<option value="${actor.id}">${escapeHTML(actor.name)}</option>`).join("");
+  const content = `<form class="tsru-talent-character-picker"><div class="form-group"><label>Select character</label><div class="form-fields"><select name="actorId">${options}</select></div><p class="hint">Creates that character's detached Talent button using the Talent configured on their sheet.</p></div></form>`;
+  new Dialog({
+    title:"Show Character Talent",
+    content,
+    buttons:{
+      ok:{icon:'<i class="fas fa-check"></i>',label:"OK",callback:html => placeTalentButton(game.actors.get(html.find('[name="actorId"]').val()))},
+      cancel:{icon:'<i class="fas fa-times"></i>',label:"Cancel"}
+    },
+    default:"ok"
+  }).render(true);
+}
+
+async function showTalentUI() {
+  if (game.user.isGM) return showGMTalentActorPicker();
+  return placeTalentButton(selectedMainCharacter(), {openPopup:true});
 }
 
 async function saveSkillButtonLayout(actorId, changes) {
