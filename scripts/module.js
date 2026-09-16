@@ -809,7 +809,7 @@ class PunchlineMeter {
   render() {
     const config = getAhaConfig();
     const layout = punchlineLayout();
-    if (!config.elationEnabled || !layout.visible) return this.destroy();
+    if (!combatHasInitiative() || !config.elationEnabled || !layout.visible) return this.destroy();
     if (!this.element) {
       this.element = document.createElement("div");
       this.element.className = "tsru-punchline-meter";
@@ -845,7 +845,7 @@ class PunchlineMeter {
 }
 
 function refreshPunchlineHUD() {
-  if (!getAhaConfig().elationEnabled || !punchlineLayout().visible) { state.punchlineMeter?.destroy(); return; }
+  if (!combatHasInitiative() || !getAhaConfig().elationEnabled || !punchlineLayout().visible) { state.punchlineMeter?.destroy(); return; }
   if (!state.punchlineMeter) state.punchlineMeter = new PunchlineMeter();
   state.punchlineMeter.render();
 }
@@ -1784,7 +1784,7 @@ class SkillPointMeter {
   constructor() { this.element = null; this.drag = null; this.resize = null; }
   render() {
     const layout = skillMeterLayout();
-    if (!layout.visible) return this.destroy();
+    if (!combatHasInitiative() || !layout.visible) return this.destroy();
     if (!this.element) {
       this.element = document.createElement("div");
       this.element.className = "tsru-skill-meter";
@@ -1880,7 +1880,7 @@ class SkillButton {
 
 function refreshSkillUI() {
   const meterLayout = skillMeterLayout();
-  if (meterLayout.visible) { if (!state.skillMeter) state.skillMeter = new SkillPointMeter(); state.skillMeter.render(); }
+  if (combatHasInitiative() && meterLayout.visible) { if (!state.skillMeter) state.skillMeter = new SkillPointMeter(); state.skillMeter.render(); }
   else state.skillMeter?.destroy();
   for (const actor of game.actors ?? []) {
     if (!canUseSkillActor(actor) || !skillButtonLayout(actor.id).visible) { state.skillButtons.get(actor.id)?.destroy(); continue; }
@@ -6189,6 +6189,8 @@ Hooks.on("canvasReady", refreshAhaButton);
 Hooks.on("deleteCombat", async combat => {
   refreshResourceHuds();
   state.partyCombatHud?.destroy();
+  state.punchlineMeter?.destroy();
+  state.skillMeter?.destroy();
   await dispatchTalentEvent("combatEnd", {combat}, combat.id);
   state.lastTalentTurns.delete(combat.id);
   state.lastCombatTurns.delete(combat.id);
@@ -6223,6 +6225,8 @@ Hooks.on("updateCombat", async combat => {
   refreshToughnessBars();
   refreshResourceHuds();
   refreshCombatPartyHud();
+  refreshPunchlineHUD();
+  refreshSkillUI();
   for (const actor of game.actors.filter(entry => entry.type === "character")) refreshTalentCounter(actor);
   state.gmPanel?.render(false);
   if (!isAuthority()) return;
@@ -6308,6 +6312,8 @@ Hooks.on("createCombatant", combatant => {
 
 Hooks.on("combatStart", async combat => {
   refreshCombatPartyHud();
+  refreshPunchlineHUD();
+  refreshSkillUI();
   state.lastCombatTurns.set(combat.id, combatTurnSnapshot(combat));
   if (isAuthority()) {
     await setSkillPoints(getSkillPointConfig().starting);
