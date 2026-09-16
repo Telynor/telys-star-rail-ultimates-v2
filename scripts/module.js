@@ -645,10 +645,11 @@ function punchlineScriptHelpers(actor) {
 function talentCombatForActor(actor) {
   const combat = game.combat;
   if (!combat?.started || actor?.type !== "character") return null;
-  const scene = combat.scene ?? game.scenes?.get(combat.sceneId);
-  if (!scene?.tokens) return null;
-  // Hidden tokens are still on the battlefield and remain eligible.
-  return scene.tokens.some(token => token.actorId === actor.id || token.actor?.id === actor.id) ? combat : null;
+  // Use the initiative roster itself as the source of truth. This also supports
+  // hidden combatants and synthetic/unlinked token actors.
+  return Array.from(combat.combatants ?? []).some(combatant =>
+    combatant.actorId === actor.id || combatant.actor?.id === actor.id
+  ) ? combat : null;
 }
 
 function currentTalentPoints(actor) {
@@ -1636,7 +1637,7 @@ class TalentButton {
   constructor(actor) { this.actor=actor; this.element=null; this.drag=null; this.resize=null; }
   render() {
     const layout=talentButtonLayout(this.actor.id), config=getConfig(this.actor);
-    if (!layout.visible || !talentCombatForActor(this.actor) || talentPointLimits(this.actor).trigger < 1) return this.destroy();
+    if (!layout.visible || talentPointLimits(this.actor).trigger < 1) return this.destroy();
     if (!this.element) {
       this.element=document.createElement("div");
       this.element.className="tsru-skill-widget tsru-talent-widget";
@@ -1665,8 +1666,8 @@ class TalentButton {
 
 function refreshTalentButtons() {
   const actors = game.user.isGM
-    ? game.actors.filter(actor => actor.type === "character" && talentButtonLayout(actor.id).visible && talentCombatForActor(actor) && talentPointLimits(actor).trigger > 0)
-    : [selectedMainCharacter()].filter(actor => actor && talentButtonLayout(actor.id).visible && talentCombatForActor(actor));
+    ? game.actors.filter(actor => actor.type === "character" && talentButtonLayout(actor.id).visible && talentPointLimits(actor).trigger > 0)
+    : [selectedMainCharacter()].filter(actor => actor && talentButtonLayout(actor.id).visible);
   const actorIds = new Set(actors.map(actor => actor.id));
   for (const [id,button] of [...state.talentButtons]) if (!actorIds.has(id)) button.destroy();
   for (const actor of actors) {
@@ -1678,7 +1679,6 @@ function refreshTalentButtons() {
 
 async function placeTalentButton(actor, {openPopup = false} = {}) {
   if (!actor) return ui.notifications.warn("Select your main character first.");
-  if (!talentCombatForActor(actor)) return ui.notifications.warn("Talent controls are available while that character is on the battlefield in combat.");
   if (talentPointLimits(actor).trigger < 1) return ui.notifications.warn("This character does not have a Talent Point trigger configured.");
   await saveTalentButtonLayout(actor.id,{visible:true});
   refreshTalentButtons();
@@ -1689,9 +1689,9 @@ async function placeTalentButton(actor, {openPopup = false} = {}) {
 
 function showGMTalentActorPicker() {
   const actors = game.actors
-    .filter(actor => actor.type === "character" && talentPointLimits(actor).trigger > 0)
+    .filter(actor => actor.type === "character")
     .sort((left, right) => String(left.name).localeCompare(String(right.name), undefined, {sensitivity:"base"}));
-  if (!actors.length) return ui.notifications.warn("No characters have a Talent Point trigger configured.");
+  if (!actors.length) return ui.notifications.warn("No player characters are available.");
   const options = actors.map(actor => `<option value="${actor.id}">${escapeHTML(actor.name)}</option>`).join("");
   const content = `<form class="tsru-talent-character-picker"><div class="form-group"><label>Select character</label><div class="form-fields"><select name="actorId">${options}</select></div><p class="hint">Creates that character's detached Talent button using the Talent configured on their sheet.</p></div></form>`;
   new Dialog({
