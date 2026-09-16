@@ -139,6 +139,10 @@ const DEFAULT_SKILL_POINT_CONFIG = Object.freeze({
   numberFontFile: ""
 });
 
+const DEFAULT_TALENT_POINT_CONFIG = Object.freeze({
+  numberFontFile: ""
+});
+
 const DEFAULT_COMBAT_HUD_DESIGN = Object.freeze({
   memberWidth: 184, memberHeight: 150,
   portraitLeft: 0, portraitRight: 25, portraitTop: 0, portraitBottom: 17,
@@ -682,6 +686,19 @@ function queueTalentTurn(actor, combat = talentCombatForActor(actor)) {
   return true;
 }
 
+function queueReadyTalentTurns(combat) {
+  if (!isAuthority() || !combat?.started) return;
+  const seen = new Set();
+  for (const combatant of combat.combatants ?? []) {
+    if (isTalentTurnCombatant(combatant)) continue;
+    const actor = game.actors.get(combatant.actorId) ?? combatant.actor;
+    if (!actor || actor.type !== "character" || seen.has(actor.id)) continue;
+    seen.add(actor.id);
+    const {trigger} = talentPointLimits(actor);
+    if (trigger > 0 && currentTalentPoints(actor) >= trigger) queueTalentTurn(actor, combat);
+  }
+}
+
 async function setTalentPoints(actor, value) {
   const combat = talentCombatForActor(actor);
   if (!isAuthority() || !combat) return currentTalentPoints(actor);
@@ -937,7 +954,7 @@ async function postTalentText(actor) {
 
 async function beginTalentTurn(combatant) {
   if (!isAuthority() || !isTalentTurnCombatant(combatant) || combatant.getFlag(MODULE_ID, "talentActivated")) return;
-  const actor = combatant.actor;
+  const actor = game.actors.get(combatant.getFlag(MODULE_ID, "talentActorId")) ?? combatant.actor;
   if (!actor) return;
   await combatant.setFlag(MODULE_ID, "talentActivated", true);
   await postTalentText(actor);
@@ -945,6 +962,7 @@ async function beginTalentTurn(combatant) {
 
 async function processTalentTurnQueue(combat) {
   if (!isAuthority() || !combat?.started || combat.combatants.some(isTalentTurnCombatant)) return false;
+  queueReadyTalentTurns(combat);
   const queue = state.talentTurnQueues.get(combat.id) ?? [];
   while (queue.length) {
     const actor = game.actors.get(queue.shift());
@@ -956,7 +974,7 @@ async function processTalentTurnQueue(combat) {
     let initiative = next ? (currentInit + Number(next.initiative ?? currentInit - 1)) / 2 : currentInit - 0.001;
     if (!Number.isFinite(initiative)) initiative = currentInit - 0.001;
     const token = actor.getActiveTokens(true, true)?.[0];
-    const [temporary] = await combat.createEmbeddedDocuments("Combatant", [{name:`TALENT - ${actor.name}`,actorId:actor.id,tokenId:token?.id ?? null,sceneId:token?.parent?.id ?? canvas.scene?.id ?? null,initiative,img:getConfig(actor).talentIcon || actor.img,flags:{[MODULE_ID]:{talentTurnCombatant:true,resumeCombatantId:resume?.id ?? null,resumeRound:combat.round}}}]);
+    const [temporary] = await combat.createEmbeddedDocuments("Combatant", [{name:`TALENT - ${actor.name}`,actorId:actor.id,tokenId:token?.id ?? null,sceneId:token?.parent?.id ?? canvas.scene?.id ?? null,initiative,img:getConfig(actor).talentIcon || actor.img,flags:{[MODULE_ID]:{talentTurnCombatant:true,talentActorId:actor.id,resumeCombatantId:resume?.id ?? null,resumeRound:combat.round}}}]);
     if (!temporary) continue;
     const index = combat.turns.findIndex(entry => entry.id === temporary.id);
     if (index >= 0) {
@@ -971,7 +989,7 @@ async function processTalentTurnQueue(combat) {
 }
 
 async function finishTalentTurn(combat, temporary) {
-  const actor = temporary?.actor;
+  const actor = game.actors.get(temporary?.getFlag(MODULE_ID, "talentActorId")) ?? temporary?.actor;
   const resumeId = temporary?.getFlag(MODULE_ID, "resumeCombatantId");
   const resumeRound = temporary?.getFlag(MODULE_ID, "resumeRound");
   const trigger = actor ? talentPointLimits(actor).trigger : 0;
@@ -1357,15 +1375,20 @@ class TalentPointHud {
   render() {
     const actors = visibleTalentActors();
     if (!actors.length) return this.destroy();
-    const fallback = {x: 24, y: 180};
+    const fallback = {x: 24, y: 180, minimized: false};
     const layout = resourceHudLayout("talentHudLayout", fallback);
     if (!this.element) {
       this.element = document.createElement("section");
       this.element.className = "tsru-resource-hud tsru-talent-hud";
-      this.element.innerHTML = '<header><span><i class="fas fa-star"></i> Talent Points</span><i class="fas fa-grip-lines tsru-resource-drag"></i></header><div class="tsru-resource-list"></div>';
+      this.element.innerHTML = '<header><span><i class="fas fa-star"></i> Talent Points</span><span class="tsru-resource-header-actions"><i class="fas fa-grip-lines tsru-resource-drag" title="Move Talent Points"></i><button type="button" data-talent-hud-toggle title="Minimize Talent Points"><i class="fas fa-window-minimize"></i></button></span></header><div class="tsru-resource-list"></div>';
       document.body.appendChild(this.element);
       activateResourceHudDrag(this.element, this.element.querySelector(".tsru-resource-drag"), "talentHudLayout", fallback);
       this.element.addEventListener("click", event => {
+        const toggle = event.target.closest("[data-talent-hud-toggle]");
+        if (toggle) {
+          saveResourceHudLayout("talentHudLayout", {minimized: !resourceHudLayout("talentHudLayout", fallback).minimized}, fallback).then(refreshResourceHuds);
+          return;
+        }
         const button = event.target.closest("[data-talent-delta]");
         if (!button) return;
         requestTalentAdjustment(game.actors.get(button.dataset.actorId), Number(button.dataset.talentDelta));
@@ -1373,9 +1396,14 @@ class TalentPointHud {
     }
     this.element.style.left = `${clamp(layout.x, 0, window.innerWidth - 60)}px`;
     this.element.style.top = `${clamp(layout.y, 0, window.innerHeight - 40)}px`;
+    this.element.classList.toggle("is-minimized", Boolean(layout.minimized));
+    const toggleIcon = this.element.querySelector("[data-talent-hud-toggle] i");
+    if (toggleIcon) toggleIcon.className = layout.minimized ? "fas fa-window-maximize" : "fas fa-window-minimize";
+    const toggle = this.element.querySelector("[data-talent-hud-toggle]");
+    if (toggle) toggle.title = layout.minimized ? "Expand Talent Points" : "Minimize Talent Points";
     this.element.querySelector(".tsru-resource-list").innerHTML = actors.map(actor => {
       const config = getConfig(actor);
-      return `<div class="tsru-resource-row"><img src="${escapeHTML(actor.img || "icons/svg/mystery-man.svg")}" alt=""><span class="tsru-resource-name">${escapeHTML(actor.name)}</span><button type="button" data-actor-id="${actor.id}" data-talent-delta="-1" title="Remove 1 Talent Point"><i class="fas fa-minus"></i></button><strong>${currentTalentPoints(actor)}/${Math.max(0, Number(config.talentPointsMax) || 0)}</strong><button type="button" data-actor-id="${actor.id}" data-talent-delta="1" title="Add 1 Talent Point"><i class="fas fa-plus"></i></button></div>`;
+      return `<div class="tsru-resource-row"><img src="${escapeHTML(config.talentIcon || actor.img || "icons/svg/star.svg")}" alt=""><span class="tsru-resource-name">${escapeHTML(actor.name)}</span><button type="button" data-actor-id="${actor.id}" data-talent-delta="-1" title="Remove 1 Talent Point"><i class="fas fa-minus"></i></button><strong>${currentTalentPoints(actor)}/${Math.max(0, Number(config.talentPointsMax) || 0)}</strong><button type="button" data-actor-id="${actor.id}" data-talent-delta="1" title="Add 1 Talent Point"><i class="fas fa-plus"></i></button></div>`;
     }).join("");
     return this;
   }
@@ -1562,6 +1590,20 @@ function getSkillPointConfig() {
   config.pointsPerRow = clamp(Math.floor(Number(config.pointsPerRow)), 1, config.maximum);
   config.pointSpacing = clamp(Number(config.pointSpacing), -50, 50);
   return config;
+}
+
+function getTalentPointConfig() {
+  return foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_TALENT_POINT_CONFIG), game.settings.get(MODULE_ID, "talentPointConfig") ?? {}, {inplace:false});
+}
+
+async function refreshTalentPointFont() {
+  try {
+    const font = await loadSplashFont(getTalentPointConfig().numberFontFile);
+    document.documentElement.style.setProperty("--tsru-talent-number-font", font);
+  } catch (error) {
+    console.warn(`${MODULE_ID} | Could not load Talent Point font`, error);
+    document.documentElement.style.removeProperty("--tsru-talent-number-font");
+  }
 }
 
 function currentSkillPoints() {
@@ -2535,11 +2577,10 @@ function combatPartyActors() {
 }
 
 function combatHudTalentMarkup(actor, config) {
-  if (!config.talentIcon || (!config.talentText && Number(config.talentPointsMax) <= 0)) return "";
+  if (!config.talentText && Number(config.talentPointsMax) <= 0) return "";
   const current = currentTalentPoints(actor);
   const maximum = Math.max(0, Number(config.talentPointsMax) || 0);
-  const counter = maximum > 3 ? `${current}/${maximum}` : `${current}`;
-  return `<div class="tsru-combat-party-talent" title="${escapeHTML(plainAbilityText(config.talentText) || `${actor.name} Talent`)}"><img src="${escapeHTML(config.talentIcon)}" alt=""><strong>${counter}</strong></div>`;
+  return `<div class="tsru-combat-party-talent" title="${escapeHTML(plainAbilityText(config.talentText) || `${actor.name} Talent`)}"><img src="${escapeHTML(config.talentIcon || actor.img || "icons/svg/star.svg")}" alt=""><strong>${current}/${maximum}</strong></div>`;
 }
 
 class CombatPartyHud {
@@ -4531,6 +4572,39 @@ class SkillPointMenu extends FormApplication {
   render() { new SkillPointConfig().render(true); return this; }
 }
 
+class TalentPointConfig extends FormApplication {
+  static get defaultOptions() {
+    return foundry.utils.mergeObject(super.defaultOptions, {
+      id:"tsru-talent-point-config",
+      title:"Talent Point Configuration",
+      template:`modules/${MODULE_ID}/templates/talent-point-config.hbs`,
+      width:520,
+      height:"auto",
+      closeOnSubmit:true
+    });
+  }
+  getData() { return {config:getTalentPointConfig()}; }
+  activateListeners(html) {
+    super.activateListeners(html);
+    html.find(".file-picker").on("click", event => {
+      const button = event.currentTarget;
+      const target = button.dataset.target;
+      new FilePicker({type:"any", current:html.find(`[name="${target}"]`).val(), callback:path => html.find(`[name="${target}"]`).val(path).trigger("change")}).browse();
+    });
+  }
+  async _updateObject(_event, formData) {
+    await game.settings.set(MODULE_ID, "talentPointConfig", {numberFontFile:String(formData.numberFontFile || "").trim()});
+    await refreshTalentPointFont();
+    refreshResourceHuds();
+    refreshCombatPartyHud();
+    ui.notifications.info("Talent Point appearance saved.");
+  }
+}
+
+class TalentPointMenu extends FormApplication {
+  render() { new TalentPointConfig().render(true); return this; }
+}
+
 class EidolonAppearanceConfig extends FormApplication {
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
@@ -4857,6 +4931,7 @@ function registerSettings() {
   game.settings.register(MODULE_ID, "techniquePointConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_TECHNIQUE_POINT_CONFIG)});
   game.settings.register(MODULE_ID, "techniquePoints", {scope: "world", config: false, type: Number, default: DEFAULT_TECHNIQUE_POINT_CONFIG.starting});
   game.settings.register(MODULE_ID, "talentHudLayout", {scope: "client", config: false, type: Object, default: {x: 24, y: 180}});
+  game.settings.register(MODULE_ID, "talentPointConfig", {scope:"world", config:false, type:Object, default:foundry.utils.deepClone(DEFAULT_TALENT_POINT_CONFIG)});
   game.settings.register(MODULE_ID, "talentButtonLayouts", {scope: "client", config: false, type: Object, default: {}});
   game.settings.register(MODULE_ID, "techniqueHudLayout", {scope: "client", config: false, type: Object, default: {x: 24, y: 420}});
   game.settings.register(MODULE_ID, "skillPointConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_SKILL_POINT_CONFIG)});
@@ -4907,6 +4982,14 @@ function registerSettings() {
     icon: "fas fa-diamond",
     type: SkillPointMenu,
     restricted: true
+  });
+  game.settings.registerMenu(MODULE_ID, "talentPointsMenu", {
+    name:"Talent Point Configuration",
+    label:"Configure Talent Points",
+    hint:"Choose the universal number font used by Talent Points in the floating panel and combat party HUD.",
+    icon:"fas fa-star",
+    type:TalentPointMenu,
+    restricted:true
   });
   game.settings.registerMenu(MODULE_ID, "eidolonAppearance", {
     name: "Eidolon Interface Configuration",
@@ -5785,6 +5868,7 @@ function registerApi() {
     openGMPanel: openStarRailGMPanel,
     openAhaConfig: () => new AhaConfig().render(true),
     openSkillPointConfig: () => new SkillPointConfig().render(true),
+    openTalentPointConfig: () => new TalentPointConfig().render(true),
     openTechniquePointConfig: () => new TechniquePointConfig().render(true),
     openEidolonConfig: () => new EidolonAppearanceConfig().render(true),
     openLightConeGenerator,
@@ -5829,6 +5913,7 @@ Hooks.once("ready", () => {
   refreshPunchlineHUD();
   refreshSkillUI();
   refreshResourceHuds();
+  refreshTalentPointFont();
   preloadAhaVideo();
   registerAhaToolbarFallback();
   if (game.modules.get("midi-qol")?.active) Hooks.on("midi-qol.RollComplete", processMidiWorkflow);
@@ -6050,6 +6135,11 @@ Hooks.on("deleteActor", actor => { state.orbs.get(actor.id)?.destroy(); state.sk
 Hooks.on("updateUser", user => { if (user.id === game.user.id) { refreshAllOrbs(); refreshSkillUI(); refreshResourceHuds(); refreshCombatPartyHud(); } });
 Hooks.on("updateSetting", setting => {
   if (setting?.key?.startsWith(`${MODULE_ID}.skillPoint`)) refreshSkillUI();
+  if (setting?.key === `${MODULE_ID}.talentPointConfig`) {
+    refreshTalentPointFont();
+    refreshResourceHuds();
+    refreshCombatPartyHud();
+  }
   if (setting?.key?.startsWith(`${MODULE_ID}.techniquePoint`)) refreshResourceHuds();
   if (setting?.key === `${MODULE_ID}.elements`) {
     refreshAllOrbs();
