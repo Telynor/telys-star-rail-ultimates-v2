@@ -3615,14 +3615,15 @@ function damageResultColor(attacker, {_hpDamage = false} = {}) {
 }
 
 function damageRollWasCritical(source) {
-  return Boolean(
-    source?.isCritical ||
-    source?.critical ||
-    source?.attackRoll?.isCritical ||
-    source?.attackRoll?.options?.critical ||
-    source?.attackRolls?.some?.(roll => roll?.isCritical || roll?.options?.critical) ||
-    source?.rolls?.some?.(roll => roll?.isCritical || roll?.options?.critical)
-  );
+  const confirmed = value => value === true;
+  const criticalRoll = roll => confirmed(roll?.isCritical) || confirmed(roll?.options?.critical);
+  return confirmed(source?.isCritical)
+    || confirmed(source?.critical)
+    || confirmed(source?.flags?.dnd5e?.roll?.critical)
+    || confirmed(source?.flags?.["midi-qol"]?.isCritical)
+    || criticalRoll(source?.attackRoll)
+    || Boolean(source?.attackRolls?.some?.(criticalRoll))
+    || Boolean(source?.rolls?.some?.(criticalRoll));
 }
 
 async function broadcastDamageOnce(attacker, target, amount, eventId, {critical = false} = {}) {
