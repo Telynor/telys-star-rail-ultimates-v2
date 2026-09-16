@@ -57,6 +57,10 @@ const DEFAULT_CONFIG = Object.freeze({
   fontFile: "",
   subtitleFontFile: "",
   ultimateButtonImage: "",
+  ultimateButtonAdjustEnabled: false,
+  ultimateButtonX: 50,
+  ultimateButtonY: 50,
+  ultimateButtonScale: 100,
   orbImage: "",
   chargeColor: "#596171",
   readyColor: "#20e6ff",
@@ -2418,6 +2422,9 @@ class UltimateOrb {
     this.element.style.setProperty("--tsru-size", `${clamp(layout.size, 72, 360)}px`);
     this.element.style.setProperty("--tsru-fill", `${percent}%`);
     this.element.style.setProperty("--tsru-color", color || DEFAULT_CONFIG.chargeColor);
+    this.element.style.setProperty("--tsru-ultimate-x", `${config.ultimateButtonAdjustEnabled ? clamp(config.ultimateButtonX, 0, 100) : 50}%`);
+    this.element.style.setProperty("--tsru-ultimate-y", `${config.ultimateButtonAdjustEnabled ? clamp(config.ultimateButtonY, 0, 100) : 50}%`);
+    this.element.style.setProperty("--tsru-ultimate-scale", String((config.ultimateButtonAdjustEnabled ? clamp(config.ultimateButtonScale, 50, 400) : 100) / 100));
     this.element.classList.toggle("has-energy", percent > 0 && !ready);
     this.element.classList.toggle("is-ready", ready);
     this.element.querySelector(".tsru-orb-image").src = config.ultimateButtonImage || config.orbImage || this.actor.img || "icons/svg/mystery-man.svg";
@@ -2512,7 +2519,7 @@ function combatHudDesignerPreview(actor = null, config = null, design = getComba
   const portrait = config.combatHudPortrait || actor?.img || "icons/svg/mystery-man.svg";
   const orb = config.ultimateButtonImage || config.orbImage || actor?.img || "icons/svg/mystery-man.svg";
   const talent = config.talentIcon || "icons/svg/aura.svg";
-  return `<article class="tsru-combat-party-member tsru-combat-hud-design-sample" style="${combatHudDesignStyle(design)};--hud-x:${clamp(config.combatHudPortraitX,0,100)}%;--hud-y:${clamp(config.combatHudPortraitY,0,100)}%;--hud-scale:${clamp(config.combatHudPortraitScale,50,300)/100};--hud-flip:${config.combatHudPortraitFlip ? -1 : 1};--energy:72%;--energy-color:#20e6ff;--hp:78%">
+  return `<article class="tsru-combat-party-member tsru-combat-hud-design-sample" style="${combatHudDesignStyle(design)};--hud-x:${clamp(config.combatHudPortraitX,0,100)}%;--hud-y:${clamp(config.combatHudPortraitY,0,100)}%;--hud-scale:${clamp(config.combatHudPortraitScale,50,300)/100};--hud-flip:${config.combatHudPortraitFlip ? -1 : 1};--tsru-ultimate-x:${config.ultimateButtonAdjustEnabled ? clamp(config.ultimateButtonX,0,100) : 50}%;--tsru-ultimate-y:${config.ultimateButtonAdjustEnabled ? clamp(config.ultimateButtonY,0,100) : 50}%;--tsru-ultimate-scale:${(config.ultimateButtonAdjustEnabled ? clamp(config.ultimateButtonScale,50,400) : 100)/100};--energy:72%;--energy-color:#20e6ff;--hp:78%">
     <div class="tsru-combat-party-portrait"><img src="${escapeHTML(portrait)}" alt=""></div><strong class="tsru-combat-party-name">${escapeHTML(actor?.name || "Character Preview")}</strong>
     <div class="tsru-combat-party-hp"><i></i><span>78/100</span></div><div class="tsru-combat-party-talent"><img src="${escapeHTML(talent)}" alt=""><strong>2/7</strong></div>
     <div class="tsru-combat-party-ultimate-wrap"><button type="button" disabled><span class="tsru-hud-orb-fill"></span><img src="${escapeHTML(orb)}" alt=""><strong>72%</strong></button></div></article>`;
@@ -2621,9 +2628,9 @@ function combatHudTalentMarkup(actor, config) {
   if (!config.talentText && Number(config.talentPointsMax) <= 0) return "";
   const current = currentTalentPoints(actor);
   const maximum = Math.max(0, Number(config.talentPointsMax) || 0);
-  const path = getPaths().find(entry => entry.id === config.pathId);
+  const element = getElements().find(entry => entry.id === config.elementId);
   const progress = maximum > 0 ? clamp(current / maximum, 0, 1) : 0;
-  return `<div class="tsru-combat-party-talent ${progress >= 1 ? "is-full" : ""}" style="--talent-progress:${progress * 360}deg;--talent-color:${escapeHTML(path?.color || "#e5c878")}" title="${escapeHTML(plainAbilityText(config.talentText) || `${actor.name} Talent`)}"><img src="${escapeHTML(config.talentIcon || actor.img || "icons/svg/star.svg")}" alt=""><strong>${current}/${maximum}</strong></div>`;
+  return `<div class="tsru-combat-party-talent ${progress >= 1 ? "is-full" : ""}" style="--talent-progress:${progress * 360}deg;--talent-color:${escapeHTML(element?.color || "#e5c878")}" title="${escapeHTML(plainAbilityText(config.talentText) || `${actor.name} Talent`)}"><img src="${escapeHTML(config.talentIcon || actor.img || "icons/svg/star.svg")}" alt=""><strong>${current}/${maximum}</strong></div>`;
 }
 
 class CombatPartyHud {
@@ -2708,7 +2715,7 @@ class CombatPartyHud {
       const element = getElements().find(entry => entry.id === config.elementId);
       const energyColor = ready ? (element?.readyColor || DEFAULT_CONFIG.readyColor) : (element?.chargeColor || DEFAULT_CONFIG.chargeColor);
       const portrait = config.combatHudPortrait || actor.img || "icons/svg/mystery-man.svg";
-      return `<article class="tsru-combat-party-member ${owned ? "is-owned" : ""} ${hpTemp > 0 ? "has-shield" : ""}" data-actor-id="${actor.id}" style="${combatHudDesignStyle()};--hud-x:${clamp(config.combatHudPortraitX, 0, 100)}%;--hud-y:${clamp(config.combatHudPortraitY, 0, 100)}%;--hud-scale:${clamp(config.combatHudPortraitScale, 50, 300) / 100};--hud-flip:${config.combatHudPortraitFlip ? -1 : 1};--energy:${energyPercent}%;--energy-color:${energyColor};--hp:${hpPercent}%;--shield:${shieldPercent}%">
+      return `<article class="tsru-combat-party-member ${owned ? "is-owned" : ""} ${hpTemp > 0 ? "has-shield" : ""}" data-actor-id="${actor.id}" style="${combatHudDesignStyle()};--hud-x:${clamp(config.combatHudPortraitX, 0, 100)}%;--hud-y:${clamp(config.combatHudPortraitY, 0, 100)}%;--hud-scale:${clamp(config.combatHudPortraitScale, 50, 300) / 100};--hud-flip:${config.combatHudPortraitFlip ? -1 : 1};--tsru-ultimate-x:${config.ultimateButtonAdjustEnabled ? clamp(config.ultimateButtonX,0,100) : 50}%;--tsru-ultimate-y:${config.ultimateButtonAdjustEnabled ? clamp(config.ultimateButtonY,0,100) : 50}%;--tsru-ultimate-scale:${(config.ultimateButtonAdjustEnabled ? clamp(config.ultimateButtonScale,50,400) : 100)/100};--energy:${energyPercent}%;--energy-color:${energyColor};--hp:${hpPercent}%;--shield:${shieldPercent}%">
         <div class="tsru-combat-party-portrait"><img src="${escapeHTML(portrait)}" alt="${escapeHTML(actor.name)}"></div>
         <strong class="tsru-combat-party-name">${escapeHTML(actor.name)}</strong>
         <div class="tsru-combat-party-hp" title="${hpTemp > 0 ? `${hpTemp} temporary HP shield · ` : ""}${hpValue}/${hpMax} HP"><b class="tsru-combat-party-shield-icon" aria-hidden="true"><i class="fas fa-shield-halved"></i></b><i class="tsru-combat-party-shield"></i><i class="tsru-combat-party-health"></i><span>${hpValue}/${hpMax}</span></div>
@@ -5236,8 +5243,8 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
   tab.find("[name]").each((_index, field) => {
     data[field.name] = field.type === "checkbox" ? field.checked : field.value;
   });
-  for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "skillPointCost", "talentPointsCurrent", "talentPointsMax", "talentPointsOvercapMax", "punchlineGain", "splashDuration", "titleX", "titleY", "titleSize", "combatHudPortraitX", "combatHudPortraitY", "combatHudPortraitScale"]) data[key] = Number(data[key]);
-  for (const key of ["enabled", "showPercent", "showHudPercent", "skillEnabled", "techniqueEnabled", "mainParty", "trialCharacter", "combatHudPortraitFlip", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter"]) data[key] = Boolean(data[key]);
+  for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "skillPointCost", "talentPointsCurrent", "talentPointsMax", "talentPointsOvercapMax", "punchlineGain", "splashDuration", "titleX", "titleY", "titleSize", "combatHudPortraitX", "combatHudPortraitY", "combatHudPortraitScale", "ultimateButtonX", "ultimateButtonY", "ultimateButtonScale"]) data[key] = Number(data[key]);
+  for (const key of ["enabled", "showPercent", "showHudPercent", "skillEnabled", "techniqueEnabled", "mainParty", "trialCharacter", "combatHudPortraitFlip", "ultimateButtonAdjustEnabled", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter"]) data[key] = Boolean(data[key]);
   data.max = Math.max(1, data.max || 100);
   data.current = clamp(data.current, 0, data.max);
   const savedConfig = getConfig(actor);
@@ -5269,11 +5276,23 @@ function activateConfigListeners(actor, tab, app) {
   const refreshCombatPortraitPreview = () => {
     const preview = tab.find("[data-tsru-combat-hud-preview]");
     if (!preview.length) return;
-    const draft = {...getConfig(actor), combatHudPortrait:String(tab.find("[name='combatHudPortrait']").val() || ""), combatHudPortraitX:Number(tab.find("[name='combatHudPortraitX']").val()), combatHudPortraitY:Number(tab.find("[name='combatHudPortraitY']").val()), combatHudPortraitScale:Number(tab.find("[name='combatHudPortraitScale']").val()), combatHudPortraitFlip:Boolean(tab.find("[name='combatHudPortraitFlip']").prop("checked")), talentIcon:String(tab.find("[name='talentIcon']").val() || ""), ultimateButtonImage:String(tab.find("[name='ultimateButtonImage']").val() || "")};
+    const draft = {...getConfig(actor), combatHudPortrait:String(tab.find("[name='combatHudPortrait']").val() || ""), combatHudPortraitX:Number(tab.find("[name='combatHudPortraitX']").val()), combatHudPortraitY:Number(tab.find("[name='combatHudPortraitY']").val()), combatHudPortraitScale:Number(tab.find("[name='combatHudPortraitScale']").val()), combatHudPortraitFlip:Boolean(tab.find("[name='combatHudPortraitFlip']").prop("checked")), talentIcon:String(tab.find("[name='talentIcon']").val() || ""), ultimateButtonImage:String(tab.find("[name='ultimateButtonImage']").val() || ""), ultimateButtonAdjustEnabled:Boolean(tab.find("[name='ultimateButtonAdjustEnabled']").prop("checked")), ultimateButtonX:Number(tab.find("[name='ultimateButtonX']").val()), ultimateButtonY:Number(tab.find("[name='ultimateButtonY']").val()), ultimateButtonScale:Number(tab.find("[name='ultimateButtonScale']").val())};
     preview.html(combatHudDesignerPreview(actor,draft));
   };
-  tab.on("input.tsru-preview change.tsru-preview", "[name='combatHudPortrait'], [name='combatHudPortraitX'], [name='combatHudPortraitY'], [name='combatHudPortraitScale'], [name='combatHudPortraitFlip'], [name='talentIcon'], [name='ultimateButtonImage']", refreshCombatPortraitPreview);
+  const refreshUltimatePreview = () => {
+    const preview = tab.find("[data-tsru-ultimate-preview]");
+    if (!preview.length) return;
+    const enabled = Boolean(tab.find("[name='ultimateButtonAdjustEnabled']").prop("checked"));
+    const x = enabled ? clamp(Number(tab.find("[name='ultimateButtonX']").val()), 0, 100) : 50;
+    const y = enabled ? clamp(Number(tab.find("[name='ultimateButtonY']").val()), 0, 100) : 50;
+    const scale = enabled ? clamp(Number(tab.find("[name='ultimateButtonScale']").val()), 50, 400) : 100;
+    preview.toggleClass("is-disabled", !enabled).css({"--tsru-ultimate-x":`${x}%`,"--tsru-ultimate-y":`${y}%`,"--tsru-ultimate-scale":String(scale / 100)});
+    preview.find("img").attr("src", String(tab.find("[name='ultimateButtonImage']").val() || actor.img || "icons/svg/mystery-man.svg"));
+    tab.find(".tsru-ultimate-adjust-controls input").prop("disabled", !enabled);
+  };
+  tab.on("input.tsru-preview change.tsru-preview", "[name='combatHudPortrait'], [name='combatHudPortraitX'], [name='combatHudPortraitY'], [name='combatHudPortraitScale'], [name='combatHudPortraitFlip'], [name='talentIcon'], [name='ultimateButtonImage'], [name='ultimateButtonAdjustEnabled'], [name='ultimateButtonX'], [name='ultimateButtonY'], [name='ultimateButtonScale']", () => { refreshCombatPortraitPreview(); refreshUltimatePreview(); });
   refreshCombatPortraitPreview();
+  refreshUltimatePreview();
   const cropPreview = tab.find("[data-tsru-combat-hud-preview]");
   cropPreview.on("dragover.tsru-crop", event => { event.preventDefault(); cropPreview.addClass("is-dragover"); });
   cropPreview.on("dragleave.tsru-crop", () => cropPreview.removeClass("is-dragover"));
@@ -5303,6 +5322,27 @@ function activateConfigListeners(actor, tab, app) {
   cropPreview.on("wheel.tsru-crop", ".tsru-combat-party-portrait", event => {
     event.preventDefault();
     const input=tab.find("[name='combatHudPortraitScale']"), next=clamp((Number(input.val())||100)+(event.originalEvent.deltaY<0?5:-5),50,300);
+    input.val(next).trigger("input");
+  });
+  const ultimatePreview = tab.find("[data-tsru-ultimate-preview]");
+  let ultimateDrag = null;
+  ultimatePreview.on("pointerdown.tsru-ultimate-crop", "button", event => {
+    if (event.button !== 0 || !tab.find("[name='ultimateButtonAdjustEnabled']").prop("checked")) return;
+    event.preventDefault();
+    ultimateDrag = {x:event.clientX,y:event.clientY,startX:Number(tab.find("[name='ultimateButtonX']").val())||50,startY:Number(tab.find("[name='ultimateButtonY']").val())||50};
+  });
+  $(document).off(`.tsru-ultimate-crop-${actor.id}`).on(`pointermove.tsru-ultimate-crop-${actor.id}`, event => {
+    if (!ultimateDrag) return;
+    const rect=ultimatePreview[0].getBoundingClientRect();
+    ultimateDrag.nextX=clamp(ultimateDrag.startX+(event.clientX-ultimateDrag.x)/Math.max(1,rect.width)*100,0,100);
+    ultimateDrag.nextY=clamp(ultimateDrag.startY+(event.clientY-ultimateDrag.y)/Math.max(1,rect.height)*100,0,100);
+    tab.find("[name='ultimateButtonX']").val(Math.round(ultimateDrag.nextX));
+    tab.find("[name='ultimateButtonY']").val(Math.round(ultimateDrag.nextY)).trigger("input");
+  }).on(`pointerup.tsru-ultimate-crop-${actor.id} pointercancel.tsru-ultimate-crop-${actor.id}`, () => { ultimateDrag=null; });
+  ultimatePreview.on("wheel.tsru-ultimate-crop", "button", event => {
+    if (!tab.find("[name='ultimateButtonAdjustEnabled']").prop("checked")) return;
+    event.preventDefault();
+    const input=tab.find("[name='ultimateButtonScale']"), next=clamp((Number(input.val())||100)+(event.originalEvent.deltaY<0?5:-5),50,400);
     input.val(next).trigger("input");
   });
   let autosaveTimer = null;
