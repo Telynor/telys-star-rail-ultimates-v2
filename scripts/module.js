@@ -939,8 +939,6 @@ async function beginTalentTurn(combatant) {
   const actor = combatant.actor;
   if (!actor) return;
   await combatant.setFlag(MODULE_ID, "talentActivated", true);
-  const {trigger} = talentPointLimits(actor);
-  if (trigger > 0) await setTalentPoints(actor, currentTalentPoints(actor) - trigger);
   await postTalentText(actor);
 }
 
@@ -975,14 +973,16 @@ async function finishTalentTurn(combat, temporary) {
   const actor = temporary?.actor;
   const resumeId = temporary?.getFlag(MODULE_ID, "resumeCombatantId");
   const resumeRound = temporary?.getFlag(MODULE_ID, "resumeRound");
+  const trigger = actor ? talentPointLimits(actor).trigger : 0;
+  if (actor && trigger > 0) await setTalentPoints(actor, currentTalentPoints(actor) - trigger);
   state.suppressCombatHook = true;
   try {
     if (temporary && combat.combatants.has(temporary.id)) await combat.deleteEmbeddedDocuments("Combatant", [temporary.id]);
     const resumeIndex = combat.turns.findIndex(entry => entry.id === resumeId);
     if (resumeIndex >= 0) await combat.update({turn:resumeIndex,round:resumeRound ?? combat.round});
   } finally { state.suppressCombatHook = false; }
-  if (actor && currentTalentPoints(actor) >= talentPointLimits(actor).trigger && talentPointLimits(actor).trigger > 0) queueTalentTurn(actor, combat);
-  window.setTimeout(() => processTalentTurnQueue(combat), 0);
+  if (actor && trigger > 0 && currentTalentPoints(actor) >= trigger) queueTalentTurn(actor, combat);
+  await processTalentTurnQueue(combat);
 }
 
 function combatTurnSnapshot(combat) {
@@ -5022,15 +5022,16 @@ function initializeCollapsibleUltimateSections(actor, tab) {
       toggle = document.createElement("button");
       toggle.type = "button";
       toggle.className = "tsru-section-toggle";
-      toggle.innerHTML = '<i class="fas fa-chevron-up"></i><span class="sr-only">Collapse section</span>';
+      toggle.innerHTML = '<i class="fas fa-chevron-up" aria-hidden="true"></i>';
+      toggle.setAttribute("aria-label", "Collapse section");
       heading.appendChild(toggle);
     }
     const applyState = collapsed => {
       section.classList.toggle("is-collapsed", collapsed);
       toggle.setAttribute("aria-expanded", String(!collapsed));
       toggle.title = collapsed ? "Reveal this section" : "Minimize this section";
+      toggle.setAttribute("aria-label", collapsed ? "Reveal section" : "Minimize section");
       toggle.querySelector("i").className = collapsed ? "fas fa-chevron-down" : "fas fa-chevron-up";
-      toggle.querySelector("span").textContent = collapsed ? "Reveal section" : "Minimize section";
     };
     applyState(Boolean(actorStates[key]));
     toggle.addEventListener("click", async event => {
@@ -5053,8 +5054,8 @@ function initializeCollapsibleUltimateSections(actor, tab) {
       if (toggle) {
         toggle.setAttribute("aria-expanded", "true");
         toggle.title = "Minimize this section";
+        toggle.setAttribute("aria-label", "Minimize section");
         toggle.querySelector("i").className = "fas fa-chevron-up";
-        toggle.querySelector("span").textContent = "Minimize section";
       }
     }
     await saveUltimateSectionStates(actor.id, actorStates);
@@ -5080,7 +5081,7 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
   data.talentPointsCurrent = talentCombatForActor(actor) ? clamp(Math.floor(data.talentPointsCurrent || 0), 0, data.talentPointsOvercapMax) : 0;
   data.skillPointCost = Math.max(0, Math.floor(data.skillPointCost || 0));
   data.talentCombatId = talentCombatForActor(actor)?.id ?? "";
-  await actor.update({[`flags.${MODULE_ID}.ultimate`]: data}, {tsruAutosave: !notify});
+  await actor.update({[`flags.${MODULE_ID}.ultimate`]: data}, {tsruAutosave: !notify, render: false});
   refreshOrb(actor);
   refreshSkillUI();
   refreshResourceHuds();
@@ -5272,7 +5273,7 @@ function populateEidolonEditor(actor, tab, number) {
 async function saveEidolonCurrencyFromTab(actor, tab, {notify = false} = {}) {
   const data = getEidolons(actor);
   data.currencyUuid = String(tab.find('[name="eidolonCurrencyUuid"]').val() || "").trim();
-  await actor.update({[`flags.${MODULE_ID}.eidolons`]: data}, {tsruAutosave: !notify});
+  await actor.update({[`flags.${MODULE_ID}.eidolons`]: data}, {tsruAutosave: !notify, render: false});
   if (notify) ui.notifications.info(`${actor.name}'s Eidolon activation currency was saved.`);
 }
 
@@ -5287,7 +5288,7 @@ async function saveEidolonSlotFromEditor(actor, scope, number, {notify = false} 
   slot.offsetY = clamp(editor.find(`[name="eidolon.${number}.offsetY"]`).val(), -100, 100);
   slot.scale = clamp(editor.find(`[name="eidolon.${number}.scale"]`).val(), 25, 400);
   slot.active = editor.find(`[name="eidolon.${number}.active"]`).prop("checked");
-  await actor.update({[`flags.${MODULE_ID}.eidolons`]: data}, {tsruAutosave: !notify});
+  await actor.update({[`flags.${MODULE_ID}.eidolons`]: data}, {tsruAutosave: !notify, render: false});
   if (notify) ui.notifications.info(`${actor.name}'s E${number} appearance was saved.`);
 }
 
