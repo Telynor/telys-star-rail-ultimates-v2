@@ -2653,6 +2653,10 @@ async function toggleOrb(actor) {
 }
 
 async function showOrb(actor, {notify = true} = {}) {
+  if (!game.user?.isGM) {
+    if (notify) ui.notifications.warn("Only a GM can show a detached Ultimate orb from a character sheet.");
+    return false;
+  }
   if (!actor) {
     if (notify) ui.notifications.error("No character was found for this Ultimate orb.");
     return false;
@@ -2662,7 +2666,16 @@ async function showOrb(actor, {notify = true} = {}) {
     if (notify) ui.notifications.warn(`${actor.name}'s Ultimate system is not enabled. Enable it and save the configuration first.`);
     return false;
   }
-  return showCombatPartyHud({notify});
+  await saveLayout(actor.id, {visible: true});
+  let orb = state.orbs.get(actor.id);
+  if (!orb) {
+    orb = new UltimateOrb(actor);
+    state.orbs.set(actor.id, orb);
+  }
+  orb.render();
+  const shown = Boolean(orb.element?.isConnected);
+  if (notify && shown) ui.notifications.info(`${actor.name}'s detached Ultimate orb was shown.`);
+  return shown;
 }
 
 async function placeGMActionButton(actor, action) {
