@@ -7,6 +7,7 @@
       <div class="form-group"><label>Name</label><input type="text" name="paths.{{@index}}.name" value="{{this.name}}" required></div>
       <div class="form-group"><label>Identifier</label><input type="text" name="paths.{{@index}}.id" value="{{this.id}}" readonly></div>
       <div class="form-group"><label>Icon</label><div class="form-fields"><input class="tsru-drop-image" type="text" name="paths.{{@index}}.icon" value="{{this.icon}}" placeholder="Drop an image here"><button type="button" class="file-picker" data-type="image" data-target="paths.{{@index}}.icon" title="Browse Files"><i class="fas fa-file-import"></i></button></div></div>
+      <div class="form-group"><label>Talent Ring Color</label><div class="form-fields"><input type="color" name="paths.{{@index}}.color" value="{{this.color}}"><span class="notes">Inherited by characters assigned to this Path.</span></div></div>
       <button type="button" class="tsru-remove-path"><i class="fas fa-trash"></i> Remove</button>
     </fieldset>
     {{/each}}

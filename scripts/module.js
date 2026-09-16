@@ -1885,7 +1885,7 @@ function getElements() {
 
 function getPaths() {
   const stored = game.settings.get(MODULE_ID, "paths") ?? [];
-  return (Array.isArray(stored) ? stored : Object.values(stored)).filter(Boolean);
+  return (Array.isArray(stored) ? stored : Object.values(stored)).filter(Boolean).map(path => ({...path, color:path.color || "#e5c878"}));
 }
 
 function droppedAssetPath(event) {
@@ -2580,7 +2580,9 @@ function combatHudTalentMarkup(actor, config) {
   if (!config.talentText && Number(config.talentPointsMax) <= 0) return "";
   const current = currentTalentPoints(actor);
   const maximum = Math.max(0, Number(config.talentPointsMax) || 0);
-  return `<div class="tsru-combat-party-talent" title="${escapeHTML(plainAbilityText(config.talentText) || `${actor.name} Talent`)}"><img src="${escapeHTML(config.talentIcon || actor.img || "icons/svg/star.svg")}" alt=""><strong>${current}/${maximum}</strong></div>`;
+  const path = getPaths().find(entry => entry.id === config.pathId);
+  const progress = maximum > 0 ? clamp(current / maximum, 0, 1) : 0;
+  return `<div class="tsru-combat-party-talent ${progress >= 1 ? "is-full" : ""}" style="--talent-progress:${progress * 360}deg;--talent-color:${escapeHTML(path?.color || "#e5c878")}" title="${escapeHTML(plainAbilityText(config.talentText) || `${actor.name} Talent`)}"><img src="${escapeHTML(config.talentIcon || actor.img || "icons/svg/star.svg")}" alt=""><strong>${current}/${maximum}</strong></div>`;
 }
 
 class CombatPartyHud {
@@ -4400,17 +4402,17 @@ class PathManager extends FormApplication {
   activateListeners(html) {
     super.activateListeners(html);
     activateImageDrops(html);
-    html.find(".tsru-add-path").on("click", () => { this._pathsOverride = this._readPaths(html); this._pathsOverride.push({id: foundry.utils.randomID(), name: "New Path", icon: "icons/svg/upgrade.svg"}); this.render(true); });
+    html.find(".tsru-add-path").on("click", () => { this._pathsOverride = this._readPaths(html); this._pathsOverride.push({id: foundry.utils.randomID(), name: "New Path", icon: "icons/svg/upgrade.svg", color:"#e5c878"}); this.render(true); });
     html.find(".tsru-remove-path").on("click", event => { const index = Number(event.currentTarget.closest(".tsru-path-row").dataset.index); this._pathsOverride = this._readPaths(html); this._pathsOverride.splice(index, 1); this.render(true); });
   }
   _readPaths(html) {
     const data = new FormData(html[0]);
     const expanded = foundry.utils.expandObject(Object.fromEntries(data.entries()));
-    return Object.values(expanded.paths ?? {}).map(entry => ({id: entry.id || foundry.utils.randomID(), name: entry.name?.trim() || "Path", icon: entry.icon || ""}));
+    return Object.values(expanded.paths ?? {}).map(entry => ({id: entry.id || foundry.utils.randomID(), name: entry.name?.trim() || "Path", icon: entry.icon || "", color:entry.color || "#e5c878"}));
   }
   async _updateObject(_event, formData) {
     const expanded = foundry.utils.expandObject(formData);
-    const paths = Object.values(expanded.paths ?? {}).map(entry => ({id: entry.id, name: entry.name?.trim() || "Path", icon: entry.icon || ""}));
+    const paths = Object.values(expanded.paths ?? {}).map(entry => ({id: entry.id, name: entry.name?.trim() || "Path", icon: entry.icon || "", color:entry.color || "#e5c878"}));
     await game.settings.set(MODULE_ID, "paths", paths);
     this._pathsOverride = null;
     for (const app of Object.values(ui.windows ?? {})) if (app.actor?.type === "character") app.render(false);
@@ -6146,6 +6148,7 @@ Hooks.on("updateSetting", setting => {
     refreshCombatPartyHud();
     refreshUltimateHotbarMacros();
   }
+  if (setting?.key === `${MODULE_ID}.paths`) refreshCombatPartyHud();
   if (setting?.key === `${MODULE_ID}.partySelections`) { refreshCombatPartyHud(); refreshTalentButtons(); }
   if (setting?.key === `${MODULE_ID}.combatHudDesign`) {
     refreshCombatPartyHud();
