@@ -965,17 +965,39 @@ async function processTalentTurnQueue(combat) {
   queueReadyTalentTurns(combat);
   const queue = state.talentTurnQueues.get(combat.id) ?? [];
   while (queue.length) {
-    const actor = game.actors.get(queue.shift());
-    state.talentTurnQueues.set(combat.id, queue);
-    if (!actor || !talentCombatForActor(actor) || currentTalentPoints(actor) < talentPointLimits(actor).trigger) continue;
+    const actorId = queue[0];
+    const actor = game.actors.get(actorId);
+    if (!actor || !talentCombatForActor(actor) || currentTalentPoints(actor) < talentPointLimits(actor).trigger) {
+      queue.shift();
+      state.talentTurnQueues.set(combat.id, queue);
+      continue;
+    }
     const resume = combat.combatant;
     const currentInit = Number(resume?.initiative ?? 0);
     const next = combat.turns[Number(combat.turn ?? 0) + 1];
     let initiative = next ? (currentInit + Number(next.initiative ?? currentInit - 1)) / 2 : currentInit - 0.001;
     if (!Number.isFinite(initiative)) initiative = currentInit - 0.001;
-    const token = actor.getActiveTokens(true, true)?.[0];
-    const [temporary] = await combat.createEmbeddedDocuments("Combatant", [{name:`TALENT - ${actor.name}`,actorId:actor.id,tokenId:token?.id ?? null,sceneId:token?.parent?.id ?? canvas.scene?.id ?? null,initiative,img:getConfig(actor).talentIcon || actor.img,flags:{[MODULE_ID]:{talentTurnCombatant:true,talentActorId:actor.id,resumeCombatantId:resume?.id ?? null,resumeRound:combat.round}}}]);
-    if (!temporary) continue;
+    let temporary = null;
+    try {
+      [temporary] = await combat.createEmbeddedDocuments("Combatant", [{
+        name:`TALENT - ${actor.name}`,
+        actorId:actor.id,
+        // Actor-backed rather than token-backed so this temporary turn cannot
+        // collide with the character's existing token combatant.
+        tokenId:null,
+        sceneId:null,
+        initiative,
+        img:getConfig(actor).talentIcon || actor.img,
+        flags:{[MODULE_ID]:{talentTurnCombatant:true,talentActorId:actor.id,resumeCombatantId:resume?.id ?? null,resumeRound:combat.round}}
+      }]);
+    } catch (error) {
+      console.error(`${MODULE_ID} | Could not insert ${actor.name}'s Talent turn`, error);
+      ui.notifications.error(`Could not insert ${actor.name}'s Talent turn: ${error.message}`);
+      return false;
+    }
+    if (!temporary) return false;
+    queue.shift();
+    state.talentTurnQueues.set(combat.id, queue);
     const index = combat.turns.findIndex(entry => entry.id === temporary.id);
     if (index >= 0) {
       state.suppressCombatHook = true;
