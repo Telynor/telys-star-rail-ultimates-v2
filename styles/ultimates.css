@@ -9,6 +9,7 @@
 .tsru-chat-damage-control button:disabled { opacity:.68; cursor:default; }
 .tsru-chat-damage-control .tsru-chat-damage-done { margin-top:16px; border-color:#7d8090; background:linear-gradient(180deg,#292b35,#15161c); color:#e2e4ed; }
 .tsru-chat-damage-finished { display:flex; align-items:center; justify-content:center; gap:6px; margin-top:14px; padding:6px 8px; border-top:1px solid rgba(160,164,180,.45); color:#bfc3d2; font-weight:700; }
+.tsru-chat-temp-hp-control{margin-top:7px}.tsru-chat-temp-hp-control button{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;min-height:30px;margin:0;padding:5px 8px;border:1px solid #a9d9f2;border-radius:4px;background:linear-gradient(180deg,#203b4c,#101c27);color:#e7f8ff;font-weight:700;line-height:1.2}.tsru-chat-temp-hp-control button:hover:not(:disabled){border-color:#fff;box-shadow:0 0 8px rgba(184,231,255,.45)}.tsru-chat-temp-hp-control button:disabled{opacity:.68;cursor:default}
 
 /* Eidolon Resonance ------------------------------------------------------- */
 .tsru-eidolon-tab { padding: 12px; overflow: auto; color: #e9e7f5; }
@@ -1658,8 +1659,12 @@
 .tsru-combat-party-portrait{position:absolute;left:var(--portrait-l,0);right:var(--portrait-r,25px);top:var(--portrait-t,0);bottom:var(--portrait-b,17px);overflow:visible;background:transparent;pointer-events:none;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 16%,#000 84%,transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 16%,#000 84%,transparent 100%)}
 .tsru-combat-party-portrait img{width:100%;height:100%;max-width:none;border:0;object-fit:contain;object-position:var(--hud-x) var(--hud-y);transform:scaleX(var(--hud-flip,1)) scale(var(--hud-scale));transform-origin:var(--hud-x) var(--hud-y);filter:drop-shadow(0 3px 3px #000)}
 .tsru-combat-party-name{position:absolute;z-index:4;left:var(--name-l,8px);bottom:var(--name-b,0);max-width:var(--name-w,128px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;text-shadow:0 1px 3px #000}
-.tsru-combat-party-hp{position:absolute;z-index:3;left:var(--hp-l,22px);right:var(--hp-r,0);bottom:var(--hp-b,20px);height:var(--hp-h,9px);background:#14171b;border:1px solid #d9d9d9;transform:skewX(-10deg)}
-.tsru-combat-party-hp i{display:block;width:var(--hp);height:100%;background:linear-gradient(90deg,#7bcfd0,#d9ffff)}
+.tsru-combat-party-hp{position:absolute;z-index:3;isolation:isolate;left:var(--hp-l,22px);right:var(--hp-r,0);bottom:var(--hp-b,20px);height:var(--hp-h,9px);background:#14171b;border:1px solid #d9d9d9;transform:skewX(-10deg)}
+.tsru-combat-party-hp .tsru-combat-party-shield{position:absolute;z-index:1;display:block;box-sizing:border-box;left:0;top:-3px;width:min(var(--shield,0%),100%);max-width:100%;height:calc(100% + 6px);border:1px solid #fff;border-radius:2px;background:linear-gradient(90deg,#dcecff,#fff);box-shadow:0 0 5px #e8f5ff,inset 0 0 3px #9ddcff;pointer-events:none}
+.tsru-combat-party-shield-icon{position:absolute;z-index:4;display:grid;place-items:center;left:-17px;top:50%;width:14px;height:14px;transform:translateY(-50%) skewX(10deg);border:1px solid #fff;border-radius:50%;background:#dcecff;color:#405369;font-size:8px;line-height:1;box-shadow:0 0 4px #e8f5ff;pointer-events:none}
+.tsru-combat-party-member:not(.has-shield) .tsru-combat-party-shield{display:none}
+.tsru-combat-party-member:not(.has-shield) .tsru-combat-party-shield-icon{display:none}
+.tsru-combat-party-hp .tsru-combat-party-health{position:relative;z-index:2;display:block;width:var(--hp);height:100%;background:linear-gradient(90deg,#7bcfd0,#d9ffff)}
 .tsru-combat-party-hp span{position:absolute;right:4px;bottom:7px;font-size:12px;font-weight:800;transform:skewX(10deg);text-shadow:0 1px 3px #000}
 .tsru-combat-party-talent{position:absolute;z-index:5;left:var(--talent-l,5px);bottom:var(--talent-b,20px);width:var(--talent-size,32px);height:var(--talent-size,32px);border:2px solid #d6e6f2;border-radius:50%;background:#172737}
 .tsru-combat-party-talent img{width:100%;height:100%;border:0;border-radius:50%;object-fit:cover}

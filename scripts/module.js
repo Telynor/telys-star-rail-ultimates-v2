@@ -2416,17 +2416,19 @@ class CombatPartyHud {
       const hp = actor.system?.attributes?.hp ?? {};
       const hpValue = Math.max(0, Number(hp.value) || 0);
       const hpMax = Math.max(1, Number(hp.max) || 1);
+      const hpTemp = Math.max(0, Number(hp.temp) || 0);
       const hpPercent = clamp((hpValue / hpMax) * 100, 0, 100);
+      const shieldPercent = clamp((hpTemp / hpMax) * 100, 0, 100);
       const energyPercent = clamp((Number(config.current) / Math.max(1, Number(config.max))) * 100, 0, 100);
       const ready = config.enabled && energyPercent >= 100 && !state.ultimateLocks.has(actor.id);
       const owned = game.user.isGM || actor.isOwner;
       const element = getElements().find(entry => entry.id === config.elementId);
       const energyColor = ready ? (element?.readyColor || DEFAULT_CONFIG.readyColor) : (element?.chargeColor || DEFAULT_CONFIG.chargeColor);
       const portrait = config.combatHudPortrait || actor.img || "icons/svg/mystery-man.svg";
-      return `<article class="tsru-combat-party-member ${owned ? "is-owned" : ""}" data-actor-id="${actor.id}" style="${combatHudDesignStyle()};--hud-x:${clamp(config.combatHudPortraitX, 0, 100)}%;--hud-y:${clamp(config.combatHudPortraitY, 0, 100)}%;--hud-scale:${clamp(config.combatHudPortraitScale, 50, 300) / 100};--hud-flip:${config.combatHudPortraitFlip ? -1 : 1};--energy:${energyPercent}%;--energy-color:${energyColor};--hp:${hpPercent}%">
+      return `<article class="tsru-combat-party-member ${owned ? "is-owned" : ""} ${hpTemp > 0 ? "has-shield" : ""}" data-actor-id="${actor.id}" style="${combatHudDesignStyle()};--hud-x:${clamp(config.combatHudPortraitX, 0, 100)}%;--hud-y:${clamp(config.combatHudPortraitY, 0, 100)}%;--hud-scale:${clamp(config.combatHudPortraitScale, 50, 300) / 100};--hud-flip:${config.combatHudPortraitFlip ? -1 : 1};--energy:${energyPercent}%;--energy-color:${energyColor};--hp:${hpPercent}%;--shield:${shieldPercent}%">
         <div class="tsru-combat-party-portrait"><img src="${escapeHTML(portrait)}" alt="${escapeHTML(actor.name)}"></div>
         <strong class="tsru-combat-party-name">${escapeHTML(actor.name)}</strong>
-        <div class="tsru-combat-party-hp"><i></i><span>${hpValue}/${hpMax}</span></div>
+        <div class="tsru-combat-party-hp" title="${hpTemp > 0 ? `${hpTemp} temporary HP shield · ` : ""}${hpValue}/${hpMax} HP"><b class="tsru-combat-party-shield-icon" aria-hidden="true"><i class="fas fa-shield-halved"></i></b><i class="tsru-combat-party-shield"></i><i class="tsru-combat-party-health"></i><span>${hpValue}/${hpMax}</span></div>
         ${combatHudTalentMarkup(actor, config)}
         <div class="tsru-combat-party-ultimate-wrap ${ready ? "is-ready" : ""}">${config.trialCharacter ? '<b class="tsru-combat-party-trial">Trial</b>' : ""}<button type="button" data-tsru-party-ultimate data-actor-id="${actor.id}" class="${ready ? "is-ready" : "is-unavailable"} ${owned ? "" : "is-locked"}" aria-disabled="${!owned || !ready}" title="${owned ? (ready ? "Activate Ultimate" : "Ultimate is not ready; drag it to the hotbar to create its macro") : "Only this character's owner can activate their Ultimate"}"><span class="tsru-hud-orb-fill"></span><img src="${escapeHTML(config.ultimateButtonImage || config.orbImage || actor.img || "icons/svg/mystery-man.svg")}" alt="">${config.showHudPercent ? `<strong>${Math.round(energyPercent)}%</strong>` : ""}</button></div>
       </article>`;
@@ -3084,6 +3086,23 @@ async function onSocket(payload) {
     game.socket.emit(SOCKET, {type: "manualChatDamageResult", targetUserId: payload.sourceUserId, messageId: payload.messageId, ...result});
     return;
   }
+  if (payload.type === "applyChatTempHp" && isAuthority()) {
+    const requestingUser = game.users.get(payload.sourceUserId);
+    const message = game.messages.get(payload.messageId);
+    const target = await fromUuid(payload.targetUuid).catch(() => actorFromUuid(payload.targetUuid));
+    const result = await applyChatRollAsTempHp(message, target, requestingUser);
+    game.socket.emit(SOCKET, {type: "chatTempHpResult", targetUserId: payload.sourceUserId, messageId: payload.messageId, ...result});
+    return;
+  }
+  if (payload.type === "chatTempHpResult" && payload.targetUserId === game.user.id) {
+    const notify = payload.ok ? ui.notifications.info : ui.notifications.error;
+    notify.call(ui.notifications, payload.message);
+    document.querySelectorAll(`[data-tsru-temp-hp-message="${CSS.escape(payload.messageId ?? "")}"]`).forEach(button => {
+      button.disabled = false;
+      button.innerHTML = '<i class="fas fa-shield-halved"></i><span>Add as TempHP</span>';
+    });
+    return;
+  }
   if (payload.type === "applyToughness" && isAuthority()) {
     const requestingUser = game.users.get(payload.sourceUserId);
     const attacker = await actorFromUuid(payload.attackerUuid);
@@ -3330,6 +3349,22 @@ async function finishManualChatDamage(message, requestingUser) {
   if (!message || !attacker || (!requestingUser?.isGM && !attacker.testUserPermission(requestingUser, "OWNER"))) return {ok: false, message: "You do not control the character that made this roll."};
   await message.setFlag(MODULE_ID, "manualDamageDone", true);
   return {ok: true, done: true, applications: manualDamageApplications(message), message: "Finished applying damage from this roll."};
+}
+
+async function applyChatRollAsTempHp(message, target, requestingUser) {
+  if (!isAuthority()) return {ok: false, message: "Only the active GM can apply temporary HP from chat."};
+  const sourceActor = actorFromChatMessage(message);
+  const {actor: targetActor} = toughnessTargetParts(target);
+  if (!message || !sourceActor || !targetActor) return {ok: false, message: "The roll or target no longer exists."};
+  if (!requestingUser?.isGM && !sourceActor.testUserPermission(requestingUser, "OWNER")) return {ok: false, message: "You do not control the character that made this roll."};
+  const amount = manualChatDamageAmount(message);
+  if (amount <= 0) return {ok: false, message: "This roll has no positive total to add as temporary HP."};
+  const hp = targetActor.system?.attributes?.hp;
+  if (!hp || hp.temp === undefined || hp.temp === null) return {ok: false, message: `${targetActor.name} does not have a temporary HP field.`};
+  const before = Math.max(0, Number(hp.temp) || 0);
+  const after = before + amount;
+  await targetActor.update({"system.attributes.hp.temp": after});
+  return {ok: true, amount, before, after, targetName: targetActor.name, message: `Added ${amount} temporary HP to ${targetActor.name} (${before} → ${after}).`};
 }
 
 async function limitBreakAttackHpDamage(attacker, target, amount, eventId, options = {}) {
@@ -5704,6 +5739,42 @@ Hooks.on("renderChatMessage", (message, html) => {
     info.find("button").on("click.tsru", () => postLightConeToChat(lightCone, lightConeActor));
   }
   const roller = actorFromChatMessage(message);
+  if (manualChatDamageAmount(message) > 0 && roller && (game.user.isGM || roller.isOwner) && !root.find("[data-tsru-temp-hp-message]").length) {
+    const tempHpControl = $('<div class="tsru-chat-temp-hp-control"></div>');
+    const tempHpButton = $(`<button type="button" data-tsru-temp-hp-message="${escapeHTML(message.id)}"><i class="fas fa-shield-halved"></i><span>Add as TempHP</span></button>`);
+    tempHpControl.append(tempHpButton);
+    const destination = root.find(".message-content").last();
+    (destination.length ? destination : root).append(tempHpControl);
+    tempHpButton.on("click.tsru", async event => {
+      const button = event.currentTarget;
+      const targets = [...(game.user.targets ?? [])];
+      if (targets.length !== 1) return ui.notifications.warn("Target exactly one creature before adding this roll as temporary HP.");
+      const target = targets[0];
+      const targetUuid = target.document?.uuid ?? target.actor?.uuid;
+      if (!targetUuid) return ui.notifications.error("The targeted creature could not be resolved.");
+      button.disabled = true;
+      button.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Adding Temp HP…</span>';
+      if (isAuthority()) {
+        const result = await applyChatRollAsTempHp(message, target.document ?? target, game.user);
+        const notify = result.ok ? ui.notifications.info : ui.notifications.error;
+        notify.call(ui.notifications, result.message);
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-shield-halved"></i><span>Add as TempHP</span>';
+      } else if (activeGM()) {
+        game.socket.emit(SOCKET, {type: "applyChatTempHp", sourceUserId: game.user.id, messageId: message.id, targetUuid});
+        window.setTimeout(() => {
+          if (button.isConnected && button.disabled) {
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-shield-halved"></i><span>Add as TempHP</span>';
+          }
+        }, 5000);
+      } else {
+        ui.notifications.error("A GM must be connected to add temporary HP.");
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-shield-halved"></i><span>Add as TempHP</span>';
+      }
+    });
+  }
   if (isManualChatDamageEligible(message) && (game.user.isGM || roller?.isOwner)) {
     const control = $(`<div class="tsru-chat-damage-control" data-tsru-chat-damage-control="${escapeHTML(message.id)}"></div>`);
     const destination = root.find(".message-content").last();
