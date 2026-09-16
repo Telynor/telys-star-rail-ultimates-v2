@@ -23,14 +23,17 @@ const DEFAULT_CONFIG = Object.freeze({
   skillEnabled: true,
   skillScript: "",
   skillText: "",
+  skillPointCost: 1,
   skillButtonImage: "",
   techniqueEnabled: false,
   techniqueText: "",
   techniqueButtonImage: "",
   talentPointsCurrent: 0,
   talentPointsMax: 0,
+  talentPointsOvercapMax: 0,
   talentCombatId: "",
   talentScript: "",
+  talentText: "",
   talentIcon: "",
   trialCharacter: false,
   combatHudPortrait: "",
@@ -66,11 +69,13 @@ const DEFAULT_CONFIG = Object.freeze({
 const state = {
   orbs: new Map(),
   skillButtons: new Map(),
+  talentButtons: new Map(),
   skillMeter: null,
   skillLocks: new Set(),
   pendingSkills: new Map(),
   skillSpendLock: false,
   talentPointHud: null,
+  talentTurnQueues: new Map(),
   techniqueHud: null,
   techniqueSpendLock: false,
   ahaButton: null,
@@ -248,6 +253,9 @@ function getConfig(actor) {
   });
   config.max = Math.max(1, Number(config.max) || 100);
   config.current = clamp(config.current, 0, config.max);
+  config.skillPointCost = Math.max(0, Math.floor(Number(config.skillPointCost) || 0));
+  config.talentPointsMax = Math.max(0, Math.floor(Number(config.talentPointsMax) || 0));
+  config.talentPointsOvercapMax = Math.max(config.talentPointsMax, Math.floor(Number(config.talentPointsOvercapMax) || config.talentPointsMax));
   return config;
 }
 
@@ -648,18 +656,41 @@ function currentTalentPoints(actor) {
   if (!combat) return 0;
   const config = getConfig(actor);
   if (config.talentCombatId !== combat.id) return 0;
-  return clamp(Math.floor(Number(config.talentPointsCurrent) || 0), 0, Math.max(0, Math.floor(Number(config.talentPointsMax) || 0)));
+  const trigger = Math.max(0, Math.floor(Number(config.talentPointsMax) || 0));
+  const overcap = Math.max(trigger, Math.floor(Number(config.talentPointsOvercapMax) || trigger));
+  return clamp(Math.floor(Number(config.talentPointsCurrent) || 0), 0, overcap);
+}
+
+function talentPointLimits(actor) {
+  const config = getConfig(actor);
+  const trigger = Math.max(0, Math.floor(Number(config.talentPointsMax) || 0));
+  return {trigger, overcap: Math.max(trigger, Math.floor(Number(config.talentPointsOvercapMax) || trigger))};
+}
+
+function isTalentTurnCombatant(combatant) {
+  return Boolean(combatant?.getFlag(MODULE_ID, "talentTurnCombatant"));
+}
+
+function queueTalentTurn(actor, combat = talentCombatForActor(actor)) {
+  if (!isAuthority() || !combat?.started || !actor || talentPointLimits(actor).trigger < 1) return false;
+  if (combat.combatants.some(entry => isTalentTurnCombatant(entry) && entry.actorId === actor.id)) return false;
+  const queue = state.talentTurnQueues.get(combat.id) ?? [];
+  if (queue.includes(actor.id)) return false;
+  queue.push(actor.id);
+  state.talentTurnQueues.set(combat.id, queue);
+  return true;
 }
 
 async function setTalentPoints(actor, value) {
   const combat = talentCombatForActor(actor);
   if (!isAuthority() || !combat) return currentTalentPoints(actor);
   const config = getConfig(actor);
-  const maximum = Math.max(0, Math.floor(Number(config.talentPointsMax) || 0));
-  const next = clamp(Math.floor(Number(value) || 0), 0, maximum);
+  const {trigger, overcap} = talentPointLimits(actor);
+  const next = clamp(Math.floor(Number(value) || 0), 0, overcap);
   const before = currentTalentPoints(actor);
   if (next !== before || config.talentCombatId !== combat.id) await actor.update({[`flags.${MODULE_ID}.ultimate.talentPointsCurrent`]: next, [`flags.${MODULE_ID}.ultimate.talentCombatId`]: combat.id});
   if (next !== before) Hooks.callAll("tsruTalentPointsChanged", actor, before, next);
+  if (trigger > 0 && before < trigger && next >= trigger) queueTalentTurn(actor, combat);
   return next;
 }
 
@@ -740,24 +771,9 @@ async function runTalentScript(actor, event) {
 }
 
 async function dispatchTalentEvent(type, detail = {}, eventKey = "") {
-  if (!isAuthority() || !game.combat?.started) return;
-  if (detail.sourceActor?.type === "character" && !talentCombatForActor(detail.sourceActor)) return;
-  const key = eventKey ? `talent:${type}:${eventKey}` : "";
-  if (key && state.talentEvents.has(key)) return;
-  if (key) {
-    state.talentEvents.add(key);
-    window.setTimeout(() => state.talentEvents.delete(key), 120000);
-  }
-  const event = Object.freeze({
-    type,
-    id: eventKey || foundry.utils.randomID(),
-    combat: detail.combat ?? game.combat ?? null,
-    round: detail.combat?.round ?? game.combat?.round ?? null,
-    turn: detail.combat?.turn ?? game.combat?.turn ?? null,
-    ...detail
-  });
-  const actors = game.actors.filter(actor => talentCombatForActor(actor) && Boolean(getConfig(actor).talentScript?.trim()));
-  for (const actor of actors) await runTalentScript(actor, event);
+  // Talents are descriptive text actions now. Legacy scripts are retained in stored
+  // data for rollback compatibility, but are intentionally never executed.
+  return;
 }
 
 function punchlineLayout() {
@@ -914,6 +930,61 @@ function isElationActionCombatant(combatant) {
   return Boolean(combatant?.getFlag(MODULE_ID, "elationActionCombatant"));
 }
 
+async function postTalentText(actor) {
+  return postAbilityText(actor, "talent", getConfig(actor).talentText);
+}
+
+async function beginTalentTurn(combatant) {
+  if (!isAuthority() || !isTalentTurnCombatant(combatant) || combatant.getFlag(MODULE_ID, "talentActivated")) return;
+  const actor = combatant.actor;
+  if (!actor) return;
+  await combatant.setFlag(MODULE_ID, "talentActivated", true);
+  const {trigger} = talentPointLimits(actor);
+  if (trigger > 0) await setTalentPoints(actor, currentTalentPoints(actor) - trigger);
+  await postTalentText(actor);
+}
+
+async function processTalentTurnQueue(combat) {
+  if (!isAuthority() || !combat?.started || combat.combatants.some(isTalentTurnCombatant)) return false;
+  const queue = state.talentTurnQueues.get(combat.id) ?? [];
+  while (queue.length) {
+    const actor = game.actors.get(queue.shift());
+    state.talentTurnQueues.set(combat.id, queue);
+    if (!actor || !talentCombatForActor(actor) || currentTalentPoints(actor) < talentPointLimits(actor).trigger) continue;
+    const resume = combat.combatant;
+    const currentInit = Number(resume?.initiative ?? 0);
+    const next = combat.turns[Number(combat.turn ?? 0) + 1];
+    let initiative = next ? (currentInit + Number(next.initiative ?? currentInit - 1)) / 2 : currentInit - 0.001;
+    if (!Number.isFinite(initiative)) initiative = currentInit - 0.001;
+    const token = actor.getActiveTokens(true, true)?.[0];
+    const [temporary] = await combat.createEmbeddedDocuments("Combatant", [{name:`TALENT - ${actor.name}`,actorId:actor.id,tokenId:token?.id ?? null,sceneId:token?.parent?.id ?? canvas.scene?.id ?? null,initiative,img:getConfig(actor).talentIcon || actor.img,flags:{[MODULE_ID]:{talentTurnCombatant:true,resumeCombatantId:resume?.id ?? null,resumeRound:combat.round}}}]);
+    if (!temporary) continue;
+    const index = combat.turns.findIndex(entry => entry.id === temporary.id);
+    if (index >= 0) {
+      state.suppressCombatHook = true;
+      try { await combat.update({turn:index}); } finally { state.suppressCombatHook = false; }
+    }
+    await beginTalentTurn(temporary);
+    return true;
+  }
+  state.talentTurnQueues.delete(combat.id);
+  return false;
+}
+
+async function finishTalentTurn(combat, temporary) {
+  const actor = temporary?.actor;
+  const resumeId = temporary?.getFlag(MODULE_ID, "resumeCombatantId");
+  const resumeRound = temporary?.getFlag(MODULE_ID, "resumeRound");
+  state.suppressCombatHook = true;
+  try {
+    if (temporary && combat.combatants.has(temporary.id)) await combat.deleteEmbeddedDocuments("Combatant", [temporary.id]);
+    const resumeIndex = combat.turns.findIndex(entry => entry.id === resumeId);
+    if (resumeIndex >= 0) await combat.update({turn:resumeIndex,round:resumeRound ?? combat.round});
+  } finally { state.suppressCombatHook = false; }
+  if (actor && currentTalentPoints(actor) >= talentPointLimits(actor).trigger && talentPointLimits(actor).trigger > 0) queueTalentTurn(actor, combat);
+  window.setTimeout(() => processTalentTurnQueue(combat), 0);
+}
+
 function combatTurnSnapshot(combat) {
   const combatant = combat?.combatant;
   return combatant ? {
@@ -922,6 +993,7 @@ function combatTurnSnapshot(combat) {
     round: combat.round,
     ultimate: Boolean(combatant.getFlag(MODULE_ID, "temporaryUltimate")),
     elation: isElationActionCombatant(combatant),
+    talent: isTalentTurnCombatant(combatant),
     actionAdvance: Boolean(combatant.getFlag(MODULE_ID, "actionAdvance"))
   } : null;
 }
@@ -929,14 +1001,17 @@ function combatTurnSnapshot(combat) {
 async function cleanupDepartedTemporaryTurn(combat, previousTurn) {
   if (!isAuthority() || !combat || !previousTurn?.id) return false;
   const temporary = combat.combatants.get(previousTurn.id);
-  const kind = previousTurn.actionAdvance || temporary?.getFlag(MODULE_ID, "actionAdvance") ? "actionAdvance"
+  const kind = previousTurn.talent || isTalentTurnCombatant(temporary) ? "talent"
+    : previousTurn.actionAdvance || temporary?.getFlag(MODULE_ID, "actionAdvance") ? "actionAdvance"
     : previousTurn.elation || isElationActionCombatant(temporary) ? "elation"
     : previousTurn.ultimate || temporary?.getFlag(MODULE_ID, "temporaryUltimate") ? "ultimate"
     : "";
   if (!kind) return false;
 
   try {
-    if (kind === "actionAdvance") {
+    if (kind === "talent") {
+      await finishTalentTurn(combat, temporary);
+    } else if (kind === "actionAdvance") {
       const tracked = state.actionAdvances.get(combat.id);
       if (tracked?.combatantId === previousTurn.id) await finishActionAdvance(combat, tracked);
     } else if (kind === "elation") {
@@ -1347,7 +1422,8 @@ function activateStarRailActionDrag(element, actor, action) {
     const actionDetails = {
       skill: {label: "Skill", img: config.skillButtonImage || actor.img},
       technique: {label: "Technique", img: config.techniqueButtonImage || actor.img},
-      ultimate: {label: config.ultimateName || "Ultimate", img: config.ultimateButtonImage || config.orbImage || actor.img}
+      ultimate: {label: config.ultimateName || "Ultimate", img: config.ultimateButtonImage || config.orbImage || actor.img},
+      talent: {label: "Talent", img: config.talentIcon || actor.img}
     }[action];
     if (!actionDetails) return;
     event.dataTransfer.setData("text/plain", JSON.stringify({type:"TSRUAction",action,actorId:actor.id,actorUuid:actor.uuid,name:`${actor.name} — ${actionDetails.label}`,img:actionDetails.img || "icons/svg/d20.svg"}));
@@ -1356,13 +1432,13 @@ function activateStarRailActionDrag(element, actor, action) {
 }
 
 async function createStarRailActionMacro(data, slot) {
-  if (data?.type !== "TSRUAction" || !["skill", "technique", "ultimate"].includes(data.action)) return true;
+  if (data?.type !== "TSRUAction" || !["skill", "technique", "ultimate", "talent"].includes(data.action)) return true;
   const actor = game.actors.get(data.actorId) ?? await fromUuid(data.actorUuid).catch(() => null);
   if (!actor || actor.type !== "character") { ui.notifications.error("The character for this Star Rail action no longer exists."); return false; }
   if (!game.user.isGM && !actor.isOwner) { ui.notifications.error("You can only create action macros for characters you own."); return false; }
   let macro = game.macros.find(entry => entry.getFlag(MODULE_ID,"action") === data.action && entry.getFlag(MODULE_ID,"actorId") === actor.id && entry.isOwner);
   if (!macro) {
-    const method = {skill:"requestSkill",technique:"requestTechnique",ultimate:"requestUltimate"}[data.action];
+    const method = {skill:"requestSkill",technique:"requestTechnique",ultimate:"requestUltimate",talent:"showTalentPopup"}[data.action];
     macro = await Macro.create({name:data.name,type:"script",img:data.img || actor.img || "icons/svg/d20.svg",command:`const actor = game.actors.get("${actor.id}");\nif (!actor) return ui.notifications.error("Character not found.");\nreturn game.modules.get("${MODULE_ID}")?.api?.${method}(actor);`,flags:{[MODULE_ID]:{action:data.action,actorId:actor.id}}});
   }
   await game.user.assignHotbarMacro(macro,slot);
@@ -1394,16 +1470,20 @@ function refreshUltimateHotbarMacros() {
     const action = macro?.getFlag(MODULE_ID, "action");
     const isUltimate = action === "ultimate";
     const isSkill = action === "skill";
+    const isTalent = action === "talent";
     slot.classList.toggle("tsru-ultimate-macro", isUltimate);
     slot.classList.toggle("tsru-skill-macro", isSkill);
+    slot.classList.toggle("tsru-talent-macro", isTalent);
     slot.querySelectorAll(":scope > .tsru-hotbar-energy-fill, :scope > .tsru-hotbar-energy-label, :scope > .tsru-hotbar-action-label").forEach(node => node.remove());
-    if (isSkill) {
+    if (isSkill || isTalent) {
       slot.classList.remove("has-energy", "is-ready");
+      const actor = game.actors.get(macro.getFlag(MODULE_ID, "actorId"));
       const label = document.createElement("span");
       label.className = "tsru-hotbar-action-label";
-      label.textContent = "SKILL";
+      label.textContent = isTalent ? "TALENT" : "SKILL";
       label.setAttribute("aria-hidden", "true");
       slot.append(label);
+      if (isTalent && actor) slot.title = plainAbilityText(getConfig(actor).talentText) || `${actor.name} Talent`;
       continue;
     }
     if (!isUltimate) { slot.classList.remove("has-energy", "is-ready"); continue; }
@@ -1461,10 +1541,11 @@ class TechniqueHud {
 
 function refreshResourceHuds() {
   const talentActors = visibleTalentActors();
-  if (talentActors.length) {
+  if (game.user.isGM && talentActors.length) {
     if (!state.talentPointHud) state.talentPointHud = new TalentPointHud();
     state.talentPointHud.render();
   } else state.talentPointHud?.destroy();
+  refreshTalentButtons();
   const techniqueActors = visibleTechniqueActors();
   if (techniqueActors.length) {
     if (!state.techniqueHud) state.techniqueHud = new TechniqueHud();
@@ -1510,6 +1591,93 @@ function skillButtonLayout(actorId) {
   const layouts = game.settings.get(MODULE_ID, "skillButtonLayouts") ?? {};
   const index = Math.max(0, game.actors.filter(actor => actor.type === "character").findIndex(actor => actor.id === actorId));
   return foundry.utils.mergeObject({x: 240, y: 330 + index * 118, size: 96, visible: false}, layouts[actorId] ?? {}, {inplace: false});
+}
+
+function plainAbilityText(value) {
+  const div = document.createElement("div");
+  div.innerHTML = String(value ?? "");
+  return (div.textContent || "").trim();
+}
+
+function selectedMainCharacter() {
+  const actorId = (game.settings.get(MODULE_ID, "partySelections") ?? {})[game.user.id];
+  const actor = game.actors.get(actorId);
+  return actor?.type === "character" && (game.user.isGM || actor.isOwner) ? actor : null;
+}
+
+function talentButtonLayout(actorId) {
+  const layouts = game.settings.get(MODULE_ID, "talentButtonLayouts") ?? {};
+  return foundry.utils.mergeObject({x:360,y:330,size:96,visible:false}, layouts[actorId] ?? {}, {inplace:false});
+}
+
+async function saveTalentButtonLayout(actorId, changes) {
+  const layouts = foundry.utils.deepClone(game.settings.get(MODULE_ID, "talentButtonLayouts") ?? {});
+  layouts[actorId] = foundry.utils.mergeObject(layouts[actorId] ?? {}, changes, {inplace:false});
+  await game.settings.set(MODULE_ID, "talentButtonLayouts", layouts);
+}
+
+async function showTalentPopup(actor) {
+  if (!actor || (!game.user.isGM && !actor.isOwner)) return ui.notifications.error("You do not own this character.");
+  const config = getConfig(actor);
+  const {trigger, overcap} = talentPointLimits(actor);
+  const body = await TextEditor.enrichHTML(config.talentText || "<em>No Talent description has been entered.</em>", {async:true,secrets:actor.isOwner,relativeTo:actor});
+  const content = `<section class="tsru-talent-dialog" data-actor-id="${actor.id}"><header><img src="${escapeHTML(config.talentIcon || actor.img || "icons/svg/star.svg")}" alt=""><div><strong>${escapeHTML(actor.name)} — Talent</strong><span data-talent-count>${currentTalentPoints(actor)}/${trigger}${overcap > trigger ? ` (overcap ${overcap})` : ""}</span></div></header><div class="tsru-talent-description">${body}</div><footer><button type="button" data-talent-popup-delta="-1"><i class="fas fa-minus"></i></button><button type="button" data-talent-popup-delta="1"><i class="fas fa-plus"></i></button></footer></section>`;
+  const dialog = new Dialog({title:`${actor.name} — Talent`,content,buttons:{close:{icon:'<i class="fas fa-check"></i>',label:"Close"}},render:html => {
+    html.find("[data-talent-popup-delta]").on("click", async event => {
+      await requestTalentAdjustment(actor, Number(event.currentTarget.dataset.talentPopupDelta));
+      const limits = talentPointLimits(actor);
+      html.find("[data-talent-count]").text(`${currentTalentPoints(actor)}/${limits.trigger}${limits.overcap > limits.trigger ? ` (overcap ${limits.overcap})` : ""}`);
+    });
+  }});
+  dialog.render(true);
+}
+
+class TalentButton {
+  constructor(actor) { this.actor=actor; this.element=null; this.drag=null; this.resize=null; }
+  render() {
+    const layout=talentButtonLayout(this.actor.id), config=getConfig(this.actor);
+    if (!layout.visible || !talentCombatForActor(this.actor) || talentPointLimits(this.actor).trigger < 1) return this.destroy();
+    if (!this.element) {
+      this.element=document.createElement("div");
+      this.element.className="tsru-skill-widget tsru-talent-widget";
+      this.element.innerHTML=`<div class="tsru-skill-drag" title="Move Talent button"><i class="fas fa-grip-lines"></i></div><button type="button" class="tsru-skill-button tsru-talent-button"><img></button><div class="tsru-skill-label">Talent</div><button type="button" class="tsru-skill-close" title="Hide Talent button"><i class="fas fa-xmark"></i></button><div class="tsru-skill-resize" title="Resize"></div>`;
+      document.body.appendChild(this.element);
+      const drag=this.element.querySelector(".tsru-skill-drag"),resize=this.element.querySelector(".tsru-skill-resize");
+      drag.addEventListener("pointerdown",e=>{e.preventDefault();const r=this.element.getBoundingClientRect();this.drag={dx:e.clientX-r.left,dy:e.clientY-r.top};drag.setPointerCapture(e.pointerId);});
+      drag.addEventListener("pointermove",e=>{if(!this.drag)return;this.element.style.left=`${clamp(e.clientX-this.drag.dx,0,window.innerWidth-40)}px`;this.element.style.top=`${clamp(e.clientY-this.drag.dy,0,window.innerHeight-40)}px`;});
+      drag.addEventListener("pointerup",async e=>{if(!this.drag)return;this.drag=null;drag.releasePointerCapture(e.pointerId);const r=this.element.getBoundingClientRect();await saveTalentButtonLayout(this.actor.id,{x:Math.round(r.left),y:Math.round(r.top)});});
+      resize.addEventListener("pointerdown",e=>{e.preventDefault();this.resize={startX:e.clientX,startSize:this.element.getBoundingClientRect().width};resize.setPointerCapture(e.pointerId);});
+      resize.addEventListener("pointermove",e=>{if(this.resize)this.element.style.setProperty("--tsru-skill-size",`${clamp(this.resize.startSize+e.clientX-this.resize.startX,64,280)}px`);});
+      resize.addEventListener("pointerup",async e=>{if(!this.resize)return;const size=clamp(this.resize.startSize+e.clientX-this.resize.startX,64,280);this.resize=null;resize.releasePointerCapture(e.pointerId);await saveTalentButtonLayout(this.actor.id,{size:Math.round(size)});});
+      this.element.querySelector(".tsru-skill-close").addEventListener("click",async()=>{await saveTalentButtonLayout(this.actor.id,{visible:false});this.destroy();});
+      this.element.querySelector(".tsru-talent-button").addEventListener("click",()=>showTalentPopup(this.actor));
+      activateStarRailActionDrag(this.element.querySelector(".tsru-talent-button"),this.actor,"talent");
+    }
+    this.element.style.left=`${clamp(layout.x,0,window.innerWidth-40)}px`;this.element.style.top=`${clamp(layout.y,0,window.innerHeight-40)}px`;this.element.style.setProperty("--tsru-skill-size",`${clamp(layout.size,64,280)}px`);
+    const button=this.element.querySelector(".tsru-talent-button");
+    button.querySelector("img").src=config.talentIcon || this.actor.img || "icons/svg/star.svg";
+    button.title=plainAbilityText(config.talentText) || `${this.actor.name} Talent`;
+    this.element.querySelector(".tsru-skill-label").textContent=`Talent ${currentTalentPoints(this.actor)}/${talentPointLimits(this.actor).trigger}`;
+    return this;
+  }
+  destroy(){this.element?.remove();this.element=null;state.talentButtons.delete(this.actor.id);}
+}
+
+function refreshTalentButtons() {
+  const actor=selectedMainCharacter();
+  for (const [id,button] of state.talentButtons) if (id !== actor?.id) button.destroy();
+  if (!actor || !talentButtonLayout(actor.id).visible || !talentCombatForActor(actor)) return;
+  let button=state.talentButtons.get(actor.id); if(!button){button=new TalentButton(actor);state.talentButtons.set(actor.id,button);} button.render();
+}
+
+async function showTalentUI() {
+  const actor=selectedMainCharacter();
+  if (!actor) return ui.notifications.warn("Select your main character first.");
+  if (!talentCombatForActor(actor)) return ui.notifications.warn("Talent controls are available while that character is on the battlefield in combat.");
+  if (talentPointLimits(actor).trigger < 1) return ui.notifications.warn("This character does not have a Talent Point trigger configured.");
+  await saveTalentButtonLayout(actor.id,{visible:true});
+  refreshTalentButtons();
+  showTalentPopup(actor);
 }
 
 async function saveSkillButtonLayout(actorId, changes) {
@@ -1588,7 +1756,8 @@ class SkillButton {
     }
     const config = getConfig(this.actor);
     const element = getElements().find(entry => entry.id === config.elementId);
-    const available = currentSkillPoints() > 0 && !state.skillLocks.has(this.actor.id);
+    const cost = Math.max(0, Math.floor(Number(config.skillPointCost) || 0));
+    const available = currentSkillPoints() >= cost && !state.skillLocks.has(this.actor.id);
     this.element.style.left = `${clamp(layout.x, 0, window.innerWidth - 40)}px`;
     this.element.style.top = `${clamp(layout.y, 0, window.innerHeight - 40)}px`;
     this.element.style.setProperty("--tsru-skill-size", `${clamp(layout.size, 64, 280)}px`);
@@ -1597,7 +1766,7 @@ class SkillButton {
     const button = this.element.querySelector(".tsru-skill-button");
     button.disabled = false;
     button.setAttribute("aria-disabled", String(!available));
-    button.title = available ? `${this.actor.name}: Use Skill (costs 1 Skill Point)` : state.skillLocks.has(this.actor.id) ? "This Skill is currently resolving." : "No Skill Points remain.";
+    button.title = available ? `${this.actor.name}: Use Skill (costs ${cost} Skill Point${cost === 1 ? "" : "s"})` : state.skillLocks.has(this.actor.id) ? "This Skill is currently resolving." : `This Skill requires ${cost} Skill Points.`;
     button.querySelector("img").src = config.skillButtonImage || this.actor.img || "icons/svg/sword.svg";
     return this;
   }
@@ -2336,11 +2505,11 @@ function combatPartyActors() {
 }
 
 function combatHudTalentMarkup(actor, config) {
-  if (!config.talentIcon || (!config.talentScript && Number(config.talentPointsMax) <= 0)) return "";
+  if (!config.talentIcon || (!config.talentText && Number(config.talentPointsMax) <= 0)) return "";
   const current = currentTalentPoints(actor);
   const maximum = Math.max(0, Number(config.talentPointsMax) || 0);
   const counter = maximum > 3 ? `${current}/${maximum}` : `${current}`;
-  return `<div class="tsru-combat-party-talent" title="${escapeHTML(actor.name)} Talent"><img src="${escapeHTML(config.talentIcon)}" alt=""><strong>${counter}</strong></div>`;
+  return `<div class="tsru-combat-party-talent" title="${escapeHTML(plainAbilityText(config.talentText) || `${actor.name} Talent`)}"><img src="${escapeHTML(config.talentIcon)}" alt=""><strong>${counter}</strong></div>`;
 }
 
 class CombatPartyHud {
@@ -2653,8 +2822,8 @@ async function postAbilityText(actor, kind, text, {combatantId = ""} = {}) {
   const content = description
     ? await TextEditor.enrichHTML(description, {async: true, secrets: game.user.isGM, relativeTo: actor})
     : "<em>No ability text has been configured.</em>";
-  const labels = {skill: "Skill", ultimate: "Ultimate", elation: "Elation Action"};
-  const icons = {skill: "fa-hand-sparkles", ultimate: "fa-burst", elation: "fa-masks-theater"};
+  const labels = {skill: "Skill", ultimate: "Ultimate", elation: "Elation Action", talent: "Talent"};
+  const icons = {skill: "fa-hand-sparkles", ultimate: "fa-burst", elation: "fa-masks-theater", talent: "fa-star"};
   const completion = kind === "elation" && combatantId
     ? `<footer><button type="button" data-tsru-complete-elation="${escapeHTML(combatantId)}"><i class="fas fa-check"></i> Complete Elation Action</button></footer>`
     : kind === "ultimate" && combatantId
@@ -2731,7 +2900,8 @@ async function requestSkill(actor) {
   const config = getConfig(actor);
   if (!game.user.isGM && !actor?.isOwner) return ui.notifications.error("You do not own this character.");
   if (!config.skillEnabled) return ui.notifications.warn("This character's Skill button is disabled.");
-  if (currentSkillPoints() <= 0) return ui.notifications.warn("The party has no Skill Points remaining.");
+  const cost = Math.max(0, Math.floor(Number(config.skillPointCost) || 0));
+  if (currentSkillPoints() < cost) return ui.notifications.warn(`This Skill requires ${cost} Skill Points.`);
   if (state.skillLocks.has(actor.id)) return ui.notifications.warn("This Skill is already resolving.");
   if (game.user.isGM && isAuthority()) return executeSkill(actor.id, game.user.id);
   const gm = activeGM();
@@ -2752,19 +2922,20 @@ async function completeSkill(actorId) {
 }
 
 async function executeSkill(actorId, requestingUserId) {
-  if (!isAuthority() || state.skillLocks.has(actorId) || state.skillSpendLock) return;
+  if (!isAuthority() || state.skillLocks.has(actorId) || state.skillSpendLock) return false;
   const actor = game.actors.get(actorId);
   const requester = game.users.get(requestingUserId);
-  if (!actor || actor.type !== "character" || (!requester?.isGM && !actor.testUserPermission(requester, "OWNER"))) return;
+  if (!actor || actor.type !== "character" || (!requester?.isGM && !actor.testUserPermission(requester, "OWNER"))) return false;
   const config = getConfig(actor);
-  if (!config.skillEnabled) return ui.notifications.warn(`${actor.name}'s Skill button is disabled.`);
-  if (currentSkillPoints() <= 0) return ui.notifications.warn("The party has no Skill Points remaining.");
+  if (!config.skillEnabled) { ui.notifications.warn(`${actor.name}'s Skill button is disabled.`); return false; }
+  const cost = Math.max(0, Math.floor(Number(config.skillPointCost) || 0));
+  if (currentSkillPoints() < cost) { ui.notifications.warn(`This Skill requires ${cost} Skill Points.`); return false; }
 
   state.skillSpendLock = true;
   state.skillLocks.add(actorId);
   game.socket.emit(SOCKET, {type: "skillState", actorId, locked: true});
   try {
-    await setSkillPoints(currentSkillPoints() - 1);
+    await setSkillPoints(currentSkillPoints() - cost);
     await dispatchTalentEvent("skillUsed", {sourceActor: actor, requestingUserId}, `${actor.id}:${Date.now()}`);
     const pending = {actorId, requestingUserId, timer: window.setTimeout(() => completeSkill(actorId), 120000)};
     state.pendingSkills.set(actorId, pending);
@@ -2772,10 +2943,12 @@ async function executeSkill(actorId, requestingUserId) {
       await runSkillScript(actor);
       await completeSkill(actorId);
     } else game.socket.emit(SOCKET, {type: "useSkill", actorId, targetUserId: requestingUserId});
+    return true;
   } catch (error) {
     console.error(`${MODULE_ID} | Skill failed`, error);
     ui.notifications.error(`Skill failed: ${error.message}`);
     await completeSkill(actorId);
+    return false;
   } finally { state.skillSpendLock = false; }
 }
 
@@ -3035,9 +3208,7 @@ async function onSocket(payload) {
   if (payload.type === "elationActionComplete" && isAuthority()) return completeElationAction(payload.combatantId, payload.userId);
   if (payload.type === "skillPointsChanged") { refreshSkillUI(); return; }
   if (payload.type === "activateSkill" && isAuthority()) {
-    const before = currentSkillPoints();
-    await executeSkill(payload.actorId, payload.requestingUserId);
-    const accepted = currentSkillPoints() < before;
+    const accepted = await executeSkill(payload.actorId, payload.requestingUserId) === true;
     game.socket.emit(SOCKET, {type: "playerActionResult", targetUserId: payload.requestingUserId, requestId: payload.requestId, accepted, action: "Skill", message: accepted ? "Skill activated successfully." : "The GM could not activate that Skill. Check ownership, the Skill toggle, and available Skill Points."});
     return;
   }
@@ -4506,7 +4677,8 @@ class StarRailGMPanel extends FormApplication {
       else if (field === "regenScore") await actor.update({[`flags.${MODULE_ID}.ultimate.regenScore`]: clamp(value, 1, 30)});
       else if (field === "talentPointsMax") {
         value = Math.max(0, value);
-        await actor.update({[`flags.${MODULE_ID}.ultimate.talentPointsMax`]: value, [`flags.${MODULE_ID}.ultimate.talentPointsCurrent`]: clamp(config.talentPointsCurrent, 0, value)});
+        const overcap = Math.max(value, Number(config.talentPointsOvercapMax) || value);
+        await actor.update({[`flags.${MODULE_ID}.ultimate.talentPointsMax`]: value, [`flags.${MODULE_ID}.ultimate.talentPointsOvercapMax`]:overcap, [`flags.${MODULE_ID}.ultimate.talentPointsCurrent`]: clamp(config.talentPointsCurrent, 0, overcap)});
       } else if (field === "talentPointsCurrent") {
         if (!talentCombatForActor(actor)) ui.notifications.warn("Talent Points can only be tracked during combat for characters with tokens on the battlefield.");
         else await setTalentPoints(actor, value);
@@ -4642,6 +4814,7 @@ function registerSettings() {
   game.settings.register(MODULE_ID, "techniquePointConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_TECHNIQUE_POINT_CONFIG)});
   game.settings.register(MODULE_ID, "techniquePoints", {scope: "world", config: false, type: Number, default: DEFAULT_TECHNIQUE_POINT_CONFIG.starting});
   game.settings.register(MODULE_ID, "talentHudLayout", {scope: "client", config: false, type: Object, default: {x: 24, y: 180}});
+  game.settings.register(MODULE_ID, "talentButtonLayouts", {scope: "client", config: false, type: Object, default: {}});
   game.settings.register(MODULE_ID, "techniqueHudLayout", {scope: "client", config: false, type: Object, default: {x: 24, y: 420}});
   game.settings.register(MODULE_ID, "skillPointConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_SKILL_POINT_CONFIG)});
   game.settings.register(MODULE_ID, "skillPoints", {scope: "world", config: false, type: Number, default: DEFAULT_SKILL_POINT_CONFIG.starting});
@@ -4893,7 +5066,7 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
   tab.find("[name]").each((_index, field) => {
     data[field.name] = field.type === "checkbox" ? field.checked : field.value;
   });
-  for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "talentPointsCurrent", "talentPointsMax", "punchlineGain", "splashDuration", "titleX", "titleY", "titleSize", "combatHudPortraitX", "combatHudPortraitY", "combatHudPortraitScale"]) data[key] = Number(data[key]);
+  for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "skillPointCost", "talentPointsCurrent", "talentPointsMax", "talentPointsOvercapMax", "punchlineGain", "splashDuration", "titleX", "titleY", "titleSize", "combatHudPortraitX", "combatHudPortraitY", "combatHudPortraitScale"]) data[key] = Number(data[key]);
   for (const key of ["enabled", "showPercent", "showHudPercent", "skillEnabled", "techniqueEnabled", "mainParty", "trialCharacter", "combatHudPortraitFlip", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter"]) data[key] = Boolean(data[key]);
   data.max = Math.max(1, data.max || 100);
   data.current = clamp(data.current, 0, data.max);
@@ -4903,7 +5076,9 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
     if (notify) ui.notifications.warn(`${actor.name} cannot regain Energy until the next round.`);
   }
   data.talentPointsMax = Math.max(0, Math.floor(data.talentPointsMax || 0));
-  data.talentPointsCurrent = talentCombatForActor(actor) ? clamp(Math.floor(data.talentPointsCurrent || 0), 0, data.talentPointsMax) : 0;
+  data.talentPointsOvercapMax = Math.max(data.talentPointsMax, Math.floor(data.talentPointsOvercapMax || data.talentPointsMax));
+  data.talentPointsCurrent = talentCombatForActor(actor) ? clamp(Math.floor(data.talentPointsCurrent || 0), 0, data.talentPointsOvercapMax) : 0;
+  data.skillPointCost = Math.max(0, Math.floor(data.skillPointCost || 0));
   data.talentCombatId = talentCombatForActor(actor)?.id ?? "";
   await actor.update({[`flags.${MODULE_ID}.ultimate`]: data}, {tsruAutosave: !notify});
   refreshOrb(actor);
@@ -5551,6 +5726,7 @@ function registerApi() {
     requestUltimate,
     requestSkill,
     requestTechnique,
+    showTalentPopup,
     getTechniquePoints: currentTechniquePoints,
     setTechniquePoints,
     getSkillPoints: currentSkillPoints,
@@ -5571,6 +5747,7 @@ function registerApi() {
     openCombatHudDesigner,
     triggerSpecialAha,
     showSkillUI,
+    showTalentUI,
     refreshResourceHuds,
     getPunchline: currentPunchline,
     setPunchline,
@@ -5825,7 +6002,7 @@ Hooks.on("updateActor", (actor, changes, options) => {
 Hooks.on("updateToken", () => { refreshToughnessBars(); refreshResourceHuds(); state.gmPanel?.render(false); });
 Hooks.on("targetToken", user => { if (user.id === game.user.id) state.gmPanel?.refreshTargetHighlights(); });
 Hooks.on("controlToken", () => state.gmPanel?.refreshTargetHighlights());
-Hooks.on("deleteActor", actor => { state.orbs.get(actor.id)?.destroy(); state.skillButtons.get(actor.id)?.destroy(); refreshResourceHuds(); });
+Hooks.on("deleteActor", actor => { state.orbs.get(actor.id)?.destroy(); state.skillButtons.get(actor.id)?.destroy(); state.talentButtons.get(actor.id)?.destroy(); refreshResourceHuds(); });
 Hooks.on("updateUser", user => { if (user.id === game.user.id) { refreshAllOrbs(); refreshSkillUI(); refreshResourceHuds(); refreshCombatPartyHud(); } });
 Hooks.on("updateSetting", setting => {
   if (setting?.key?.startsWith(`${MODULE_ID}.skillPoint`)) refreshSkillUI();
@@ -5835,7 +6012,7 @@ Hooks.on("updateSetting", setting => {
     refreshCombatPartyHud();
     refreshUltimateHotbarMacros();
   }
-  if (setting?.key === `${MODULE_ID}.partySelections`) refreshCombatPartyHud();
+  if (setting?.key === `${MODULE_ID}.partySelections`) { refreshCombatPartyHud(); refreshTalentButtons(); }
   if (setting?.key === `${MODULE_ID}.combatHudDesign`) {
     refreshCombatPartyHud();
     for (const app of Object.values(ui.windows ?? {})) if ((app.actor ?? app.document)?.type === "character") app.render(false);
@@ -5856,6 +6033,7 @@ Hooks.on("deleteCombat", async combat => {
   await dispatchTalentEvent("combatEnd", {combat}, combat.id);
   state.lastTalentTurns.delete(combat.id);
   state.lastCombatTurns.delete(combat.id);
+  state.talentTurnQueues.delete(combat.id);
   if (state.specialAha?.combatId === combat.id) state.specialAha = null;
   state.actionAdvances.delete(combat.id);
   state.ultimateLocks.clear();
@@ -5904,6 +6082,7 @@ Hooks.on("updateCombat", async combat => {
     }
   }
   await removeOrphanedTemporaryTurns(combat);
+  if (previousTurn?.id && (previousTurn.id !== currentTurn?.id || previousTurn.round !== combat.round) && await processTalentTurnQueue(combat)) return;
   if (await skipBrokenCombatantTurn(combat, combat.combatant)) return;
   const ultimateQueue = state.ultimateQueues.get(combat.id);
   if (ultimateQueue?.waitTurnId && combat.combatant?.id !== ultimateQueue.waitTurnId) {
@@ -5944,6 +6123,10 @@ Hooks.on("updateCombat", async combat => {
     await executeElationAction(current);
     return;
   }
+  if (isTalentTurnCombatant(current)) {
+    await beginTalentTurn(current);
+    return;
+  }
   const temporary = current;
   if (!temporary?.getFlag(MODULE_ID, "temporaryUltimate")) return;
   const actor = temporary.actor;
@@ -5952,7 +6135,7 @@ Hooks.on("updateCombat", async combat => {
 });
 
 Hooks.on("updateCombatant", async (combatant, changed) => {
-  if (!isAuthority() || isAhaCombatant(combatant) || isElationActionCombatant(combatant) || !("initiative" in changed)) return;
+  if (!isAuthority() || isAhaCombatant(combatant) || isElationActionCombatant(combatant) || isTalentTurnCombatant(combatant) || !("initiative" in changed)) return;
   await maybeEnsureAhaCombatant(combatant.parent);
 });
 
@@ -5960,7 +6143,7 @@ Hooks.on("createCombatant", combatant => {
   state.gmPanel?.render(false);
   window.setTimeout(refreshToughnessBars, 150);
   window.setTimeout(refreshCombatPartyHud, 150);
-  if (isAhaCombatant(combatant) || isElationActionCombatant(combatant)) return;
+  if (isAhaCombatant(combatant) || isElationActionCombatant(combatant) || isTalentTurnCombatant(combatant)) return;
   window.setTimeout(() => maybeEnsureAhaCombatant(combatant.parent), 100);
 });
 

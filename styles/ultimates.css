@@ -156,6 +156,13 @@
 .tsru-skill-macro{position:relative!important;isolation:isolate;overflow:hidden!important}
 .tsru-skill-macro img{width:100%!important;height:100%!important;max-width:none!important;aspect-ratio:1/1!important;object-fit:cover!important;object-position:center!important}
 .tsru-skill-macro .tsru-hotbar-action-label{position:absolute;z-index:5;left:0;right:0;top:50%;transform:translateY(-50%);pointer-events:none;padding:2px 1px;background:rgba(5,7,12,.72);border-top:1px solid rgba(255,255,255,.55);border-bottom:1px solid rgba(255,255,255,.55);color:#fff;font:900 11px/1.05 sans-serif;letter-spacing:.09em;text-align:center;text-shadow:0 1px 2px #000}
+.tsru-talent-macro .tsru-hotbar-action-label{position:absolute;z-index:5;left:0;right:0;top:50%;transform:translateY(-50%);pointer-events:none;padding:2px 1px;background:rgba(20,10,32,.76);border-top:1px solid #e7c4ff;border-bottom:1px solid #e7c4ff;color:#fff;font:900 10px/1.05 sans-serif;letter-spacing:.07em;text-align:center;text-shadow:0 1px 2px #000}
+.tsru-talent-widget .tsru-skill-button{border-color:#d8a9ff;box-shadow:0 0 14px #ae58ef}.tsru-talent-widget .tsru-skill-label{color:#f1d8ff}
+.tsru-talent-dialog header{display:flex;align-items:center;gap:10px;padding-bottom:8px;border-bottom:1px solid #ffffff2b}.tsru-talent-dialog header img{width:54px;height:54px;border:2px solid #d6a9ff;border-radius:50%;object-fit:cover}.tsru-talent-dialog header div{display:grid;gap:3px}.tsru-talent-dialog header span{color:#d9c6e6}.tsru-talent-description{max-height:45vh;overflow:auto;padding:12px 3px}.tsru-talent-dialog footer{display:flex;justify-content:center;gap:10px}.tsru-talent-dialog footer button{max-width:90px}
+
+/* Floating combat effects stay below Foundry application windows and sheets. */
+.tsru-skill-meter,.tsru-skill-widget,.tsru-resource-hud,.tsru-aha-button,.tsru-punchline-meter,.tsru-combat-party-hud{z-index:80!important}
+#canvas>.tsru-splash,#canvas>.tsru-aha-overlay,.tsru-break-popup{z-index:70!important}
 .tsru-skill-point-config { padding: 8px; }
 .tsru-skill-point-config fieldset { margin: 8px 0 12px; padding: 9px 12px; border: 1px solid var(--color-border-light-2); border-radius: 5px; }
 .tsru-skill-point-config legend { padding: 0 7px; color: var(--tsru-gold); font-weight: 700; }

@@ -184,6 +184,7 @@ class HSRHub extends FormApplication {
         }],
         "hud-designer": ["Combat HUD Designer", () => api()?.openCombatHudDesigner?.()],
         skills: ["Skills & Skill Points", () => api()?.showSkillUI?.()],
+        talents: ["Talent", () => api()?.showTalentUI?.()],
         gm: ["Star Rail GM Panel", () => api()?.openGMPanel?.()],
         "aha-config": ["Aha Instant Configuration", () => api()?.openAhaConfig?.()],
         "aha-toggle": ["Aha Instant Orb", async () => {
@@ -408,6 +409,7 @@ function hubToolbarActions() {
     "tsru-party-selector": ["Main Character", () => new PartyCharacterSelector().render(true)],
     "tsru-orbs": ["Combat Party HUD", () => api()?.showUltimateUI?.()],
     "tsru-skills": ["Skills & Skill Points", () => api()?.showSkillUI?.()],
+    "tsru-talents": ["Talent", () => api()?.showTalentUI?.()],
     "tsru-hub-window": ["HSR Hub", openHub],
     "tsru-gm-panel": ["Star Rail GM Panel", () => api()?.openGMPanel?.()],
     "tsru-quest-manager": ["Mission Manager", () => new QuestManager().render(true)],
@@ -444,6 +446,7 @@ function consolidateToolbar(controls) {
     ["tsru-party-selector","Select Main Character","fas fa-user-check",!game.user.isGM,toolbarAction("Main Character",()=>new PartyCharacterSelector().render(true))],
     ["tsru-orbs","Show Combat Party HUD","fas fa-users",game.user.isGM,toolbarAction("Combat Party HUD",()=>api()?.showUltimateUI?.())],
     ["tsru-skills","Show Skills & Skill Points","fas fa-hand-sparkles",true,toolbarAction("Skills & Skill Points",()=>api()?.showSkillUI?.())],
+    ["tsru-talents","Show Selected Character Talent","fas fa-star",true,toolbarAction("Talent",()=>api()?.showTalentUI?.())],
     ["tsru-hub-window","Open HSR Hub","fas fa-grid-2",true,toolbarAction("HSR Hub",openHub)],
     ["tsru-gm-panel","Star Rail GM Panel","fas fa-sliders",game.user.isGM,toolbarAction("Star Rail GM Panel",()=>api()?.openGMPanel?.())],
     ["tsru-quest-manager","Mission Manager","fas fa-list-check",game.user.isGM,toolbarAction("Mission Manager",()=>new QuestManager().render(true))],
