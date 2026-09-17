@@ -183,8 +183,7 @@ class HSRHub extends FormApplication {
           if (count) ui.notifications.info("Combat party HUD shown.");
         }],
         "hud-designer": ["Combat HUD Designer", () => api()?.openCombatHudDesigner?.()],
-        skills: ["Skills & Skill Points", () => api()?.showSkillUI?.()],
-        talents: ["Talent", () => api()?.showTalentUI?.()],
+        abilities: ["Ability Bubbles", () => api()?.showAllAbilityBubbles?.()],
         gm: ["Star Rail GM Panel", () => api()?.openGMPanel?.()],
         "aha-config": ["Aha Instant Configuration", () => api()?.openAhaConfig?.()],
         "aha-toggle": ["Aha Instant Orb", async () => {
@@ -441,12 +440,11 @@ function consolidateToolbar(controls) {
   const token=controls.find?.(c=>c.name==="token")??controls.tokens??controls.token;
   const old=new Set(["tsru-orbs","tsru-skills","tsru-aha-instant","tsru-gm-panel"]);
   if(token){if(Array.isArray(token.tools)) token.tools=token.tools.filter(t=>!old.has(t.name)); else for(const name of old)delete token.tools[name];}
-  const hubTools=[
+  let hubTools=[
     ["tsru-quest-log","Mission Log","fas fa-clipboard-list",true,toolbarAction("Mission Log",openQuestLog)],
     ["tsru-party-selector","Select Main Character","fas fa-user-check",!game.user.isGM,toolbarAction("Main Character",()=>new PartyCharacterSelector().render(true))],
     ["tsru-orbs","Show Combat Party HUD","fas fa-users",game.user.isGM,toolbarAction("Combat Party HUD",()=>api()?.showUltimateUI?.())],
-    ["tsru-skills","Show Skills & Skill Points","fas fa-hand-sparkles",true,toolbarAction("Skills & Skill Points",()=>api()?.showSkillUI?.())],
-    ["tsru-talents","Show Selected Character Talent","fas fa-star",true,toolbarAction("Talent",()=>api()?.showTalentUI?.())],
+    ["tsru-abilities","Show All Ability Bubbles","fas fa-circle-nodes",true,toolbarAction("Ability Bubbles",()=>api()?.showAllAbilityBubbles?.())],
     ["tsru-hub-window","Open HSR Hub","fas fa-grid-2",true,toolbarAction("HSR Hub",openHub)],
     ["tsru-gm-panel","Star Rail GM Panel","fas fa-sliders",game.user.isGM,toolbarAction("Star Rail GM Panel",()=>api()?.openGMPanel?.())],
     ["tsru-quest-manager","Mission Manager","fas fa-list-check",game.user.isGM,toolbarAction("Mission Manager",()=>new QuestManager().render(true))],
@@ -458,6 +456,7 @@ function consolidateToolbar(controls) {
     ["tsru-paths","Manage Paths","fas fa-route",game.user.isGM,toolbarAction("Path Manager",()=>api()?.openPathManager?.())],
     ["tsru-eidolons","Configure Eidolon Layers","fas fa-gem",game.user.isGM,toolbarAction("Eidolon Configuration",()=>api()?.openEidolonConfig?.())]
   ].map(([name,title,icon,visible,handler])=>({name,title,icon,button:true,visible,onClick:handler,onChange:handler}));
+  if(game.user.isGM) hubTools=hubTools.filter(tool=>tool.name==="tsru-hub-window");
   const hub={name:"tsru-hsr-hub",title:"HSR Hub",icon:"fas fa-rocket",order:89,layer:"controls",tools:hubTools};
   if(Array.isArray(controls)){const existing=controls.findIndex(c=>c.name===hub.name);if(existing>=0)controls.splice(existing,1);controls.push(hub);}
   else controls[hub.name]=hub;
