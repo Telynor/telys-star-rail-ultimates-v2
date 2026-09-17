@@ -880,9 +880,9 @@
 .tsru-boss-portrait { overflow:hidden; }
 .tsru-boss-portrait img { width:100%; height:100%; border-radius:50%; object-fit:cover; object-position:var(--boss-portrait-x,50%) var(--boss-portrait-y,50%); transform:scale(var(--boss-portrait-scale,1)); transform-origin:var(--boss-portrait-x,50%) var(--boss-portrait-y,50%); border:2px solid #fff1ae; background:#170b0b; }
 .tsru-boss-main { flex:1; min-width:0; }
-.tsru-boss-main header { display:flex; align-items:end; justify-content:space-between; min-height:28px; padding:0 8px 3px; text-shadow:0 2px 3px #000; }
-.tsru-boss-main header strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:20px; letter-spacing:.04em; }
-.tsru-boss-phases { display:flex; gap:7px; padding-right:8px; }
+.tsru-boss-main header { position:relative; display:grid; place-items:center; min-height:32px; padding:0 130px 3px; text-shadow:0 2px 3px #000; }
+.tsru-boss-main header strong { max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:20px; letter-spacing:.04em; text-align:center; }
+.tsru-boss-phases { position:absolute; left:8px; top:50%; display:flex; gap:7px; transform:translateY(-50%); }
 .tsru-boss-phases i { width:12px; height:12px; border-radius:50%; background:#381116; border:1px solid #7d3439; box-shadow:inset 0 0 3px #000; }
 .tsru-boss-phases i.is-active { background:#ff6574; border-color:#ffd4aa; box-shadow:0 0 5px #fff,0 0 11px #ff4058,inset 0 0 3px #fff; }
 .tsru-boss-health { position:relative; height:var(--boss-health-h,20px); overflow:hidden; border:3px solid rgba(235,239,246,.9); background:#190204; box-shadow:0 0 0 2px rgba(26,34,46,.85),inset 0 0 9px #000; }
@@ -890,7 +890,7 @@
 .tsru-boss-health span { position:absolute; inset:0; display:grid; place-items:center; font-size:13px; font-weight:800; line-height:14px; color:#fff; text-shadow:0 1px 3px #000,0 0 3px #000; }
 .tsru-boss-toughness { position:relative; height:var(--boss-toughness-h,9px); margin:4px 2px 0; overflow:hidden; border:1px solid #d6dbe2; background:#22272e; box-shadow:0 0 0 1px #111827,inset 0 0 5px #000; }
 .tsru-boss-toughness i { position:absolute; inset:0 auto 0 0; width:var(--boss-toughness); background:linear-gradient(180deg,#e0e4e9,#8d949d); transition:width .3s ease; }
-.tsru-boss-weaknesses { flex:0 0 auto; max-width:112px; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:4px; }
+.tsru-boss-weaknesses { position:absolute; right:8px; top:50%; max-width:120px; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:4px; transform:translateY(-50%); }
 .tsru-boss-weaknesses img { width:25px; height:25px; object-fit:contain; filter:drop-shadow(0 0 4px rgba(255,255,255,.5)); }
 .tsru-boss-designer-preview { grid-column:1/-1; min-height:130px; padding:24px 12px; overflow:auto; border:1px solid rgba(229,200,120,.35); border-radius:7px; background:radial-gradient(circle at center,#263241,#090d13 72%); }
 .tsru-boss-phase-preview + .tsru-boss-phase-preview { margin-top:18px; padding-top:14px; border-top:1px solid rgba(255,255,255,.15); }

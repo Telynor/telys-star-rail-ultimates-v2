@@ -2806,20 +2806,12 @@ async function handleBossPhaseDefeat(actor) {
 }
 
 class BossHud {
-  constructor(){this.element=null;this.drag=null;this.carouselObserver=null;}
-  minimumTop(){
-    if(!game.modules.get("combat-tracker-dock")?.active)return 0;
-    const dock=document.querySelector("#combat-dock");
-    if(!dock || dock.classList.contains("hidden"))return 0;
-    const rect=dock.getBoundingClientRect();
-    return rect.width>0 && rect.height>0 && rect.top<window.innerHeight*.35 ? Math.ceil(rect.bottom+8) : 0;
-  }
-  respectCarousel(){if(!this.element)return;const dock=document.querySelector("#combat-dock");if(dock&&this.carouselResizeTarget!==dock){this.carouselResize?.disconnect();this.carouselResizeTarget=dock;this.carouselResize=globalThis.ResizeObserver?new ResizeObserver(()=>this.respectCarousel()):null;this.carouselResize?.observe(dock);}const minimum=this.minimumTop();if(minimum){const top=parseFloat(this.element.style.top)||0;if(top<minimum)this.element.style.top=`${minimum}px`;}}
+  constructor(){this.element=null;this.drag=null;}
   render(){
     const combat=game.combat;
     const bosses=combat ? combat.combatants.map(combatant=>({combatant,encounter:bossEncounter(combatant)})).filter(entry=>entry.encounter && !entry.encounter.defeated) : [];
     if(!bosses.length)return this.destroy();
-    if(!this.element){this.element=document.createElement("section");this.element.className="tsru-boss-hud";document.body.appendChild(this.element);const layout=game.settings.get(MODULE_ID,"bossHudLayout")||{};this.element.style.left=`${layout.x??Math.max(20,(innerWidth-920)/2)}px`;this.element.style.top=`${Math.max(layout.y??54,this.minimumTop())}px`;this.element.addEventListener("pointerdown",event=>{const handle=event.target.closest(".tsru-boss-drag");if(!handle)return;event.preventDefault();const rect=this.element.getBoundingClientRect();this.drag={dx:event.clientX-rect.left,dy:event.clientY-rect.top};handle.setPointerCapture(event.pointerId);});this.element.addEventListener("pointermove",event=>{if(!this.drag)return;this.element.style.left=`${clamp(event.clientX-this.drag.dx,0,innerWidth-80)}px`;this.element.style.top=`${clamp(event.clientY-this.drag.dy,this.minimumTop(),innerHeight-40)}px`;});this.element.addEventListener("pointerup",async event=>{if(!this.drag)return;this.drag=null;const rect=this.element.getBoundingClientRect();await game.settings.set(MODULE_ID,"bossHudLayout",{x:Math.round(rect.left),y:Math.round(rect.top)});});this.carouselObserver=new MutationObserver(()=>this.respectCarousel());this.carouselObserver.observe(document.body,{childList:true,subtree:true});window.addEventListener("resize",this._resizeHandler=()=>this.respectCarousel());}
+    if(!this.element){this.element=document.createElement("section");this.element.className="tsru-boss-hud";document.body.appendChild(this.element);const layout=game.settings.get(MODULE_ID,"bossHudLayout")||{};this.element.style.left=`${layout.x??Math.max(20,(innerWidth-920)/2)}px`;this.element.style.top=`${clamp(layout.y??54,0,innerHeight-40)}px`;this.element.addEventListener("pointerdown",event=>{const handle=event.target.closest(".tsru-boss-drag");if(!handle)return;event.preventDefault();const rect=this.element.getBoundingClientRect();this.drag={dx:event.clientX-rect.left,dy:event.clientY-rect.top};handle.setPointerCapture(event.pointerId);});this.element.addEventListener("pointermove",event=>{if(!this.drag)return;this.element.style.left=`${clamp(event.clientX-this.drag.dx,0,innerWidth-80)}px`;this.element.style.top=`${clamp(event.clientY-this.drag.dy,0,innerHeight-40)}px`;});this.element.addEventListener("pointerup",async event=>{if(!this.drag)return;this.drag=null;const rect=this.element.getBoundingClientRect();await game.settings.set(MODULE_ID,"bossHudLayout",{x:Math.round(rect.left),y:Math.round(rect.top)});});}
     this.element.innerHTML=bosses.map(({combatant,encounter})=>{
       const actor=combatant.actor;
       const design=encounter.bossConfig || getConfig(actor);
@@ -2830,11 +2822,11 @@ class BossHud {
       const orbs=Array.from({length:encounter.totalPhases},(_v,index)=>`<i class="${index<remaining?"is-active":""}"></i>`).join("");
       const portrait=bossPortraitConfig(actor);
       const weaknesses=getElements().filter(element=>effectiveToughnessWeaknesses(actor).includes(element.id)).map(element=>`<img src="${escapeHTML(element.icon||"icons/svg/aura.svg")}" title="${escapeHTML(element.name)}">`).join("");
-      return `<article class="tsru-boss-entry" data-combatant-id="${combatant.id}" style="--boss-width:${design.bossHudWidth}px;--boss-health-h:${design.bossHudHealthHeight}px;--boss-toughness-h:${design.bossHudToughnessHeight}px;--boss-portrait-x:${portrait.x}%;--boss-portrait-y:${portrait.y}%;--boss-portrait-scale:${portrait.scale/100}"><div class="tsru-boss-drag" title="Move boss bar"><i class="fas fa-grip-lines"></i></div><div class="tsru-boss-portrait"><img src="${escapeHTML(portrait.image)}" alt="${escapeHTML(actor?.name||combatant.name)}"></div><div class="tsru-boss-main"><header><strong>${escapeHTML(actor?.name||combatant.name)}</strong><span class="tsru-boss-phases">${orbs}</span></header><div class="tsru-boss-health" style="--boss-hp:${percent}%"><i></i><span>${Math.round(percent)}%</span></div><div class="tsru-boss-toughness" style="--boss-toughness:${toughnessPercent}%"><i></i></div></div><div class="tsru-boss-weaknesses">${weaknesses}</div></article>`;
+      return `<article class="tsru-boss-entry" data-combatant-id="${combatant.id}" style="--boss-width:${design.bossHudWidth}px;--boss-health-h:${design.bossHudHealthHeight}px;--boss-toughness-h:${design.bossHudToughnessHeight}px;--boss-portrait-x:${portrait.x}%;--boss-portrait-y:${portrait.y}%;--boss-portrait-scale:${portrait.scale/100}"><div class="tsru-boss-drag" title="Move boss bar"><i class="fas fa-grip-lines"></i></div><div class="tsru-boss-portrait"><img src="${escapeHTML(portrait.image)}" alt="${escapeHTML(actor?.name||combatant.name)}"></div><div class="tsru-boss-main"><header><span class="tsru-boss-phases">${orbs}</span><strong>${escapeHTML(actor?.name||combatant.name)}</strong><span class="tsru-boss-weaknesses">${weaknesses}</span></header><div class="tsru-boss-health" style="--boss-hp:${percent}%"><i></i><span>${Math.round(percent)}%</span></div><div class="tsru-boss-toughness" style="--boss-toughness:${toughnessPercent}%"><i></i></div></div></article>`;
     }).join("");
-    this.respectCarousel();return this;
+    return this;
   }
-  destroy(){this.carouselObserver?.disconnect();this.carouselObserver=null;this.carouselResize?.disconnect();this.carouselResize=null;this.carouselResizeTarget=null;if(this._resizeHandler)window.removeEventListener("resize",this._resizeHandler);this._resizeHandler=null;this.element?.remove();this.element=null;if(state.bossHud===this)state.bossHud=null;}
+  destroy(){this.element?.remove();this.element=null;if(state.bossHud===this)state.bossHud=null;}
 }
 
 class BossPhaseControl {
@@ -2863,7 +2855,7 @@ function bossDesignerPreview(actor,config=getConfig(actor)){
   const portrait=bossPortraitConfig(actor,{image:config.bossHudPortrait});
   const toughness=getToughness(actor);
   const weaknesses=getElements().filter(element=>toughness.weaknesses.includes(element.id)).map(element=>`<img src="${escapeHTML(element.icon||"icons/svg/aura.svg")}" title="${escapeHTML(element.name)}">`).join("");
-  return `<article class="tsru-boss-entry tsru-boss-preview-entry" style="--boss-width:${config.bossHudWidth}px;--boss-health-h:${config.bossHudHealthHeight}px;--boss-toughness-h:${config.bossHudToughnessHeight}px;--boss-portrait-x:${config.bossHudPortraitX}%;--boss-portrait-y:${config.bossHudPortraitY}%;--boss-portrait-scale:${config.bossHudPortraitScale/100}"><div class="tsru-boss-portrait"><img src="${escapeHTML(config.bossHudPortrait||portrait.image)}" alt=""></div><div class="tsru-boss-main"><header><strong>${escapeHTML(actor.name)}</strong><span class="tsru-boss-phases"><i class="is-active"></i><i class="is-active"></i><i class="is-active"></i></span></header><div class="tsru-boss-health" style="--boss-hp:72%"><i></i><span>72%</span></div><div class="tsru-boss-toughness" style="--boss-toughness:58%"><i></i></div></div><div class="tsru-boss-weaknesses">${weaknesses}</div></article>`;
+  return `<article class="tsru-boss-entry tsru-boss-preview-entry" style="--boss-width:${config.bossHudWidth}px;--boss-health-h:${config.bossHudHealthHeight}px;--boss-toughness-h:${config.bossHudToughnessHeight}px;--boss-portrait-x:${config.bossHudPortraitX}%;--boss-portrait-y:${config.bossHudPortraitY}%;--boss-portrait-scale:${config.bossHudPortraitScale/100}"><div class="tsru-boss-portrait"><img src="${escapeHTML(config.bossHudPortrait||portrait.image)}" alt=""></div><div class="tsru-boss-main"><header><span class="tsru-boss-phases"><i class="is-active"></i><i class="is-active"></i><i class="is-active"></i></span><strong>${escapeHTML(actor.name)}</strong><span class="tsru-boss-weaknesses">${weaknesses}</span></header><div class="tsru-boss-health" style="--boss-hp:72%"><i></i><span>72%</span></div><div class="tsru-boss-toughness" style="--boss-toughness:58%"><i></i></div></div></article>`;
 }
 
 function getCombatHudDesign() {
