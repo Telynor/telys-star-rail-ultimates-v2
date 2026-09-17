@@ -102,6 +102,7 @@ class PartyCharacterSelector extends FormApplication {
     if (actorUltimate(actor).partyGMOverride) return ui.notifications.warn("The GM has locked this character's party status.");
     const gm=partyAuthority();
     if (!gm) return ui.notifications.error("An active GM is required to change your main character.");
+    await api()?.setLocalMainCharacter?.(actorId);
     game.socket.emit(SOCKET,{type:"selectPartyCharacter",userId:game.user.id,actorId,sourceUserId:game.user.id});
     ui.notifications.info(`Requested ${actor.name} as your main character.`);
   }
@@ -476,7 +477,7 @@ Hooks.once("init",()=>{
 Hooks.once("ready",()=>{
   game.socket.on(SOCKET,async payload=>{
     if(payload?.type==="selectPartyCharacter" && game.user.isGM && partyAuthority()?.id===game.user.id) { await applyPartySelection(payload.userId,payload.actorId); return; }
-    if(payload?.type==="partySelectionChanged") { for(const app of Object.values(ui.windows??{})) if(["tsru-party-selector","tsru-quest-manager","tsru-gm-panel"].includes(app.options?.id)) app.render(false); if(payload.userId===game.user.id) ui.notifications.info("Your main character and party status were updated."); return; }
+    if(payload?.type==="partySelectionChanged") { if(payload.userId===game.user.id) await api()?.setLocalMainCharacter?.(payload.actorId); for(const app of Object.values(ui.windows??{})) if(["tsru-party-selector","tsru-quest-manager","tsru-gm-panel"].includes(app.options?.id)) app.render(false); if(payload.userId===game.user.id) ui.notifications.info("Your main character and party status were updated."); return; }
     if(payload?.type!=="questsChanged")return;refreshQuestWindows();
     if(payload.notify&&payload.sourceUserId!==game.user.id){const q=quests().find(x=>x.id===payload.questId);if(q&&visibleQuest(q))ui.notifications.info(q.status==="complete"?`Mission Complete: ${q.title}`:`New Mission: ${q.title}`);}
   });
