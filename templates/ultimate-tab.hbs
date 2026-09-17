@@ -14,6 +14,15 @@
       <div class="tsru-field tsru-field-toggle"><span class="tsru-field-label"><strong>Pause Energy Gain After Ultimate?</strong><small>Prevents this character from regaining Energy until the next combat round begins.</small></span><input type="checkbox" name="lockEnergyAfterUltimate" {{checked config.lockEnergyAfterUltimate}}></div>
     </div>
 
+    <div class="tsru-config-section tsru-boss-config-section">
+      <h3><i class="fas fa-skull"></i> Boss Encounter</h3>
+      <div class="tsru-field tsru-field-toggle"><span class="tsru-field-label"><strong>Is Boss?</strong><small>While this actor is in active combat, display the shared boss HP bar and enable phase transitions.</small></span><input type="checkbox" name="isBoss" {{checked config.isBoss}}></div>
+      <div class="tsru-field"><label><strong>Phase count</strong><small>Total phases represented by the glowing orbs.</small></label><select name="bossPhaseCount"><option value="1" {{#if bossPhase1}}selected{{/if}}>1</option><option value="2" {{#if bossPhase2}}selected{{/if}}>2</option><option value="3" {{#if bossPhase3}}selected{{/if}}>3</option></select></div>
+      <div class="tsru-field tsru-field-wide"><label><strong>Phase 2 actor</strong><small>Drag an Actor here. It replaces the current token when phase 1 reaches 0 HP.</small></label><div class="tsru-file-control"><input type="text" class="tsru-drop-actor" name="bossPhase2ActorUuid" value="{{config.bossPhase2ActorUuid}}" placeholder="Drop an Actor UUID"><button type="button" data-clear-boss-phase="bossPhase2ActorUuid" title="Clear"><i class="fas fa-xmark"></i></button></div></div>
+      <div class="tsru-field tsru-field-wide"><label><strong>Phase 3 actor</strong><small>Drag an Actor here. It replaces phase 2 when that phase reaches 0 HP.</small></label><div class="tsru-file-control"><input type="text" class="tsru-drop-actor" name="bossPhase3ActorUuid" value="{{config.bossPhase3ActorUuid}}" placeholder="Drop an Actor UUID"><button type="button" data-clear-boss-phase="bossPhase3ActorUuid" title="Clear"><i class="fas fa-xmark"></i></button></div></div>
+      <div class="tsru-field tsru-field-toggle"><span class="tsru-field-label"><strong>Inherits main phase-boss count?</strong><small>When this actor is used as another boss's phase, retain the original encounter's remaining phase orbs and phase plan instead of resetting to this actor's boss settings.</small></span><input type="checkbox" name="bossInheritsMainPhaseCount" {{checked config.bossInheritsMainPhaseCount}}></div>
+    </div>
+
     <div class="tsru-config-section tsru-break-character-section">
       <h3><i class="fas fa-hammer"></i> Break Character</h3><p>Break and Super Break fonts are shared across all characters. Configure them in Module Settings → Break Text Appearance.</p>
       <div class="tsru-field tsru-field-toggle"><span class="tsru-field-label"><strong>Is this a Break Character?</strong><small>Successful attacks deal 1 HP damage and redirect their full rolled damage to Toughness.</small></span><input type="checkbox" name="breakCharacter" {{checked config.breakCharacter}}></div>
