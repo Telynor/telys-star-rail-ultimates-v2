@@ -342,9 +342,10 @@
 #canvas > .tsru-splash { z-index: 3; }
 .tsru-splash.show { opacity: 1; }
 .tsru-splash-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, .72); }
-.tsru-splash-media { position: relative; width: 100vw; height: 100vh; overflow: hidden; transform: scale(1); transform-origin: center center; }
-.tsru-splash.show .tsru-splash-media { animation: tsru-cinematic-settle .5s cubic-bezier(.16, .84, .32, 1) both; }
-.tsru-splash img, .tsru-splash video { width: 100%; height: 100%; border: 0; object-fit: contain; object-position: var(--tsru-splash-x,50%) var(--tsru-splash-y,50%); transform: scale(var(--tsru-splash-scale,1)); transform-origin: var(--tsru-splash-x,50%) var(--tsru-splash-y,50%); filter: drop-shadow(0 0 24px rgba(255,255,255,.22)); }
+.tsru-splash-media { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+.tsru-splash-artwork { position:absolute; inset:0; overflow:hidden; transform:scale(1); transform-origin:center center; }
+.tsru-splash.show .tsru-splash-artwork { animation: tsru-cinematic-settle .5s cubic-bezier(.16, .84, .32, 1) both; }
+.tsru-splash-artwork img, .tsru-splash-artwork video { width: 100%; height: 100%; border: 0; object-fit: contain; object-position: var(--tsru-splash-x,50%) var(--tsru-splash-y,50%); transform: scale(var(--tsru-splash-scale,1)); transform-origin: var(--tsru-splash-x,50%) var(--tsru-splash-y,50%); filter: drop-shadow(0 0 24px rgba(255,255,255,.22)); }
 
 @keyframes tsru-cinematic-settle {
   from { transform: scale(1.10); }
@@ -352,7 +353,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tsru-splash.show .tsru-splash-media { animation: none; }
+  .tsru-splash.show .tsru-splash-artwork { animation: none; }
 }
 .tsru-title-card { position: absolute; left: var(--tsru-title-x); top: var(--tsru-title-y); display: flex; align-items: center; width: clamp(240px, 24vw, 340px); max-width: 42vw; color: white; font-family: var(--tsru-title-font); text-align: var(--tsru-title-align); transform: translateY(-50%); filter: drop-shadow(0 3px 5px rgba(0,0,0,.95)); }
 .tsru-title-copy { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; width: 100%; min-width: 0; }
