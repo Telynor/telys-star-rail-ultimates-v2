@@ -3167,6 +3167,8 @@ async function completeElationAction(combatantId, userId) {
   }
   if (await finishSpecialAha(combat)) return;
   await clearElationActionTurns(combat, {resetPunchline: true, resume: true, resumeRound});
+  const advance=state.actionAdvances.get(combat.id);
+  if(advance?.aha)await finishActionAdvance(combat,advance);
 }
 
 async function executeElationAction(combatant) {
@@ -4867,8 +4869,19 @@ async function insertActionAdvanceTurn(combatantId) {
   if (!combat?.started) return ui.notifications.warn("Start combat before inserting an Action Advance turn.");
   if (state.actionAdvances.has(combat.id)) return ui.notifications.warn("Finish the current Action Advance turn first.");
   const source = combat.combatants.get(combatantId);
-  if (!source || isAhaCombatant(source) || isElationActionCombatant(source)) return ui.notifications.warn("Choose a normal character or enemy in initiative.");
+  if (!source || isElationActionCombatant(source)) return ui.notifications.warn("Choose a character, enemy, or Aha Instant in initiative.");
+  const advanceAha=isAhaCombatant(source);
   const interrupted = combat.combatant;
+  if(advanceAha){
+    if(interrupted?.id===source.id)return ui.notifications.warn("It is already Aha Instant's turn.");
+    const index=combat.turns.findIndex(entry=>entry.id===source.id);
+    if(index<0)return ui.notifications.warn("Aha Instant is not available in the current turn order.");
+    state.actionAdvances.set(combat.id,{combatantId:source.id,resumeCombatantId:interrupted?.id??null,resumeRound:combat.round,aha:true,reuseSource:true});
+    state.lastElationSequenceKey="";
+    await combat.update({turn:index});
+    ui.notifications.info("Aha Instant receives an Action Advance turn.");
+    return true;
+  }
   const currentInitiative = Number(interrupted?.initiative ?? 0);
   const next = combat.turns[Number(combat.turn ?? 0) + 1];
   let initiative = next ? (currentInitiative + Number(next.initiative ?? currentInitiative - 1)) / 2 : currentInitiative - 0.001;
@@ -4883,7 +4896,7 @@ async function insertActionAdvanceTurn(combatantId) {
     flags: {[MODULE_ID]: {actionAdvance: true, sourceCombatantId: source.id, resumeCombatantId: interrupted?.id ?? null, resumeRound: combat.round}}
   }]);
   if (!temporary) return;
-  state.actionAdvances.set(combat.id, {combatantId: temporary.id, resumeCombatantId: interrupted?.id ?? null, resumeRound: combat.round});
+  state.actionAdvances.set(combat.id, {combatantId: temporary.id, resumeCombatantId: interrupted?.id ?? null, resumeRound: combat.round, aha:advanceAha});
   const index = combat.turns.findIndex(entry => entry.id === temporary.id);
   if (index >= 0) await combat.update({turn: index});
   ui.notifications.info(`${source.name} receives an Action Advance turn.`);
@@ -4896,7 +4909,7 @@ async function finishActionAdvance(combat, advance) {
   if (temporary) await dispatchTalentEvent("turnEnd", {combat, combatant: temporary, sourceActor: temporary.actor ?? null}, `action-advance:${temporary.id}`);
   state.suppressCombatHook = true;
   try {
-    if (combat.combatants.has(advance.combatantId)) await combat.deleteEmbeddedDocuments("Combatant", [advance.combatantId]);
+    if (!advance.reuseSource && combat.combatants.has(advance.combatantId)) await combat.deleteEmbeddedDocuments("Combatant", [advance.combatantId]);
     const resumeIndex = combat.turns.findIndex(entry => entry.id === advance.resumeCombatantId);
     if (resumeIndex >= 0) {
       await combat.update({round: advance.resumeRound, turn: resumeIndex});
@@ -4930,7 +4943,8 @@ class StarRailGMPanel extends FormApplication {
         return {actor, config:getConfig(actor), hasPlayerOwner, isGMPC:!hasPlayerOwner, talentCurrent: currentTalentPoints(actor), talentEligible: Boolean(talentCombatForActor(actor)), modifier: signedNumber(regenModifier(getConfig(actor))), collapsed: Boolean(collapsedCards[`character:${actor.id}`])};
       });
     const normalCombatants = game.combat?.combatants?.filter(entry => !isAhaCombatant(entry) && !isElationActionCombatant(entry) && !entry.getFlag(MODULE_ID, "temporaryUltimate") && !entry.getFlag(MODULE_ID, "actionAdvance")) ?? [];
-    const combatants = game.combat?.started ? normalCombatants.map(entry => ({id: entry.id, name: entry.name, initiative: entry.initiative, img: entry.img})) : [];
+    const actionAdvanceCombatants = game.combat?.combatants?.filter(entry => !isElationActionCombatant(entry) && !entry.getFlag(MODULE_ID, "temporaryUltimate") && !entry.getFlag(MODULE_ID, "actionAdvance")) ?? [];
+    const combatants = game.combat?.started ? actionAdvanceCombatants.map(entry => ({id: entry.id, name: entry.name, initiative: entry.initiative, img: entry.img})) : [];
     const initiativeTokenIds = new Set(normalCombatants.map(entry => entry.tokenId).filter(Boolean));
     const initiativeActorUuids = new Set(normalCombatants.map(entry => entry.actor?.uuid).filter(Boolean));
     const elements = getElements();
@@ -6603,9 +6617,11 @@ Hooks.on("updateCombat", async combat => {
   }
   const advance = state.actionAdvances.get(combat.id);
   if (advance && combat.combatant?.id !== advance.combatantId) {
-    await finishActionAdvance(combat, advance);
-    state.gmPanel?.render(false);
-    return;
+    if (!(advance.aha && isElationActionCombatant(combat.combatant))) {
+      await finishActionAdvance(combat, advance);
+      state.gmPanel?.render(false);
+      return;
+    }
   }
   if (!combat.combatants.find(isAhaCombatant)) await maybeEnsureAhaCombatant(combat);
   const current = combat.combatant;
