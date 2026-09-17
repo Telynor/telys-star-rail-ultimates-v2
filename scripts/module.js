@@ -2807,11 +2807,18 @@ async function handleBossPhaseDefeat(actor) {
 
 class BossHud {
   constructor(){this.element=null;this.drag=null;}
+  initialTop(savedTop=54){
+    if(!game.modules.get("combat-tracker-dock")?.active)return clamp(savedTop,0,innerHeight-40);
+    const visible=[...document.querySelectorAll("#combat-dock .combatant-portrait, #combat-dock .buttons-container, #combat-dock .window-header")].map(element=>element.getBoundingClientRect()).filter(rect=>rect.width>0&&rect.height>0&&rect.top<innerHeight*.35);
+    if(!visible.length)return clamp(savedTop,0,innerHeight-40);
+    const carouselBottom=Math.min(Math.max(...visible.map(rect=>rect.bottom))+8,Math.min(300,innerHeight*.35));
+    return clamp(Math.max(Number(savedTop)||54,carouselBottom),0,innerHeight-40);
+  }
   render(){
     const combat=game.combat;
     const bosses=combat ? combat.combatants.map(combatant=>({combatant,encounter:bossEncounter(combatant)})).filter(entry=>entry.encounter && !entry.encounter.defeated) : [];
     if(!bosses.length)return this.destroy();
-    if(!this.element){this.element=document.createElement("section");this.element.className="tsru-boss-hud";document.body.appendChild(this.element);const layout=game.settings.get(MODULE_ID,"bossHudLayout")||{};this.element.style.left=`${layout.x??Math.max(20,(innerWidth-920)/2)}px`;this.element.style.top=`${clamp(layout.y??54,0,innerHeight-40)}px`;this.element.addEventListener("pointerdown",event=>{const handle=event.target.closest(".tsru-boss-drag");if(!handle)return;event.preventDefault();const rect=this.element.getBoundingClientRect();this.drag={dx:event.clientX-rect.left,dy:event.clientY-rect.top};handle.setPointerCapture(event.pointerId);});this.element.addEventListener("pointermove",event=>{if(!this.drag)return;this.element.style.left=`${clamp(event.clientX-this.drag.dx,0,innerWidth-80)}px`;this.element.style.top=`${clamp(event.clientY-this.drag.dy,0,innerHeight-40)}px`;});this.element.addEventListener("pointerup",async event=>{if(!this.drag)return;this.drag=null;const rect=this.element.getBoundingClientRect();await game.settings.set(MODULE_ID,"bossHudLayout",{x:Math.round(rect.left),y:Math.round(rect.top)});});}
+    if(!this.element){this.element=document.createElement("section");this.element.className="tsru-boss-hud";document.body.appendChild(this.element);const layout=game.settings.get(MODULE_ID,"bossHudLayout")||{};this.element.style.left=`${layout.x??Math.max(20,(innerWidth-920)/2)}px`;this.element.style.top=`${this.initialTop(layout.y??54)}px`;this.element.addEventListener("pointerdown",event=>{const handle=event.target.closest(".tsru-boss-drag");if(!handle)return;event.preventDefault();const rect=this.element.getBoundingClientRect();this.drag={dx:event.clientX-rect.left,dy:event.clientY-rect.top};handle.setPointerCapture(event.pointerId);});this.element.addEventListener("pointermove",event=>{if(!this.drag)return;this.element.style.left=`${clamp(event.clientX-this.drag.dx,0,innerWidth-80)}px`;this.element.style.top=`${clamp(event.clientY-this.drag.dy,0,innerHeight-40)}px`;});this.element.addEventListener("pointerup",async event=>{if(!this.drag)return;this.drag=null;this.userMoved=true;const rect=this.element.getBoundingClientRect();await game.settings.set(MODULE_ID,"bossHudLayout",{x:Math.round(rect.left),y:Math.round(rect.top)});});this.initialPlacementTimers=[100,500,1200].map(delay=>window.setTimeout(()=>{if(!this.element||this.userMoved)return;this.element.style.top=`${this.initialTop(parseFloat(this.element.style.top)||54)}px`;},delay));}
     this.element.innerHTML=bosses.map(({combatant,encounter})=>{
       const actor=combatant.actor;
       const design=encounter.bossConfig || getConfig(actor);
@@ -2826,7 +2833,7 @@ class BossHud {
     }).join("");
     return this;
   }
-  destroy(){this.element?.remove();this.element=null;if(state.bossHud===this)state.bossHud=null;}
+  destroy(){for(const timer of this.initialPlacementTimers??[])window.clearTimeout(timer);this.initialPlacementTimers=[];this.element?.remove();this.element=null;if(state.bossHud===this)state.bossHud=null;}
 }
 
 class BossPhaseControl {
