@@ -821,7 +821,7 @@ class PunchlineMeter {
   render() {
     const config = getAhaConfig();
     const layout = punchlineLayout();
-    if (!combatHasInitiative() || !config.elationEnabled || !layout.visible) return this.destroy();
+    if (!combatHasInitiative() || !config.elationEnabled || (!punchlineOverrideEnabled() && !combatHasLivingElation()) || !layout.visible) return this.destroy();
     if (!this.element) {
       this.element = document.createElement("div");
       this.element.className = "tsru-punchline-meter";
@@ -857,7 +857,7 @@ class PunchlineMeter {
 }
 
 function refreshPunchlineHUD() {
-  if (!combatHasInitiative() || !getAhaConfig().elationEnabled || !punchlineLayout().visible) { state.punchlineMeter?.destroy(); return; }
+  if (!combatHasInitiative() || !getAhaConfig().elationEnabled || (!punchlineOverrideEnabled() && !combatHasLivingElation()) || !punchlineLayout().visible) { state.punchlineMeter?.destroy(); return; }
   if (!state.punchlineMeter) state.punchlineMeter = new PunchlineMeter();
   state.punchlineMeter.render();
 }
@@ -958,6 +958,21 @@ function isAhaCombatant(combatant) {
 
 function isElationActionCombatant(combatant) {
   return Boolean(combatant?.getFlag(MODULE_ID, "elationActionCombatant"));
+}
+
+function isLivingElationCombatant(combatant) {
+  if (!combatant || isAhaCombatant(combatant) || isElationActionCombatant(combatant) || isTalentTurnCombatant(combatant)) return false;
+  const actor = combatant.actor ?? game.actors.get(combatant.actorId);
+  if (actor?.type !== "character" || !getAhaConfig().elationPathId || getConfig(actor).pathId !== getAhaConfig().elationPathId) return false;
+  return Number(foundry.utils.getProperty(actor, "system.attributes.hp.value") ?? 0) > 0;
+}
+
+function combatHasLivingElation(combat = game.combat) {
+  return Boolean(combat?.combatants?.some(isLivingElationCombatant));
+}
+
+function punchlineOverrideEnabled() {
+  return Boolean(game.settings.get(MODULE_ID, "punchlineOverride"));
 }
 
 async function postTalentText(actor) {
@@ -1112,7 +1127,8 @@ async function ensureAhaCombatantUnlocked(combat) {
   const config = getAhaConfig();
   const existingAha = combat.combatants.filter(isAhaCombatant);
   const existing = existingAha[0] ?? null;
-  if (!config.elationEnabled || !config.initiativeEnabled) {
+  if (!config.elationEnabled || !config.initiativeEnabled || !combatHasLivingElation(combat)) {
+    if (combat.combatants.some(isElationActionCombatant)) await clearElationActionTurns(combat);
     if (existingAha.length) await combat.deleteEmbeddedDocuments("Combatant", existingAha.map(entry => entry.id));
     return null;
   }
@@ -4803,7 +4819,7 @@ class StarRailGMPanel extends FormApplication {
       };
     });
     const actionCharacters = game.actors.filter(actor => actor.type === "character").sort((left, right) => left.name.localeCompare(right.name)).map(actor => ({id: actor.id, name: actor.name}));
-    return {characters, actionCharacters, sceneEnemies, punchline: currentPunchline(), skillPoints: currentSkillPoints(), skillPointMax: getSkillPointConfig().maximum, combatants, hasCombat: Boolean(game.combat?.started)};
+    return {characters, actionCharacters, sceneEnemies, punchline: currentPunchline(), punchlineOverride: punchlineOverrideEnabled(), skillPoints: currentSkillPoints(), skillPointMax: getSkillPointConfig().maximum, combatants, hasCombat: Boolean(game.combat?.started)};
   }
   activateListeners(html) {
     super.activateListeners(html);
@@ -4829,6 +4845,11 @@ class StarRailGMPanel extends FormApplication {
     html.find("[data-resource-input]").on("change", async event => {
       if (event.currentTarget.dataset.resourceInput === "punchline") await setPunchline(event.currentTarget.value);
       if (event.currentTarget.dataset.resourceInput === "skillPoints") await setSkillPoints(event.currentTarget.value);
+      this.refreshLiveValues();
+    });
+    html.find('[name="punchlineOverride"]').on("change", async event => {
+      await game.settings.set(MODULE_ID, "punchlineOverride", Boolean(event.currentTarget.checked));
+      refreshPunchlineHUD();
       this.refreshLiveValues();
     });
     html.find("[data-actor-field]").on("change", async event => {
@@ -4932,6 +4953,7 @@ class StarRailGMPanel extends FormApplication {
     const root = this.element?.jquery ? this.element : $(this.element);
     if (!root?.length) return;
     root.find('[data-resource-input="punchline"]').val(currentPunchline());
+    root.find('[name="punchlineOverride"]').prop("checked", punchlineOverrideEnabled());
     root.find('[data-resource-input="skillPoints"]').val(currentSkillPoints());
     for (const actor of game.actors.filter(entry => entry.type === "character")) {
       const config = getConfig(actor);
@@ -4987,6 +5009,7 @@ function registerSettings() {
   game.settings.register(MODULE_ID, "ahaConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_AHA_CONFIG)});
   game.settings.register(MODULE_ID, "ahaLayout", {scope: "client", config: false, type: Object, default: {x: 220, y: 180, size: 128, visible: false}});
   game.settings.register(MODULE_ID, "punchline", {scope: "world", config: false, type: Number, default: 0});
+  game.settings.register(MODULE_ID, "punchlineOverride", {scope: "world", config: false, type: Boolean, default: false});
   game.settings.register(MODULE_ID, "punchlineLayout", {scope: "client", config: false, type: Object, default: {x: 580, y: 145, size: 54, visible: true}});
   game.settings.register(MODULE_ID, "techniquePointConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_TECHNIQUE_POINT_CONFIG)});
   game.settings.register(MODULE_ID, "techniquePoints", {scope: "world", config: false, type: Number, default: DEFAULT_TECHNIQUE_POINT_CONFIG.starting});
@@ -6306,6 +6329,8 @@ Hooks.on("updateActor", (actor, changes, options) => {
   state.gmPanel?.refreshLiveValues();
   refreshCombatPartyHud();
   refreshUltimateHotbarMacros();
+  refreshPunchlineHUD();
+  if (isAuthority() && actor.type === "character" && game.combat) maybeEnsureAhaCombatant(game.combat);
   if (!options?.tsruAutosave && foundry.utils.hasProperty(changes, `flags.${MODULE_ID}.eidolons`)) {
     for (const app of Object.values(ui.windows ?? {})) if ((app.actor ?? app.document)?.id === actor.id) app.render(false);
   }
@@ -6343,6 +6368,7 @@ Hooks.on("updateSetting", setting => {
     refreshPunchlineHUD();
     if (setting?.key === `${MODULE_ID}.ahaConfig`) preloadAhaVideo();
   }
+  if (setting?.key === `${MODULE_ID}.punchlineOverride`) refreshPunchlineHUD();
 });
 Hooks.on("canvasReady", () => { refreshAllOrbs(); refreshSkillUI(); refreshPunchlineHUD(); refreshToughnessBars(); refreshCombatPartyHud(); });
 Hooks.on("canvasReady", refreshAhaButton);
@@ -6507,6 +6533,10 @@ Hooks.on("deleteCombatant", combatant => {
   }
   window.setTimeout(refreshToughnessBars, 100);
   window.setTimeout(refreshCombatPartyHud, 100);
+  window.setTimeout(() => {
+    refreshPunchlineHUD();
+    if (isAuthority() && combatant.parent) maybeEnsureAhaCombatant(combatant.parent);
+  }, 100);
 });
 
 for (const hook of ["createToken", "deleteToken"]) Hooks.on(hook, token => {
