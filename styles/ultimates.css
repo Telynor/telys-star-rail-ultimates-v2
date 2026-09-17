@@ -343,9 +343,10 @@
 .tsru-splash.show { opacity: 1; }
 .tsru-splash-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, .72); }
 .tsru-splash-media { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
-.tsru-splash-artwork { position:absolute; inset:0; overflow:hidden; transform:scale(1); transform-origin:center center; }
+.tsru-splash-artwork { position:absolute; inset:0; display:grid; place-items:center; overflow:hidden; transform:scale(1); transform-origin:center center; }
+.tsru-splash-artboard { position:relative; width:min(100vw,177.7778vh); height:min(100vh,56.25vw); aspect-ratio:16/9; overflow:hidden; }
 .tsru-splash.show .tsru-splash-artwork { animation: tsru-cinematic-settle .5s cubic-bezier(.16, .84, .32, 1) both; }
-.tsru-splash-artwork img, .tsru-splash-artwork video { width: 100%; height: 100%; border: 0; object-fit: contain; object-position: var(--tsru-splash-x,50%) var(--tsru-splash-y,50%); transform: scale(var(--tsru-splash-scale,1)); transform-origin: var(--tsru-splash-x,50%) var(--tsru-splash-y,50%); filter: drop-shadow(0 0 24px rgba(255,255,255,.22)); }
+.tsru-splash-artboard img, .tsru-splash-artboard video { width: 100%; height: 100%; border: 0; object-fit: contain; object-position: var(--tsru-splash-x,50%) var(--tsru-splash-y,50%); transform: scale(var(--tsru-splash-scale,1)); transform-origin: var(--tsru-splash-x,50%) var(--tsru-splash-y,50%); filter: drop-shadow(0 0 24px rgba(255,255,255,.22)); }
 
 @keyframes tsru-cinematic-settle {
   from { transform: scale(1.10); }
