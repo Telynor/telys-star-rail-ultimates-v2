@@ -77,6 +77,7 @@ const state = {
   orbs: new Map(),
   skillButtons: new Map(),
   talentButtons: new Map(),
+  techniqueButtons: new Map(),
   skillMeter: null,
   skillLocks: new Set(),
   pendingSkills: new Map(),
@@ -582,7 +583,7 @@ async function actorFromUuid(value) {
 
 function userLayout(actorId) {
   const all = game.settings.get(MODULE_ID, "orbLayouts") ?? {};
-  return foundry.utils.mergeObject({x: 80, y: 180, size: 128, visible: true}, all[actorId] ?? {}, {inplace: false});
+  return foundry.utils.mergeObject({x: 80, y: 180, size: 128, visible: false}, all[actorId] ?? {}, {inplace: false});
 }
 
 async function saveLayout(actorId, changes) {
@@ -1390,6 +1391,7 @@ async function setTechniquePoints(value, {broadcast = true} = {}) {
   await game.settings.set(MODULE_ID, "techniquePoints", next);
   if (broadcast) game.socket.emit(SOCKET, {type: "techniquePointsChanged", value: next, sourceUserId: game.user.id});
   refreshResourceHuds();
+  refreshTechniqueButtons();
   Hooks.callAll("tsruTechniquePointsChanged", next);
   return next;
 }
@@ -1730,6 +1732,17 @@ function talentButtonLayout(actorId) {
   return foundry.utils.mergeObject({x:360,y:330,size:96,visible:false}, layouts[actorId] ?? {}, {inplace:false});
 }
 
+function techniqueButtonLayout(actorId) {
+  const layouts = game.settings.get(MODULE_ID, "techniqueButtonLayouts") ?? {};
+  return foundry.utils.mergeObject({x:480,y:330,size:96,visible:false}, layouts[actorId] ?? {}, {inplace:false});
+}
+
+async function saveTechniqueButtonLayout(actorId, changes) {
+  const layouts = foundry.utils.deepClone(game.settings.get(MODULE_ID, "techniqueButtonLayouts") ?? {});
+  layouts[actorId] = foundry.utils.mergeObject(layouts[actorId] ?? {}, changes, {inplace:false});
+  await game.settings.set(MODULE_ID, "techniqueButtonLayouts", layouts);
+}
+
 async function saveTalentButtonLayout(actorId, changes) {
   const layouts = foundry.utils.deepClone(game.settings.get(MODULE_ID, "talentButtonLayouts") ?? {});
   layouts[actorId] = foundry.utils.mergeObject(layouts[actorId] ?? {}, changes, {inplace:false});
@@ -1756,7 +1769,7 @@ class TalentButton {
   constructor(actor) { this.actor=actor; this.element=null; this.drag=null; this.resize=null; }
   render() {
     const layout=talentButtonLayout(this.actor.id), config=getConfig(this.actor);
-    if (!layout.visible || talentPointLimits(this.actor).trigger < 1) return this.destroy();
+    if (!layout.visible) return this.destroy();
     if (!this.element) {
       this.element=document.createElement("div");
       this.element.className="tsru-skill-widget tsru-talent-widget";
@@ -1785,7 +1798,7 @@ class TalentButton {
 
 function refreshTalentButtons() {
   const actors = game.user.isGM
-    ? game.actors.filter(actor => actor.type === "character" && talentButtonLayout(actor.id).visible && talentPointLimits(actor).trigger > 0)
+    ? game.actors.filter(actor => actor.type === "character" && talentButtonLayout(actor.id).visible)
     : [selectedMainCharacter()].filter(actor => actor && talentButtonLayout(actor.id).visible);
   const actorIds = new Set(actors.map(actor => actor.id));
   for (const [id,button] of [...state.talentButtons]) if (!actorIds.has(id)) button.destroy();
@@ -1798,7 +1811,6 @@ function refreshTalentButtons() {
 
 async function placeTalentButton(actor, {openPopup = false} = {}) {
   if (!actor) return ui.notifications.warn("Select your main character first.");
-  if (talentPointLimits(actor).trigger < 1) return ui.notifications.warn("This character does not have a Talent Point trigger configured.");
   await saveTalentButtonLayout(actor.id,{visible:true});
   refreshTalentButtons();
   if (openPopup) showTalentPopup(actor);
@@ -1827,6 +1839,91 @@ function showGMTalentActorPicker() {
 async function showTalentUI() {
   if (game.user.isGM) return showGMTalentActorPicker();
   return placeTalentButton(selectedMainCharacter(), {openPopup:true});
+}
+
+class TechniqueButton {
+  constructor(actor) { this.actor=actor; this.element=null; this.drag=null; this.resize=null; }
+  render() {
+    const layout=techniqueButtonLayout(this.actor.id), config=getConfig(this.actor);
+    if (!layout.visible || (!game.user.isGM && !this.actor.isOwner)) return this.destroy();
+    if (!this.element) {
+      this.element=document.createElement("div");
+      this.element.className="tsru-skill-widget tsru-technique-widget";
+      this.element.dataset.actorId=this.actor.id;
+      this.element.innerHTML=`<div class="tsru-skill-drag" title="Move Technique button"><i class="fas fa-grip-lines"></i></div><button type="button" class="tsru-skill-button tsru-technique-button"><img></button><div class="tsru-skill-label">Technique</div><button type="button" class="tsru-skill-close" title="Hide Technique button"><i class="fas fa-xmark"></i></button><div class="tsru-skill-resize" title="Resize"></div>`;
+      document.body.appendChild(this.element);
+      const drag=this.element.querySelector(".tsru-skill-drag"), resize=this.element.querySelector(".tsru-skill-resize");
+      drag.addEventListener("pointerdown",event=>{event.preventDefault();const rect=this.element.getBoundingClientRect();this.drag={dx:event.clientX-rect.left,dy:event.clientY-rect.top};drag.setPointerCapture(event.pointerId);});
+      drag.addEventListener("pointermove",event=>{if(!this.drag)return;this.element.style.left=`${clamp(event.clientX-this.drag.dx,0,window.innerWidth-40)}px`;this.element.style.top=`${clamp(event.clientY-this.drag.dy,0,window.innerHeight-40)}px`;});
+      drag.addEventListener("pointerup",async event=>{if(!this.drag)return;this.drag=null;drag.releasePointerCapture(event.pointerId);const rect=this.element.getBoundingClientRect();await saveTechniqueButtonLayout(this.actor.id,{x:Math.round(rect.left),y:Math.round(rect.top)});});
+      resize.addEventListener("pointerdown",event=>{event.preventDefault();this.resize={startX:event.clientX,startSize:this.element.getBoundingClientRect().width};resize.setPointerCapture(event.pointerId);});
+      resize.addEventListener("pointermove",event=>{if(this.resize)this.element.style.setProperty("--tsru-skill-size",`${clamp(this.resize.startSize+event.clientX-this.resize.startX,64,280)}px`);});
+      resize.addEventListener("pointerup",async event=>{if(!this.resize)return;const size=clamp(this.resize.startSize+event.clientX-this.resize.startX,64,280);this.resize=null;resize.releasePointerCapture(event.pointerId);await saveTechniqueButtonLayout(this.actor.id,{size:Math.round(size)});});
+      this.element.querySelector(".tsru-skill-close").addEventListener("click",async()=>{await saveTechniqueButtonLayout(this.actor.id,{visible:false});this.destroy();});
+      this.element.querySelector(".tsru-technique-button").addEventListener("click",()=>requestTechnique(this.actor));
+      activateStarRailActionDrag(this.element.querySelector(".tsru-technique-button"),this.actor,"technique");
+    }
+    this.element.style.left=`${clamp(layout.x,0,window.innerWidth-40)}px`;
+    this.element.style.top=`${clamp(layout.y,0,window.innerHeight-40)}px`;
+    this.element.style.setProperty("--tsru-skill-size",`${clamp(layout.size,64,280)}px`);
+    this.element.classList.toggle("is-unavailable",!config.techniqueEnabled || currentTechniquePoints()<1);
+    const button=this.element.querySelector(".tsru-technique-button");
+    button.querySelector("img").src=config.techniqueButtonImage || this.actor.img || "icons/svg/lightning.svg";
+    button.title=config.techniqueEnabled ? `${this.actor.name}: Use Technique` : `${this.actor.name}'s Technique is disabled.`;
+    return this;
+  }
+  destroy(){this.element?.remove();this.element=null;state.techniqueButtons.delete(this.actor.id);}
+}
+
+function refreshTechniqueButtons() {
+  const actors=game.actors.filter(actor=>actor.type==="character" && techniqueButtonLayout(actor.id).visible && (game.user.isGM || actor.isOwner));
+  const actorIds=new Set(actors.map(actor=>actor.id));
+  for(const [id,button] of [...state.techniqueButtons]) if(!actorIds.has(id)) button.destroy();
+  for(const actor of actors){let button=state.techniqueButtons.get(actor.id);if(!button){button=new TechniqueButton(actor);state.techniqueButtons.set(actor.id,button);}button.render();}
+}
+
+async function spawnAbilityBubbles(actor, selections={skill:true,ultimate:true,talent:true,technique:true}, {notify=true}={}) {
+  if (!actor || actor.type!=="character") return ui.notifications.warn("Select a character first.");
+  if (!game.user.isGM && !actor.isOwner) return ui.notifications.error("You do not own this character.");
+  if (selections.ultimate) {
+    await saveLayout(actor.id,{visible:true});
+    let orb=state.orbs.get(actor.id);
+    if(!orb){orb=new UltimateOrb(actor);state.orbs.set(actor.id,orb);}
+    orb.render();
+  }
+  if (selections.skill) await saveSkillButtonLayout(actor.id,{visible:true});
+  if (selections.talent) await saveTalentButtonLayout(actor.id,{visible:true});
+  if (selections.technique) await saveTechniqueButtonLayout(actor.id,{visible:true});
+  refreshSkillUI();
+  refreshTalentButtons();
+  refreshTechniqueButtons();
+  if (notify) ui.notifications.info(`${actor.name}'s selected ability bubbles were shown.`);
+  return true;
+}
+
+function playerCharacterActors() {
+  return game.actors.filter(actor=>actor.type==="character" && game.users.some(user=>!user.isGM && actor.testUserPermission(user,"OWNER")))
+    .sort((a,b)=>String(a.name).localeCompare(String(b.name),undefined,{sensitivity:"base"}));
+}
+
+function showGMAbilityBubblePicker() {
+  const actors=playerCharacterActors();
+  if(!actors.length) return ui.notifications.warn("No player characters are available.");
+  const actorRows=actors.map((actor,index)=>`<label class="tsru-ability-actor"><input type="checkbox" name="actorId" value="${actor.id}" ${index===0?"checked":""}><img src="${escapeHTML(actor.img || "icons/svg/mystery-man.svg")}" alt=""><span>${escapeHTML(actor.name)}</span></label>`).join("");
+  const content=`<form class="tsru-ability-bubble-picker"><fieldset><legend>Ability bubbles</legend><label><input type="checkbox" name="skill" checked> Skill</label><label><input type="checkbox" name="ultimate" checked> Ult</label><label><input type="checkbox" name="talent" checked> Talent</label><label><input type="checkbox" name="technique" checked> Technique</label></fieldset><div class="tsru-ability-actors">${actorRows}</div></form>`;
+  const selectedActors=html=>html.find('[name="actorId"]:checked').toArray().map(input=>game.actors.get(input.value)).filter(Boolean);
+  new Dialog({title:"Show All Ability Bubbles",content,buttons:{
+    spawn:{icon:'<i class="fas fa-circle-play"></i>',label:"Spawn Buttons",callback:async html=>{const selections={skill:html.find('[name="skill"]').prop("checked"),ultimate:html.find('[name="ultimate"]').prop("checked"),talent:html.find('[name="talent"]').prop("checked"),technique:html.find('[name="technique"]').prop("checked")};for(const actor of selectedActors(html))await spawnAbilityBubbles(actor,selections,{notify:false});ui.notifications.info("Selected ability bubbles were shown.");}},
+    all:{icon:'<i class="fas fa-layer-group"></i>',label:"Spawn All Buttons",callback:async html=>{for(const actor of selectedActors(html))await spawnAbilityBubbles(actor,{skill:true,ultimate:true,talent:true,technique:true},{notify:false});ui.notifications.info("All ability bubbles were shown.");}},
+    cancel:{icon:'<i class="fas fa-times"></i>',label:"Cancel"}
+  },default:"spawn"}).render(true);
+}
+
+async function showAllAbilityBubbles() {
+  if(game.user.isGM) return showGMAbilityBubblePicker();
+  const actor=selectedMainCharacter();
+  if(!actor) return ui.notifications.warn("Select your main character in the HSR Hub first.");
+  return spawnAbilityBubbles(actor,{skill:true,ultimate:true,talent:true,technique:true});
 }
 
 async function saveSkillButtonLayout(actorId, changes) {
@@ -1886,7 +1983,7 @@ class SkillPointMeter {
 }
 
 function canUseSkillActor(actor) {
-  return Boolean(actor?.type === "character" && getConfig(actor).skillEnabled && (game.user.isGM || actor.isOwner));
+  return Boolean(actor?.type === "character" && (game.user.isGM || actor.isOwner));
 }
 
 class SkillButton {
@@ -1906,7 +2003,7 @@ class SkillButton {
     const config = getConfig(this.actor);
     const element = getElements().find(entry => entry.id === config.elementId);
     const cost = Math.max(0, Math.floor(Number(config.skillPointCost) || 0));
-    const available = currentSkillPoints() >= cost && !state.skillLocks.has(this.actor.id);
+    const available = getConfig(this.actor).skillEnabled && currentSkillPoints() >= cost && !state.skillLocks.has(this.actor.id);
     this.element.style.left = `${clamp(layout.x, 0, window.innerWidth - 40)}px`;
     this.element.style.top = `${clamp(layout.y, 0, window.innerHeight - 40)}px`;
     this.element.style.setProperty("--tsru-skill-size", `${clamp(layout.size, 64, 280)}px`);
@@ -2796,6 +2893,11 @@ function refreshOrb(actor) {
 
 function refreshAllOrbs() {
   for (const orb of [...state.orbs.values()]) orb.destroy();
+  for (const actor of game.actors.filter(actor => actor.type === "character" && canObserveActor(actor) && userLayout(actor.id).visible)) {
+    const orb = new UltimateOrb(actor);
+    state.orbs.set(actor.id, orb);
+    orb.render();
+  }
   refreshCombatPartyHud();
 }
 
@@ -3342,7 +3444,7 @@ async function onSocket(payload) {
     await executeTechnique(payload.actorId, payload.requestingUserId);
     return;
   }
-  if (payload.type === "techniquePointsChanged") { refreshResourceHuds(); return; }
+  if (payload.type === "techniquePointsChanged") { refreshResourceHuds(); refreshTechniqueButtons(); return; }
   if (payload.type === "changeSkillPoints" && isAuthority()) {
     const requester = game.users.get(payload.sourceUserId);
     const actor = await actorFromUuid(payload.actorUuid);
@@ -5025,6 +5127,7 @@ function registerSettings() {
   game.settings.register(MODULE_ID, "talentHudLayout", {scope: "client", config: false, type: Object, default: {x: 24, y: 180}});
   game.settings.register(MODULE_ID, "talentPointConfig", {scope:"world", config:false, type:Object, default:foundry.utils.deepClone(DEFAULT_TALENT_POINT_CONFIG)});
   game.settings.register(MODULE_ID, "talentButtonLayouts", {scope: "client", config: false, type: Object, default: {}});
+  game.settings.register(MODULE_ID, "techniqueButtonLayouts", {scope: "client", config: false, type: Object, default: {}});
   game.settings.register(MODULE_ID, "techniqueHudLayout", {scope: "client", config: false, type: Object, default: {x: 24, y: 420}});
   game.settings.register(MODULE_ID, "skillPointConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_SKILL_POINT_CONFIG)});
   game.settings.register(MODULE_ID, "skillPoints", {scope: "world", config: false, type: Number, default: DEFAULT_SKILL_POINT_CONFIG.starting});
@@ -6088,6 +6191,7 @@ function registerApi() {
     triggerSpecialAha,
     showSkillUI,
     showTalentUI,
+    showAllAbilityBubbles,
     refreshResourceHuds,
     getPunchline: currentPunchline,
     setPunchline,
@@ -6123,8 +6227,10 @@ Hooks.once("ready", () => {
   refreshAllOrbs();
   refreshAhaButton();
   refreshPunchlineHUD();
+  refreshTechniqueButtons();
   refreshSkillUI();
   refreshResourceHuds();
+  refreshTechniqueButtons();
   refreshTalentPointFont();
   preloadAhaVideo();
   registerAhaToolbarFallback();
@@ -6373,7 +6479,7 @@ Hooks.on("updateActor", (actor, changes, options) => {
 Hooks.on("updateToken", () => { refreshToughnessBars(); refreshResourceHuds(); state.gmPanel?.render(false); });
 Hooks.on("targetToken", user => { if (user.id === game.user.id) state.gmPanel?.refreshTargetHighlights(); });
 Hooks.on("controlToken", () => state.gmPanel?.refreshTargetHighlights());
-Hooks.on("deleteActor", actor => { state.orbs.get(actor.id)?.destroy(); state.skillButtons.get(actor.id)?.destroy(); state.talentButtons.get(actor.id)?.destroy(); refreshResourceHuds(); });
+Hooks.on("deleteActor", actor => { state.orbs.get(actor.id)?.destroy(); state.skillButtons.get(actor.id)?.destroy(); state.talentButtons.get(actor.id)?.destroy(); state.techniqueButtons.get(actor.id)?.destroy(); refreshResourceHuds(); });
 Hooks.on("updateUser", user => { if (user.id === game.user.id) { refreshAllOrbs(); refreshSkillUI(); refreshResourceHuds(); refreshCombatPartyHud(); } });
 Hooks.on("updateSetting", setting => {
   if (setting?.key?.startsWith(`${MODULE_ID}.skillPoint`)) refreshSkillUI();
@@ -6402,7 +6508,7 @@ Hooks.on("updateSetting", setting => {
   }
   if (setting?.key === `${MODULE_ID}.punchlineOverride`) refreshPunchlineHUD();
 });
-Hooks.on("canvasReady", () => { refreshAllOrbs(); refreshSkillUI(); refreshPunchlineHUD(); refreshToughnessBars(); refreshCombatPartyHud(); });
+Hooks.on("canvasReady", () => { refreshAllOrbs(); refreshSkillUI(); refreshTalentButtons(); refreshTechniqueButtons(); refreshPunchlineHUD(); refreshToughnessBars(); refreshCombatPartyHud(); });
 Hooks.on("canvasReady", refreshAhaButton);
 
 Hooks.on("deleteCombat", async combat => {
