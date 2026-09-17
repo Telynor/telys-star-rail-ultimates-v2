@@ -210,6 +210,10 @@ function getEidolons(actor) {
   return {currencyUuid: String(stored.currencyUuid ?? ""), slots};
 }
 
+function eidolonDataDefaults() {
+  return {currencyUuid: "", slots: defaultEidolonSlots()};
+}
+
 function activeGM() {
   return game.users?.find(user => user.active && user.isGM);
 }
@@ -5528,6 +5532,33 @@ function refreshEidolonPreview(tab, number) {
   editor.find(`[name="eidolon.${number}.scale"]`).next("output").text(`${scale}%`);
 }
 
+function refreshEidolonStageSlot(tab, number, slot) {
+  if (!tab?.length || !slot) return;
+  const art = tab.find(`[data-eidolon-art="${number}"]`);
+  art.attr("data-fallback-art", slot.artwork || "").toggleClass("locked", !slot.active);
+  art.find("img").attr("src", slot.artwork || "");
+  art.css("--art-x", `${slot.offsetX}%`).css("--art-y", `${slot.offsetY}%`).css("--art-scale", String(slot.scale / 100));
+  const title = tab.find(`[data-eidolon-title="${number}"]`);
+  title.toggleClass("locked", !slot.active).find("span").text(slot.title || `Eidolon ${number}`);
+}
+
+function refreshEidolonTabDisplay(actor, tab) {
+  const data = getEidolons(actor);
+  for (const slot of data.slots) refreshEidolonStageSlot(tab, slot.number, slot);
+}
+
+function refreshEidolonStageDraft(tab, editor, number) {
+  if (!editor?.length) return;
+  refreshEidolonStageSlot(tab, number, {
+    artwork: String(editor.find(`[name="eidolon.${number}.artwork"]`).val() || ""),
+    title: String(editor.find(`[name="eidolon.${number}.title"]`).val() || `Eidolon ${number}`),
+    offsetX: clamp(editor.find(`[name="eidolon.${number}.offsetX"]`).val(), -100, 100),
+    offsetY: clamp(editor.find(`[name="eidolon.${number}.offsetY"]`).val(), -100, 100),
+    scale: clamp(editor.find(`[name="eidolon.${number}.scale"]`).val(), 25, 400),
+    active: editor.find(`[name="eidolon.${number}.active"]`).prop("checked")
+  });
+}
+
 function populateEidolonEditor(actor, tab, number) {
   const slot = getEidolons(actor).slots[number - 1];
   const editor = tab.find(`[data-eidolon-editor="${number}"]`);
@@ -5692,6 +5723,7 @@ function activateEidolonListeners(actor, tab, app) {
     const number = Number(editorElement.dataset.eidolonEditor);
     const popout = $(event.currentTarget).closest("[data-eidolon-popout]");
     refreshEidolonPreview(popout, number);
+    refreshEidolonStageDraft(tab, $(editorElement), number);
     scheduleSlotAutosave(number, popout, event.type === "change" && ["checkbox", "radio"].includes(event.currentTarget.type));
   });
   tab.find("[data-eidolon-preview-art]").on("pointerdown", event => {
@@ -5757,7 +5789,10 @@ async function injectEidolonTab(app, html) {
   const root = $(rootElement);
   const existingControl = root.find('nav [data-tab="tsru-eidolons"]');
   const existingTab = root.find('.tsru-eidolon-tab[data-tab="tsru-eidolons"]');
-  if (existingControl.length && existingTab.length) return;
+  if (existingControl.length && existingTab.length) {
+    refreshEidolonTabDisplay(actor, existingTab);
+    return;
+  }
   existingControl.remove();
   existingTab.remove();
   if (root.attr("data-tsru-eidolons-injecting") === "true") return;
@@ -6073,6 +6108,11 @@ Hooks.once("ready", () => {
 Hooks.on("dnd5e.prepareSheetContext", prepareLightConeAttunementContext);
 
 Hooks.on("canvasReady", installDamageScrollingTextOverride);
+
+Hooks.on("preCreateActor", actor => {
+  if (actor.type !== "character" || foundry.utils.hasProperty(actor._source, `flags.${MODULE_ID}.eidolons`)) return;
+  actor.updateSource({[`flags.${MODULE_ID}.eidolons`]: eidolonDataDefaults()});
+});
 
 Hooks.on("renderActorSheet", injectUltimateTab);
 Hooks.on("renderCharacterActorSheet", injectUltimateTab);
