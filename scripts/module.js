@@ -48,6 +48,9 @@ const DEFAULT_CONFIG = Object.freeze({
   ultimateText: "",
   splashImage: "",
   splashDuration: 1,
+  splashX: 50,
+  splashY: 50,
+  splashScale: 100,
   ultimateName: "Ultimate",
   ultimateSubtitle: "",
   titleX: 17,
@@ -2836,7 +2839,7 @@ async function loadSplashFont(fontFile) {
   return `"${family}", Arial, sans-serif`;
 }
 
-async function showSplash({actorName, image, duration = 1, ultimateName = "Ultimate", ultimateSubtitle = "", titleX = 17, titleY = 78, titleSize = 48, titleAlign = "left", fontFile = "", subtitleFontFile = "", color = DEFAULT_CONFIG.chargeColor}) {
+async function showSplash({actorName, image, duration = 1, splashX = 50, splashY = 50, splashScale = 100, ultimateName = "Ultimate", ultimateSubtitle = "", titleX = 17, titleY = 78, titleSize = 48, titleAlign = "left", fontFile = "", subtitleFontFile = "", color = DEFAULT_CONFIG.chargeColor}) {
   if (!image) return;
   document.querySelectorAll(".tsru-splash").forEach(element => element.remove());
   const splash = document.createElement("div");
@@ -2859,6 +2862,9 @@ async function showSplash({actorName, image, duration = 1, ultimateName = "Ultim
   splash.style.setProperty("--tsru-title-font", fontFamily);
   splash.style.setProperty("--tsru-subtitle-font", subtitleFontFamily);
   splash.style.setProperty("--tsru-title-align", align);
+  splash.style.setProperty("--tsru-splash-x", `${clamp(splashX, 0, 100)}%`);
+  splash.style.setProperty("--tsru-splash-y", `${clamp(splashY, 0, 100)}%`);
+  splash.style.setProperty("--tsru-splash-scale", String(clamp(splashScale, 25, 500) / 100));
   splash.innerHTML = `<div class="tsru-splash-backdrop"></div><div class="tsru-splash-media">${isVideo ? `<video src="${escapeHTML(image)}" autoplay muted playsinline></video>` : `<img src="${escapeHTML(image)}" alt="${escapeHTML(actorName)} Ultimate">`}<div class="tsru-title-card tsru-align-${align}"><i class="tsru-title-square tsru-title-square-one"></i><i class="tsru-title-square tsru-title-square-two"></i><div class="tsru-title-copy"><div class="tsru-title-name">${escapeHTML(ultimateName || actorName || "Ultimate")}</div><div class="tsru-title-bar">${ultimateSubtitle ? `<div class="tsru-title-subtitle">${escapeHTML(ultimateSubtitle)}</div>` : ""}</div></div></div></div>`;
   appendToCanvasLayer(splash);
   requestAnimationFrame(() => splash.classList.add("show"));
@@ -3183,7 +3189,7 @@ function retryUltimateSplashBroadcast(playbackId) {
 function broadcastUltimateSplash(actor) {
   const config = getConfig(actor);
   const element = getElements().find(entry => entry.id === config.elementId);
-  const splash = {actorName: actor.name, image: config.splashImage, duration: config.splashDuration, ultimateName: config.ultimateName, ultimateSubtitle: config.ultimateSubtitle, titleX: config.titleX, titleY: config.titleY, titleSize: config.titleSize, titleAlign: config.titleAlign, fontFile: config.fontFile, subtitleFontFile: config.subtitleFontFile, color: element?.chargeColor || DEFAULT_CONFIG.chargeColor};
+  const splash = {actorName: actor.name, image: config.splashImage, duration: config.splashDuration, splashX: config.splashX, splashY: config.splashY, splashScale: config.splashScale, ultimateName: config.ultimateName, ultimateSubtitle: config.ultimateSubtitle, titleX: config.titleX, titleY: config.titleY, titleSize: config.titleSize, titleAlign: config.titleAlign, fontFile: config.fontFile, subtitleFontFile: config.subtitleFontFile, color: element?.chargeColor || DEFAULT_CONFIG.chargeColor};
   showSplash(splash);
   const recipients = new Set(game.users.filter(user => user.active && user.id !== game.user.id).map(user => user.id));
   if (!recipients.size) return;
@@ -5243,7 +5249,7 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
   tab.find("[name]").each((_index, field) => {
     data[field.name] = field.type === "checkbox" ? field.checked : field.value;
   });
-  for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "skillPointCost", "talentPointsCurrent", "talentPointsMax", "talentPointsOvercapMax", "punchlineGain", "splashDuration", "titleX", "titleY", "titleSize", "combatHudPortraitX", "combatHudPortraitY", "combatHudPortraitScale", "ultimateButtonX", "ultimateButtonY", "ultimateButtonScale"]) data[key] = Number(data[key]);
+  for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "skillPointCost", "talentPointsCurrent", "talentPointsMax", "talentPointsOvercapMax", "punchlineGain", "splashDuration", "splashX", "splashY", "splashScale", "titleX", "titleY", "titleSize", "combatHudPortraitX", "combatHudPortraitY", "combatHudPortraitScale", "ultimateButtonX", "ultimateButtonY", "ultimateButtonScale"]) data[key] = Number(data[key]);
   for (const key of ["enabled", "showPercent", "showHudPercent", "skillEnabled", "techniqueEnabled", "mainParty", "trialCharacter", "combatHudPortraitFlip", "ultimateButtonAdjustEnabled", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter"]) data[key] = Boolean(data[key]);
   data.max = Math.max(1, data.max || 100);
   data.current = clamp(data.current, 0, data.max);
@@ -5345,6 +5351,62 @@ function activateConfigListeners(actor, tab, app) {
     const input=tab.find("[name='ultimateButtonScale']"), next=clamp((Number(input.val())||100)+(event.originalEvent.deltaY<0?5:-5),50,400);
     input.val(next).trigger("input");
   });
+  const splashDesigner = tab.find("[data-tsru-splash-designer]");
+  let splashPreviewSequence = 0;
+  const refreshSplashDesigner = async () => {
+    if (!splashDesigner.length) return;
+    const sequence = ++splashPreviewSequence;
+    const image = String(tab.find("[name='splashImage']").val() || "");
+    const x = clamp(Number(tab.find("[name='splashX']").val()), 0, 100);
+    const y = clamp(Number(tab.find("[name='splashY']").val()), 0, 100);
+    const scale = clamp(Number(tab.find("[name='splashScale']").val()), 25, 500);
+    const titleX = clamp(Number(tab.find("[name='titleX']").val()), 0, 100);
+    const titleY = clamp(Number(tab.find("[name='titleY']").val()), 0, 100);
+    const titleSize = clamp(Number(tab.find("[name='titleSize']").val()), 16, 140);
+    const align = ["left","center","right"].includes(tab.find("[name='titleAlign']").val()) ? tab.find("[name='titleAlign']").val() : "left";
+    const element = getElements().find(entry => entry.id === tab.find("[name='elementId']").val());
+    splashDesigner.css({"--tsru-splash-x":`${x}%`,"--tsru-splash-y":`${y}%`,"--tsru-splash-scale":String(scale/100),"--tsru-title-x":`${titleX}%`,"--tsru-title-y":`${titleY}%`,"--tsru-title-size":`${titleSize}px`,"--tsru-accent":element?.chargeColor||DEFAULT_CONFIG.chargeColor});
+    const media = splashDesigner.find(".tsru-splash-designer-media");
+    const isVideo = /\.(webm|mp4|m4v)(\?.*)?$/i.test(image);
+    const current = media.children().first();
+    if (!image) media.empty();
+    else if (!current.length || current.attr("src") !== image || current.is("video") !== isVideo) media.html(isVideo ? `<video src="${escapeHTML(image)}" autoplay muted loop playsinline></video>` : `<img src="${escapeHTML(image)}" alt="${escapeHTML(actor.name)} Ultimate preview">`);
+    const card = splashDesigner.find(".tsru-title-card").removeClass("tsru-align-left tsru-align-center tsru-align-right").addClass(`tsru-align-${align}`);
+    card.find(".tsru-title-name").text(tab.find("[name='ultimateName']").val() || actor.name || "Ultimate");
+    card.find(".tsru-title-subtitle").text(tab.find("[name='ultimateSubtitle']").val() || "");
+    try {
+      const [font,subtitleFont] = await Promise.all([loadSplashFont(tab.find("[name='fontFile']").val()),loadSplashFont(tab.find("[name='subtitleFontFile']").val()||tab.find("[name='fontFile']").val())]);
+      if (sequence === splashPreviewSequence) splashDesigner.css({"--tsru-title-font":font,"--tsru-subtitle-font":subtitleFont});
+    } catch (error) { console.warn(`${MODULE_ID} | Could not load splash designer font`, error); }
+  };
+  tab.on("input.tsru-splash-preview change.tsru-splash-preview", "[name='splashImage'], [name='splashX'], [name='splashY'], [name='splashScale'], [name='ultimateName'], [name='ultimateSubtitle'], [name='titleX'], [name='titleY'], [name='titleSize'], [name='titleAlign'], [name='fontFile'], [name='subtitleFontFile'], [name='elementId']", refreshSplashDesigner);
+  refreshSplashDesigner();
+  splashDesigner.on("dragover.tsru-splash-drop", event => { event.preventDefault(); splashDesigner.addClass("is-dragover"); });
+  splashDesigner.on("dragleave.tsru-splash-drop", () => splashDesigner.removeClass("is-dragover"));
+  splashDesigner.on("drop.tsru-splash-drop", event => {
+    event.preventDefault(); splashDesigner.removeClass("is-dragover");
+    const path = droppedAssetPath(event);
+    if (path) tab.find("[name='splashImage']").val(path).trigger("change");
+  });
+  let splashDrag = null;
+  splashDesigner.on("pointerdown.tsru-splash-drag", event => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    splashDrag = {x:event.clientX,y:event.clientY,startX:Number(tab.find("[name='splashX']").val())||50,startY:Number(tab.find("[name='splashY']").val())||50};
+  });
+  $(document).off(`.tsru-splash-drag-${actor.id}`).on(`pointermove.tsru-splash-drag-${actor.id}`, event => {
+    if (!splashDrag) return;
+    const rect=splashDesigner[0].getBoundingClientRect();
+    splashDrag.nextX=clamp(splashDrag.startX+(event.clientX-splashDrag.x)/Math.max(1,rect.width)*100,0,100);
+    splashDrag.nextY=clamp(splashDrag.startY+(event.clientY-splashDrag.y)/Math.max(1,rect.height)*100,0,100);
+    tab.find("[name='splashX']").val(Math.round(splashDrag.nextX));
+    tab.find("[name='splashY']").val(Math.round(splashDrag.nextY)).trigger("input");
+  }).on(`pointerup.tsru-splash-drag-${actor.id} pointercancel.tsru-splash-drag-${actor.id}`, () => { splashDrag=null; });
+  splashDesigner.on("wheel.tsru-splash-zoom", event => {
+    event.preventDefault();
+    const input=tab.find("[name='splashScale']"), next=clamp((Number(input.val())||100)+(event.originalEvent.deltaY<0?5:-5),25,500);
+    input.val(next).trigger("input");
+  });
   let autosaveTimer = null;
   let autosaveRunning = false;
   let autosaveQueued = false;
@@ -5385,7 +5447,7 @@ function activateConfigListeners(actor, tab, app) {
   tab.find("input[data-color-for]").on("change", event => tab.find(`[name="${event.currentTarget.dataset.colorFor}"]`).val(event.currentTarget.value).trigger("change"));
   tab.find("[data-action='preview-splash']").on("click", () => {
     const element = getElements().find(entry => entry.id === tab.find("[name='elementId']").val());
-    showSplash({actorName: actor.name, image: tab.find("[name='splashImage']").val(), duration: Number(tab.find("[name='splashDuration']").val()) || 1, ultimateName: tab.find("[name='ultimateName']").val(), ultimateSubtitle: tab.find("[name='ultimateSubtitle']").val(), titleX: Number(tab.find("[name='titleX']").val()), titleY: Number(tab.find("[name='titleY']").val()), titleSize: Number(tab.find("[name='titleSize']").val()), titleAlign: tab.find("[name='titleAlign']").val(), fontFile: tab.find("[name='fontFile']").val(), subtitleFontFile: tab.find("[name='subtitleFontFile']").val(), color: element?.chargeColor || DEFAULT_CONFIG.chargeColor});
+    showSplash({actorName: actor.name, image: tab.find("[name='splashImage']").val(), duration: Number(tab.find("[name='splashDuration']").val()) || 1, splashX:Number(tab.find("[name='splashX']").val()), splashY:Number(tab.find("[name='splashY']").val()), splashScale:Number(tab.find("[name='splashScale']").val()), ultimateName: tab.find("[name='ultimateName']").val(), ultimateSubtitle: tab.find("[name='ultimateSubtitle']").val(), titleX: Number(tab.find("[name='titleX']").val()), titleY: Number(tab.find("[name='titleY']").val()), titleSize: Number(tab.find("[name='titleSize']").val()), titleAlign: tab.find("[name='titleAlign']").val(), fontFile: tab.find("[name='fontFile']").val(), subtitleFontFile: tab.find("[name='subtitleFontFile']").val(), color: element?.chargeColor || DEFAULT_CONFIG.chargeColor});
   });
   tab.find("[data-action='set-energy']").on("click", async event => {
     event.preventDefault();
