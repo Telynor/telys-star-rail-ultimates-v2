@@ -1724,9 +1724,10 @@ function plainAbilityText(value) {
 function selectedMainCharacter() {
   const localId = game.settings.get(MODULE_ID, "selectedMainCharacterId");
   const worldId = (game.settings.get(MODULE_ID, "partySelections") ?? {})[game.user.id];
-  const actorId = localId || worldId;
-  const actor = game.actors.get(actorId);
-  return actor?.type === "character" && (game.user.isGM || actor.isOwner) ? actor : null;
+  const candidates=[localId,worldId,game.user.character?.id,canvas?.tokens?.controlled?.find(token=>token.actor?.type==="character" && token.actor.isOwner)?.actor?.id];
+  for(const actorId of candidates){const actor=game.actors.get(actorId);if(actor?.type==="character" && (game.user.isGM || actor.isOwner))return actor;}
+  const owned=game.actors.filter(actor=>actor.type==="character" && actor.isOwner);
+  return owned.length===1 ? owned[0] : null;
 }
 
 async function setLocalMainCharacter(actorId) {
@@ -1782,6 +1783,7 @@ class TalentButton {
     if (!this.element) {
       this.element=document.createElement("div");
       this.element.className="tsru-skill-widget tsru-talent-widget";
+      this.element.dataset.actorId=this.actor.id;
       this.element.innerHTML=`<div class="tsru-skill-drag" title="Move Talent button"><i class="fas fa-grip-lines"></i></div><button type="button" class="tsru-skill-button tsru-talent-button"><img></button><div class="tsru-skill-label">Talent</div><button type="button" class="tsru-skill-close" title="Hide Talent button"><i class="fas fa-xmark"></i></button><div class="tsru-skill-resize" title="Resize"></div>`;
       document.body.appendChild(this.element);
       const drag=this.element.querySelector(".tsru-skill-drag"),resize=this.element.querySelector(".tsru-skill-resize");
@@ -1903,11 +1905,18 @@ async function spawnAbilityBubbles(actor, selections={skill:true,ultimate:true,t
   if (selections.skill) await saveSkillButtonLayout(actor.id,{visible:true});
   if (selections.talent) await saveTalentButtonLayout(actor.id,{visible:true});
   if (selections.technique) await saveTechniqueButtonLayout(actor.id,{visible:true});
-  refreshSkillUI();
-  refreshTalentButtons();
-  refreshTechniqueButtons();
-  if (notify) ui.notifications.info(`${actor.name}'s selected ability bubbles were shown.`);
-  return true;
+  if(selections.skill){let button=state.skillButtons.get(actor.id);if(!button){button=new SkillButton(actor);state.skillButtons.set(actor.id,button);}button.render();}
+  if(selections.talent){let button=state.talentButtons.get(actor.id);if(!button){button=new TalentButton(actor);state.talentButtons.set(actor.id,button);}button.render();}
+  if(selections.technique){let button=state.techniqueButtons.get(actor.id);if(!button){button=new TechniqueButton(actor);state.techniqueButtons.set(actor.id,button);}button.render();}
+  const shown=[
+    selections.ultimate && state.orbs.get(actor.id)?.element?.isConnected,
+    selections.skill && state.skillButtons.get(actor.id)?.element?.isConnected,
+    selections.talent && state.talentButtons.get(actor.id)?.element?.isConnected,
+    selections.technique && state.techniqueButtons.get(actor.id)?.element?.isConnected
+  ].filter(Boolean).length;
+  if(!shown){ui.notifications.error(`No ability bubbles could be shown for ${actor.name}. Check that this player owns the character.`);return false;}
+  if (notify) ui.notifications.info(`${shown} ability bubble${shown===1?"":"s"} shown for ${actor.name}.`);
+  return shown;
 }
 
 function playerCharacterActors() {
