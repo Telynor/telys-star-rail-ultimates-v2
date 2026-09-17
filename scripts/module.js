@@ -24,6 +24,10 @@ const DEFAULT_CONFIG = Object.freeze({
   bossPhaseCount: 1,
   bossPhase2ActorUuid: "",
   bossPhase3ActorUuid: "",
+  bossPhase2TokenWidth: 0,
+  bossPhase2TokenHeight: 0,
+  bossPhase3TokenWidth: 0,
+  bossPhase3TokenHeight: 0,
   bossInheritsMainPhaseCount: false,
   bossHudPortrait: "",
   bossHudPortraitX: 50,
@@ -130,6 +134,8 @@ const state = {
   bossPhaseControl: null,
   bossTransitionLocks: new Set()
 };
+state.bossTransitionVisuals = 0;
+state.bossTransitionVisualsUntil = 0;
 
 let ahaToolbarOpening = false;
 let gmToolbarOpening = false;
@@ -290,6 +296,7 @@ function getConfig(actor) {
   config.talentPointsMax = Math.max(0, Math.floor(Number(config.talentPointsMax) || 0));
   config.talentPointsOvercapMax = Math.max(config.talentPointsMax, Math.floor(Number(config.talentPointsOvercapMax) || config.talentPointsMax));
   config.bossPhaseCount = clamp(Math.floor(Number(config.bossPhaseCount) || 1), 1, 3);
+  for(const key of ["bossPhase2TokenWidth","bossPhase2TokenHeight","bossPhase3TokenWidth","bossPhase3TokenHeight"])config[key]=clamp(config[key],0,20);
   config.bossHudPortraitX = clamp(config.bossHudPortraitX, 0, 100);
   config.bossHudPortraitY = clamp(config.bossHudPortraitY, 0, 100);
   config.bossHudPortraitScale = clamp(config.bossHudPortraitScale, 50, 400);
@@ -2670,7 +2677,7 @@ function bossEncounter(combatant) {
   const actor=combatant?.actor;
   const config=getConfig(actor);
   if(!actor || !config.isBoss)return null;
-  return {rootOriginalActorId:actor.id,planOwnerActorId:actor.id,currentPhase:1,totalPhases:config.bossPhaseCount,phaseActorUuids:bossPhaseActorUuids(actor),defeated:false,originalTokenTexture:combatant.token?.texture?.src || actor.prototypeToken?.texture?.src || actor.img,originalActorData:actor.toObject(),bossConfig:config};
+  return {rootOriginalActorId:actor.id,planOwnerActorId:actor.id,currentPhase:1,totalPhases:config.bossPhaseCount,phaseActorUuids:bossPhaseActorUuids(actor),defeated:false,originalTokenTexture:combatant.token?.texture?.src || actor.prototypeToken?.texture?.src || actor.img,originalTokenWidth:combatant.token?.width || actor.prototypeToken?.width || 1,originalTokenHeight:combatant.token?.height || actor.prototypeToken?.height || 1,originalActorData:actor.toObject(),bossConfig:config};
 }
 
 async function ensureBossEncounter(combatant) {
@@ -2706,15 +2713,15 @@ async function overwriteBossActor(target, sourceData, encounter, {restore=false}
   for(const key of ["bossHudPortrait","bossHudPortraitX","bossHudPortraitY","bossHudPortraitScale"])if(Object.hasOwn(phaseConfig,key))rootConfig[key]=phaseConfig[key];
   const rootToughness=foundry.utils.getProperty(data,`flags.${MODULE_ID}.toughness`) || {};
   const update={name:data.name,img:data.img,system:data.system,prototypeToken:data.prototypeToken,[`flags.${MODULE_ID}.ultimate`]:restore ? (foundry.utils.getProperty(data,`flags.${MODULE_ID}.ultimate`)||rootConfig) : rootConfig,[`flags.${MODULE_ID}.toughness`]:rootToughness};
-  await target.update(update,{render:false});
+  await target.update(update,{render:false,animate:false,tsruBossTransition:true});
   const itemIds=target.items?.map(item=>item.id) ?? [];
-  if(itemIds.length)await target.deleteEmbeddedDocuments("Item",itemIds,{render:false});
+  if(itemIds.length)await target.deleteEmbeddedDocuments("Item",itemIds,{render:false,animate:false,tsruBossTransition:true});
   const items=(data.items ?? []).map(item=>{const copy=foundry.utils.deepClone(item);delete copy._id;return copy;});
-  if(items.length)await target.createEmbeddedDocuments("Item",items,{render:false});
+  if(items.length)await target.createEmbeddedDocuments("Item",items,{render:false,animate:false,tsruBossTransition:true});
   const effectIds=target.effects?.map(effect=>effect.id) ?? [];
-  if(effectIds.length)await target.deleteEmbeddedDocuments("ActiveEffect",effectIds,{render:false});
+  if(effectIds.length)await target.deleteEmbeddedDocuments("ActiveEffect",effectIds,{render:false,animate:false,tsruBossTransition:true});
   const effects=(data.effects ?? []).map(effect=>{const copy=foundry.utils.deepClone(effect);delete copy._id;return copy;});
-  if(effects.length)await target.createEmbeddedDocuments("ActiveEffect",effects,{render:false});
+  if(effects.length)await target.createEmbeddedDocuments("ActiveEffect",effects,{render:false,animate:false,tsruBossTransition:true});
   return true;
 }
 
@@ -2723,11 +2730,17 @@ async function replaceBossPhase(combatant,nextActor,encounter) {
   if(!token || !nextActor || !actor)return false;
   const nextData=nextActor.toObject();
   const texture=nextActor.prototypeToken?.texture?.src || nextActor.img || token.texture?.src;
-  await overwriteBossActor(actor,nextData,encounter);
-  const hp=actor.system?.attributes?.hp;
-  if(Number(hp?.value??0)<=0 && Number(hp?.max??0)>0)await actor.update({"system.attributes.hp.value":Number(hp.max)});
-  await token.update({name:nextActor.name,"texture.src":texture});
-  await combatant.update({name:nextActor.name,img:texture,[`flags.${MODULE_ID}.bossEncounter`]:encounter});
+  state.bossTransitionVisuals++;
+  try{
+    await overwriteBossActor(actor,nextData,encounter);
+    const hp=actor.system?.attributes?.hp;
+    if(Number(hp?.value??0)<=0 && Number(hp?.max??0)>0)await actor.update({"system.attributes.hp.value":Number(hp.max)},{render:false,animate:false,tsruBossTransition:true});
+    const phase=encounter.currentPhase,design=encounter.bossConfig||{};
+    const width=Number(design[`bossPhase${phase}TokenWidth`])||Number(nextActor.prototypeToken?.width)||1;
+    const height=Number(design[`bossPhase${phase}TokenHeight`])||Number(nextActor.prototypeToken?.height)||1;
+    await token.update({name:nextActor.name,"texture.src":texture,width,height},{animate:false,render:false,tsruBossTransition:true});
+    await combatant.update({name:nextActor.name,img:texture,[`flags.${MODULE_ID}.bossEncounter`]:encounter},{render:false,animate:false,tsruBossTransition:true});
+  }finally{state.bossTransitionVisuals=Math.max(0,state.bossTransitionVisuals-1);state.bossTransitionVisualsUntil=Date.now()+1500;}
   refreshBossHud();
   ui.notifications.info(`${nextActor.name} entered boss phase ${encounter.currentPhase}.`);
   return true;
@@ -2759,9 +2772,12 @@ async function switchBossPhase(combatant,phase) {
   if(phase>1 && !nextActor)return ui.notifications.warn(`No actor is configured for boss phase ${phase}.`);
   encounter.currentPhase=phase;
   if(phase===1){
-    await overwriteBossActor(combatant.actor,encounter.originalActorData,encounter,{restore:true});
-    await combatant.token?.update({name:encounter.originalActorData.name,"texture.src":encounter.originalTokenTexture});
-    await combatant.update({name:encounter.originalActorData.name,img:encounter.originalTokenTexture,[`flags.${MODULE_ID}.bossEncounter`]:encounter});
+    state.bossTransitionVisuals++;
+    try{
+      await overwriteBossActor(combatant.actor,encounter.originalActorData,encounter,{restore:true});
+      await combatant.token?.update({name:encounter.originalActorData.name,"texture.src":encounter.originalTokenTexture,width:encounter.originalTokenWidth||1,height:encounter.originalTokenHeight||1},{animate:false,render:false,tsruBossTransition:true});
+      await combatant.update({name:encounter.originalActorData.name,img:encounter.originalTokenTexture,[`flags.${MODULE_ID}.bossEncounter`]:encounter},{render:false,animate:false,tsruBossTransition:true});
+    }finally{state.bossTransitionVisuals=Math.max(0,state.bossTransitionVisuals-1);state.bossTransitionVisualsUntil=Date.now()+1500;}
   }else await replaceBossPhase(combatant,nextActor,encounter);
   state.bossPhaseControl?.render();
 }
@@ -2806,7 +2822,7 @@ class BossHud {
       const orbs=Array.from({length:encounter.totalPhases},(_v,index)=>`<i class="${index<remaining?"is-active":""}"></i>`).join("");
       const portrait=bossPortraitConfig(actor);
       const weaknesses=getElements().filter(element=>effectiveToughnessWeaknesses(actor).includes(element.id)).map(element=>`<img src="${escapeHTML(element.icon||"icons/svg/aura.svg")}" title="${escapeHTML(element.name)}">`).join("");
-      return `<article class="tsru-boss-entry" data-combatant-id="${combatant.id}" style="--boss-width:${design.bossHudWidth}px;--boss-health-h:${design.bossHudHealthHeight}px;--boss-toughness-h:${design.bossHudToughnessHeight}px;--boss-portrait-x:${portrait.x}%;--boss-portrait-y:${portrait.y}%;--boss-portrait-scale:${portrait.scale/100}"><div class="tsru-boss-drag" title="Move boss bar"><i class="fas fa-grip-lines"></i></div><div class="tsru-boss-portrait"><img src="${escapeHTML(portrait.image)}" alt="${escapeHTML(actor?.name||combatant.name)}"></div><div class="tsru-boss-main"><header><strong>${escapeHTML(actor?.name||combatant.name)}</strong><span class="tsru-boss-phases">${orbs}</span></header><div class="tsru-boss-health" style="--boss-hp:${percent}%"><i></i><span>${value}/${max}</span></div><div class="tsru-boss-toughness" style="--boss-toughness:${toughnessPercent}%"><i></i></div></div><div class="tsru-boss-weaknesses">${weaknesses}</div></article>`;
+      return `<article class="tsru-boss-entry" data-combatant-id="${combatant.id}" style="--boss-width:${design.bossHudWidth}px;--boss-health-h:${design.bossHudHealthHeight}px;--boss-toughness-h:${design.bossHudToughnessHeight}px;--boss-portrait-x:${portrait.x}%;--boss-portrait-y:${portrait.y}%;--boss-portrait-scale:${portrait.scale/100}"><div class="tsru-boss-drag" title="Move boss bar"><i class="fas fa-grip-lines"></i></div><div class="tsru-boss-portrait"><img src="${escapeHTML(portrait.image)}" alt="${escapeHTML(actor?.name||combatant.name)}"></div><div class="tsru-boss-main"><header><strong>${escapeHTML(actor?.name||combatant.name)}</strong><span class="tsru-boss-phases">${orbs}</span></header><div class="tsru-boss-health" style="--boss-hp:${percent}%"><i></i><span>${Math.round(percent)}%</span></div><div class="tsru-boss-toughness" style="--boss-toughness:${toughnessPercent}%"><i></i></div></div><div class="tsru-boss-weaknesses">${weaknesses}</div></article>`;
     }).join("");
     return this;
   }
@@ -2839,7 +2855,7 @@ function bossDesignerPreview(actor,config=getConfig(actor)){
   const portrait=bossPortraitConfig(actor,{image:config.bossHudPortrait});
   const toughness=getToughness(actor);
   const weaknesses=getElements().filter(element=>toughness.weaknesses.includes(element.id)).map(element=>`<img src="${escapeHTML(element.icon||"icons/svg/aura.svg")}" title="${escapeHTML(element.name)}">`).join("");
-  return `<article class="tsru-boss-entry tsru-boss-preview-entry" style="--boss-width:${config.bossHudWidth}px;--boss-health-h:${config.bossHudHealthHeight}px;--boss-toughness-h:${config.bossHudToughnessHeight}px;--boss-portrait-x:${config.bossHudPortraitX}%;--boss-portrait-y:${config.bossHudPortraitY}%;--boss-portrait-scale:${config.bossHudPortraitScale/100}"><div class="tsru-boss-portrait"><img src="${escapeHTML(config.bossHudPortrait||portrait.image)}" alt=""></div><div class="tsru-boss-main"><header><strong>${escapeHTML(actor.name)}</strong><span class="tsru-boss-phases"><i class="is-active"></i><i class="is-active"></i><i class="is-active"></i></span></header><div class="tsru-boss-health" style="--boss-hp:72%"><i></i><span>72/100</span></div><div class="tsru-boss-toughness" style="--boss-toughness:58%"><i></i></div></div><div class="tsru-boss-weaknesses">${weaknesses}</div></article>`;
+  return `<article class="tsru-boss-entry tsru-boss-preview-entry" style="--boss-width:${config.bossHudWidth}px;--boss-health-h:${config.bossHudHealthHeight}px;--boss-toughness-h:${config.bossHudToughnessHeight}px;--boss-portrait-x:${config.bossHudPortraitX}%;--boss-portrait-y:${config.bossHudPortraitY}%;--boss-portrait-scale:${config.bossHudPortraitScale/100}"><div class="tsru-boss-portrait"><img src="${escapeHTML(config.bossHudPortrait||portrait.image)}" alt=""></div><div class="tsru-boss-main"><header><strong>${escapeHTML(actor.name)}</strong><span class="tsru-boss-phases"><i class="is-active"></i><i class="is-active"></i><i class="is-active"></i></span></header><div class="tsru-boss-health" style="--boss-hp:72%"><i></i><span>72%</span></div><div class="tsru-boss-toughness" style="--boss-toughness:58%"><i></i></div></div><div class="tsru-boss-weaknesses">${weaknesses}</div></article>`;
 }
 
 function getCombatHudDesign() {
@@ -4238,6 +4254,7 @@ function installDamageScrollingTextOverride() {
     const original = layer.createScrollingText;
     Object.defineProperty(layer, "__tsruDamageTextOriginal", {value:original, configurable:true});
     layer.createScrollingText = function(origin, content, options = {}) {
+      if(state.bossTransitionVisuals>0 || state.bossTransitionVisualsUntil>Date.now() || options?.tsruBossTransition)return Promise.resolve();
       const numeric = /^[+\-−]?\s*\d+(?:\.\d+)?$/.test(String(content ?? "").trim());
       if (!numeric || state.customDamageScrollingText) return original.call(this, origin, content, options);
       const recent = state.lastDamageDisplay?.expires > Date.now() ? state.lastDamageDisplay : null;
@@ -5635,7 +5652,7 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
   tab.find("[name]").each((_index, field) => {
     data[field.name] = field.type === "checkbox" ? field.checked : field.value;
   });
-  for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "skillPointCost", "talentPointsCurrent", "talentPointsMax", "talentPointsOvercapMax", "punchlineGain", "splashDuration", "splashX", "splashY", "splashScale", "titleX", "titleY", "titleSize", "combatHudPortraitX", "combatHudPortraitY", "combatHudPortraitScale", "ultimateButtonX", "ultimateButtonY", "ultimateButtonScale", "bossPhaseCount", "bossHudPortraitX", "bossHudPortraitY", "bossHudPortraitScale", "bossHudWidth", "bossHudHealthHeight", "bossHudToughnessHeight"]) data[key] = Number(data[key]);
+  for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "skillPointCost", "talentPointsCurrent", "talentPointsMax", "talentPointsOvercapMax", "punchlineGain", "splashDuration", "splashX", "splashY", "splashScale", "titleX", "titleY", "titleSize", "combatHudPortraitX", "combatHudPortraitY", "combatHudPortraitScale", "ultimateButtonX", "ultimateButtonY", "ultimateButtonScale", "bossPhaseCount", "bossPhase2TokenWidth", "bossPhase2TokenHeight", "bossPhase3TokenWidth", "bossPhase3TokenHeight", "bossHudPortraitX", "bossHudPortraitY", "bossHudPortraitScale", "bossHudWidth", "bossHudHealthHeight", "bossHudToughnessHeight"]) data[key] = Number(data[key]);
   for (const key of ["enabled", "showPercent", "showHudPercent", "skillEnabled", "techniqueEnabled", "mainParty", "trialCharacter", "combatHudPortraitFlip", "ultimateButtonAdjustEnabled", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter", "isBoss", "bossInheritsMainPhaseCount"]) data[key] = Boolean(data[key]);
   data.max = Math.max(1, data.max || 100);
   data.current = clamp(data.current, 0, data.max);
@@ -5649,6 +5666,7 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
   data.talentPointsCurrent = talentCombatForActor(actor) ? clamp(Math.floor(data.talentPointsCurrent || 0), 0, data.talentPointsOvercapMax) : 0;
   data.skillPointCost = Math.max(0, Math.floor(data.skillPointCost || 0));
   data.bossPhaseCount = clamp(Math.floor(data.bossPhaseCount || 1), 1, 3);
+  for(const key of ["bossPhase2TokenWidth","bossPhase2TokenHeight","bossPhase3TokenWidth","bossPhase3TokenHeight"])data[key]=clamp(data[key],0,20);
   data.bossHudPortraitX=clamp(data.bossHudPortraitX,0,100);data.bossHudPortraitY=clamp(data.bossHudPortraitY,0,100);data.bossHudPortraitScale=clamp(data.bossHudPortraitScale,50,400);data.bossHudWidth=clamp(data.bossHudWidth,420,1400);data.bossHudHealthHeight=clamp(data.bossHudHealthHeight,12,48);data.bossHudToughnessHeight=clamp(data.bossHudToughnessHeight,4,24);
   data.talentCombatId = talentCombatForActor(actor)?.id ?? "";
   await actor.update({[`flags.${MODULE_ID}.ultimate`]: data}, {tsruAutosave: !notify, render: false});
@@ -5700,8 +5718,8 @@ function activateConfigListeners(actor, tab, app) {
   tab.on("input.tsru-preview change.tsru-preview", "[name='combatHudPortrait'], [name='combatHudPortraitX'], [name='combatHudPortraitY'], [name='combatHudPortraitScale'], [name='combatHudPortraitFlip'], [name='talentIcon'], [name='ultimateButtonImage'], [name='ultimateButtonAdjustEnabled'], [name='ultimateButtonX'], [name='ultimateButtonY'], [name='ultimateButtonScale']", () => { refreshCombatPortraitPreview(); refreshUltimatePreview(); });
   refreshCombatPortraitPreview();
   refreshUltimatePreview();
-  const refreshBossPreview=async()=>{const preview=tab.find("[data-tsru-boss-preview]");if(!preview.length)return;const draft={...getConfig(actor)};for(const key of ["bossHudPortrait","bossHudPortraitX","bossHudPortraitY","bossHudPortraitScale","bossHudWidth","bossHudHealthHeight","bossHudToughnessHeight"]){const field=tab.find(`[name='${key}']`)[0];draft[key]=field?.type==="number"?Number(field.value):String(field?.value||"");}const phases=[actor];for(const name of ["bossPhase2ActorUuid","bossPhase3ActorUuid"]){const uuid=String(tab.find(`[name='${name}']`).val()||"");if(uuid){const phase=await bossActorFromUuid(uuid);if(phase)phases.push(phase);}}preview.html(phases.map((phase,index)=>`<div class="tsru-boss-phase-preview"><b>Phase ${index+1}: ${escapeHTML(phase.name)}</b>${bossDesignerPreview(phase,index===0?draft:{...getConfig(phase),bossHudWidth:draft.bossHudWidth,bossHudHealthHeight:draft.bossHudHealthHeight,bossHudToughnessHeight:draft.bossHudToughnessHeight})}</div>`).join(""));};
-  tab.on("input.tsru-boss-preview change.tsru-boss-preview","[name='bossHudPortrait'],[name='bossHudPortraitX'],[name='bossHudPortraitY'],[name='bossHudPortraitScale'],[name='bossHudWidth'],[name='bossHudHealthHeight'],[name='bossHudToughnessHeight'],[name='bossPhase2ActorUuid'],[name='bossPhase3ActorUuid']",refreshBossPreview);
+  const refreshBossPreview=async()=>{const preview=tab.find("[data-tsru-boss-preview]");if(!preview.length)return;const draft={...getConfig(actor)};for(const key of ["bossHudPortrait","bossHudPortraitX","bossHudPortraitY","bossHudPortraitScale","bossHudWidth","bossHudHealthHeight","bossHudToughnessHeight","bossPhase2TokenWidth","bossPhase2TokenHeight","bossPhase3TokenWidth","bossPhase3TokenHeight"]){const field=tab.find(`[name='${key}']`)[0];draft[key]=field?.type==="number"?Number(field.value):String(field?.value||"");}const phases=[actor];for(const name of ["bossPhase2ActorUuid","bossPhase3ActorUuid"]){const uuid=String(tab.find(`[name='${name}']`).val()||"");if(uuid){const phase=await bossActorFromUuid(uuid);if(phase)phases.push(phase);}}preview.html(phases.map((phase,index)=>{const phaseNumber=index+1,size=phaseNumber===1?"Original token size":`${Number(draft[`bossPhase${phaseNumber}TokenWidth`])||phase.prototypeToken?.width||1} × ${Number(draft[`bossPhase${phaseNumber}TokenHeight`])||phase.prototypeToken?.height||1} grid units`;return `<div class="tsru-boss-phase-preview"><b>Phase ${phaseNumber}: ${escapeHTML(phase.name)} <small>(${size})</small></b>${bossDesignerPreview(phase,index===0?draft:{...getConfig(phase),bossHudWidth:draft.bossHudWidth,bossHudHealthHeight:draft.bossHudHealthHeight,bossHudToughnessHeight:draft.bossHudToughnessHeight})}</div>`;}).join(""));};
+  tab.on("input.tsru-boss-preview change.tsru-boss-preview","[name='bossHudPortrait'],[name='bossHudPortraitX'],[name='bossHudPortraitY'],[name='bossHudPortraitScale'],[name='bossHudWidth'],[name='bossHudHealthHeight'],[name='bossHudToughnessHeight'],[name='bossPhase2ActorUuid'],[name='bossPhase3ActorUuid'],[name='bossPhase2TokenWidth'],[name='bossPhase2TokenHeight'],[name='bossPhase3TokenWidth'],[name='bossPhase3TokenHeight']",refreshBossPreview);
   refreshBossPreview();
   const bossPreview=tab.find("[data-tsru-boss-preview]");let bossCropDrag=null;
   bossPreview.on("dragover.tsru-boss-crop",event=>{event.preventDefault();bossPreview.addClass("is-dragover");}).on("dragleave.tsru-boss-crop",()=>bossPreview.removeClass("is-dragover")).on("drop.tsru-boss-crop",event=>{event.preventDefault();bossPreview.removeClass("is-dragover");const path=droppedAssetPath(event);if(path)tab.find("[name='bossHudPortrait']").val(path).trigger("change");});
