@@ -22,6 +22,11 @@ const esc = value => {
   return div.innerHTML;
 };
 const api = () => game.modules.get(MODULE_ID)?.api;
+const requireApiMethod = name => {
+  const method=api()?.[name];
+  if(typeof method!=="function") throw new Error(`Star Rail API method ${name} is unavailable. Reload Foundry after updating the module.`);
+  return method;
+};
 const types = () => clone(game.settings.get(MODULE_ID, "questTypes") ?? DEFAULT_TYPES).sort((a, b) => Number(a.order) - Number(b.order));
 const rarities = () => clone(game.settings.get(MODULE_ID, "questRarities") ?? DEFAULT_RARITIES).sort((a, b) => Number(a.order) - Number(b.order));
 const quests = () => clone(game.settings.get(MODULE_ID, "quests") ?? []);
@@ -184,7 +189,7 @@ class HSRHub extends FormApplication {
           if (count) ui.notifications.info("Combat party HUD shown.");
         }],
         "hud-designer": ["Combat HUD Designer", () => api()?.openCombatHudDesigner?.()],
-        abilities: ["Ability Bubbles", () => api()?.showAllAbilityBubbles?.()],
+        abilities: ["Ability Bubbles", () => requireApiMethod("showAllAbilityBubbles")()],
         gm: ["Star Rail GM Panel", () => api()?.openGMPanel?.()],
         "aha-config": ["Aha Instant Configuration", () => api()?.openAhaConfig?.()],
         "aha-toggle": ["Aha Instant Orb", async () => {
@@ -445,7 +450,7 @@ function consolidateToolbar(controls) {
     ["tsru-quest-log","Mission Log","fas fa-clipboard-list",true,toolbarAction("Mission Log",openQuestLog)],
     ["tsru-party-selector","Select Main Character","fas fa-user-check",!game.user.isGM,toolbarAction("Main Character",()=>new PartyCharacterSelector().render(true))],
     ["tsru-orbs","Show Combat Party HUD","fas fa-users",game.user.isGM,toolbarAction("Combat Party HUD",()=>api()?.showUltimateUI?.())],
-    ["tsru-abilities","Show All Ability Bubbles","fas fa-circle-nodes",true,toolbarAction("Ability Bubbles",()=>api()?.showAllAbilityBubbles?.())],
+    ["tsru-abilities","Show All Ability Bubbles","fas fa-circle-nodes",true,toolbarAction("Ability Bubbles",()=>requireApiMethod("showAllAbilityBubbles")())],
     ["tsru-hub-window","Open HSR Hub","fas fa-grid-2",true,toolbarAction("HSR Hub",openHub)],
     ["tsru-gm-panel","Star Rail GM Panel","fas fa-sliders",game.user.isGM,toolbarAction("Star Rail GM Panel",()=>api()?.openGMPanel?.())],
     ["tsru-quest-manager","Mission Manager","fas fa-list-check",game.user.isGM,toolbarAction("Mission Manager",()=>new QuestManager().render(true))],
