@@ -2,7 +2,7 @@
   <header class="tsru-gm-panel-header"><div><h2><i class="fas fa-sliders"></i> Star Rail GM Panel</h2><p>Live combat resources and character tuning. Changes apply immediately.</p></div><span class="tsru-gm-badge">GM ONLY</span></header>
 
   <section class="tsru-gm-live-resources">
-    <div class="tsru-gm-resource-card"><strong>Punchline</strong><div><button type="button" data-resource-action="punchline" data-delta="-1"><i class="fas fa-minus"></i></button><input type="number" min="0" value="{{punchline}}" data-resource-input="punchline"><button type="button" data-resource-action="punchline" data-delta="1"><i class="fas fa-plus"></i></button></div></div>
+    <div class="tsru-gm-resource-card"><strong>Punchline</strong><div><button type="button" data-resource-action="punchline" data-delta="-1"><i class="fas fa-minus"></i></button><input type="number" min="0" value="{{punchline}}" data-resource-input="punchline"><button type="button" data-resource-action="punchline" data-delta="1"><i class="fas fa-plus"></i></button></div><label class="tsru-gm-punchline-override"><input type="checkbox" name="punchlineOverride" {{checked punchlineOverride}}> Override Punchline</label></div>
     <div class="tsru-gm-resource-card"><strong>Shared Skill Points</strong><div><button type="button" data-resource-action="skillPoints" data-delta="-1"><i class="fas fa-minus"></i></button><input type="number" min="0" max="{{skillPointMax}}" value="{{skillPoints}}" data-resource-input="skillPoints"><button type="button" data-resource-action="skillPoints" data-delta="1"><i class="fas fa-plus"></i></button></div></div>
   </section>
 
