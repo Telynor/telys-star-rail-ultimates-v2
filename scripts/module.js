@@ -557,7 +557,7 @@ async function addEnergy(actor, amount, reason = "") {
 }
 
 function canObserveActor(actor) {
-  if (!actor || !getConfig(actor).enabled) return false;
+  if (!actor) return false;
   return game.user.isGM || actor.isOwner;
 }
 
@@ -1722,9 +1722,18 @@ function plainAbilityText(value) {
 }
 
 function selectedMainCharacter() {
-  const actorId = (game.settings.get(MODULE_ID, "partySelections") ?? {})[game.user.id];
+  const localId = game.settings.get(MODULE_ID, "selectedMainCharacterId");
+  const worldId = (game.settings.get(MODULE_ID, "partySelections") ?? {})[game.user.id];
+  const actorId = localId || worldId;
   const actor = game.actors.get(actorId);
   return actor?.type === "character" && (game.user.isGM || actor.isOwner) ? actor : null;
+}
+
+async function setLocalMainCharacter(actorId) {
+  const actor=game.actors.get(actorId);
+  if(!actor || actor.type!=="character" || (!game.user.isGM && !actor.isOwner)) return false;
+  await game.settings.set(MODULE_ID,"selectedMainCharacterId",actor.id);
+  return true;
 }
 
 function talentButtonLayout(actorId) {
@@ -1902,7 +1911,7 @@ async function spawnAbilityBubbles(actor, selections={skill:true,ultimate:true,t
 }
 
 function playerCharacterActors() {
-  return game.actors.filter(actor=>actor.type==="character" && game.users.some(user=>!user.isGM && actor.testUserPermission(user,"OWNER")))
+  return game.actors.filter(actor=>actor.type==="character")
     .sort((a,b)=>String(a.name).localeCompare(String(b.name),undefined,{sensitivity:"base"}));
 }
 
@@ -5115,6 +5124,7 @@ function registerSettings() {
   game.settings.register(MODULE_ID, "paths", {scope: "world", config: false, type: Array, default: []});
   game.settings.register(MODULE_ID, "elementsDraft", {scope: "client", config: false, type: Array, default: []});
   game.settings.register(MODULE_ID, "orbLayouts", {scope: "client", config: false, type: Object, default: {}});
+  game.settings.register(MODULE_ID, "selectedMainCharacterId", {scope: "client", config: false, type: String, default: ""});
   game.settings.register(MODULE_ID, "combatPartyHudLayout", {scope: "client", config: false, type: Object, default: {scale: 1, minimized: false, x: null, y: null}});
   game.settings.register(MODULE_ID, "combatHudDesign", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_COMBAT_HUD_DESIGN)});
   game.settings.register(MODULE_ID, "ahaConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_AHA_CONFIG)});
@@ -6192,6 +6202,7 @@ function registerApi() {
     showSkillUI,
     showTalentUI,
     showAllAbilityBubbles,
+    setLocalMainCharacter,
     refreshResourceHuds,
     getPunchline: currentPunchline,
     setPunchline,
