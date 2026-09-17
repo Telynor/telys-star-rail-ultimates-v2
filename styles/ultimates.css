@@ -1065,6 +1065,7 @@
 .tsru-gm-resource-card > strong { display: block; color: #f1d68c; margin-bottom: 8px; }
 .tsru-gm-resource-card > div { display: grid; grid-template-columns: 36px minmax(70px,1fr) 36px; gap: 6px; }
 .tsru-gm-resource-card input { text-align: center; font-size: 1.15em; font-weight: 700; }
+.tsru-gm-resource-card .tsru-gm-punchline-override{display:flex;align-items:center;gap:7px;margin-top:9px;color:#d9d4c8;font-size:12px}.tsru-gm-resource-card .tsru-gm-punchline-override input{flex:0 0 auto;width:auto;margin:0}
 .tsru-gm-section { margin-bottom: 14px; padding: 12px; }
 .tsru-gm-section h3 { margin: 0 0 6px; color: #e8ca76; border-bottom: 1px solid rgba(137,112,60,.55); padding-bottom: 6px; }
 .tsru-gm-action-advance { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; margin-top: 10px; }
