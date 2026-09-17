@@ -302,6 +302,7 @@ function getConfig(actor) {
 function getToughness(actor) {
   const stored = actor?.getFlag(MODULE_ID, "toughness") ?? {};
   const config = foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_TOUGHNESS), stored, {inplace: false, insertKeys: true, overwrite: true});
+  config.enabled = Object.hasOwn(stored, "enabled") ? Boolean(stored.enabled) : actor?.type === "npc";
   config.max = Math.max(1, Number(config.max) || 100);
   config.current = clamp(config.current, 0, config.max);
   config.weaknesses = Array.isArray(config.weaknesses) ? config.weaknesses : [];
@@ -342,7 +343,7 @@ function effectiveToughnessWeaknesses(target) {
 async function setToughnessWeaknessMode(target, mode = "") {
   if (!game.user.isGM || !["", "all", "none"].includes(mode)) return false;
   const {actor, tokenDocument} = toughnessTargetParts(target);
-  if (!actor || actor.type !== "npc") return false;
+  if (!actor || !["npc","character"].includes(actor.type)) return false;
   if (tokenDocument) await tokenDocument.setFlag(MODULE_ID, "weaknessMode", mode);
   else await actor.setFlag(MODULE_ID, "weaknessMode", mode);
   refreshToughnessBars();
@@ -351,7 +352,7 @@ async function setToughnessWeaknessMode(target, mode = "") {
 
 async function setTemporaryToughnessWeaknesses(target, elementIds) {
   const {actor, tokenDocument} = toughnessTargetParts(target);
-  if (!game.user.isGM || !actor || actor.type !== "npc") return false;
+  if (!game.user.isGM || !actor || !["npc","character"].includes(actor.type)) return false;
   const config = getToughness(actor);
   const valid = new Set(getElements().map(element => element.id));
   const temporaryWeaknesses = [...new Set(elementIds ?? [])].filter(id => valid.has(id) && !config.weaknesses.includes(id));
@@ -368,7 +369,7 @@ async function addTemporaryToughnessWeakness(target, elementId) {
 
 async function resetTemporaryToughnessWeaknesses(target = null) {
   if (!game.user.isGM) return 0;
-  const targets = target ? [target] : (canvas.tokens?.placeables ?? []).filter(token => token.actor?.type === "npc").map(token => token.document);
+  const targets = target ? [target] : (canvas.tokens?.placeables ?? []).filter(token => ["npc","character"].includes(token.actor?.type)).map(token => token.document);
   let reset = 0;
   for (const entry of targets) {
     const {actor, tokenDocument} = toughnessTargetParts(entry);
@@ -397,15 +398,15 @@ async function resetCanvasToughness() {
   const actors = new Map();
   for (const token of canvas.tokens?.placeables ?? []) {
     const actor = token.actor;
-    if (!actor || actor.type !== "npc") continue;
+    if (!actor || !["npc","character"].includes(actor.type)) continue;
     const stored = actor.getFlag(MODULE_ID, "toughness");
     if (!stored || !getToughness(actor).enabled) continue;
     actors.set(actor.uuid, actor);
   }
-  if (!actors.size) return ui.notifications.info("No Toughness-enabled NPCs are present on this Scene.");
+  if (!actors.size) return ui.notifications.info("No Toughness-enabled actors are present on this Scene.");
   const confirmed = await Dialog.confirm({
     title: "Reset All Toughness",
-    content: `<p>Restore the current Toughness of <strong>${actors.size}</strong> NPC actor${actors.size === 1 ? "" : "s"} on this Scene to each actor's configured maximum?</p><p>Weaknesses and maximum values will not be changed.</p>`,
+    content: `<p>Restore the current Toughness of <strong>${actors.size}</strong> actor${actors.size === 1 ? "" : "s"} on this Scene to each actor's configured maximum?</p><p>Weaknesses and maximum values will not be changed.</p>`,
     yes: () => true,
     no: () => false,
     defaultYes: false
@@ -4036,7 +4037,7 @@ async function applyChatRollAsTempHp(message, target, requestingUser) {
 }
 
 async function limitBreakAttackHpDamage(attacker, target, amount, eventId, options = {}) {
-  if (!getConfig(attacker).breakCharacter || target?.type !== "npc" || Number(amount) <= 1) return;
+  if (!getConfig(attacker).breakCharacter || !["npc","character"].includes(target?.type) || !getToughness(target).enabled || Number(amount) <= 1) return;
   const key = `break-hp-limit:${eventId}:${target.uuid}`;
   if (state.processedMessages.has(key)) return;
   state.processedMessages.add(key);
@@ -4493,7 +4494,7 @@ async function restoreBrokenCombatant(combatant, {preserveActive = true} = {}) {
   const stored = combatant?.getFlag(MODULE_ID, "brokenInitiative");
   if (!combatant || !isAuthority()) return;
   const actor = combatant.actor;
-  if (!stored && (actor?.type !== "npc" || getToughness(actor).current !== 0)) return;
+  if (!stored && (!getToughness(actor).enabled || getToughness(actor).current !== 0)) return;
   const toughness = getToughness(actor);
   if (toughness.enabled && toughness.current === 0) {
     await actor.update({[`flags.${MODULE_ID}.toughness.current`]:toughness.max});
@@ -4512,7 +4513,7 @@ async function restoreBrokenCombatant(combatant, {preserveActive = true} = {}) {
 
 async function skipBrokenCombatantTurn(combat, combatant) {
   const stored = combatant?.getFlag(MODULE_ID, "brokenInitiative");
-  if (!isAuthority() || !combat?.started || !stored || combatant.actor?.type !== "npc" || getToughness(combatant.actor).current !== 0) return false;
+  if (!isAuthority() || !combat?.started || !stored || !getToughness(combatant.actor).enabled || getToughness(combatant.actor).current !== 0) return false;
   const beforeTurns=[...combat.turns];
   const currentIndex=beforeTurns.findIndex(entry=>entry.id===combatant.id);
   const nextId=beforeTurns[currentIndex+1]?.id ?? null;
@@ -4546,7 +4547,7 @@ async function applyToughnessDamage(attacker, targets, amount, eventKey = "") {
   let applied = false;
   for (const target of targetList) {
     const actor = target?.actor ?? target?.document?.actor ?? target;
-    if (!actor || actor.type !== "npc") continue;
+    if (!actor || !["npc","character"].includes(actor.type)) continue;
     if (toughnessWeaknessMode(target) === "none") continue;
     const toughness = getToughness(actor);
     const matchesWeakness = Boolean(elementId && effectiveToughnessWeaknesses(target).includes(elementId));
@@ -6261,8 +6262,8 @@ function openToughnessConfig(actor) {
   const elements = getElements();
   const weaknessRows = elements.map(element => `<label class="tsru-weakness-choice"><input type="checkbox" name="weakness" value="${escapeHTML(element.id)}" ${config.weaknesses.includes(element.id) ? "checked" : ""}><img src="${escapeHTML(element.icon || "icons/svg/aura.svg")}"><span>${escapeHTML(element.name)}</span></label>`).join("");
   const content = `<form class="tsru-toughness-form">
-    <p>Configure this enemy's Star Rail Toughness and elemental weaknesses. Only GMs can see its token display.</p>
-    <label class="tsru-toughness-toggle"><span><strong>Enable Toughness</strong><small>Show and process Toughness while this NPC is in combat.</small></span><input type="checkbox" name="enabled" ${config.enabled ? "checked" : ""}></label>
+    <p>Configure this actor's Star Rail Toughness and elemental weaknesses. These controls are GM-only.</p>
+    <label class="tsru-toughness-toggle"><span><strong>Enable Toughness</strong><small>Show and automatically process Toughness while this actor is in combat.</small></span><input type="checkbox" name="enabled" ${config.enabled ? "checked" : ""}></label>
     <div class="tsru-toughness-numbers"><label><strong>Current</strong><input type="number" name="current" min="0" value="${config.current}"></label><label><strong>Maximum</strong><input type="number" name="max" min="1" value="${config.max}"></label></div>
     <fieldset><legend>Elemental Weaknesses</legend><div class="tsru-weakness-grid">${weaknessRows || "<em>Create Elements in Module Settings first.</em>"}</div></fieldset>
   </form>`;
@@ -6298,7 +6299,7 @@ function drawToughnessRect(graphics, x, y, width, height, color, alpha = 1, radi
 
 function renderToughnessBar(token) {
   token?.children?.filter?.(child => child.name === "tsru-toughness-bar").forEach(child => child.destroy({children: true}));
-  if (!token?.actor || token.actor.type !== "npc" || !game.combat?.combatants?.some(c => c.tokenId === token.document.id)) return;
+  if (!token?.actor || !["npc","character"].includes(token.actor.type) || !game.combat?.combatants?.some(c => c.tokenId === token.document.id)) return;
   const config = getToughness(token.actor);
   if (!config.enabled) return;
   const PIXIRef = globalThis.PIXI;
@@ -6340,7 +6341,7 @@ function refreshToughnessBars() {
 
 function injectToughnessHeaderButton(app, html) {
   const actor = app.actor ?? app.document;
-  if (!game.user?.isGM || actor?.documentName !== "Actor" || actor.type !== "npc") return;
+  if (!game.user?.isGM || actor?.documentName !== "Actor" || !["npc","character"].includes(actor.type)) return;
   const appElement = app.element?.jquery ? app.element : $(app.element ?? html);
   const renderedElement = html?.jquery ? html : $(html);
   const root = appElement.length ? appElement : renderedElement;
@@ -6361,6 +6362,7 @@ function addActorHeaderButton(app, buttons) {
     return;
   }
   if (app.actor?.type !== "character") return;
+  buttons.unshift({label: "Toughness", class: "tsru-open-toughness", icon: "fas fa-shield-halved", onclick: () => openToughnessConfig(app.actor)});
   buttons.unshift({
     label: "Ultimate",
     class: "tsru-open-config",
@@ -6551,7 +6553,7 @@ Hooks.on("renderApplicationV2", (app, html) => {
       activateLightConeInventoryContext(app, root);
     });
   }
-  if (actor?.documentName === "Actor" && actor.type === "npc") injectToughnessHeaderButton(app, html);
+  if (actor?.documentName === "Actor" && ["npc","character"].includes(actor.type)) injectToughnessHeaderButton(app, html);
 });
 Hooks.on("renderActorSheet", injectEnergyAbility);
 Hooks.on("renderCharacterActorSheet", injectEnergyAbility);
