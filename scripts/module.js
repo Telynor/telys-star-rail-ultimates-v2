@@ -20,6 +20,11 @@ const DEFAULT_CONFIG = Object.freeze({
   breakEffectScore: 10,
   breakDamageDice: 1,
   breakDamageDie: 6,
+  isBoss: false,
+  bossPhaseCount: 1,
+  bossPhase2ActorUuid: "",
+  bossPhase3ActorUuid: "",
+  bossInheritsMainPhaseCount: false,
   skillEnabled: true,
   skillScript: "",
   skillText: "",
@@ -113,7 +118,9 @@ const state = {
   suppressCombatHook: false,
   lastAhaTurnKey: "",
   ahaVideoCache: {source: "", objectUrl: "", promise: null},
-  partyCombatHud: null
+  partyCombatHud: null,
+  bossHud: null,
+  bossTransitionLocks: new Set()
 };
 
 let ahaToolbarOpening = false;
@@ -274,6 +281,7 @@ function getConfig(actor) {
   config.skillPointCost = Math.max(0, Math.floor(Number(config.skillPointCost) || 0));
   config.talentPointsMax = Math.max(0, Math.floor(Number(config.talentPointsMax) || 0));
   config.talentPointsOvercapMax = Math.max(config.talentPointsMax, Math.floor(Number(config.talentPointsOvercapMax) || config.talentPointsMax));
+  config.bossPhaseCount = clamp(Math.floor(Number(config.bossPhaseCount) || 1), 1, 3);
   return config;
 }
 
@@ -2634,6 +2642,121 @@ class UltimateOrb {
     this.element = null;
     state.orbs.delete(this.actor.id);
   }
+}
+
+function bossPhaseActorUuids(actor) {
+  const config=getConfig(actor);
+  return [actor?.uuid || (actor?.id ? `Actor.${actor.id}` : ""),String(config.bossPhase2ActorUuid||""),String(config.bossPhase3ActorUuid||"")];
+}
+
+function bossEncounter(combatant) {
+  const stored=combatant?.getFlag(MODULE_ID,"bossEncounter");
+  if(stored)return foundry.utils.deepClone(stored);
+  const actor=combatant?.actor;
+  const config=getConfig(actor);
+  if(!actor || !config.isBoss)return null;
+  return {rootOriginalActorId:actor.id,planOwnerActorId:actor.id,currentPhase:1,totalPhases:config.bossPhaseCount,phaseActorUuids:bossPhaseActorUuids(actor),defeated:false,originalTokenTexture:combatant.token?.texture?.src || actor.prototypeToken?.texture?.src || actor.img};
+}
+
+async function ensureBossEncounter(combatant) {
+  if(!isAuthority() || !combatant?.parent?.started || combatant.getFlag(MODULE_ID,"bossEncounter"))return bossEncounter(combatant);
+  const encounter=bossEncounter(combatant);
+  if(!encounter)return null;
+  await combatant.setFlag(MODULE_ID,"bossEncounter",encounter);
+  return encounter;
+}
+
+async function ensureBossEncounters(combat=game.combat) {
+  if(!isAuthority() || !combat?.started)return;
+  for(const combatant of combat.combatants ?? [])await ensureBossEncounter(combatant);
+  refreshBossHud();
+}
+
+async function bossActorFromUuid(uuid) {
+  if(!uuid)return null;
+  const direct=String(uuid).match(/^Actor\.([^.]+)$/);
+  return direct ? game.actors.get(direct[1]) : (await fromUuid(String(uuid)).catch(()=>null));
+}
+
+async function replaceBossPhase(combatant,nextActor,encounter) {
+  const token=combatant.token;
+  if(!token || !nextActor)return false;
+  const texture=nextActor.prototypeToken?.texture?.src || nextActor.img || token.texture?.src;
+  const hp=nextActor.system?.attributes?.hp;
+  if(Number(hp?.value??0)<=0 && Number(hp?.max??0)>0)await nextActor.update({"system.attributes.hp.value":Number(hp.max)});
+  await token.update({actorId:nextActor.id,name:nextActor.name,"texture.src":texture});
+  await combatant.update({actorId:nextActor.id,name:nextActor.name,img:texture,[`flags.${MODULE_ID}.bossEncounter`]:encounter});
+  refreshBossHud();
+  ui.notifications.info(`${nextActor.name} entered boss phase ${encounter.currentPhase}.`);
+  return true;
+}
+
+async function finishBossEncounter(combatant,encounter) {
+  const original=game.actors.get(encounter.rootOriginalActorId);
+  const token=combatant.token;
+  encounter.defeated=true;
+  if(original && token){
+    await token.update({actorId:original.id,name:original.name,"texture.src":encounter.originalTokenTexture || original.prototypeToken?.texture?.src || original.img});
+    await combatant.update({actorId:original.id,name:original.name,img:encounter.originalTokenTexture || original.img,[`flags.${MODULE_ID}.bossEncounter`]:encounter});
+    const hp=original.system?.attributes?.hp;
+    if(Number(hp?.value??0)!==0)await original.update({"system.attributes.hp.value":0});
+    await original.toggleStatusEffect?.("dead",{active:true}).catch?.(()=>{});
+  } else await combatant.update({[`flags.${MODULE_ID}.bossEncounter`]:encounter});
+  refreshBossHud();
+  ui.notifications.info(`${original?.name || combatant.name} has been defeated.`);
+}
+
+async function handleBossPhaseDefeat(actor) {
+  if(!isAuthority() || Number(actor?.system?.attributes?.hp?.value??1)>0)return;
+  const combat=game.combat;
+  if(!combat?.started)return;
+  const combatant=combat.combatants.find(entry=>entry.actor?.id===actor.id && bossEncounter(entry) && !bossEncounter(entry).defeated);
+  if(!combatant || state.bossTransitionLocks.has(combatant.id))return;
+  state.bossTransitionLocks.add(combatant.id);
+  try{
+    let encounter=await ensureBossEncounter(combatant);
+    if(!encounter || encounter.defeated)return;
+    if(encounter.currentPhase < encounter.totalPhases){
+      const nextActor=await bossActorFromUuid(encounter.phaseActorUuids?.[encounter.currentPhase]);
+      if(nextActor){
+        const nextConfig=getConfig(nextActor);
+        if(nextConfig.isBoss && !nextConfig.bossInheritsMainPhaseCount && nextConfig.bossPhaseCount>1){
+          encounter={...encounter,planOwnerActorId:nextActor.id,currentPhase:1,totalPhases:nextConfig.bossPhaseCount,phaseActorUuids:bossPhaseActorUuids(nextActor)};
+        }else encounter.currentPhase+=1;
+        await replaceBossPhase(combatant,nextActor,encounter);
+        return;
+      }
+    }
+    await finishBossEncounter(combatant,encounter);
+  }catch(error){console.error(`${MODULE_ID} | Boss phase transition failed`,error);ui.notifications.error(`Boss phase transition failed: ${error.message}`);}
+  finally{state.bossTransitionLocks.delete(combatant.id);}
+}
+
+class BossHud {
+  constructor(){this.element=null;}
+  render(){
+    const combat=game.combat;
+    const bosses=combat?.started ? combat.combatants.map(combatant=>({combatant,encounter:bossEncounter(combatant)})).filter(entry=>entry.encounter && !entry.encounter.defeated) : [];
+    if(!bosses.length)return this.destroy();
+    if(!this.element){this.element=document.createElement("section");this.element.className="tsru-boss-hud";document.body.appendChild(this.element);}
+    this.element.innerHTML=bosses.map(({combatant,encounter})=>{
+      const actor=combatant.actor;
+      const hp=actor?.system?.attributes?.hp ?? {};
+      const value=Math.max(0,Number(hp.value)||0),max=Math.max(1,Number(hp.max)||1),percent=clamp(value/max*100,0,100);
+      const remaining=Math.max(0,encounter.totalPhases-encounter.currentPhase+1);
+      const orbs=Array.from({length:encounter.totalPhases},(_v,index)=>`<i class="${index<remaining?"is-active":""}"></i>`).join("");
+      const portrait=combatant.token?.texture?.src || actor?.prototypeToken?.texture?.src || combatant.img || actor?.img || "icons/svg/mystery-man.svg";
+      return `<article class="tsru-boss-entry" data-combatant-id="${combatant.id}"><div class="tsru-boss-portrait"><img src="${escapeHTML(portrait)}" alt="${escapeHTML(actor?.name||combatant.name)}"></div><div class="tsru-boss-main"><header><strong>${escapeHTML(actor?.name||combatant.name)}</strong><span class="tsru-boss-phases">${orbs}</span></header><div class="tsru-boss-health" style="--boss-hp:${percent}%"><i></i><span>${value}/${max}</span></div></div></article>`;
+    }).join("");
+    return this;
+  }
+  destroy(){this.element?.remove();this.element=null;if(state.bossHud===this)state.bossHud=null;}
+}
+
+function refreshBossHud(){
+  if(!game.combat?.started){state.bossHud?.destroy();return;}
+  if(!state.bossHud)state.bossHud=new BossHud();
+  state.bossHud.render();
 }
 
 function getCombatHudDesign() {
@@ -5269,7 +5392,10 @@ async function injectUltimateTab(app, html) {
     breakDiceOptions: Array.from({length: 20}, (_value, index) => ({value: index + 1, selected: config.breakDamageDice === index + 1})),
     breakDieOptions: [4, 6, 8, 10, 12, 20].map(value => ({value, selected: config.breakDamageDie === value})),
     modeHit: config.attackedMode === "hit",
-    modeTargeted: config.attackedMode === "targeted"
+    modeTargeted: config.attackedMode === "targeted",
+    bossPhase1: config.bossPhaseCount === 1,
+    bossPhase2: config.bossPhaseCount === 2,
+    bossPhase3: config.bossPhaseCount === 3
   });
   body.append(content);
   const tab = body.find('.tsru-sheet-tab');
@@ -5322,7 +5448,10 @@ async function openUltimateConfig(actor, sheetApp = null) {
     breakDiceOptions: Array.from({length: 20}, (_value, index) => ({value: index + 1, selected: config.breakDamageDice === index + 1})),
     breakDieOptions: [4, 6, 8, 10, 12, 20].map(value => ({value, selected: config.breakDamageDie === value})),
     modeHit: config.attackedMode === "hit",
-    modeTargeted: config.attackedMode === "targeted"
+    modeTargeted: config.attackedMode === "targeted",
+    bossPhase1: config.bossPhaseCount === 1,
+    bossPhase2: config.bossPhaseCount === 2,
+    bossPhase3: config.bossPhaseCount === 3
   });
   const dialog = new Dialog({title: `${actor.name} — Ultimate Configuration`, content, buttons: {close: {label: "Close"}}}, {width: 620, height: 760, resizable: true, classes: ["tsru-config-dialog"]});
   Hooks.once("renderDialog", rendered => {
@@ -5421,8 +5550,8 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
   tab.find("[name]").each((_index, field) => {
     data[field.name] = field.type === "checkbox" ? field.checked : field.value;
   });
-  for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "skillPointCost", "talentPointsCurrent", "talentPointsMax", "talentPointsOvercapMax", "punchlineGain", "splashDuration", "splashX", "splashY", "splashScale", "titleX", "titleY", "titleSize", "combatHudPortraitX", "combatHudPortraitY", "combatHudPortraitScale", "ultimateButtonX", "ultimateButtonY", "ultimateButtonScale"]) data[key] = Number(data[key]);
-  for (const key of ["enabled", "showPercent", "showHudPercent", "skillEnabled", "techniqueEnabled", "mainParty", "trialCharacter", "combatHudPortraitFlip", "ultimateButtonAdjustEnabled", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter"]) data[key] = Boolean(data[key]);
+  for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "skillPointCost", "talentPointsCurrent", "talentPointsMax", "talentPointsOvercapMax", "punchlineGain", "splashDuration", "splashX", "splashY", "splashScale", "titleX", "titleY", "titleSize", "combatHudPortraitX", "combatHudPortraitY", "combatHudPortraitScale", "ultimateButtonX", "ultimateButtonY", "ultimateButtonScale", "bossPhaseCount"]) data[key] = Number(data[key]);
+  for (const key of ["enabled", "showPercent", "showHudPercent", "skillEnabled", "techniqueEnabled", "mainParty", "trialCharacter", "combatHudPortraitFlip", "ultimateButtonAdjustEnabled", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter", "isBoss", "bossInheritsMainPhaseCount"]) data[key] = Boolean(data[key]);
   data.max = Math.max(1, data.max || 100);
   data.current = clamp(data.current, 0, data.max);
   const savedConfig = getConfig(actor);
@@ -5434,6 +5563,7 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
   data.talentPointsOvercapMax = Math.max(data.talentPointsMax, Math.floor(data.talentPointsOvercapMax || data.talentPointsMax));
   data.talentPointsCurrent = talentCombatForActor(actor) ? clamp(Math.floor(data.talentPointsCurrent || 0), 0, data.talentPointsOvercapMax) : 0;
   data.skillPointCost = Math.max(0, Math.floor(data.skillPointCost || 0));
+  data.bossPhaseCount = clamp(Math.floor(data.bossPhaseCount || 1), 1, 3);
   data.talentCombatId = talentCombatForActor(actor)?.id ?? "";
   await actor.update({[`flags.${MODULE_ID}.ultimate`]: data}, {tsruAutosave: !notify, render: false});
   refreshOrb(actor);
@@ -5450,6 +5580,17 @@ function activateConfigListeners(actor, tab, app) {
   initializeCollapsibleUltimateSections(actor, tab);
   tab.find("input:not([readonly])").prop("readonly", false);
   activateImageDrops(tab);
+  tab.find(".tsru-drop-actor").on("dragover.tsru-boss",event=>{event.preventDefault();$(event.currentTarget).addClass("is-dragover");});
+  tab.find(".tsru-drop-actor").on("dragleave.tsru-boss",event=>$(event.currentTarget).removeClass("is-dragover"));
+  tab.find(".tsru-drop-actor").on("drop.tsru-boss",event=>{
+    event.preventDefault();
+    const input=$(event.currentTarget).removeClass("is-dragover");
+    const data=TextEditor.getDragEventData(event.originalEvent??event);
+    const uuid=String(data?.uuid || (data?.type==="Actor" && data?.id ? `Actor.${data.id}` : ""));
+    if(!uuid)return ui.notifications.warn("Drop an Actor from the Actors directory into this field.");
+    fromUuid(uuid).then(document=>{if(document?.documentName!=="Actor" || document.pack)return ui.notifications.warn("Drop a world Actor from the Actors directory, not a compendium entry.");input.val(document.uuid).trigger("change");});
+  });
+  tab.find("[data-clear-boss-phase]").on("click.tsru-boss",event=>{event.preventDefault();tab.find(`[name="${event.currentTarget.dataset.clearBossPhase}"]`).val("").trigger("change");});
   tab.on("input.tsru change.tsru", "input, select, textarea", event => event.stopPropagation());
   const refreshCombatPortraitPreview = () => {
     const preview = tab.find("[data-tsru-combat-hud-preview]");
@@ -6108,20 +6249,20 @@ function injectToughnessHeaderButton(app, html) {
   const appElement = app.element?.jquery ? app.element : $(app.element ?? html);
   const renderedElement = html?.jquery ? html : $(html);
   const root = appElement.length ? appElement : renderedElement;
-  if (!root.length || root.find(".tsru-open-toughness").length) return;
+  if (!root.length) return;
   const header = root.find(".window-header").first();
   if (!header.length) return;
-  const button = $(`<button type="button" class="header-control icon tsru-open-toughness" data-tooltip="Configure Toughness" aria-label="Configure Toughness"><i class="fas fa-shield-halved"></i></button>`);
   const controls = header.find(".window-controls").first();
-  if (controls.length) controls.prepend(button);
-  else header.find("button.close, [data-action='close']").first().before(button);
-  button.on("click.tsru", event => { event.preventDefault(); event.stopPropagation(); openToughnessConfig(actor); });
+  const addButton=(button,callback)=>{if(controls.length)controls.prepend(button);else header.find("button.close, [data-action='close']").first().before(button);button.on("click.tsru",event=>{event.preventDefault();event.stopPropagation();callback();});};
+  if(!root.find(".tsru-open-toughness").length)addButton($(`<button type="button" class="header-control icon tsru-open-toughness" data-tooltip="Configure Toughness" aria-label="Configure Toughness"><i class="fas fa-shield-halved"></i></button>`),()=>openToughnessConfig(actor));
+  if(!root.find(".tsru-open-boss-config").length)addButton($(`<button type="button" class="header-control icon tsru-open-boss-config" data-tooltip="Configure Boss Encounter" aria-label="Configure Boss Encounter"><i class="fas fa-skull"></i></button>`),()=>openUltimateConfig(actor,app));
 }
 
 function addActorHeaderButton(app, buttons) {
   if (!game.user.isGM) return;
   if (app.actor?.type === "npc") {
     buttons.unshift({label: "Toughness", class: "tsru-open-toughness", icon: "fas fa-shield-halved", onclick: () => openToughnessConfig(app.actor)});
+    buttons.unshift({label: "Boss", class: "tsru-open-boss-config", icon: "fas fa-skull", onclick: () => openUltimateConfig(app.actor,app)});
     return;
   }
   if (app.actor?.type !== "character") return;
@@ -6265,6 +6406,8 @@ Hooks.once("ready", () => {
   refreshSkillUI();
   refreshResourceHuds();
   refreshTechniqueButtons();
+  refreshBossHud();
+  if(isAuthority())ensureBossEncounters(game.combat).catch(error=>console.error(`${MODULE_ID} | Boss encounter initialization failed`,error));
   refreshTalentPointFont();
   preloadAhaVideo();
   registerAhaToolbarFallback();
@@ -6479,6 +6622,8 @@ Hooks.on("updateActor", (actor, changes, options) => {
   refreshCombatPartyHud();
   refreshUltimateHotbarMacros();
   refreshPunchlineHUD();
+  refreshBossHud();
+  if(isAuthority())handleBossPhaseDefeat(actor).catch(error=>console.error(`${MODULE_ID} | Boss phase check failed`,error));
   const talentChanges = foundry.utils.getProperty(changes, `flags.${MODULE_ID}.ultimate`);
   if (isAuthority() && actor.type === "character" && talentChanges && (
     Object.hasOwn(talentChanges, "talentPointsCurrent") ||
@@ -6510,7 +6655,7 @@ Hooks.on("updateActor", (actor, changes, options) => {
     reconcileUltimateLock(actor.id);
   }
 });
-Hooks.on("updateToken", () => { refreshToughnessBars(); refreshResourceHuds(); state.gmPanel?.render(false); });
+Hooks.on("updateToken", token => { refreshToughnessBars(); refreshResourceHuds(); refreshBossHud(); if(isAuthority()&&token.actor)handleBossPhaseDefeat(token.actor).catch(error=>console.error(`${MODULE_ID} | Boss token phase check failed`,error)); state.gmPanel?.render(false); });
 Hooks.on("targetToken", user => { if (user.id === game.user.id) state.gmPanel?.refreshTargetHighlights(); });
 Hooks.on("controlToken", () => state.gmPanel?.refreshTargetHighlights());
 Hooks.on("deleteActor", actor => { state.orbs.get(actor.id)?.destroy(); state.skillButtons.get(actor.id)?.destroy(); state.talentButtons.get(actor.id)?.destroy(); state.techniqueButtons.get(actor.id)?.destroy(); refreshResourceHuds(); });
@@ -6542,12 +6687,14 @@ Hooks.on("updateSetting", setting => {
   }
   if (setting?.key === `${MODULE_ID}.punchlineOverride`) refreshPunchlineHUD();
 });
-Hooks.on("canvasReady", () => { refreshAllOrbs(); refreshSkillUI(); refreshTalentButtons(); refreshTechniqueButtons(); refreshPunchlineHUD(); refreshToughnessBars(); refreshCombatPartyHud(); });
+Hooks.on("canvasReady", () => { refreshAllOrbs(); refreshSkillUI(); refreshTalentButtons(); refreshTechniqueButtons(); refreshPunchlineHUD(); refreshToughnessBars(); refreshCombatPartyHud(); refreshBossHud(); });
 Hooks.on("canvasReady", refreshAhaButton);
 
 Hooks.on("deleteCombat", async combat => {
   refreshResourceHuds();
   state.partyCombatHud?.destroy();
+  state.bossHud?.destroy();
+  state.bossTransitionLocks.clear();
   state.punchlineMeter?.destroy();
   state.skillMeter?.destroy();
   await dispatchTalentEvent("combatEnd", {combat}, combat.id);
@@ -6587,6 +6734,7 @@ Hooks.on("updateCombat", async combat => {
   refreshCombatPartyHud();
   refreshPunchlineHUD();
   refreshSkillUI();
+  refreshBossHud();
   for (const actor of game.actors.filter(entry => entry.type === "character")) refreshTalentCounter(actor);
   state.gmPanel?.render(false);
   if (!isAuthority()) return;
@@ -6660,6 +6808,8 @@ Hooks.on("updateCombat", async combat => {
 });
 
 Hooks.on("updateCombatant", async (combatant, changed) => {
+  refreshBossHud();
+  if(isAuthority())await ensureBossEncounter(combatant);
   if (!isAuthority() || isAhaCombatant(combatant) || isElationActionCombatant(combatant) || isTalentTurnCombatant(combatant) || !("initiative" in changed)) return;
   await maybeEnsureAhaCombatant(combatant.parent);
 });
@@ -6668,6 +6818,7 @@ Hooks.on("createCombatant", combatant => {
   state.gmPanel?.render(false);
   window.setTimeout(refreshToughnessBars, 150);
   window.setTimeout(refreshCombatPartyHud, 150);
+  window.setTimeout(()=>ensureBossEncounter(combatant).catch(error=>console.error(`${MODULE_ID} | Boss combatant initialization failed`,error)),100);
   if (isAhaCombatant(combatant) || isElationActionCombatant(combatant) || isTalentTurnCombatant(combatant)) return;
   window.setTimeout(() => maybeEnsureAhaCombatant(combatant.parent), 100);
 });
@@ -6676,8 +6827,10 @@ Hooks.on("combatStart", async combat => {
   refreshCombatPartyHud();
   refreshPunchlineHUD();
   refreshSkillUI();
+  refreshBossHud();
   state.lastCombatTurns.set(combat.id, combatTurnSnapshot(combat));
   if (isAuthority()) {
+    await ensureBossEncounters(combat);
     await setSkillPoints(getSkillPointConfig().starting);
     for (const actor of game.actors.filter(entry => talentCombatForActor(entry))) await setTalentPoints(actor, 0);
     await dispatchTalentEvent("combatStart", {combat}, combat.id);
@@ -6695,6 +6848,7 @@ Hooks.on("combatStart", async combat => {
   }, 100);
 });
 Hooks.on("deleteCombatant", combatant => {
+  refreshBossHud();
   const tracked = state.lastCombatTurns.get(combatant.parent?.id);
   if (tracked?.id === combatant.id) state.lastCombatTurns.set(combatant.parent.id, combatTurnSnapshot(combatant.parent));
   state.gmPanel?.render(false);
