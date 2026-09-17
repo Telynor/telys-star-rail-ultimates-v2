@@ -873,6 +873,7 @@
 .tsru-ability-actor img { width:34px; height:34px; border-radius:50%; object-fit:cover; }
 
 .tsru-boss-hud { position:fixed; z-index:55; display:flex; flex-direction:column; gap:10px; pointer-events:auto; }
+.combat-dock-docked #interface { z-index:100 !important; }
 .combat-dock-docked #ui-top { z-index:100 !important; }
 .combat-dock-docked #ui-top > #combat-dock { z-index:100 !important; }
 .tsru-boss-entry { position:relative; width:min(var(--boss-width,920px),calc(100vw - 120px)); display:flex; align-items:center; gap:12px; color:#fff; filter:drop-shadow(0 3px 7px rgba(0,0,0,.9)); }
