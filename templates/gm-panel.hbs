@@ -15,7 +15,7 @@
   <section class="tsru-gm-section">
     <h3><i class="fas fa-forward-fast"></i> Special Action Advance</h3>
     <p>Interrupt the current turn with one extra turn for a combatant already in initiative. When the extra turn ends, the interrupted turn resumes.</p>
-    <div class="tsru-gm-action-advance"><select name="actionAdvanceCombatant" {{#unless hasCombat}}disabled{{/unless}}><option value="">— Choose a character or enemy —</option>{{#each combatants}}<option value="{{this.id}}">{{this.name}} — Initiative {{this.initiative}}</option>{{/each}}</select><button type="button" data-action="action-advance" {{#unless hasCombat}}disabled{{/unless}}><i class="fas fa-forward-fast"></i> Insert Action Advance</button></div>
+    <div class="tsru-gm-action-advance"><select name="actionAdvanceCombatant" {{#unless hasCombat}}disabled{{/unless}}><option value="">— Choose a character, enemy, or Aha Instant —</option>{{#each combatants}}<option value="{{this.id}}">{{this.name}} — Initiative {{this.initiative}}</option>{{/each}}</select><button type="button" data-action="action-advance" {{#unless hasCombat}}disabled{{/unless}}><i class="fas fa-forward-fast"></i> Insert Action Advance</button></div>
   </section>
 
   <section class="tsru-gm-section tsru-gm-weakness-settings">
