@@ -83,6 +83,7 @@ const state = {
   skillSpendLock: false,
   talentPointHud: null,
   talentTurnQueues: new Map(),
+  talentTurnQueueLocks: new Set(),
   techniqueHud: null,
   techniqueSpendLock: false,
   ahaButton: null,
@@ -720,7 +721,12 @@ async function setTalentPoints(actor, value) {
   const before = currentTalentPoints(actor);
   if (next !== before || config.talentCombatId !== combat.id) await actor.update({[`flags.${MODULE_ID}.ultimate.talentPointsCurrent`]: next, [`flags.${MODULE_ID}.ultimate.talentCombatId`]: combat.id});
   if (next !== before) Hooks.callAll("tsruTalentPointsChanged", actor, before, next);
-  if (trigger > 0 && before < trigger && next >= trigger) queueTalentTurn(actor, combat);
+  if (trigger > 0 && before < trigger && next >= trigger && queueTalentTurn(actor, combat)) {
+    window.setTimeout(() => processTalentTurnQueue(combat).catch(error => {
+      console.error(`${MODULE_ID} | Could not process ${actor.name}'s ready Talent turn`, error);
+      ui.notifications.error(`Could not insert ${actor.name}'s Talent turn: ${error.message}`);
+    }), 0);
+  }
   return next;
 }
 
@@ -983,58 +989,61 @@ async function beginTalentTurn(combatant) {
   if (!isAuthority() || !isTalentTurnCombatant(combatant) || combatant.getFlag(MODULE_ID, "talentActivated")) return;
   const actor = game.actors.get(combatant.getFlag(MODULE_ID, "talentActorId")) ?? combatant.actor;
   if (!actor) return;
-  await combatant.setFlag(MODULE_ID, "talentActivated", true);
   await postTalentText(actor);
+  await combatant.setFlag(MODULE_ID, "talentActivated", true);
 }
 
 async function processTalentTurnQueue(combat) {
-  if (!isAuthority() || !combat?.started || combat.combatants.some(isTalentTurnCombatant)) return false;
-  queueReadyTalentTurns(combat);
-  const queue = state.talentTurnQueues.get(combat.id) ?? [];
-  while (queue.length) {
-    const actorId = queue[0];
-    const actor = game.actors.get(actorId);
-    if (!actor || !talentCombatForActor(actor) || currentTalentPoints(actor) < talentPointLimits(actor).trigger) {
+  if (!isAuthority() || !combat?.started || state.talentTurnQueueLocks.has(combat.id) || combat.combatants.some(isTalentTurnCombatant)) return false;
+  state.talentTurnQueueLocks.add(combat.id);
+  try {
+    queueReadyTalentTurns(combat);
+    const queue = state.talentTurnQueues.get(combat.id) ?? [];
+    while (queue.length) {
+      const actorId = queue[0];
+      const actor = game.actors.get(actorId);
+      if (!actor || !talentCombatForActor(actor) || currentTalentPoints(actor) < talentPointLimits(actor).trigger) {
+        queue.shift();
+        state.talentTurnQueues.set(combat.id, queue);
+        continue;
+      }
+      const resume = combat.combatant;
+      const currentInit = Number(resume?.initiative ?? 0);
+      const next = combat.turns[Number(combat.turn ?? 0) + 1];
+      let initiative = next ? (currentInit + Number(next.initiative ?? currentInit - 1)) / 2 : currentInit - 0.001;
+      if (!Number.isFinite(initiative)) initiative = currentInit - 0.001;
+      let temporary = null;
+      try {
+        [temporary] = await combat.createEmbeddedDocuments("Combatant", [{
+          name:`TALENT - ${actor.name}`,
+          actorId:actor.id,
+          tokenId:null,
+          sceneId:null,
+          initiative,
+          img:getConfig(actor).talentIcon || actor.img,
+          flags:{[MODULE_ID]:{talentTurnCombatant:true,talentActorId:actor.id,resumeCombatantId:resume?.id ?? null,resumeRound:combat.round}}
+        }]);
+      } catch (error) {
+        console.error(`${MODULE_ID} | Could not insert ${actor.name}'s Talent turn`, error);
+        ui.notifications.error(`Could not insert ${actor.name}'s Talent turn: ${error.message}`);
+        return false;
+      }
+      if (!temporary) return false;
       queue.shift();
       state.talentTurnQueues.set(combat.id, queue);
-      continue;
+      const index = combat.turns.findIndex(entry => entry.id === temporary.id);
+      if (index >= 0) {
+        state.suppressCombatHook = true;
+        try { await combat.update({turn:index}); } finally { state.suppressCombatHook = false; }
+      }
+      await beginTalentTurn(temporary);
+      return true;
     }
-    const resume = combat.combatant;
-    const currentInit = Number(resume?.initiative ?? 0);
-    const next = combat.turns[Number(combat.turn ?? 0) + 1];
-    let initiative = next ? (currentInit + Number(next.initiative ?? currentInit - 1)) / 2 : currentInit - 0.001;
-    if (!Number.isFinite(initiative)) initiative = currentInit - 0.001;
-    let temporary = null;
-    try {
-      [temporary] = await combat.createEmbeddedDocuments("Combatant", [{
-        name:`TALENT - ${actor.name}`,
-        actorId:actor.id,
-        // Actor-backed rather than token-backed so this temporary turn cannot
-        // collide with the character's existing token combatant.
-        tokenId:null,
-        sceneId:null,
-        initiative,
-        img:getConfig(actor).talentIcon || actor.img,
-        flags:{[MODULE_ID]:{talentTurnCombatant:true,talentActorId:actor.id,resumeCombatantId:resume?.id ?? null,resumeRound:combat.round}}
-      }]);
-    } catch (error) {
-      console.error(`${MODULE_ID} | Could not insert ${actor.name}'s Talent turn`, error);
-      ui.notifications.error(`Could not insert ${actor.name}'s Talent turn: ${error.message}`);
-      return false;
-    }
-    if (!temporary) return false;
-    queue.shift();
-    state.talentTurnQueues.set(combat.id, queue);
-    const index = combat.turns.findIndex(entry => entry.id === temporary.id);
-    if (index >= 0) {
-      state.suppressCombatHook = true;
-      try { await combat.update({turn:index}); } finally { state.suppressCombatHook = false; }
-    }
-    await beginTalentTurn(temporary);
-    return true;
+    state.talentTurnQueues.delete(combat.id);
+    return false;
+  } finally {
+    state.talentTurnQueueLocks.delete(combat.id);
   }
-  state.talentTurnQueues.delete(combat.id);
-  return false;
 }
 
 async function finishTalentTurn(combat, temporary) {
@@ -6382,6 +6391,7 @@ Hooks.on("deleteCombat", async combat => {
   state.lastTalentTurns.delete(combat.id);
   state.lastCombatTurns.delete(combat.id);
   state.talentTurnQueues.delete(combat.id);
+  state.talentTurnQueueLocks.delete(combat.id);
   if (state.specialAha?.combatId === combat.id) state.specialAha = null;
   state.actionAdvances.delete(combat.id);
   state.ultimateLocks.clear();
