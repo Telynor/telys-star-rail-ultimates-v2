@@ -2917,10 +2917,20 @@ function refreshLeftControlsToggle(){
     document.body.appendChild(button);
   }
   const collapsed=Boolean(game.settings.get(MODULE_ID,"leftControlsCollapsed"));
+  const panels=[...new Set([document.querySelector("#scene-controls"),document.querySelector("#controls")].filter(Boolean))];
+  const visiblePanel=panels.find(panel=>panel.getBoundingClientRect().width>0)||panels[0];
+  if(visiblePanel&&!document.body.classList.contains("tsru-left-controls-collapsed")){
+    const rect=visiblePanel.getBoundingClientRect();
+    button.dataset.expandedLeft=String(Math.round(rect.right+4));button.dataset.collapsedLeft=String(Math.round(rect.left));button.dataset.anchorTop=String(Math.round(rect.top));
+  }
   document.body.classList.toggle("tsru-left-controls-collapsed",collapsed);
-  button.innerHTML=`<i class="fas ${collapsed?"fa-angles-right":"fa-angles-left"}"></i>`;
+  for(const panel of panels){panel.classList.toggle("collapsed",collapsed);panel.setAttribute("aria-hidden",String(collapsed));}
+  button.style.left=`${Number(button.dataset[collapsed?"collapsedLeft":"expandedLeft"])||8}px`;
+  button.style.top=`${Number(button.dataset.anchorTop)||72}px`;
+  button.innerHTML=`<i class="fas ${collapsed?"fa-chevron-right":"fa-chevron-left"}"></i>`;
   button.title=collapsed?"Expand scene controls":"Minimize scene controls";
   button.setAttribute("aria-label",button.title);
+  button.setAttribute("aria-expanded",String(!collapsed));
 }
 
 class BossHud {
