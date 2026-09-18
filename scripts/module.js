@@ -330,7 +330,7 @@ function getInitiativeCarouselConfig() {
   const config = foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_INITIATIVE_CAROUSEL_CONFIG), stored, {inplace:false, insertKeys:true, overwrite:true});
   config.enabled = Boolean(config.enabled);
   config.allowLengthResize = config.allowLengthResize !== false;
-  config.maximumWidth = clamp(config.maximumWidth, 140, 420);
+  config.maximumWidth = clamp(config.maximumWidth, 190, 420);
   config.maximumHeight = clamp(config.maximumHeight, 260, 1200);
   return config;
 }
@@ -2875,17 +2875,18 @@ class HsrInitiativeCarousel {
     document.body.classList.add("tsru-hsr-carousel-active");
     if(!this.element){
       this.element=document.createElement("section");this.element.className="tsru-hsr-initiative-carousel";document.body.appendChild(this.element);
+      this.element.addEventListener("click",async event=>{const control=event.target.closest("[data-carousel-control]");if(!control||!game.user.isGM)return;event.preventDefault();event.stopPropagation();const activeCombat=game.combat;if(!activeCombat)return;control.disabled=true;try{if(control.dataset.carouselControl==="previous-turn")await activeCombat.previousTurn();else if(control.dataset.carouselControl==="next-turn")await activeCombat.nextTurn();else if(control.dataset.carouselControl==="end-combat"){if(typeof activeCombat.deleteDialog==="function")await activeCombat.deleteDialog();else await activeCombat.delete();}}catch(error){console.error(`${MODULE_ID} | Carousel combat control failed`,error);ui.notifications.error(`Could not update combat: ${error.message}`);}finally{if(control.isConnected)control.disabled=false;}});
       this.element.addEventListener("click",event=>{const button=event.target.closest("[data-combatant-id]");if(!button)return;const entry=game.combat?.combatants.get(button.dataset.combatantId),token=entry?.token?.object;if(token){token.control({releaseOthers:true});canvas.animatePan(token.center);}});
       this.element.addEventListener("pointerdown",event=>{const handle=event.target.closest(".tsru-hsr-carousel-drag");if(!handle)return;event.preventDefault();const rect=this.element.getBoundingClientRect();this.drag={dx:event.clientX-rect.left,dy:event.clientY-rect.top};handle.setPointerCapture(event.pointerId);});
-      this.element.addEventListener("pointermove",event=>{if(!this.drag)return;this.element.style.left=`${clamp(event.clientX-this.drag.dx,0,innerWidth-60)}px`;this.element.style.top=`${clamp(event.clientY-this.drag.dy,0,innerHeight-60)}px`;});
-      this.element.addEventListener("pointerup",event=>{if(!this.drag)return;this.drag=null;event.target.releasePointerCapture?.(event.pointerId);const rect=this.element.getBoundingClientRect();this.saveLayout({x:Math.round(rect.left),y:Math.round(rect.top)});});
+      this.element.addEventListener("pointermove",event=>{if(!this.drag)return;this.element.style.left="0px";this.element.style.top=`${clamp(event.clientY-this.drag.dy,0,innerHeight-60)}px`;dockSceneControlsBesideCarousel(this.element);});
+      this.element.addEventListener("pointerup",event=>{if(!this.drag)return;this.drag=null;event.target.releasePointerCapture?.(event.pointerId);const rect=this.element.getBoundingClientRect();this.saveLayout({x:0,y:Math.round(rect.top)});dockSceneControlsBesideCarousel(this.element);});
       this.element.addEventListener("pointerdown",event=>{const handle=event.target.closest(".tsru-hsr-carousel-resize");if(!handle||!getInitiativeCarouselConfig().allowLengthResize)return;event.preventDefault();event.stopPropagation();const rect=this.element.getBoundingClientRect();this.resize={startY:event.clientY,startHeight:rect.height};handle.setPointerCapture(event.pointerId);});
-      this.element.addEventListener("pointermove",event=>{if(!this.resize)return;const config=getInitiativeCarouselConfig();const viewportMaximum=Math.max(180,Math.min(config.maximumHeight,innerHeight-this.element.getBoundingClientRect().top-16));const height=clamp(this.resize.startHeight+event.clientY-this.resize.startY,180,viewportMaximum);this.element.style.height=`${height}px`;});
+      this.element.addEventListener("pointermove",event=>{if(!this.resize)return;const config=getInitiativeCarouselConfig();const viewportMaximum=Math.max(180,Math.min(config.maximumHeight,innerHeight-this.element.getBoundingClientRect().top-16));const height=clamp(this.resize.startHeight+event.clientY-this.resize.startY,180,viewportMaximum);this.element.style.height=`${height}px`;dockSceneControlsBesideCarousel(this.element);});
       this.element.addEventListener("pointerup",event=>{if(!this.resize)return;const height=Math.round(this.element.getBoundingClientRect().height);this.resize=null;event.target.releasePointerCapture?.(event.pointerId);this.saveLayout({height});});
       this.element.addEventListener("wheel",event=>{const viewport=event.target.closest(".tsru-hsr-carousel-viewport");if(!viewport||viewport.scrollHeight<=viewport.clientHeight)return;event.preventDefault();event.stopPropagation();viewport.scrollTop+=event.deltaY;this.scrollTop=viewport.scrollTop;},{passive:false});
     }
     const layout=this.layout(),turns=[...combat.turns].filter(entry=>game.user.isGM||(!entry.hidden&&!entry.token?.hidden));
-    this.element.style.left=`${clamp(layout.x,0,innerWidth-60)}px`;this.element.style.top=`${clamp(layout.y,0,innerHeight-60)}px`;
+    this.element.style.left="0px";this.element.style.top=`${clamp(layout.y,0,innerHeight-60)}px`;
     const currentId=combat.combatant?.id,currentIndex=Math.max(0,turns.findIndex(entry=>entry.id===currentId));
     if(this.currentCombatantId!==currentId){this.currentCombatantId=currentId;this.scrollTop=0;}
     let remaining=turns.slice(currentIndex),wrapped=turns.slice(0,currentIndex),activeRow=0;
@@ -2900,37 +2901,26 @@ class HsrInitiativeCarousel {
     const height=clamp(layout.height,180,maximumHeight);
     this.element.style.width=`${config.maximumWidth}px`;this.element.style.height=`${height}px`;
     this.element.classList.toggle("is-length-resizable",config.allowLengthResize);
-    this.element.innerHTML=`<span class="tsru-hsr-carousel-drag" title="Move initiative carousel"><i class="fas fa-grip-lines"></i></span><div class="tsru-hsr-carousel-viewport"><div class="tsru-hsr-carousel-list">${rows.join("")}</div></div>${config.allowLengthResize?'<span class="tsru-hsr-carousel-resize" title="Resize carousel length"></span>':""}`;
+    this.element.classList.toggle("has-gm-controls",game.user.isGM);
+    const gmControls=game.user.isGM?`<nav class="tsru-hsr-carousel-gm-controls" aria-label="Combat controls"><button type="button" data-carousel-control="previous-turn" title="Previous turn" aria-label="Previous turn"><i class="fas fa-step-backward"></i></button><button type="button" data-carousel-control="next-turn" title="Next turn" aria-label="Next turn"><i class="fas fa-step-forward"></i></button><button type="button" class="is-danger" data-carousel-control="end-combat" title="End combat" aria-label="End combat"><i class="fas fa-flag-checkered"></i></button></nav>`:"";
+    this.element.innerHTML=`<span class="tsru-hsr-carousel-drag" title="Move initiative carousel vertically"><i class="fas fa-grip-lines"></i></span><div class="tsru-hsr-carousel-viewport"><div class="tsru-hsr-carousel-list">${rows.join("")}</div></div>${gmControls}${config.allowLengthResize?'<span class="tsru-hsr-carousel-resize" title="Resize carousel length"></span>':""}`;
     this.element.querySelector(".tsru-hsr-carousel-viewport").scrollTop=this.scrollTop;
+    dockSceneControlsBesideCarousel(this.element);
     return this;
   }
-  destroy(){this.element?.remove();this.element=null;document.body.classList.remove("tsru-hsr-carousel-active");if(state.initiativeCarousel===this)state.initiativeCarousel=null;}
+  destroy(){undockSceneControls();this.element?.remove();this.element=null;document.body.classList.remove("tsru-hsr-carousel-active");if(state.initiativeCarousel===this)state.initiativeCarousel=null;}
 }
 
 function refreshInitiativeCarousel(){if(!state.initiativeCarousel)state.initiativeCarousel=new HsrInitiativeCarousel();state.initiativeCarousel.render();}
 
-function refreshLeftControlsToggle(){
-  let button=document.getElementById("tsru-left-controls-toggle");
-  if(!button){
-    button=document.createElement("button");button.id="tsru-left-controls-toggle";button.type="button";
-    button.addEventListener("click",async event=>{event.preventDefault();event.stopPropagation();const collapsed=!Boolean(game.settings.get(MODULE_ID,"leftControlsCollapsed"));await game.settings.set(MODULE_ID,"leftControlsCollapsed",collapsed);refreshLeftControlsToggle();});
-    document.body.appendChild(button);
-  }
-  const collapsed=Boolean(game.settings.get(MODULE_ID,"leftControlsCollapsed"));
-  const panels=[...new Set([document.querySelector("#scene-controls"),document.querySelector("#controls")].filter(Boolean))];
-  const visiblePanel=panels.find(panel=>panel.getBoundingClientRect().width>0)||panels[0];
-  if(visiblePanel&&!document.body.classList.contains("tsru-left-controls-collapsed")){
-    const rect=visiblePanel.getBoundingClientRect();
-    button.dataset.expandedLeft=String(Math.round(rect.right+4));button.dataset.collapsedLeft=String(Math.round(rect.left));button.dataset.anchorTop=String(Math.round(rect.top));
-  }
-  document.body.classList.toggle("tsru-left-controls-collapsed",collapsed);
-  for(const panel of panels){panel.classList.toggle("collapsed",collapsed);panel.setAttribute("aria-hidden",String(collapsed));}
-  button.style.left=`${Number(button.dataset[collapsed?"collapsedLeft":"expandedLeft"])||8}px`;
-  button.style.top=`${Number(button.dataset.anchorTop)||72}px`;
-  button.innerHTML=`<i class="fas ${collapsed?"fa-chevron-right":"fa-chevron-left"}"></i>`;
-  button.title=collapsed?"Expand scene controls":"Minimize scene controls";
-  button.setAttribute("aria-label",button.title);
-  button.setAttribute("aria-expanded",String(!collapsed));
+function sceneControlsPanel(){return document.querySelector("#scene-controls")??document.querySelector("#controls");}
+function undockSceneControls(){for(const panel of document.querySelectorAll(".tsru-controls-docked-by-carousel")){panel.classList.remove("tsru-controls-docked-by-carousel");panel.style.removeProperty("--tsru-controls-left");panel.style.removeProperty("--tsru-controls-top");}}
+function dockSceneControlsBesideCarousel(carousel=state.initiativeCarousel?.element){
+  document.getElementById("tsru-left-controls-toggle")?.remove();document.body.classList.remove("tsru-left-controls-collapsed");
+  for(const panel of [document.querySelector("#scene-controls"),document.querySelector("#controls")].filter(Boolean)){panel.classList.remove("collapsed");panel.removeAttribute("aria-hidden");}
+  undockSceneControls();
+  const panel=sceneControlsPanel();if(!carousel||!panel||!document.body.classList.contains("tsru-hsr-carousel-active"))return;
+  const rect=carousel.getBoundingClientRect();panel.classList.add("tsru-controls-docked-by-carousel");panel.style.setProperty("--tsru-controls-left",`${Math.round(rect.right+4)}px`);panel.style.setProperty("--tsru-controls-top",`${Math.round(rect.top)}px`);
 }
 
 class BossHud {
@@ -5394,7 +5384,7 @@ class StarRailGMPanel extends FormApplication {
       this.render(false);
     });
     html.find("[data-action='save-initiative-carousel']").on("click",async()=>{
-      const data={enabled:Boolean(html.find('[name="initiativeCarouselEnabled"]').prop("checked")),allowLengthResize:Boolean(html.find('[name="initiativeCarouselAllowLengthResize"]').prop("checked")),maximumWidth:clamp(html.find('[name="initiativeCarouselMaximumWidth"]').val(),140,420),maximumHeight:clamp(html.find('[name="initiativeCarouselMaximumHeight"]').val(),260,1200)};
+      const data={enabled:Boolean(html.find('[name="initiativeCarouselEnabled"]').prop("checked")),allowLengthResize:Boolean(html.find('[name="initiativeCarouselAllowLengthResize"]').prop("checked")),maximumWidth:clamp(html.find('[name="initiativeCarouselMaximumWidth"]').val(),190,420),maximumHeight:clamp(html.find('[name="initiativeCarouselMaximumHeight"]').val(),260,1200)};
       await game.settings.set(MODULE_ID,"initiativeCarouselConfig",data);refreshInitiativeCarousel();ui.notifications.info("HSR initiative carousel settings saved.");this.render(false);
     });
     html.find("[data-action='place-action-button']").on("click", async () => {
@@ -5516,7 +5506,6 @@ function registerSettings() {
   game.settings.register(MODULE_ID, "bossHudLayout", {scope: "client", config: false, type: Object, default: {x: null, y: 54}});
   game.settings.register(MODULE_ID, "initiativeCarouselConfig", {scope:"world",config:false,type:Object,default:foundry.utils.deepClone(DEFAULT_INITIATIVE_CAROUSEL_CONFIG)});
   game.settings.register(MODULE_ID, "initiativeCarouselLayout", {scope:"client",config:false,type:Object,default:{x:16,y:86,height:520}});
-  game.settings.register(MODULE_ID, "leftControlsCollapsed", {scope:"client",config:false,type:Boolean,default:false});
   game.settings.register(MODULE_ID, "combatHudDesign", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_COMBAT_HUD_DESIGN)});
   game.settings.register(MODULE_ID, "ahaConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_AHA_CONFIG)});
   game.settings.register(MODULE_ID, "ahaLayout", {scope: "client", config: false, type: Object, default: {x: 220, y: 180, size: 128, visible: false}});
@@ -5820,7 +5809,7 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
   refreshCombatPartyHud();
   refreshBossHud();
   refreshInitiativeCarousel();
-  refreshLeftControlsToggle();
+  dockSceneControlsBesideCarousel();
   if (notify) ui.notifications.info(`${actor.name}'s Ultimate configuration saved.`);
   if (renderApp && app?.render) app.render(false);
   return data;
@@ -6665,6 +6654,7 @@ Hooks.once("init", () => {
 Hooks.once("ready", () => {
   game.socket.on(SOCKET, onSocket);
   registerApi();
+  window.addEventListener("resize",()=>requestAnimationFrame(()=>dockSceneControlsBesideCarousel()));
   refreshAllOrbs();
   refreshAhaButton();
   refreshPunchlineHUD();
@@ -6735,8 +6725,8 @@ Hooks.on("renderActorSheet", activateLightConeInventoryContext);
 Hooks.on("renderCharacterActorSheet", activateLightConeInventoryContext);
 Hooks.on("getActorSheetHeaderButtons", addActorHeaderButton);
 Hooks.on("getSceneControlButtons", addHudTool);
-Hooks.on("renderSceneControls", () => requestAnimationFrame(refreshLeftControlsToggle));
-Hooks.on("renderSceneControlsV2", () => requestAnimationFrame(refreshLeftControlsToggle));
+Hooks.on("renderSceneControls", () => requestAnimationFrame(dockSceneControlsBesideCarousel));
+Hooks.on("renderSceneControlsV2", () => requestAnimationFrame(dockSceneControlsBesideCarousel));
 Hooks.on("hotbarDrop", (_bar, data, slot) => {
   if (data?.type !== "TSRUAction") return true;
   createStarRailActionMacro(data, slot).catch(error => { console.error(`${MODULE_ID} | Could not create action macro`, error); ui.notifications.error(`Could not create Star Rail macro: ${error.message}`); });
