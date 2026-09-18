@@ -1150,7 +1150,8 @@ async function cleanupDepartedTemporaryTurn(combat, previousTurn) {
       await finishTalentTurn(combat, temporary);
     } else if (kind === "actionAdvance") {
       const tracked = state.actionAdvances.get(combat.id);
-      if (tracked?.combatantId === previousTurn.id) await finishActionAdvance(combat, tracked);
+      const advance=tracked?.combatantId===previousTurn.id?tracked:(temporary?{combatantId:temporary.id,resumeCombatantId:temporary.getFlag(MODULE_ID,"resumeCombatantId")??null,resumeRound:temporary.getFlag(MODULE_ID,"resumeRound")??combat.round,aha:false,reuseSource:false}:null);
+      if(advance)await finishActionAdvance(combat,advance);
     } else if (kind === "elation") {
       await completeElationAction(previousTurn.id);
     } else if (kind === "ultimate" && previousTurn.actorId) {
@@ -1177,6 +1178,12 @@ async function cleanupDepartedTemporaryTurn(combat, previousTurn) {
 
 async function removeOrphanedTemporaryTurns(combat) {
   if (!isAuthority() || !combat) return;
+  const staleAdvances=combat.combatants.filter(entry=>entry.getFlag(MODULE_ID,"actionAdvance")&&entry.id!==combat.combatant?.id);
+  for(const temporary of staleAdvances){
+    const tracked=state.actionAdvances.get(combat.id);
+    const advance=tracked?.combatantId===temporary.id?tracked:{combatantId:temporary.id,resumeCombatantId:temporary.getFlag(MODULE_ID,"resumeCombatantId")??null,resumeRound:temporary.getFlag(MODULE_ID,"resumeRound")??combat.round,aha:false,reuseSource:false};
+    await finishActionAdvance(combat,advance);
+  }
   const queue = state.ultimateQueues.get(combat.id);
   const orphanedUltimates = combat.combatants.filter(entry => {
     if (!entry.getFlag(MODULE_ID, "temporaryUltimate")) return false;
@@ -2701,6 +2708,7 @@ function bossPhaseActorUuids(actor) {
 }
 
 function bossEncounter(combatant) {
+  if(!combatant || combatant.getFlag(MODULE_ID,"actionAdvance") || combatant.getFlag(MODULE_ID,"temporaryUltimate") || isTalentTurnCombatant(combatant) || isElationActionCombatant(combatant) || isAhaCombatant(combatant))return null;
   const stored=combatant?.getFlag(MODULE_ID,"bossEncounter");
   if(stored){const encounter=foundry.utils.deepClone(stored);const actor=combatant?.actor;if(!encounter.bossConfig&&actor)encounter.bossConfig=getConfig(actor);if(!encounter.originalActorData&&actor)encounter.originalActorData=actor.toObject();return encounter;}
   const actor=combatant?.actor;
