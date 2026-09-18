@@ -899,11 +899,21 @@
 .tsru-boss-phase-preview > b { display:block; margin:0 0 6px 88px; color:#f3d67b; }
 .tsru-boss-preview-entry { transform-origin:left center; }
 .tsru-boss-designer-preview.is-dragover { outline:2px solid #ffd76c; }
-.tsru-boss-phase-control { position:fixed; z-index:101; width:260px; padding:8px; color:#fff; border:1px solid #d9b763; border-radius:8px; background:rgba(9,14,23,.96); box-shadow:0 8px 28px #000; }
+.tsru-boss-phase-control { position:fixed; z-index:101; width:340px; max-height:min(70vh,640px); padding:8px; color:#fff; border:1px solid #d9b763; border-radius:8px; background:rgba(9,14,23,.96); box-shadow:0 8px 28px #000; contain:layout style; }
+.tsru-boss-phase-control.is-dragging { user-select:none; will-change:transform; }
 .tsru-boss-phase-control header { display:flex; align-items:center; gap:8px; cursor:move; }
 .tsru-boss-phase-control header strong { flex:1; }
 .tsru-boss-phase-control header button { width:28px; }
-.tsru-boss-phase-control > div { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin-top:8px; }
+.tsru-boss-phase-list { display:grid; gap:8px; margin-top:8px; max-height:calc(min(70vh,640px) - 52px); overflow:auto; }
+.tsru-boss-phase-row { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:10px; padding:8px; border:1px solid rgba(217,183,99,.28); border-radius:6px; background:rgba(255,255,255,.04); }
+.tsru-boss-phase-identity { display:flex; align-items:center; min-width:0; gap:8px; }
+.tsru-boss-phase-identity img { flex:0 0 36px; width:36px; height:36px; border:1px solid #d9b763; border-radius:50%; object-fit:cover; }
+.tsru-boss-phase-identity span { display:flex; min-width:0; flex-direction:column; }
+.tsru-boss-phase-identity strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tsru-boss-phase-identity small { color:#b8c4d8; }
+.tsru-boss-phase-buttons { display:grid; grid-template-columns:repeat(3,36px); gap:5px; }
+.tsru-boss-phase-buttons button { min-width:36px; }
+.tsru-boss-phase-list > .notes { margin:8px 4px; text-align:center; }
 .tsru-boss-phase-control [data-boss-phase].is-active { color:#17060a; background:#ffcf68; box-shadow:0 0 10px #ff8a45; }
 @media (max-width:700px) { .tsru-boss-hud{width:calc(100vw - 32px);top:44px}.tsru-boss-portrait{flex-basis:56px;width:56px;height:56px}.tsru-boss-main header strong{font-size:15px}.tsru-boss-health{height:16px} }
 .tsru-hub-form { padding:10px; color:#ece9df; background:linear-gradient(145deg,#0d1722,#171421); }

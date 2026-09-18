@@ -2981,22 +2981,42 @@ class BossHud {
 }
 
 class BossPhaseControl {
-  constructor(actorId){this.actorId=actorId;this.element=null;this.drag=null;}
+  constructor(){this.element=null;this.drag=null;this.dragFrame=null;}
+  bosses(){
+    const entries=new Map();
+    for(const combatant of game.combat?.combatants??[]){
+      const encounter=bossEncounter(combatant);
+      if(!encounter||encounter.defeated)continue;
+      const config=encounter.bossConfig||getConfig(combatant.actor);
+      const totalPhases=clamp(Number(encounter.totalPhases??config.bossPhaseCount)||1,1,3);
+      if(!config.isBoss||totalPhases<2)continue;
+      const actorId=encounter.rootOriginalActorId||combatant.actor?.id||combatant.id;
+      if(!entries.has(actorId))entries.set(actorId,{combatant,encounter,totalPhases,name:combatant.actor?.name||combatant.name||"Boss"});
+    }
+    return [...entries.values()].sort((left,right)=>left.name.localeCompare(right.name,undefined,{sensitivity:"base"}));
+  }
   render(){
     if(!game.user?.isGM)return this.destroy();
-    const combatant=game.combat?.combatants.find(entry=>{const encounter=bossEncounter(entry);return encounter && !encounter.defeated && (encounter.rootOriginalActorId===this.actorId || entry.actor?.id===this.actorId);});
-    if(!combatant)return this.destroy();
-    const encounter=bossEncounter(combatant);
-    if(!this.element){this.element=document.createElement("section");this.element.className="tsru-boss-phase-control";document.body.appendChild(this.element);this.element.style.left="240px";this.element.style.top="180px";this.element.addEventListener("click",event=>{const button=event.target.closest("[data-boss-phase]");if(button)switchBossPhase(combatant,Number(button.dataset.bossPhase));});this.element.addEventListener("pointerdown",event=>{if(!event.target.closest(".tsru-boss-phase-drag"))return;const rect=this.element.getBoundingClientRect();this.drag={dx:event.clientX-rect.left,dy:event.clientY-rect.top};});this.element.addEventListener("pointermove",event=>{if(!this.drag)return;this.element.style.left=`${clamp(event.clientX-this.drag.dx,0,innerWidth-60)}px`;this.element.style.top=`${clamp(event.clientY-this.drag.dy,0,innerHeight-40)}px`;});this.element.addEventListener("pointerup",()=>{this.drag=null;});}
-    this.element.innerHTML=`<header class="tsru-boss-phase-drag"><i class="fas fa-grip-lines"></i><strong>${escapeHTML(combatant.name)} Phases</strong><button type="button" data-close-boss-phase><i class="fas fa-xmark"></i></button></header><div>${Array.from({length:encounter.totalPhases},(_v,index)=>`<button type="button" data-boss-phase="${index+1}" class="${encounter.currentPhase===index+1?"is-active":""}">${index+1}</button>`).join("")}</div>`;
+    const bosses=this.bosses();
+    if(!this.element){
+      this.element=document.createElement("section");this.element.className="tsru-boss-phase-control";document.body.appendChild(this.element);this.element.style.left="240px";this.element.style.top="180px";
+      this.element.addEventListener("click",event=>{const button=event.target.closest("[data-boss-phase]");if(!button)return;const combatant=game.combat?.combatants.get(button.dataset.combatantId);if(combatant)switchBossPhase(combatant,Number(button.dataset.bossPhase));});
+      this.element.addEventListener("pointerdown",event=>{if(!event.target.closest(".tsru-boss-phase-drag")||event.target.closest("button"))return;event.preventDefault();const rect=this.element.getBoundingClientRect();this.drag={pointerId:event.pointerId,dx:event.clientX-rect.left,dy:event.clientY-rect.top,startX:rect.left,startY:rect.top,x:rect.left,y:rect.top};this.element.setPointerCapture?.(event.pointerId);this.element.classList.add("is-dragging");});
+      this.element.addEventListener("pointermove",event=>{if(!this.drag||event.pointerId!==this.drag.pointerId)return;this.drag.x=clamp(event.clientX-this.drag.dx,0,innerWidth-this.element.offsetWidth);this.drag.y=clamp(event.clientY-this.drag.dy,0,innerHeight-40);if(this.dragFrame)return;this.dragFrame=requestAnimationFrame(()=>{this.dragFrame=null;if(!this.drag)return;this.element.style.transform=`translate3d(${this.drag.x-this.drag.startX}px,${this.drag.y-this.drag.startY}px,0)`;});});
+      const finishDrag=event=>{if(!this.drag||event.pointerId!==this.drag.pointerId)return;if(this.dragFrame){cancelAnimationFrame(this.dragFrame);this.dragFrame=null;}this.element.style.left=`${this.drag.x}px`;this.element.style.top=`${this.drag.y}px`;this.element.style.transform="";this.element.releasePointerCapture?.(event.pointerId);this.drag=null;this.element.classList.remove("is-dragging");};
+      this.element.addEventListener("pointerup",finishDrag);this.element.addEventListener("pointercancel",finishDrag);
+    }
+    const rows=bosses.map(({combatant,encounter,totalPhases,name})=>`<article class="tsru-boss-phase-row"><div class="tsru-boss-phase-identity"><img src="${escapeHTML(combatant.actor?.img||combatant.img||"icons/svg/mystery-man.svg")}" alt=""><span><strong>${escapeHTML(name)}</strong><small>Phase ${encounter.currentPhase} of ${totalPhases}</small></span></div><div class="tsru-boss-phase-buttons">${Array.from({length:totalPhases},(_v,index)=>`<button type="button" data-combatant-id="${combatant.id}" data-boss-phase="${index+1}" class="${encounter.currentPhase===index+1?"is-active":""}" title="Switch ${escapeHTML(name)} to Phase ${index+1}">${index+1}</button>`).join("")}</div></article>`).join("");
+    this.element.innerHTML=`<header class="tsru-boss-phase-drag"><i class="fas fa-grip-lines"></i><strong>Boss Phase Controls</strong><button type="button" data-close-boss-phase title="Close"><i class="fas fa-xmark"></i></button></header><div class="tsru-boss-phase-list">${rows||'<p class="notes">No multi-phase bosses are currently in the initiative order.</p>'}</div>`;
     this.element.querySelector("[data-close-boss-phase]").onclick=()=>this.destroy();return this;
   }
-  destroy(){this.element?.remove();this.element=null;if(state.bossPhaseControl===this)state.bossPhaseControl=null;}
+  destroy(){if(this.dragFrame)cancelAnimationFrame(this.dragFrame);this.dragFrame=null;this.element?.remove();this.element=null;if(state.bossPhaseControl===this)state.bossPhaseControl=null;}
 }
 
-function showBossPhaseControl(actor){state.bossPhaseControl?.destroy();state.bossPhaseControl=new BossPhaseControl(actor.id);state.bossPhaseControl.render();}
+function showBossPhaseControl(){if(!state.bossPhaseControl)state.bossPhaseControl=new BossPhaseControl();state.bossPhaseControl.render();}
 
 function refreshBossHud(){
+  state.bossPhaseControl?.render();
   if(!game.combat){state.bossHud?.destroy();return;}
   if(!state.bossHud)state.bossHud=new BossHud();
   state.bossHud.render();
@@ -5418,6 +5438,7 @@ class StarRailGMPanel extends FormApplication {
       await insertActionAdvanceTurn(id);
       this.render(false);
     });
+    html.find("[data-action='show-phase-controls']").on("click", () => showBossPhaseControl());
     html.find("[data-action='save-initiative-carousel']").on("click",async()=>{
       const data={enabled:Boolean(html.find('[name="initiativeCarouselEnabled"]').prop("checked")),allowLengthResize:Boolean(html.find('[name="initiativeCarouselAllowLengthResize"]').prop("checked")),maximumWidth:clamp(html.find('[name="initiativeCarouselMaximumWidth"]').val(),190,420),maximumHeight:clamp(html.find('[name="initiativeCarouselMaximumHeight"]').val(),260,1200)};
       await game.settings.set(MODULE_ID,"initiativeCarouselConfig",data);refreshInitiativeCarousel();ui.notifications.info("HSR initiative carousel settings saved.");this.render(false);
