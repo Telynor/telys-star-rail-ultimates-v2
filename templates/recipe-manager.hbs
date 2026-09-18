@@ -5,6 +5,7 @@
     <fieldset class="tsru-recipe-editor">
       <legend>Recipe {{add @index 1}}</legend>
       <div class="tsru-recipe-heading"><img src="{{this.img}}"><label>Name<input type="text" value="{{this.name}}" data-recipe-index="{{@index}}" data-recipe-field="name"></label><label>Card artwork<input type="text" value="{{this.img}}" data-recipe-index="{{@index}}" data-recipe-field="img"></label></div>
+      <label>Classification<select data-recipe-index="{{@index}}" data-recipe-field="classificationId">{{#each this.classificationOptions}}<option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.name}}</option>{{/each}}</select></label>
       <label>Description<textarea data-recipe-index="{{@index}}" data-recipe-field="description">{{this.description}}</textarea></label>
       <section><h3>Ingredients</h3><div class="tsru-crafting-drop" data-crafting-drop="ingredient" data-recipe-index="{{@index}}"><i class="fas fa-hand-pointer"></i> Drop ingredient Items here</div>
         <div class="tsru-recipe-items">{{#each this.ingredients}}<div><img src="{{this.img}}"><strong>{{this.name}}</strong><label>Qty <input type="number" min="1" value="{{this.quantity}}" data-recipe-index="{{this.recipeIndex}}" data-ingredient-quantity="{{this.ingredientIndex}}"></label><button type="button" data-action="remove-ingredient" data-recipe-index="{{this.recipeIndex}}" data-ingredient-index="{{this.ingredientIndex}}"><i class="fas fa-trash"></i></button></div>{{else}}<em>No ingredients configured.</em>{{/each}}</div>

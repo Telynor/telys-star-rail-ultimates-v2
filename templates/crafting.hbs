@@ -1,11 +1,36 @@
 <div class="tsru-crafting-app">
-  <header><div><h2><i class="fas fa-hammer"></i> Party Crafting</h2><p>Ingredients are pooled from every character marked “Is in the Main Party?”</p></div><button type="button" data-action="check-reagents"><i class="fas fa-magnifying-glass"></i> Check Party Reagents</button></header>
-  {{#if cards.length}}<section class="tsru-recipe-cards"><h3>Recipe Cards</h3>{{#each cards}}<article><img src="{{this.img}}"><span><strong>{{this.name}}</strong><small>{{this.actorName}} · {{this.quantity}} card(s)</small></span><button type="button" data-action="redeem-card" data-actor-id="{{this.actorId}}" data-item-id="{{this.itemId}}"><i class="fas fa-book-open"></i> Redeem</button></article>{{/each}}</section>{{/if}}
-  <div class="tsru-crafting-recipes">
-    {{#each recipes}}<article class="tsru-crafting-recipe">
-      <header><img src="{{this.img}}"><div><h3>{{this.name}}</h3><p>{{this.description}}</p></div>{{#if this.output}}<span class="tsru-crafting-yield"><img src="{{this.output.img}}"><b>×{{this.output.quantity}}</b></span>{{/if}}</header>
-      <div class="tsru-crafting-ingredients">{{#each this.ingredients}}<div class="{{#if this.enough}}enough{{else}}missing{{/if}}"><img src="{{this.img}}"><span><strong>{{this.name}}</strong><small>Required {{this.quantity}}{{#if @root.inventoryChecked}} · Party has {{this.available}}{{/if}}</small></span><div><button type="button" data-place-delta="-1" data-recipe-id="{{../id}}" data-ingredient-key="{{this.key}}"><i class="fas fa-minus"></i></button><b>{{this.placed}} / {{this.quantity}}</b><button type="button" data-place-delta="1" data-recipe-id="{{../id}}" data-ingredient-key="{{this.key}}"><i class="fas fa-plus"></i></button></div></div>{{else}}<em>No ingredients required.</em>{{/each}}</div>
-      <footer><button type="button" data-action="auto-place" data-recipe-id="{{this.id}}"><i class="fas fa-wand-magic-sparkles"></i> Auto Place</button><select data-recipe-recipient="{{this.id}}"><option value="">Receive crafted item…</option>{{#each ../actors}}<option value="{{this.id}}">{{this.name}}</option>{{/each}}</select><button type="button" data-action="craft" data-recipe-id="{{this.id}}" {{#unless this.placedReady}}disabled{{/unless}}><i class="fas fa-hammer"></i> Craft</button></footer>
-    </article>{{else}}<p class="notes">No crafting recipes have been unlocked yet. Find and redeem a recipe card.</p>{{/each}}
-  </div>
+  <header class="tsru-crafting-topbar">
+    <div><small>Synthesize</small><strong>Party Crafting</strong></div>
+    <nav class="tsru-crafting-tabs" aria-label="Crafting classifications">
+      {{#each categories}}<button type="button" class="{{#if this.active}}active{{/if}}" data-category-id="{{this.id}}" title="{{this.name}}"><i class="{{this.icon}}"></i><span>{{this.name}}</span><b>{{this.count}}</b></button>{{/each}}
+    </nav>
+    <div class="tsru-crafting-top-actions">
+      <button type="button" data-action="check-reagents"><i class="fas fa-magnifying-glass"></i> Check Reagents</button>
+      {{#if isGM}}<button type="button" data-action="redeem-all-recipes"><i class="fas fa-book-open-reader"></i> Redeem All Recipes{{#if cardCount}} ({{cardCount}}){{/if}}</button>{{/if}}
+    </div>
+  </header>
+  {{#if cards.length}}<details class="tsru-recipe-card-drawer"><summary><i class="fas fa-scroll"></i> Recipe Cards ({{cardCount}})</summary><div>{{#each cards}}<article><img src="{{this.img}}"><span><strong>{{this.name}}</strong><small>{{this.actorName}} · {{this.quantity}}</small></span><button type="button" data-action="redeem-card" data-actor-id="{{this.actorId}}" data-item-id="{{this.itemId}}">Redeem</button></article>{{/each}}</div></details>{{/if}}
+  <main class="tsru-synthesis-layout">
+    <aside class="tsru-synthesis-catalog"><div class="tsru-recipe-grid">
+      {{#each recipes}}<button type="button" class="tsru-recipe-tile {{#if this.active}}active{{/if}}" data-select-recipe="{{this.id}}" title="{{this.name}}"><img src="{{this.displayImg}}"><span>{{this.name}}</span><b>{{this.owned}}</b></button>{{else}}<p class="notes">No recipes are available in this classification.</p>{{/each}}
+    </div></aside>
+    <section class="tsru-synthesis-detail">
+      {{#if selected}}
+      <div class="tsru-synthesis-product"><div class="tsru-product-orbit"><span></span><img src="{{selected.output.img}}"></div><small>Currently Owned: {{selected.owned}}</small></div>
+      <div class="tsru-synthesis-copy">
+        <h2>{{selected.name}}</h2><span class="tsru-classification-label"><i class="fas fa-layer-group"></i> {{selected.classificationName}}</span><h4>Effect</h4><p>{{selected.description}}</p>
+        <div class="tsru-material-heading"><span></span><h3>Materials Needed</h3><span></span></div>
+        <div class="tsru-materials-grid">
+          {{#each selected.ingredients}}<article class="{{#if this.enough}}enough{{else}}missing{{/if}}"><img src="{{this.img}}"><strong>{{this.name}}</strong><b>{{this.available}}/{{this.required}}</b><div><button type="button" data-place-delta="-1" data-recipe-id="{{../id}}" data-ingredient-key="{{this.key}}"><i class="fas fa-minus"></i></button><span>{{this.placed}}/{{this.required}}</span><button type="button" data-place-delta="1" data-recipe-id="{{../id}}" data-ingredient-key="{{this.key}}"><i class="fas fa-plus"></i></button></div></article>{{else}}<p>No materials required.</p>{{/each}}
+        </div>
+      </div>
+      <footer class="tsru-synthesis-footer">
+        <button type="button" class="tsru-auto-place" data-action="auto-place" data-recipe-id="{{selected.id}}"><i class="fas fa-wand-magic-sparkles"></i> Auto Place</button>
+        <div class="tsru-quantity-control"><span>Quantity</span><button type="button" data-craft-count-delta="-1"><i class="fas fa-minus"></i></button><b>{{craftCount}}</b><button type="button" data-craft-count-delta="1"><i class="fas fa-plus"></i></button><small>Produces {{selected.yieldTotal}}</small></div>
+        <select data-recipe-recipient="{{selected.id}}"><option value="">Receiving character…</option>{{#each actors}}<option value="{{this.id}}">{{this.name}}</option>{{/each}}</select>
+        <button type="button" class="tsru-synthesize-button" data-action="craft" data-recipe-id="{{selected.id}}" {{#unless selected.placedReady}}disabled{{/unless}}>Synthesize</button>
+      </footer>
+      {{else}}<div class="tsru-crafting-empty"><i class="fas fa-flask"></i><h2>No recipe selected</h2><p>Choose an unlocked recipe from the catalog.</p></div>{{/if}}
+    </section>
+  </main>
 </div>

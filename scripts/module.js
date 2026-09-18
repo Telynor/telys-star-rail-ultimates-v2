@@ -18,6 +18,13 @@ const DEFAULT_PATHS = Object.freeze([
   {id:"voracity",name:"Voracity",icon:`modules/${MODULE_ID}/assets/paths/Path_Voracity.png`,color:"#e5c878"}
 ]);
 
+const DEFAULT_CRAFTING_CLASSIFICATIONS = Object.freeze([
+  {id:"consumables",name:"Consumables",icon:"fas fa-flask"},
+  {id:"materials",name:"Materials",icon:"fas fa-cubes-stacked"},
+  {id:"equipment",name:"Equipment",icon:"fas fa-shield-halved"},
+  {id:"other",name:"Other",icon:"fas fa-box"}
+]);
+
 const DEFAULT_CONFIG = Object.freeze({
   enabled: false,
   current: 0,
@@ -2185,6 +2192,11 @@ function getCraftingRecipes() {
   return (Array.isArray(stored) ? stored : Object.values(stored)).filter(Boolean);
 }
 
+function getCraftingClassifications(){
+  const stored=game.settings.get(MODULE_ID,"craftingClassifications")??[];
+  return (Array.isArray(stored)?stored:Object.values(stored)).filter(Boolean).map(entry=>({id:String(entry.id||foundry.utils.randomID()),name:String(entry.name||"Classification"),icon:String(entry.icon||"fas fa-box")}));
+}
+
 function partyCraftingActors() {
   return game.actors.filter(actor => actor.type === "character" && getConfig(actor).mainParty);
 }
@@ -2258,11 +2270,12 @@ function craftingUserActors(user=game.user) {
   return partyCraftingActors().filter(actor=>user.isGM||actor.testUserPermission(user,"OWNER"));
 }
 
-async function consumePartyIngredients(recipe) {
+async function consumePartyIngredients(recipe,multiplier=1) {
   const actors=partyCraftingActors();
-  for(const ingredient of recipe.ingredients??[])if(pooledQuantityFor(ingredient,actors)<Math.max(1,Number(ingredient.quantity)||1))throw new Error(`Not enough ${ingredient.name}.`);
+  multiplier=clamp(Math.floor(Number(multiplier)||1),1,99);
+  for(const ingredient of recipe.ingredients??[])if(pooledQuantityFor(ingredient,actors)<Math.max(1,Number(ingredient.quantity)||1)*multiplier)throw new Error(`Not enough ${ingredient.name}.`);
   for(const ingredient of recipe.ingredients??[]){
-    let remaining=Math.max(1,Number(ingredient.quantity)||1);
+    let remaining=Math.max(1,Number(ingredient.quantity)||1)*multiplier;
     for(const actor of actors){
       for(const item of [...(actor.items??[])]){
         if(!remaining||!itemMatchesRecipeEntry(item,ingredient))continue;
@@ -2276,9 +2289,9 @@ async function consumePartyIngredients(recipe) {
   }
 }
 
-async function grantCraftingOutput(actor,output) {
+async function grantCraftingOutput(actor,output,multiplier=1) {
   if(!actor||!output?.itemData)throw new Error("This recipe has no configured output item.");
-  const quantity=Math.max(1,Number(output.quantity)||1);
+  const quantity=Math.max(1,Number(output.quantity)||1)*clamp(Math.floor(Number(multiplier)||1),1,99);
   const existing=actor.items.find(item=>itemMatchesRecipeEntry(item,output));
   if(existing)return existing.update({"system.quantity":itemQuantity(existing)+quantity});
   const data=foundry.utils.deepClone(output.itemData);delete data._id;delete data.folder;delete data.sort;delete data.ownership;
@@ -2286,7 +2299,7 @@ async function grantCraftingOutput(actor,output) {
   return actor.createEmbeddedDocuments("Item",[data]);
 }
 
-async function executeCraftRecipe(recipeId,actorId,requestingUserId) {
+async function executeCraftRecipe(recipeId,actorId,requestingUserId,craftCount=1) {
   if(!isAuthority())return {ok:false,message:"No active GM is available."};
   if(state.craftingLocks.has("party"))return {ok:false,message:"The party is already crafting. Please try again."};
   const requester=game.users.get(requestingUserId),actor=game.actors.get(actorId),recipe=getCraftingRecipes().find(entry=>entry.id===recipeId);
@@ -2294,10 +2307,23 @@ async function executeCraftRecipe(recipeId,actorId,requestingUserId) {
   if(!getConfig(actor).mainParty||(!requester.isGM&&!actor.testUserPermission(requester,"OWNER")))return {ok:false,message:"Choose one of your Main Party characters to receive the result."};
   if(!requester.isGM&&!actorUnlockedRecipes(actor).has(recipeId))return {ok:false,message:"That recipe has not been unlocked."};
   if(!recipe.output?.itemData)return {ok:false,message:"This recipe has no configured output item."};
+  craftCount=clamp(Math.floor(Number(craftCount)||1),1,99);
   state.craftingLocks.add("party");
-  try{await consumePartyIngredients(recipe);await grantCraftingOutput(actor,recipe.output);await unlockCraftingRecipe(recipeId,actor);return {ok:true,message:`Crafted ${Math.max(1,Number(recipe.output?.quantity)||1)} × ${recipe.output?.name}.`};}
+  try{await consumePartyIngredients(recipe,craftCount);await grantCraftingOutput(actor,recipe.output,craftCount);await unlockCraftingRecipe(recipeId,actor);return {ok:true,message:`Crafted ${Math.max(1,Number(recipe.output?.quantity)||1)*craftCount} × ${recipe.output?.name}.`};}
   catch(error){console.error(`${MODULE_ID} | Crafting failed`,error);return {ok:false,message:error.message};}
   finally{state.craftingLocks.delete("party");}
+}
+
+async function executeRedeemAllRecipeCards(requestingUserId){
+  if(!isAuthority())return {ok:false,message:"No active GM is available."};
+  const requester=game.users.get(requestingUserId);
+  if(!requester?.isGM)return {ok:false,message:"Only a GM can redeem every recipe card."};
+  const characters=game.actors.filter(actor=>actor.type==="character"),recipes=getCraftingRecipes(),recipeIds=new Set(),cards=[];
+  for(const actor of characters)for(const item of actor.items??[]){const recipeId=item.getFlag(MODULE_ID,"recipeCard")?.recipeId;if(recipes.some(recipe=>recipe.id===recipeId)){recipeIds.add(recipeId);cards.push(item);}}
+  if(!cards.length)return {ok:false,message:"No recipe cards were found on any player character."};
+  for(const actor of characters){const unlocked=actorUnlockedRecipes(actor);for(const recipeId of recipeIds)unlocked.add(recipeId);await actor.setFlag(MODULE_ID,"unlockedCraftingRecipes",[...unlocked]);}
+  for(const item of cards)await item.delete();
+  return {ok:true,message:`Redeemed ${cards.length} recipe card${cards.length===1?"":"s"}. ${recipeIds.size} recipe${recipeIds.size===1?" is":"s are"} now unlocked for all player characters.`};
 }
 
 async function executeRedeemRecipeCard(actorId,itemId,requestingUserId) {
@@ -4034,7 +4060,7 @@ async function executeUltimate(actorId, requestingUserId) {
 async function onSocket(payload) {
   if (!payload?.type) return;
   if(payload.type==="craftRecipe"&&isAuthority()){
-    const result=await executeCraftRecipe(payload.recipeId,payload.actorId,payload.requestingUserId);
+    const result=await executeCraftRecipe(payload.recipeId,payload.actorId,payload.requestingUserId,payload.craftCount);
     game.socket.emit(SOCKET,{type:"craftingResult",targetUserId:payload.requestingUserId,...result});return;
   }
   if(payload.type==="redeemRecipeCard"&&isAuthority()){
@@ -5221,7 +5247,7 @@ async function droppedCraftingItem(event) {
 
 class RecipeManager extends FormApplication {
   static get defaultOptions(){return foundry.utils.mergeObject(super.defaultOptions,{id:"tsru-recipe-manager",title:"Tely's Star Rail Ultimates — Recipes",template:`modules/${MODULE_ID}/templates/recipe-manager.hbs`,width:720,height:760,resizable:true,closeOnSubmit:false});}
-  getData(){return {recipes:foundry.utils.deepClone(this._recipesOverride??getCraftingRecipes()).map((recipe,recipeIndex)=>({...recipe,recipeIndex,ingredients:(recipe.ingredients??[]).map((ingredient,ingredientIndex)=>({...ingredient,recipeIndex,ingredientIndex}))}))};}
+  getData(){const classifications=getCraftingClassifications();return {recipes:foundry.utils.deepClone(this._recipesOverride??getCraftingRecipes()).map((recipe,recipeIndex)=>({...recipe,recipeIndex,classificationOptions:classifications.map(entry=>({...entry,selected:entry.id===(recipe.classificationId||"other")})),ingredients:(recipe.ingredients??[]).map((ingredient,ingredientIndex)=>({...ingredient,recipeIndex,ingredientIndex}))}))};}
   recipes(){return this._recipesOverride??foundry.utils.deepClone(getCraftingRecipes());}
   async save(){await game.settings.set(MODULE_ID,"craftingRecipes",this.recipes());ui.notifications.info("Crafting recipes saved.");state.craftingApp?.render({force:false});}
   activateListeners(html){
@@ -5229,7 +5255,7 @@ class RecipeManager extends FormApplication {
     html.find("[data-recipe-field]").on("change",event=>{const recipes=this.recipes(),recipe=recipes[Number(event.currentTarget.dataset.recipeIndex)];if(!recipe)return;const field=event.currentTarget.dataset.recipeField;recipe[field]=event.currentTarget.type==="number"?Math.max(1,Number(event.currentTarget.value)||1):event.currentTarget.value;this._recipesOverride=recipes;});
     html.find("[data-ingredient-quantity]").on("change",event=>{const recipes=this.recipes(),recipe=recipes[Number(event.currentTarget.dataset.recipeIndex)],ingredient=recipe?.ingredients?.[Number(event.currentTarget.dataset.ingredientQuantity)];if(ingredient)ingredient.quantity=Math.max(1,Number(event.currentTarget.value)||1);this._recipesOverride=recipes;});
     html.find("[data-output-quantity]").on("change",event=>{const recipes=this.recipes(),recipe=recipes[Number(event.currentTarget.dataset.recipeIndex)];if(recipe?.output)recipe.output.quantity=Math.max(1,Number(event.currentTarget.value)||1);this._recipesOverride=recipes;});
-    html.find("[data-action='add-recipe']").on("click",()=>{const recipes=this.recipes();recipes.push({id:foundry.utils.randomID(),name:"New Recipe",img:"icons/svg/forge.svg",description:"",ingredients:[],output:null});this._recipesOverride=recipes;this.render(true);});
+    html.find("[data-action='add-recipe']").on("click",()=>{const recipes=this.recipes();recipes.push({id:foundry.utils.randomID(),name:"New Recipe",img:"icons/svg/forge.svg",description:"",classificationId:getCraftingClassifications()[0]?.id||"other",ingredients:[],output:null});this._recipesOverride=recipes;this.render(true);});
     html.find("[data-action='remove-recipe']").on("click",event=>{const recipes=this.recipes();recipes.splice(Number(event.currentTarget.dataset.recipeIndex),1);this._recipesOverride=recipes;this.render(true);});
     html.find("[data-action='remove-ingredient']").on("click",event=>{const recipes=this.recipes(),recipe=recipes[Number(event.currentTarget.dataset.recipeIndex)];recipe?.ingredients?.splice(Number(event.currentTarget.dataset.ingredientIndex),1);this._recipesOverride=recipes;this.render(true);});
     html.find("[data-crafting-drop]").on("dragover",event=>{event.preventDefault();event.currentTarget.classList.add("is-dragover");}).on("dragleave",event=>event.currentTarget.classList.remove("is-dragover")).on("drop",async event=>{event.preventDefault();event.currentTarget.classList.remove("is-dragover");const item=await droppedCraftingItem(event);if(!item)return ui.notifications.warn("Drop an Item document here.");const recipes=this.recipes(),recipe=recipes[Number(event.currentTarget.dataset.recipeIndex)];if(!recipe)return;if(event.currentTarget.dataset.craftingDrop==="ingredient")recipe.ingredients.push(craftingItemSnapshot(item));else recipe.output=craftingItemSnapshot(item);this._recipesOverride=recipes;this.render(true);});
@@ -5241,24 +5267,44 @@ class RecipeManager extends FormApplication {
 
 class RecipeMenu extends FormApplication {render(){new RecipeManager().render(true);return this;}}
 
+class CraftingClassificationManager extends FormApplication{
+  static get defaultOptions(){return foundry.utils.mergeObject(super.defaultOptions,{id:"tsru-crafting-classifications",title:"Crafting Item Classifications",template:`modules/${MODULE_ID}/templates/crafting-classifications.hbs`,width:560,height:"auto",resizable:true,closeOnSubmit:false});}
+  getData(){return {classifications:foundry.utils.deepClone(this._override??getCraftingClassifications()).map((entry,index)=>({...entry,index}))};}
+  read(html){return [...html.find("[data-classification-row]")].map(row=>({id:String(row.querySelector('[data-field="id"]')?.value||foundry.utils.randomID()).trim().toLowerCase().replace(/[^a-z0-9_-]+/g,"-")||foundry.utils.randomID(),name:String(row.querySelector('[data-field="name"]')?.value||"Classification").trim()||"Classification",icon:String(row.querySelector('[data-field="icon"]')?.value||"fas fa-box").trim()||"fas fa-box"}));}
+  activateListeners(html){super.activateListeners(html);html.find("[data-action='add-classification']").on("click",()=>{this._override=this.read(html);this._override.push({id:foundry.utils.randomID(),name:"New Classification",icon:"fas fa-box"});this.render(true);});html.find("[data-action='remove-classification']").on("click",event=>{this._override=this.read(html);this._override.splice(Number(event.currentTarget.dataset.index),1);this.render(true);});html.find("[data-action='save-classifications']").on("click",async()=>{const values=this.read(html);await game.settings.set(MODULE_ID,"craftingClassifications",values.length?values:foundry.utils.deepClone(DEFAULT_CRAFTING_CLASSIFICATIONS));this._override=null;ui.notifications.info("Crafting classifications saved.");state.craftingApp?.render({force:false});});}
+  async _updateObject(){return undefined;}
+}
+
+class CraftingClassificationMenu extends FormApplication{render(){new CraftingClassificationManager().render(true);return this;}}
+
 class CraftingApplication extends foundry.applications.api.HandlebarsApplicationMixin(foundry.applications.api.ApplicationV2) {
-  constructor(...args){super(...args);this.placed={};this.inventoryChecked=false;state.craftingApp=this;}
-  static DEFAULT_OPTIONS={id:"tsru-crafting",classes:["tsru-crafting-window"],window:{title:"Party Crafting",resizable:true},position:{width:760,height:720}};
+  constructor(...args){super(...args);this.placed={};this.inventoryChecked=false;this.selectedCategory="all";this.selectedRecipeId="";this.craftCount=1;state.craftingApp=this;}
+  static DEFAULT_OPTIONS={id:"tsru-crafting",classes:["tsru-crafting-window"],window:{title:"Party Crafting",resizable:true},position:{width:1040,height:720}};
   static PARTS={main:{template:`modules/${MODULE_ID}/templates/crafting.hbs`}};
   async _prepareContext(){
-    const recipes=getCraftingRecipes(),userActors=craftingUserActors(),unlocked=new Set(userActors.flatMap(actor=>[...actorUnlockedRecipes(actor)]));
-    const visible=(game.user.isGM?recipes:recipes.filter(recipe=>unlocked.has(recipe.id))).map(recipe=>({...recipe,placedReady:(recipe.ingredients??[]).every(ingredient=>(this.placed[recipe.id]?.[recipeItemKey(ingredient)]??0)>=Math.max(1,Number(ingredient.quantity)||1)),ingredients:(recipe.ingredients??[]).map(ingredient=>({...ingredient,key:recipeItemKey(ingredient),available:pooledQuantityFor(ingredient),placed:this.placed[recipe.id]?.[recipeItemKey(ingredient)]??0,enough:pooledQuantityFor(ingredient)>=Math.max(1,Number(ingredient.quantity)||1)}))}));
-    const cards=[];for(const actor of userActors)for(const item of actor.items??[]){const recipeId=item.getFlag(MODULE_ID,"recipeCard")?.recipeId,recipe=recipes.find(entry=>entry.id===recipeId);if(recipe)cards.push({actorId:actor.id,itemId:item.id,actorName:actor.name,name:recipe.name,img:item.img,quantity:itemQuantity(item)});}
-    return {recipes:visible,actors:userActors,cards,inventoryChecked:this.inventoryChecked,isGM:game.user.isGM};
+    const recipes=getCraftingRecipes(),classifications=getCraftingClassifications(),userActors=craftingUserActors(),unlocked=new Set(userActors.flatMap(actor=>[...actorUnlockedRecipes(actor)]));
+    const visible=(game.user.isGM?recipes:recipes.filter(recipe=>unlocked.has(recipe.id))).map(recipe=>({...recipe,classificationId:recipe.classificationId||"other"}));
+    const filtered=this.selectedCategory==="all"?visible:visible.filter(recipe=>recipe.classificationId===this.selectedCategory);
+    if(!filtered.some(recipe=>recipe.id===this.selectedRecipeId))this.selectedRecipeId=filtered[0]?.id||"";
+    const chosen=visible.find(recipe=>recipe.id===this.selectedRecipeId),craftCount=clamp(Math.floor(Number(this.craftCount)||1),1,99);
+    const selected=chosen?{...chosen,classificationName:classifications.find(entry=>entry.id===chosen.classificationId)?.name||"Other",owned:chosen.output?pooledQuantityFor(chosen.output):0,yieldTotal:Math.max(1,Number(chosen.output?.quantity)||1)*craftCount,ingredients:(chosen.ingredients??[]).map(ingredient=>{const required=Math.max(1,Number(ingredient.quantity)||1)*craftCount,available=pooledQuantityFor(ingredient),key=recipeItemKey(ingredient),placed=this.placed[chosen.id]?.[key]??0;return {...ingredient,key,required,available,placed,enough:available>=required,placedEnough:placed>=required};})}:null;
+    if(selected)selected.placedReady=selected.ingredients.every(ingredient=>ingredient.placedEnough);
+    const categories=[{id:"all",name:"All Items",icon:"fas fa-border-all",count:visible.length},...classifications.map(entry=>({...entry,count:visible.filter(recipe=>recipe.classificationId===entry.id).length}))].map(entry=>({...entry,active:entry.id===this.selectedCategory}));
+    const cards=[],cardActors=game.user.isGM?game.actors.filter(actor=>actor.type==="character"):userActors;for(const actor of cardActors)for(const item of actor.items??[]){const recipeId=item.getFlag(MODULE_ID,"recipeCard")?.recipeId,recipe=recipes.find(entry=>entry.id===recipeId);if(recipe)cards.push({actorId:actor.id,itemId:item.id,actorName:actor.name,name:recipe.name,img:item.img,quantity:itemQuantity(item)});}
+    return {recipes:filtered.map(recipe=>({...recipe,active:recipe.id===this.selectedRecipeId,displayImg:recipe.output?.img||recipe.img,owned:recipe.output?pooledQuantityFor(recipe.output):0})),selected,categories,actors:userActors,cards,cardCount:cards.reduce((sum,card)=>sum+card.quantity,0),craftCount,inventoryChecked:this.inventoryChecked,isGM:game.user.isGM};
   }
   _onRender(context,options){
     super._onRender(context,options);
     const html=this.element;
+    for(const button of html.querySelectorAll("[data-category-id]"))button.addEventListener("click",()=>{this.selectedCategory=button.dataset.categoryId;this.selectedRecipeId="";this.render({force:false});});
+    for(const button of html.querySelectorAll("[data-select-recipe]"))button.addEventListener("click",()=>{this.selectedRecipeId=button.dataset.selectRecipe;this.render({force:false});});
+    for(const button of html.querySelectorAll("[data-craft-count-delta]"))button.addEventListener("click",()=>{this.craftCount=clamp(this.craftCount+(Number(button.dataset.craftCountDelta)||0),1,99);this.placed[this.selectedRecipeId]={};this.render({force:false});});
     html.querySelector("[data-action='check-reagents']")?.addEventListener("click",()=>{this.inventoryChecked=true;this.render({force:false});});
-    for(const button of html.querySelectorAll("[data-action='auto-place']"))button.addEventListener("click",()=>{const recipe=getCraftingRecipes().find(entry=>entry.id===button.dataset.recipeId);if(!recipe)return;this.placed[recipe.id]={};for(const ingredient of recipe.ingredients??[])this.placed[recipe.id][recipeItemKey(ingredient)]=Math.min(Math.max(1,Number(ingredient.quantity)||1),pooledQuantityFor(ingredient));this.inventoryChecked=true;this.render({force:false});});
-    for(const button of html.querySelectorAll("[data-place-delta]"))button.addEventListener("click",()=>{const recipeId=button.dataset.recipeId,key=button.dataset.ingredientKey,delta=Number(button.dataset.placeDelta)||0,recipe=getCraftingRecipes().find(entry=>entry.id===recipeId),ingredient=recipe?.ingredients?.find(entry=>recipeItemKey(entry)===key);if(!ingredient)return;this.placed[recipeId]??={};this.placed[recipeId][key]=clamp((this.placed[recipeId][key]??0)+delta,0,Math.min(Math.max(1,Number(ingredient.quantity)||1),pooledQuantityFor(ingredient)));this.render({force:false});});
-    for(const button of html.querySelectorAll("[data-action='craft']"))button.addEventListener("click",async()=>{const recipeId=button.dataset.recipeId,actorId=html.querySelector(`[data-recipe-recipient='${recipeId}']`)?.value;if(!actorId)return ui.notifications.warn("Choose a receiving character.");button.disabled=true;if(isAuthority()){const result=await executeCraftRecipe(recipeId,actorId,game.user.id);(result.ok?ui.notifications.info:ui.notifications.error).call(ui.notifications,result.message);this.placed[recipeId]={};await this.render({force:false});}else game.socket.emit(SOCKET,{type:"craftRecipe",recipeId,actorId,requestingUserId:game.user.id});});
+    for(const button of html.querySelectorAll("[data-action='auto-place']"))button.addEventListener("click",()=>{const recipe=getCraftingRecipes().find(entry=>entry.id===button.dataset.recipeId);if(!recipe)return;this.placed[recipe.id]={};for(const ingredient of recipe.ingredients??[]){const required=Math.max(1,Number(ingredient.quantity)||1)*this.craftCount;this.placed[recipe.id][recipeItemKey(ingredient)]=Math.min(required,pooledQuantityFor(ingredient));}this.inventoryChecked=true;this.render({force:false});});
+    for(const button of html.querySelectorAll("[data-place-delta]"))button.addEventListener("click",()=>{const recipeId=button.dataset.recipeId,key=button.dataset.ingredientKey,delta=Number(button.dataset.placeDelta)||0,recipe=getCraftingRecipes().find(entry=>entry.id===recipeId),ingredient=recipe?.ingredients?.find(entry=>recipeItemKey(entry)===key);if(!ingredient)return;const required=Math.max(1,Number(ingredient.quantity)||1)*this.craftCount;this.placed[recipeId]??={};this.placed[recipeId][key]=clamp((this.placed[recipeId][key]??0)+delta,0,Math.min(required,pooledQuantityFor(ingredient)));this.render({force:false});});
+    for(const button of html.querySelectorAll("[data-action='craft']"))button.addEventListener("click",async()=>{const recipeId=button.dataset.recipeId,actorId=html.querySelector(`[data-recipe-recipient='${recipeId}']`)?.value;if(!actorId)return ui.notifications.warn("Choose a receiving character.");button.disabled=true;if(isAuthority()){const result=await executeCraftRecipe(recipeId,actorId,game.user.id,this.craftCount);(result.ok?ui.notifications.info:ui.notifications.error).call(ui.notifications,result.message);this.placed[recipeId]={};await this.render({force:false});}else game.socket.emit(SOCKET,{type:"craftRecipe",recipeId,actorId,craftCount:this.craftCount,requestingUserId:game.user.id});});
     for(const button of html.querySelectorAll("[data-action='redeem-card']"))button.addEventListener("click",async()=>{const actorId=button.dataset.actorId,itemId=button.dataset.itemId;button.disabled=true;if(isAuthority()){const result=await executeRedeemRecipeCard(actorId,itemId,game.user.id);(result.ok?ui.notifications.info:ui.notifications.error).call(ui.notifications,result.message);await this.render({force:false});}else game.socket.emit(SOCKET,{type:"redeemRecipeCard",actorId,itemId,requestingUserId:game.user.id});});
+    html.querySelector("[data-action='redeem-all-recipes']")?.addEventListener("click",async event=>{event.currentTarget.disabled=true;const result=await executeRedeemAllRecipeCards(game.user.id);(result.ok?ui.notifications.info:ui.notifications.warn).call(ui.notifications,result.message);await this.render({force:false});});
   }
   async close(options){if(state.craftingApp===this)state.craftingApp=null;return super.close(options);}
 }
@@ -5838,6 +5884,7 @@ function registerSettings() {
   game.settings.register(MODULE_ID, "elements", {scope: "world", config: false, type: Array, default: []});
   game.settings.register(MODULE_ID, "paths", {scope: "world", config: false, type: Array, default: DEFAULT_PATHS.map(path => ({...path}))});
   game.settings.register(MODULE_ID,"craftingRecipes",{scope:"world",config:false,type:Array,default:[]});
+  game.settings.register(MODULE_ID,"craftingClassifications",{scope:"world",config:false,type:Array,default:foundry.utils.deepClone(DEFAULT_CRAFTING_CLASSIFICATIONS)});
   game.settings.register(MODULE_ID, "elementsDraft", {scope: "client", config: false, type: Array, default: []});
   game.settings.register(MODULE_ID, "orbLayouts", {scope: "client", config: false, type: Object, default: {}});
   game.settings.register(MODULE_ID, "selectedMainCharacterId", {scope: "client", config: false, type: String, default: ""});
@@ -5887,6 +5934,7 @@ function registerSettings() {
     restricted: true
   });
   game.settings.registerMenu(MODULE_ID,"recipeManager",{name:"Manage Crafting Recipes",label:"Open Recipe Manager",hint:"Create drag-and-drop recipes, outputs, and redeemable recipe cards.",icon:"fas fa-hammer",type:RecipeMenu,restricted:true});
+  game.settings.registerMenu(MODULE_ID,"craftingClassificationsMenu",{name:"Crafting Item Classifications",label:"Configure Crafting Classifications",hint:"Create the item classifications used to organize crafting recipes into tabs.",icon:"fas fa-layer-group",type:CraftingClassificationMenu,restricted:true});
   game.settings.registerMenu(MODULE_ID, "ahaInstant", {
     name: "Aha Instant Configuration",
     label: "Configure Aha Instant",
@@ -7301,7 +7349,7 @@ Hooks.on("updateSetting", setting => {
     refreshUltimateHotbarMacros();
   }
   if (setting?.key === `${MODULE_ID}.paths`) refreshCombatPartyHud();
-  if(setting?.key===`${MODULE_ID}.craftingRecipes`)state.craftingApp?.render({force:false});
+  if([`${MODULE_ID}.craftingRecipes`,`${MODULE_ID}.craftingClassifications`].includes(setting?.key))state.craftingApp?.render({force:false});
   if (setting?.key === `${MODULE_ID}.partySelections`) { refreshCombatPartyHud(); refreshTalentButtons(); }
   if (setting?.key === `${MODULE_ID}.combatHudDesign`) {
     refreshCombatPartyHud();
