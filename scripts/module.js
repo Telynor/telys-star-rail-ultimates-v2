@@ -61,6 +61,8 @@ const DEFAULT_CONFIG = Object.freeze({
   carouselImageX: 50,
   carouselImageY: 50,
   carouselImageScale: 100,
+  carouselFrameColorOverride: false,
+  carouselFrameColor: "#58dfee",
   punchlineGain: 1,
   elationActionScript: "",
   elationActionText: "",
@@ -318,6 +320,8 @@ function getConfig(actor) {
   config.carouselImageX = clamp(config.carouselImageX, 0, 100);
   config.carouselImageY = clamp(config.carouselImageY, 0, 100);
   config.carouselImageScale = clamp(config.carouselImageScale, 50, 400);
+  config.carouselFrameColorOverride = Boolean(config.carouselFrameColorOverride);
+  if(!/^#[0-9a-f]{6}$/i.test(String(config.carouselFrameColor??"")))config.carouselFrameColor="#58dfee";
   return config;
 }
 
@@ -2851,17 +2855,19 @@ function carouselTurnKind(combatant) {
 
 class HsrInitiativeCarousel {
   constructor(){this.element=null;this.drag=null;this.resize=null;this.scrollTop=0;this.currentCombatantId=null;}
-  layout(){const saved=game.settings.get(MODULE_ID,"initiativeCarouselLayout")||{};return {x:Number.isFinite(Number(saved.x))?Number(saved.x):16,y:Number.isFinite(Number(saved.y))?Number(saved.y):86,height:clamp(saved.height??520,180,1200)};}
+  layout(){const saved=game.settings.get(MODULE_ID,"initiativeCarouselLayout")||{};return {x:Number.isFinite(Number(saved.x))?Number(saved.x):16,y:Number.isFinite(Number(saved.y))?Number(saved.y):86,height:clamp(saved.height??520,180,1200),minimized:Boolean(saved.minimized)};}
   async saveLayout(changes={}){const next={...this.layout(),...changes};await game.settings.set(MODULE_ID,"initiativeCarouselLayout",next);return next;}
   turnMarkup(combatant,{active=false,nextRound=false}={}){
     const portrait=carouselPortraitData(combatant),kind=carouselTurnKind(combatant);
     const inserted=kind!=="normal"&&kind!=="aha";
+    const actorConfig=getConfig(combatant?.actor);
     const disposition=Number(combatant?.token?.disposition);
     const friendlyDisposition=Number(globalThis.CONST?.TOKEN_DISPOSITIONS?.FRIENDLY??1);
     const allied=Number.isFinite(disposition)?disposition===friendlyDisposition:combatant?.actor?.type==="character";
+    const customFrameColor=combatant?.actor?.type==="character"&&actorConfig.carouselFrameColorOverride?actorConfig.carouselFrameColor:"";
     const labels={ultimate:"ULT",talent:"TALENT",advance:"ADV",elation:"ELATION",aha:"AHA"};
     const initiative=Number.isFinite(Number(combatant.initiative))?Number(combatant.initiative):"—";
-    return `<button type="button" class="tsru-hsr-turn ${active?"is-active":""} ${inserted?"is-inserted":""} ${allied?"is-ally":"is-enemy"} is-${kind} ${nextRound?"is-next-round":""}" data-combatant-id="${combatant.id}" title="${escapeHTML(combatant.name)} — Initiative ${initiative}" style="--portrait-x:${portrait.x}%;--portrait-y:${portrait.y}%;--portrait-scale:${portrait.scale/100};--portrait-flip:${portrait.flip?-1:1}"><span class="tsru-hsr-turn-pointer"><i></i></span><span class="tsru-hsr-turn-card"><img src="${escapeHTML(portrait.image)}" alt="${escapeHTML(combatant.name)}"><b>${escapeHTML(combatant.name)}</b>${labels[kind]?`<em>${labels[kind]}</em>`:""}<small>${initiative}</small></span></button>`;
+    return `<button type="button" class="tsru-hsr-turn ${active?"is-active":""} ${inserted?"is-inserted":""} ${allied?"is-ally":"is-enemy"} ${customFrameColor?"has-custom-frame":""} is-${kind} ${nextRound?"is-next-round":""}" data-combatant-id="${combatant.id}" title="${escapeHTML(combatant.name)} — Initiative ${initiative}" style="--portrait-x:${portrait.x}%;--portrait-y:${portrait.y}%;--portrait-scale:${portrait.scale/100};--portrait-flip:${portrait.flip?-1:1};${customFrameColor?`--turn-color:${customFrameColor};`:""}"><span class="tsru-hsr-turn-pointer"><i></i></span><span class="tsru-hsr-turn-card"><img src="${escapeHTML(portrait.image)}" alt="${escapeHTML(combatant.name)}"><b>${escapeHTML(combatant.name)}</b>${labels[kind]?`<em>${labels[kind]}</em>`:""}<small>${initiative}</small></span></button>`;
   }
   render(){
     const config=getInitiativeCarouselConfig(),combat=game.combat;
@@ -2869,7 +2875,7 @@ class HsrInitiativeCarousel {
     document.body.classList.add("tsru-hsr-carousel-active");
     if(!this.element){
       this.element=document.createElement("section");this.element.className="tsru-hsr-initiative-carousel";document.body.appendChild(this.element);
-      this.element.addEventListener("click",event=>{const button=event.target.closest("[data-combatant-id]");if(!button)return;const entry=game.combat?.combatants.get(button.dataset.combatantId),token=entry?.token?.object;if(token){token.control({releaseOthers:true});canvas.animatePan(token.center);}});
+      this.element.addEventListener("click",event=>{const toggle=event.target.closest("[data-carousel-toggle]");if(toggle){event.preventDefault();this.saveLayout({minimized:!this.layout().minimized}).then(()=>this.render());return;}const button=event.target.closest("[data-combatant-id]");if(!button)return;const entry=game.combat?.combatants.get(button.dataset.combatantId),token=entry?.token?.object;if(token){token.control({releaseOthers:true});canvas.animatePan(token.center);}});
       this.element.addEventListener("pointerdown",event=>{const handle=event.target.closest(".tsru-hsr-carousel-drag");if(!handle)return;event.preventDefault();const rect=this.element.getBoundingClientRect();this.drag={dx:event.clientX-rect.left,dy:event.clientY-rect.top};handle.setPointerCapture(event.pointerId);});
       this.element.addEventListener("pointermove",event=>{if(!this.drag)return;this.element.style.left=`${clamp(event.clientX-this.drag.dx,0,innerWidth-60)}px`;this.element.style.top=`${clamp(event.clientY-this.drag.dy,0,innerHeight-60)}px`;});
       this.element.addEventListener("pointerup",event=>{if(!this.drag)return;this.drag=null;event.target.releasePointerCapture?.(event.pointerId);const rect=this.element.getBoundingClientRect();this.saveLayout({x:Math.round(rect.left),y:Math.round(rect.top)});});
@@ -2879,6 +2885,9 @@ class HsrInitiativeCarousel {
       this.element.addEventListener("wheel",event=>{const viewport=event.target.closest(".tsru-hsr-carousel-viewport");if(!viewport||viewport.scrollHeight<=viewport.clientHeight)return;event.preventDefault();event.stopPropagation();viewport.scrollTop+=event.deltaY;this.scrollTop=viewport.scrollTop;},{passive:false});
     }
     const layout=this.layout(),turns=[...combat.turns].filter(entry=>game.user.isGM||(!entry.hidden&&!entry.token?.hidden));
+    this.element.classList.toggle("is-minimized",layout.minimized);
+    this.element.style.left=`${clamp(layout.x,0,innerWidth-60)}px`;this.element.style.top=`${clamp(layout.y,0,innerHeight-60)}px`;
+    if(layout.minimized){this.element.style.width="34px";this.element.style.height="34px";this.element.innerHTML='<button type="button" class="tsru-hsr-carousel-toggle" data-carousel-toggle title="Expand initiative carousel"><i class="fas fa-list-ol"></i></button>';return this;}
     const currentId=combat.combatant?.id,currentIndex=Math.max(0,turns.findIndex(entry=>entry.id===currentId));
     if(this.currentCombatantId!==currentId){this.currentCombatantId=currentId;this.scrollTop=0;}
     let remaining=turns.slice(currentIndex),wrapped=turns.slice(0,currentIndex),activeRow=0;
@@ -2891,9 +2900,9 @@ class HsrInitiativeCarousel {
     else if(turns[0])rows.push(this.turnMarkup(turns[0],{nextRound:true}));
     const maximumHeight=Math.max(180,Math.min(config.maximumHeight,innerHeight-clamp(layout.y,0,innerHeight-60)-16));
     const height=clamp(layout.height,180,maximumHeight);
-    this.element.style.left=`${clamp(layout.x,0,innerWidth-60)}px`;this.element.style.top=`${clamp(layout.y,0,innerHeight-60)}px`;this.element.style.width=`${config.maximumWidth}px`;this.element.style.height=`${height}px`;
+    this.element.style.width=`${config.maximumWidth}px`;this.element.style.height=`${height}px`;
     this.element.classList.toggle("is-length-resizable",config.allowLengthResize);
-    this.element.innerHTML=`<span class="tsru-hsr-carousel-drag" title="Move initiative carousel"><i class="fas fa-grip-lines"></i></span><div class="tsru-hsr-carousel-viewport"><div class="tsru-hsr-carousel-list">${rows.join("")}</div></div>${config.allowLengthResize?'<span class="tsru-hsr-carousel-resize" title="Resize carousel length"></span>':""}`;
+    this.element.innerHTML=`<span class="tsru-hsr-carousel-drag" title="Move initiative carousel"><i class="fas fa-grip-lines"></i></span><button type="button" class="tsru-hsr-carousel-toggle" data-carousel-toggle title="Minimize initiative carousel"><i class="fas fa-chevron-left"></i></button><div class="tsru-hsr-carousel-viewport"><div class="tsru-hsr-carousel-list">${rows.join("")}</div></div>${config.allowLengthResize?'<span class="tsru-hsr-carousel-resize" title="Resize carousel length"></span>':""}`;
     this.element.querySelector(".tsru-hsr-carousel-viewport").scrollTop=this.scrollTop;
     return this;
   }
@@ -5484,7 +5493,7 @@ function registerSettings() {
   game.settings.register(MODULE_ID, "combatPartyHudLayout", {scope: "client", config: false, type: Object, default: {scale: 1, minimized: false, x: null, y: null}});
   game.settings.register(MODULE_ID, "bossHudLayout", {scope: "client", config: false, type: Object, default: {x: null, y: 54}});
   game.settings.register(MODULE_ID, "initiativeCarouselConfig", {scope:"world",config:false,type:Object,default:foundry.utils.deepClone(DEFAULT_INITIATIVE_CAROUSEL_CONFIG)});
-  game.settings.register(MODULE_ID, "initiativeCarouselLayout", {scope:"client",config:false,type:Object,default:{x:16,y:86,height:520}});
+  game.settings.register(MODULE_ID, "initiativeCarouselLayout", {scope:"client",config:false,type:Object,default:{x:16,y:86,height:520,minimized:false}});
   game.settings.register(MODULE_ID, "combatHudDesign", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_COMBAT_HUD_DESIGN)});
   game.settings.register(MODULE_ID, "ahaConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_AHA_CONFIG)});
   game.settings.register(MODULE_ID, "ahaLayout", {scope: "client", config: false, type: Object, default: {x: 220, y: 180, size: 128, visible: false}});
@@ -5764,7 +5773,7 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
     data[field.name] = field.type === "checkbox" ? field.checked : field.value;
   });
   for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "skillPointCost", "talentPointsCurrent", "talentPointsMax", "talentPointsOvercapMax", "punchlineGain", "splashDuration", "splashX", "splashY", "splashScale", "titleX", "titleY", "titleSize", "combatHudPortraitX", "combatHudPortraitY", "combatHudPortraitScale", "ultimateButtonX", "ultimateButtonY", "ultimateButtonScale", "bossPhaseCount", "bossPhase2TokenWidth", "bossPhase2TokenHeight", "bossPhase3TokenWidth", "bossPhase3TokenHeight", "bossHudPortraitX", "bossHudPortraitY", "bossHudPortraitScale", "bossHudWidth", "bossHudHealthHeight", "bossHudToughnessHeight"]) data[key] = Number(data[key]);
-  for (const key of ["enabled", "showPercent", "showHudPercent", "skillEnabled", "techniqueEnabled", "mainParty", "trialCharacter", "combatHudPortraitFlip", "ultimateButtonAdjustEnabled", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter", "isBoss", "bossInheritsMainPhaseCount"]) data[key] = Boolean(data[key]);
+  for (const key of ["enabled", "showPercent", "showHudPercent", "skillEnabled", "techniqueEnabled", "mainParty", "trialCharacter", "combatHudPortraitFlip", "ultimateButtonAdjustEnabled", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter", "isBoss", "bossInheritsMainPhaseCount", "carouselFrameColorOverride"]) data[key] = Boolean(data[key]);
   data.max = Math.max(1, data.max || 100);
   data.current = clamp(data.current, 0, data.max);
   const savedConfig = getConfig(actor);
@@ -5779,6 +5788,7 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
   data.bossPhaseCount = clamp(Math.floor(data.bossPhaseCount || 1), 1, 3);
   for(const key of ["bossPhase2TokenWidth","bossPhase2TokenHeight","bossPhase3TokenWidth","bossPhase3TokenHeight"])data[key]=clamp(data[key],0,20);
   data.bossHudPortraitX=clamp(data.bossHudPortraitX,0,100);data.bossHudPortraitY=clamp(data.bossHudPortraitY,0,100);data.bossHudPortraitScale=clamp(data.bossHudPortraitScale,50,400);data.bossHudWidth=clamp(data.bossHudWidth,420,1400);data.bossHudHealthHeight=clamp(data.bossHudHealthHeight,12,48);data.bossHudToughnessHeight=clamp(data.bossHudToughnessHeight,4,24);
+  data.carouselFrameColor=/^#[0-9a-f]{6}$/i.test(String(data.carouselFrameColor??""))?String(data.carouselFrameColor):"#58dfee";
   data.talentCombatId = talentCombatForActor(actor)?.id ?? "";
   await actor.update({[`flags.${MODULE_ID}.ultimate`]: data}, {tsruAutosave: !notify, render: false});
   refreshOrb(actor);
@@ -5786,6 +5796,7 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
   refreshResourceHuds();
   refreshCombatPartyHud();
   refreshBossHud();
+  refreshInitiativeCarousel();
   if (notify) ui.notifications.info(`${actor.name}'s Ultimate configuration saved.`);
   if (renderApp && app?.render) app.render(false);
   return data;
