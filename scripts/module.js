@@ -61,6 +61,7 @@ const DEFAULT_CONFIG = Object.freeze({
   carouselImageX: 50,
   carouselImageY: 50,
   carouselImageScale: 100,
+  carouselImageFlip: false,
   carouselFrameColorOverride: false,
   carouselFrameColorPreset: "ally-blue",
   carouselFrameColor: "#58dfee",
@@ -139,6 +140,7 @@ const state = {
   partyCombatHud: null,
   bossHud: null,
   bossPhaseControl: null,
+  initiativePortraitEditors: new Map(),
   bossTransitionLocks: new Set()
 };
 state.initiativeCarousel = null;
@@ -327,6 +329,7 @@ function getConfig(actor) {
   config.carouselImageX = clamp(config.carouselImageX, 0, 100);
   config.carouselImageY = clamp(config.carouselImageY, 0, 100);
   config.carouselImageScale = clamp(config.carouselImageScale, 50, 400);
+  config.carouselImageFlip = Boolean(config.carouselImageFlip);
   config.carouselFrameColorOverride = Boolean(config.carouselFrameColorOverride);
   if(!/^#[0-9a-f]{6}$/i.test(String(config.carouselFrameColor??"")))config.carouselFrameColor="#58dfee";
   return config;
@@ -2860,8 +2863,38 @@ function carouselPortraitData(combatant) {
   if (isAhaCombatant(combatant)) return {image:getAhaConfig().combatantImage || getAhaConfig().buttonImage || DEFAULT_AHA_CONFIG.combatantImage,x:50,y:50,scale:100};
   const actor=combatant?.actor;
   const config=getConfig(actor);
-  if(actor?.type==="character")return {image:config.combatHudPortrait || actor.img || combatant.img || "icons/svg/mystery-man.svg",x:config.combatHudPortraitX,y:config.combatHudPortraitY,scale:config.combatHudPortraitScale,flip:config.combatHudPortraitFlip};
-  return {image:config.carouselImage || combatant?.img || actor?.img || "icons/svg/mystery-man.svg",x:config.carouselImageX,y:config.carouselImageY,scale:config.carouselImageScale,flip:false};
+  return {image:config.carouselImage || actor?.img || combatant?.img || "icons/svg/mystery-man.svg",x:config.carouselImageX,y:config.carouselImageY,scale:config.carouselImageScale,flip:config.carouselImageFlip};
+}
+
+function openInitiativePortraitEditor(actor){
+  if(!actor)return;
+  const existing=state.initiativePortraitEditors.get(actor.id);
+  if(existing)return existing.bringToTop?.();
+  const config=getConfig(actor),colors=getInitiativeFrameColors();
+  const frameColor=config.carouselFrameColorOverride?(colors.find(entry=>entry.id===config.carouselFrameColorPreset)?.color||config.carouselFrameColor||"#58dfee"):"#58dfee";
+  const content=`<form class="tsru-initiative-portrait-editor">
+    <div class="tsru-initiative-editor-stage" data-initiative-editor-stage>
+      <button type="button" class="tsru-hsr-turn is-ally is-active ${config.carouselFrameColorOverride?"has-custom-frame":""}" style="--turn-color:${frameColor};--portrait-x:${config.carouselImageX}%;--portrait-y:${config.carouselImageY}%;--portrait-scale:${config.carouselImageScale/100};--portrait-flip:${config.carouselImageFlip?-1:1}"><span class="tsru-hsr-turn-pointer"><i></i></span><span class="tsru-hsr-turn-card"><img src="${escapeHTML(config.carouselImage||actor.img||"icons/svg/mystery-man.svg")}" alt="${escapeHTML(actor.name)}" draggable="false"><b>${escapeHTML(actor.name)}</b><small>19</small></span></button>
+    </div>
+    <p class="notes">Drop artwork into the preview, drag to reposition it, and use the mouse wheel to zoom. Every change saves automatically.</p>
+    <label><strong>Initiative portrait</strong><span class="tsru-file-control"><input type="text" name="carouselImage" value="${escapeHTML(config.carouselImage)}" placeholder="Use actor portrait"><button type="button" data-initiative-image-picker title="Browse Files"><i class="fas fa-file-import"></i></button></span></label>
+    <div class="tsru-initiative-editor-values"><label>X <input type="number" name="carouselImageX" min="0" max="100" value="${config.carouselImageX}"></label><label>Y <input type="number" name="carouselImageY" min="0" max="100" value="${config.carouselImageY}"></label><label>Scale <input type="number" name="carouselImageScale" min="50" max="400" value="${config.carouselImageScale}"></label><label>Flip <input type="checkbox" name="carouselImageFlip" ${config.carouselImageFlip?"checked":""}></label></div>
+    <div class="tsru-initiative-editor-status"><i class="fas fa-check"></i> <span>Saved</span></div>
+  </form>`;
+  let saveTimer=null,saving=false,pending=false,flushSave=()=>{};
+  const dialog=new Dialog({title:`${actor.name} — Initiative Portrait`,content,buttons:{close:{label:"Close"}},render:html=>{
+    const form=html.find(".tsru-initiative-portrait-editor"),stage=form.find("[data-initiative-editor-stage]")[0],image=stage?.querySelector("img"),card=stage?.querySelector(".tsru-hsr-turn"),status=form.find(".tsru-initiative-editor-status span");
+    const values=()=>({carouselImage:String(form.find('[name="carouselImage"]').val()||""),carouselImageX:clamp(Number(form.find('[name="carouselImageX"]').val()),0,100),carouselImageY:clamp(Number(form.find('[name="carouselImageY"]').val()),0,100),carouselImageScale:clamp(Number(form.find('[name="carouselImageScale"]').val()),50,400),carouselImageFlip:Boolean(form.find('[name="carouselImageFlip"]').prop("checked"))});
+    const preview=()=>{const data=values();image.src=data.carouselImage||actor.img||"icons/svg/mystery-man.svg";card.style.setProperty("--portrait-x",`${data.carouselImageX}%`);card.style.setProperty("--portrait-y",`${data.carouselImageY}%`);card.style.setProperty("--portrait-scale",String(data.carouselImageScale/100));card.style.setProperty("--portrait-flip",data.carouselImageFlip?-1:1);};
+    const save=async()=>{if(saving){pending=true;return;}saving=true;pending=false;status.text("Saving…");const data=values();try{await actor.update({[`flags.${MODULE_ID}.ultimate.carouselImage`]:data.carouselImage,[`flags.${MODULE_ID}.ultimate.carouselImageX`]:data.carouselImageX,[`flags.${MODULE_ID}.ultimate.carouselImageY`]:data.carouselImageY,[`flags.${MODULE_ID}.ultimate.carouselImageScale`]:data.carouselImageScale,[`flags.${MODULE_ID}.ultimate.carouselImageFlip`]:data.carouselImageFlip},{tsruAutosave:true,render:false});refreshInitiativeCarousel();status.text("Saved");}catch(error){console.error(`${MODULE_ID} | Initiative portrait autosave failed`,error);status.text("Save failed");}finally{saving=false;if(pending)save();}};
+    flushSave=save;const scheduleSave=()=>{preview();status.text("Unsaved changes…");window.clearTimeout(saveTimer);saveTimer=window.setTimeout(()=>{saveTimer=null;save();},180);};
+    form.on("input change","input",scheduleSave);
+    form.find("[data-initiative-image-picker]").on("click",event=>{event.preventDefault();new FilePicker({type:"image",current:values().carouselImage,callback:path=>form.find('[name="carouselImage"]').val(path).trigger("change")}).browse();});
+    stage.addEventListener("dragover",event=>{event.preventDefault();stage.classList.add("is-dragover");});stage.addEventListener("dragleave",()=>stage.classList.remove("is-dragover"));stage.addEventListener("drop",event=>{event.preventDefault();stage.classList.remove("is-dragover");const path=droppedAssetPath(event);if(path)form.find('[name="carouselImage"]').val(path).trigger("change");});
+    let drag=null;stage.addEventListener("pointerdown",event=>{if(event.button!==0||!event.target.closest(".tsru-hsr-turn-card"))return;event.preventDefault();const data=values();drag={pointerId:event.pointerId,x:event.clientX,y:event.clientY,startX:data.carouselImageX,startY:data.carouselImageY,rect:event.target.closest(".tsru-hsr-turn-card").getBoundingClientRect()};stage.setPointerCapture?.(event.pointerId);});stage.addEventListener("pointermove",event=>{if(!drag||drag.pointerId!==event.pointerId)return;const x=clamp(drag.startX+(event.clientX-drag.x)/Math.max(1,drag.rect.width)*100,0,100),y=clamp(drag.startY+(event.clientY-drag.y)/Math.max(1,drag.rect.height)*100,0,100);form.find('[name="carouselImageX"]').val(Math.round(x));form.find('[name="carouselImageY"]').val(Math.round(y));scheduleSave();});const finish=event=>{if(!drag||drag.pointerId!==event.pointerId)return;stage.releasePointerCapture?.(event.pointerId);drag=null;};stage.addEventListener("pointerup",finish);stage.addEventListener("pointercancel",finish);
+    stage.addEventListener("wheel",event=>{if(!event.target.closest(".tsru-hsr-turn-card"))return;event.preventDefault();const input=form.find('[name="carouselImageScale"]'),next=clamp((Number(input.val())||100)+(event.deltaY<0?5:-5),50,400);input.val(next);scheduleSave();},{passive:false});preview();
+  },close:()=>{if(saveTimer){window.clearTimeout(saveTimer);flushSave();}state.initiativePortraitEditors.delete(actor.id);}}, {width:520,height:"auto",resizable:true,classes:["tsru-initiative-editor-dialog"]});
+  state.initiativePortraitEditors.set(actor.id,dialog);dialog.render(true);
 }
 
 function carouselTurnKind(combatant) {
@@ -5900,11 +5933,6 @@ function activateConfigListeners(actor, tab, app) {
     const draft = {...getConfig(actor), combatHudPortrait:String(tab.find("[name='combatHudPortrait']").val() || ""), combatHudPortraitX:Number(tab.find("[name='combatHudPortraitX']").val()), combatHudPortraitY:Number(tab.find("[name='combatHudPortraitY']").val()), combatHudPortraitScale:Number(tab.find("[name='combatHudPortraitScale']").val()), combatHudPortraitFlip:Boolean(tab.find("[name='combatHudPortraitFlip']").prop("checked")), talentIcon:String(tab.find("[name='talentIcon']").val() || ""), ultimateButtonImage:String(tab.find("[name='ultimateButtonImage']").val() || ""), ultimateButtonAdjustEnabled:Boolean(tab.find("[name='ultimateButtonAdjustEnabled']").prop("checked")), ultimateButtonX:Number(tab.find("[name='ultimateButtonX']").val()), ultimateButtonY:Number(tab.find("[name='ultimateButtonY']").val()), ultimateButtonScale:Number(tab.find("[name='ultimateButtonScale']").val())};
     preview.html(combatHudDesignerPreview(actor,draft));
   };
-  const refreshInitiativePreview=()=>{
-    const preview=tab.find("[data-tsru-initiative-preview]");if(!preview.length)return;
-    const image=String(tab.find("[name='combatHudPortrait']").val()||actor.img||"icons/svg/mystery-man.svg"),x=clamp(Number(tab.find("[name='combatHudPortraitX']").val()),0,100),y=clamp(Number(tab.find("[name='combatHudPortraitY']").val()),0,100),scale=clamp(Number(tab.find("[name='combatHudPortraitScale']").val()),50,300),flip=Boolean(tab.find("[name='combatHudPortraitFlip']").prop("checked")),override=Boolean(tab.find("[name='carouselFrameColorOverride']").prop("checked")),preset=String(tab.find("[name='carouselFrameColorPreset']").val()||""),color=getInitiativeFrameColors().find(entry=>entry.id===preset)?.color||"#58dfee";
-    preview.html(`<button type="button" class="tsru-hsr-turn is-ally is-active ${override?"has-custom-frame":""}" style="--portrait-x:${x}%;--portrait-y:${y}%;--portrait-scale:${scale/100};--portrait-flip:${flip?-1:1};${override?`--turn-color:${color};`:""}"><span class="tsru-hsr-turn-pointer"><i></i></span><span class="tsru-hsr-turn-card"><img src="${escapeHTML(image)}" alt="${escapeHTML(actor.name)}" draggable="false"><b>${escapeHTML(actor.name)}</b><small>19</small></span></button>`);
-  };
   const refreshUltimatePreview = () => {
     const preview = tab.find("[data-tsru-ultimate-preview]");
     if (!preview.length) return;
@@ -5916,9 +5944,8 @@ function activateConfigListeners(actor, tab, app) {
     preview.find("img").attr("src", String(tab.find("[name='ultimateButtonImage']").val() || actor.img || "icons/svg/mystery-man.svg"));
     tab.find(".tsru-ultimate-adjust-controls input").prop("disabled", !enabled);
   };
-  tab.on("input.tsru-preview change.tsru-preview", "[name='combatHudPortrait'], [name='combatHudPortraitX'], [name='combatHudPortraitY'], [name='combatHudPortraitScale'], [name='combatHudPortraitFlip'], [name='carouselFrameColorOverride'], [name='carouselFrameColorPreset'], [name='talentIcon'], [name='ultimateButtonImage'], [name='ultimateButtonAdjustEnabled'], [name='ultimateButtonX'], [name='ultimateButtonY'], [name='ultimateButtonScale']", () => { refreshCombatPortraitPreview(); refreshInitiativePreview(); refreshUltimatePreview(); });
+  tab.on("input.tsru-preview change.tsru-preview", "[name='combatHudPortrait'], [name='combatHudPortraitX'], [name='combatHudPortraitY'], [name='combatHudPortraitScale'], [name='combatHudPortraitFlip'], [name='talentIcon'], [name='ultimateButtonImage'], [name='ultimateButtonAdjustEnabled'], [name='ultimateButtonX'], [name='ultimateButtonY'], [name='ultimateButtonScale']", () => { refreshCombatPortraitPreview(); refreshUltimatePreview(); });
   refreshCombatPortraitPreview();
-  refreshInitiativePreview();
   refreshUltimatePreview();
   const refreshBossPreview=async()=>{const preview=tab.find("[data-tsru-boss-preview]");if(!preview.length)return;const draft={...getConfig(actor)};for(const key of ["bossHudPortrait","bossHudPortraitX","bossHudPortraitY","bossHudPortraitScale","bossHudWidth","bossHudHealthHeight","bossHudToughnessHeight","bossPhase2TokenWidth","bossPhase2TokenHeight","bossPhase3TokenWidth","bossPhase3TokenHeight"]){const field=tab.find(`[name='${key}']`)[0];draft[key]=field?.type==="number"?Number(field.value):String(field?.value||"");}const phases=[actor];for(const name of ["bossPhase2ActorUuid","bossPhase3ActorUuid"]){const uuid=String(tab.find(`[name='${name}']`).val()||"");if(uuid){const phase=await bossActorFromUuid(uuid);if(phase)phases.push(phase);}}preview.html(phases.map((phase,index)=>{const phaseNumber=index+1,size=phaseNumber===1?"Original token size":`${Number(draft[`bossPhase${phaseNumber}TokenWidth`])||phase.prototypeToken?.width||1} × ${Number(draft[`bossPhase${phaseNumber}TokenHeight`])||phase.prototypeToken?.height||1} grid units`;return `<div class="tsru-boss-phase-preview"><b>Phase ${phaseNumber}: ${escapeHTML(phase.name)} <small>(${size})</small></b>${bossDesignerPreview(phase,index===0?draft:{...getConfig(phase),bossHudWidth:draft.bossHudWidth,bossHudHealthHeight:draft.bossHudHealthHeight,bossHudToughnessHeight:draft.bossHudToughnessHeight})}</div>`;}).join(""));};
   tab.on("input.tsru-boss-preview change.tsru-boss-preview","[name='bossHudPortrait'],[name='bossHudPortraitX'],[name='bossHudPortraitY'],[name='bossHudPortraitScale'],[name='bossHudWidth'],[name='bossHudHealthHeight'],[name='bossHudToughnessHeight'],[name='bossPhase2ActorUuid'],[name='bossPhase3ActorUuid'],[name='bossPhase2TokenWidth'],[name='bossPhase2TokenHeight'],[name='bossPhase3TokenWidth'],[name='bossPhase3TokenHeight']",refreshBossPreview);
@@ -5959,16 +5986,7 @@ function activateConfigListeners(actor, tab, app) {
     const input=tab.find("[name='combatHudPortraitScale']"), next=clamp((Number(input.val())||100)+(event.originalEvent.deltaY<0?5:-5),50,300);
     input.val(next).trigger("input");
   });
-  const initiativePreview=tab.find("[data-tsru-initiative-preview]"),initiativeHelp=tab.find(".tsru-initiative-preview-help");
-  tab.find("[data-action='toggle-initiative-preview']").on("click.tsru-initiative-preview",event=>{event.preventDefault();const button=$(event.currentTarget),expanded=button.attr("aria-expanded")!=="true";button.attr("aria-expanded",String(expanded)).html(`<i class="fas fa-${expanded?"eye-slash":"eye"}"></i> ${expanded?"Hide":"Preview"} Initiative Tracker Frame`);initiativePreview.prop("hidden",!expanded);initiativeHelp.prop("hidden",!expanded);if(expanded)refreshInitiativePreview();});
-  const initiativeStage=initiativePreview[0];let initiativeCropDrag=null;
-  if(initiativeStage){
-    initiativeStage.addEventListener("dragover",event=>{event.preventDefault();initiativePreview.addClass("is-dragover");});initiativeStage.addEventListener("dragleave",()=>initiativePreview.removeClass("is-dragover"));initiativeStage.addEventListener("drop",event=>{event.preventDefault();initiativePreview.removeClass("is-dragover");const path=droppedAssetPath(event);if(path)tab.find("[name='combatHudPortrait']").val(path).trigger("change");});
-    initiativeStage.addEventListener("pointerdown",event=>{const card=event.target.closest(".tsru-hsr-turn-card");if(event.button!==0||!card)return;event.preventDefault();initiativeStage.setPointerCapture?.(event.pointerId);initiativeCropDrag={pointerId:event.pointerId,x:event.clientX,y:event.clientY,startX:Number(tab.find("[name='combatHudPortraitX']").val())||50,startY:Number(tab.find("[name='combatHudPortraitY']").val())||50,image:card.querySelector("img"),rect:card.getBoundingClientRect()};});
-    initiativeStage.addEventListener("pointermove",event=>{if(!initiativeCropDrag||event.pointerId!==initiativeCropDrag.pointerId)return;event.preventDefault();const rect=initiativeCropDrag.rect;initiativeCropDrag.nextX=clamp(initiativeCropDrag.startX+(event.clientX-initiativeCropDrag.x)/Math.max(1,rect.width)*100,0,100);initiativeCropDrag.nextY=clamp(initiativeCropDrag.startY+(event.clientY-initiativeCropDrag.y)/Math.max(1,rect.height)*100,0,100);initiativeCropDrag.image?.style.setProperty("object-position",`${initiativeCropDrag.nextX}% ${initiativeCropDrag.nextY}%`);initiativeCropDrag.image?.style.setProperty("transform-origin",`${initiativeCropDrag.nextX}% ${initiativeCropDrag.nextY}%`);});
-    const finishInitiativeCrop=event=>{if(!initiativeCropDrag||event.pointerId!==initiativeCropDrag.pointerId)return;tab.find("[name='combatHudPortraitX']").val(Math.round(initiativeCropDrag.nextX??initiativeCropDrag.startX));tab.find("[name='combatHudPortraitY']").val(Math.round(initiativeCropDrag.nextY??initiativeCropDrag.startY)).trigger("change");initiativeStage.releasePointerCapture?.(event.pointerId);initiativeCropDrag=null;};initiativeStage.addEventListener("pointerup",finishInitiativeCrop);initiativeStage.addEventListener("pointercancel",finishInitiativeCrop);
-    initiativeStage.addEventListener("wheel",event=>{if(!event.target.closest(".tsru-hsr-turn-card"))return;event.preventDefault();event.stopPropagation();const input=tab.find("[name='combatHudPortraitScale']"),next=clamp((Number(input.val())||100)+(event.deltaY<0?5:-5),50,300);input.val(next).trigger("input");},{passive:false});
-  }
+  tab.find("[data-action='open-initiative-portrait-editor']").on("click.tsru-initiative-preview",event=>{event.preventDefault();openInitiativePortraitEditor(actor);});
   const ultimatePreview = tab.find("[data-tsru-ultimate-preview]");
   let ultimateDrag = null;
   ultimatePreview.on("pointerdown.tsru-ultimate-crop", "button", event => {
