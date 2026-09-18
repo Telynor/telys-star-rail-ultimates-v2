@@ -1,6 +1,23 @@
 const MODULE_ID = "telys-star-rail-ultimates";
 const SOCKET = `module.${MODULE_ID}`;
 
+const DEFAULT_PATHS = Object.freeze([
+  {id:"abundance",name:"Abundance",icon:`modules/${MODULE_ID}/assets/paths/Path_Abundance.png`,color:"#e5c878"},
+  {id:"beauty",name:"Beauty",icon:`modules/${MODULE_ID}/assets/paths/Path_Beauty.png`,color:"#e5c878"},
+  {id:"enigmata",name:"Enigmata",icon:`modules/${MODULE_ID}/assets/paths/Path_Enigmata.png`,color:"#e5c878"},
+  {id:"equilibrium",name:"Equilibrium",icon:`modules/${MODULE_ID}/assets/paths/Path_Equilibrium.png`,color:"#e5c878"},
+  {id:"finality",name:"Finality",icon:`modules/${MODULE_ID}/assets/paths/Path_Finality.png`,color:"#e5c878"},
+  {id:"fracture",name:"Fracture",icon:`modules/${MODULE_ID}/assets/paths/Path_Fracture.png`,color:"#e5c878"},
+  {id:"harmony",name:"Harmony",icon:`modules/${MODULE_ID}/assets/paths/Path_Harmony.png`,color:"#e5c878"},
+  {id:"nihility",name:"Nihility",icon:`modules/${MODULE_ID}/assets/paths/Path_Nihility.png`,color:"#e5c878"},
+  {id:"order",name:"Order",icon:`modules/${MODULE_ID}/assets/paths/Path_Order.png`,color:"#e5c878"},
+  {id:"permanence",name:"Permanence",icon:`modules/${MODULE_ID}/assets/paths/Path_Permanence.png`,color:"#e5c878"},
+  {id:"propagation",name:"Propagation",icon:`modules/${MODULE_ID}/assets/paths/Path_Propagation.png`,color:"#e5c878"},
+  {id:"remembrance",name:"Remembrance",icon:`modules/${MODULE_ID}/assets/paths/Path_Remembrance.png`,color:"#e5c878"},
+  {id:"trailblaze",name:"Trailblaze",icon:`modules/${MODULE_ID}/assets/paths/Path_Trailblaze.png`,color:"#e5c878"},
+  {id:"voracity",name:"Voracity",icon:`modules/${MODULE_ID}/assets/paths/Path_Voracity.png`,color:"#e5c878"}
+]);
+
 const DEFAULT_CONFIG = Object.freeze({
   enabled: false,
   current: 0,
@@ -2159,6 +2176,16 @@ function getElements() {
 function getPaths() {
   const stored = game.settings.get(MODULE_ID, "paths") ?? [];
   return (Array.isArray(stored) ? stored : Object.values(stored)).filter(Boolean).map(path => ({...path, color:path.color || "#e5c878"}));
+}
+
+async function ensureDefaultPaths() {
+  if (!game.user.isGM) return false;
+  const stored = getPaths();
+  const names = new Set(stored.map(path => String(path.name || "").trim().toLowerCase()));
+  const missing = DEFAULT_PATHS.filter(path => !names.has(path.name.toLowerCase())).map(path => ({...path}));
+  if (!missing.length) return false;
+  await game.settings.set(MODULE_ID, "paths", [...stored, ...missing]);
+  return true;
 }
 
 function droppedAssetPath(event) {
@@ -5596,7 +5623,7 @@ function openStarRailGMPanel() {
 
 function registerSettings() {
   game.settings.register(MODULE_ID, "elements", {scope: "world", config: false, type: Array, default: []});
-  game.settings.register(MODULE_ID, "paths", {scope: "world", config: false, type: Array, default: []});
+  game.settings.register(MODULE_ID, "paths", {scope: "world", config: false, type: Array, default: DEFAULT_PATHS.map(path => ({...path}))});
   game.settings.register(MODULE_ID, "elementsDraft", {scope: "client", config: false, type: Array, default: []});
   game.settings.register(MODULE_ID, "orbLayouts", {scope: "client", config: false, type: Object, default: {}});
   game.settings.register(MODULE_ID, "selectedMainCharacterId", {scope: "client", config: false, type: String, default: ""});
@@ -6754,7 +6781,8 @@ Hooks.once("init", () => {
   console.log(`${MODULE_ID} | Initialized`);
 });
 
-Hooks.once("ready", () => {
+Hooks.once("ready", async () => {
+  await ensureDefaultPaths();
   game.socket.on(SOCKET, onSocket);
   registerApi();
   applySceneNavigationVisibility();

@@ -27,7 +27,7 @@ jobs:
         shell: bash
         run: |
           zip -r "telys-star-rail-ultimates-v${{ steps.version.outputs.version }}.zip" \
-            module.json README.md LICENSE lang scripts styles templates
+            module.json README.md LICENSE assets lang scripts styles templates
 
       - name: Create or update GitHub release
         env:
