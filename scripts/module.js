@@ -2855,7 +2855,7 @@ function carouselTurnKind(combatant) {
 
 class HsrInitiativeCarousel {
   constructor(){this.element=null;this.drag=null;this.resize=null;this.scrollTop=0;this.currentCombatantId=null;}
-  layout(){const saved=game.settings.get(MODULE_ID,"initiativeCarouselLayout")||{};return {x:Number.isFinite(Number(saved.x))?Number(saved.x):16,y:Number.isFinite(Number(saved.y))?Number(saved.y):86,height:clamp(saved.height??520,180,1200)};}
+  layout(){const saved=game.settings.get(MODULE_ID,"initiativeCarouselLayout")||{},config=getInitiativeCarouselConfig();return {x:0,y:Number.isFinite(Number(saved.y))?Number(saved.y):86,width:clamp(saved.width??config.maximumWidth,190,config.maximumWidth),height:clamp(saved.height??520,180,1200)};}
   async saveLayout(changes={}){const next={...this.layout(),...changes};await game.settings.set(MODULE_ID,"initiativeCarouselLayout",next);return next;}
   turnMarkup(combatant,{active=false,nextRound=false}={}){
     const portrait=carouselPortraitData(combatant),kind=carouselTurnKind(combatant);
@@ -2880,9 +2880,9 @@ class HsrInitiativeCarousel {
       this.element.addEventListener("pointerdown",event=>{const handle=event.target.closest(".tsru-hsr-carousel-drag");if(!handle)return;event.preventDefault();const rect=this.element.getBoundingClientRect();this.drag={dx:event.clientX-rect.left,dy:event.clientY-rect.top};handle.setPointerCapture(event.pointerId);});
       this.element.addEventListener("pointermove",event=>{if(!this.drag)return;this.element.style.left="0px";this.element.style.top=`${clamp(event.clientY-this.drag.dy,0,innerHeight-60)}px`;dockSceneControlsBesideCarousel(this.element);});
       this.element.addEventListener("pointerup",event=>{if(!this.drag)return;this.drag=null;event.target.releasePointerCapture?.(event.pointerId);const rect=this.element.getBoundingClientRect();this.saveLayout({x:0,y:Math.round(rect.top)});dockSceneControlsBesideCarousel(this.element);});
-      this.element.addEventListener("pointerdown",event=>{const handle=event.target.closest(".tsru-hsr-carousel-resize");if(!handle||!getInitiativeCarouselConfig().allowLengthResize)return;event.preventDefault();event.stopPropagation();const rect=this.element.getBoundingClientRect();this.resize={startY:event.clientY,startHeight:rect.height};handle.setPointerCapture(event.pointerId);});
-      this.element.addEventListener("pointermove",event=>{if(!this.resize)return;const config=getInitiativeCarouselConfig();const viewportMaximum=Math.max(180,Math.min(config.maximumHeight,innerHeight-this.element.getBoundingClientRect().top-16));const height=clamp(this.resize.startHeight+event.clientY-this.resize.startY,180,viewportMaximum);this.element.style.height=`${height}px`;dockSceneControlsBesideCarousel(this.element);});
-      this.element.addEventListener("pointerup",event=>{if(!this.resize)return;const height=Math.round(this.element.getBoundingClientRect().height);this.resize=null;event.target.releasePointerCapture?.(event.pointerId);this.saveLayout({height});});
+      this.element.addEventListener("pointerdown",event=>{const handle=event.target.closest(".tsru-hsr-carousel-resize");if(!handle||!getInitiativeCarouselConfig().allowLengthResize)return;event.preventDefault();event.stopPropagation();const rect=this.element.getBoundingClientRect();this.resize={startX:event.clientX,startY:event.clientY,startWidth:rect.width,startHeight:rect.height};handle.setPointerCapture(event.pointerId);});
+      this.element.addEventListener("pointermove",event=>{if(!this.resize)return;const config=getInitiativeCarouselConfig();const viewportMaximum=Math.max(180,Math.min(config.maximumHeight,innerHeight-this.element.getBoundingClientRect().top-16));const height=clamp(this.resize.startHeight+event.clientY-this.resize.startY,180,viewportMaximum),width=clamp(this.resize.startWidth+event.clientX-this.resize.startX,190,Math.min(config.maximumWidth,innerWidth-8));this.element.style.width=`${width}px`;this.element.style.height=`${height}px`;dockSceneControlsBesideCarousel(this.element);});
+      this.element.addEventListener("pointerup",event=>{if(!this.resize)return;const rect=this.element.getBoundingClientRect(),height=Math.round(rect.height),width=Math.round(rect.width);this.resize=null;event.target.releasePointerCapture?.(event.pointerId);this.saveLayout({width,height});dockSceneControlsBesideCarousel(this.element);});
       this.element.addEventListener("wheel",event=>{const viewport=event.target.closest(".tsru-hsr-carousel-viewport");if(!viewport||viewport.scrollHeight<=viewport.clientHeight)return;event.preventDefault();event.stopPropagation();viewport.scrollTop+=event.deltaY;this.scrollTop=viewport.scrollTop;},{passive:false});
     }
     const layout=this.layout(),turns=[...combat.turns].filter(entry=>game.user.isGM||(!entry.hidden&&!entry.token?.hidden));
@@ -2899,11 +2899,11 @@ class HsrInitiativeCarousel {
     else if(turns[0])rows.push(this.turnMarkup(turns[0],{nextRound:true}));
     const maximumHeight=Math.max(180,Math.min(config.maximumHeight,innerHeight-clamp(layout.y,0,innerHeight-60)-16));
     const height=clamp(layout.height,180,maximumHeight);
-    this.element.style.width=`${config.maximumWidth}px`;this.element.style.height=`${height}px`;
+    this.element.style.width=`${layout.width}px`;this.element.style.height=`${height}px`;
     this.element.classList.toggle("is-length-resizable",config.allowLengthResize);
     this.element.classList.toggle("has-gm-controls",game.user.isGM);
     const gmControls=game.user.isGM?`<nav class="tsru-hsr-carousel-gm-controls" aria-label="Combat controls"><button type="button" data-carousel-control="previous-turn" title="Previous turn" aria-label="Previous turn"><i class="fas fa-step-backward"></i></button><button type="button" data-carousel-control="next-turn" title="Next turn" aria-label="Next turn"><i class="fas fa-step-forward"></i></button><button type="button" class="is-danger" data-carousel-control="end-combat" title="End combat" aria-label="End combat"><i class="fas fa-flag-checkered"></i></button></nav>`:"";
-    this.element.innerHTML=`<span class="tsru-hsr-carousel-drag" title="Move initiative carousel vertically"><i class="fas fa-grip-lines"></i></span><div class="tsru-hsr-carousel-viewport"><div class="tsru-hsr-carousel-list">${rows.join("")}</div></div>${gmControls}${config.allowLengthResize?'<span class="tsru-hsr-carousel-resize" title="Resize carousel length"></span>':""}`;
+    this.element.innerHTML=`<span class="tsru-hsr-carousel-drag" title="Move initiative carousel vertically"><i class="fas fa-grip-lines"></i></span><div class="tsru-hsr-carousel-viewport"><div class="tsru-hsr-carousel-list">${rows.join("")}</div></div>${gmControls}${config.allowLengthResize?'<span class="tsru-hsr-carousel-resize" title="Resize carousel width and length"></span>':""}`;
     this.element.querySelector(".tsru-hsr-carousel-viewport").scrollTop=this.scrollTop;
     dockSceneControlsBesideCarousel(this.element);
     return this;
@@ -2922,6 +2922,8 @@ function dockSceneControlsBesideCarousel(carousel=state.initiativeCarousel?.elem
   const panel=sceneControlsPanel();if(!carousel||!panel||!document.body.classList.contains("tsru-hsr-carousel-active"))return;
   const rect=carousel.getBoundingClientRect();panel.classList.add("tsru-controls-docked-by-carousel");panel.style.setProperty("--tsru-controls-left",`${Math.round(rect.right+4)}px`);panel.style.setProperty("--tsru-controls-top",`${Math.round(rect.top)}px`);
 }
+
+function applySceneNavigationVisibility(){document.body.classList.toggle("tsru-hide-scene-navigation",!game.settings.get(MODULE_ID,"showSceneNavigation"));}
 
 class BossHud {
   constructor(){this.element=null;this.drag=null;}
@@ -5312,7 +5314,7 @@ class StarRailGMPanel extends FormApplication {
       };
     });
     const actionCharacters = game.actors.filter(actor => actor.type === "character").sort((left, right) => left.name.localeCompare(right.name)).map(actor => ({id: actor.id, name: actor.name}));
-    return {characters, actionCharacters, sceneEnemies, punchline: currentPunchline(), punchlineOverride: punchlineOverrideEnabled(), skillPoints: currentSkillPoints(), skillPointMax: getSkillPointConfig().maximum, combatants, hasCombat: Boolean(game.combat?.started), initiativeCarousel:getInitiativeCarouselConfig()};
+    return {characters, actionCharacters, sceneEnemies, punchline: currentPunchline(), punchlineOverride: punchlineOverrideEnabled(), skillPoints: currentSkillPoints(), skillPointMax: getSkillPointConfig().maximum, combatants, hasCombat: Boolean(game.combat?.started), initiativeCarousel:getInitiativeCarouselConfig(), showSceneNavigation:game.settings.get(MODULE_ID,"showSceneNavigation")};
   }
   activateListeners(html) {
     super.activateListeners(html);
@@ -5387,6 +5389,7 @@ class StarRailGMPanel extends FormApplication {
       const data={enabled:Boolean(html.find('[name="initiativeCarouselEnabled"]').prop("checked")),allowLengthResize:Boolean(html.find('[name="initiativeCarouselAllowLengthResize"]').prop("checked")),maximumWidth:clamp(html.find('[name="initiativeCarouselMaximumWidth"]').val(),190,420),maximumHeight:clamp(html.find('[name="initiativeCarouselMaximumHeight"]').val(),260,1200)};
       await game.settings.set(MODULE_ID,"initiativeCarouselConfig",data);refreshInitiativeCarousel();ui.notifications.info("HSR initiative carousel settings saved.");this.render(false);
     });
+    html.find('[name="showSceneNavigation"]').on("change",async event=>{await game.settings.set(MODULE_ID,"showSceneNavigation",Boolean(event.currentTarget.checked));applySceneNavigationVisibility();});
     html.find("[data-action='place-action-button']").on("click", async () => {
       const actor = game.actors.get(html.find('[name="actionButtonActor"]').val());
       const action = html.find('[name="actionButtonType"]').val();
@@ -5505,7 +5508,8 @@ function registerSettings() {
   game.settings.register(MODULE_ID, "combatPartyHudLayout", {scope: "client", config: false, type: Object, default: {scale: 1, minimized: false, x: null, y: null}});
   game.settings.register(MODULE_ID, "bossHudLayout", {scope: "client", config: false, type: Object, default: {x: null, y: 54}});
   game.settings.register(MODULE_ID, "initiativeCarouselConfig", {scope:"world",config:false,type:Object,default:foundry.utils.deepClone(DEFAULT_INITIATIVE_CAROUSEL_CONFIG)});
-  game.settings.register(MODULE_ID, "initiativeCarouselLayout", {scope:"client",config:false,type:Object,default:{x:16,y:86,height:520}});
+  game.settings.register(MODULE_ID, "initiativeCarouselLayout", {scope:"client",config:false,type:Object,default:{x:0,y:86,width:null,height:520}});
+  game.settings.register(MODULE_ID, "showSceneNavigation", {scope:"world",config:false,type:Boolean,default:true,onChange:applySceneNavigationVisibility});
   game.settings.register(MODULE_ID, "combatHudDesign", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_COMBAT_HUD_DESIGN)});
   game.settings.register(MODULE_ID, "ahaConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_AHA_CONFIG)});
   game.settings.register(MODULE_ID, "ahaLayout", {scope: "client", config: false, type: Object, default: {x: 220, y: 180, size: 128, visible: false}});
@@ -6654,6 +6658,9 @@ Hooks.once("init", () => {
 Hooks.once("ready", () => {
   game.socket.on(SOCKET, onSocket);
   registerApi();
+  applySceneNavigationVisibility();
+  let controlsDockQueued=false;
+  new MutationObserver(()=>{if(controlsDockQueued)return;controlsDockQueued=true;requestAnimationFrame(()=>{controlsDockQueued=false;dockSceneControlsBesideCarousel();applySceneNavigationVisibility();});}).observe(document.body,{childList:true,subtree:true});
   window.addEventListener("resize",()=>requestAnimationFrame(()=>dockSceneControlsBesideCarousel()));
   refreshAllOrbs();
   refreshAhaButton();
