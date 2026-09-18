@@ -1331,6 +1331,7 @@ async function createElationActionTurns(combat) {
 
   if (!eligible.length) { if (!await finishSpecialAha(combat)) await setPunchline(0); return []; }
   const ahaInitiative = Number(aha.initiative ?? -999);
+  const permanentTurns=combat.turns.filter(entry=>!isElationActionCombatant(entry)&&!isTalentTurnCombatant(entry)&&!entry.getFlag(MODULE_ID,"temporaryUltimate")&&!entry.getFlag(MODULE_ID,"actionAdvance")),ahaIndex=permanentTurns.findIndex(entry=>entry.id===aha.id),nextNatural=ahaIndex>=0?(permanentTurns[ahaIndex+1]??permanentTurns[0]??null):permanentTurns[0]??null,nextRound=ahaIndex>=0&&ahaIndex+1<permanentTurns.length?combat.round:Number(combat.round||0)+1;
   return combat.createEmbeddedDocuments("Combatant", eligible.map((source, index) => ({
     name: `ELATION ACTION — ${source.actor.name}`,
     actorId: source.actor.id,
@@ -1340,7 +1341,7 @@ async function createElationActionTurns(combat) {
     sceneId: null,
     initiative: ahaInitiative - ((index + 1) / 1000),
     img: source.actor.img || "icons/svg/mystery-man.svg",
-    flags: {[MODULE_ID]: {elationActionCombatant: true, sequenceKey, sequenceOrder: index, sourceCombatantId: source.id, resumeRound: combat.round, completed: false}}
+    flags: {[MODULE_ID]: {elationActionCombatant: true, sequenceKey, sequenceOrder: index, sourceCombatantId: source.id, resumeCombatantId:nextNatural?.id??null, resumeRound:nextRound, completed: false}}
   })));
 }
 
@@ -3524,6 +3525,7 @@ async function completeElationAction(combatantId, userId) {
   state.activeElationActions.delete(combatantId);
   if (!combatant || !isElationActionCombatant(combatant)) return;
   const resumeRound = combatant.getFlag(MODULE_ID, "resumeRound") ?? combat.round;
+  const resumeCombatantId=combatant.getFlag(MODULE_ID,"resumeCombatantId");
   const remainingIds = combat.turns
     .filter(entry => entry.id !== combatantId && isElationActionCombatant(entry) && !entry.getFlag(MODULE_ID, "completed"))
     .sort((left, right) => Number(left.getFlag(MODULE_ID, "sequenceOrder")) - Number(right.getFlag(MODULE_ID, "sequenceOrder")))
@@ -3540,9 +3542,12 @@ async function completeElationAction(combatantId, userId) {
     return;
   }
   if (await finishSpecialAha(combat)) return;
-  await clearElationActionTurns(combat, {resetPunchline: true, resume: true, resumeRound});
   const advance=state.actionAdvances.get(combat.id);
-  if(advance?.aha)await finishActionAdvance(combat,advance);
+  if(advance?.aha){await clearElationActionTurns(combat,{resetPunchline:true});await finishActionAdvance(combat,advance);return;}
+  await clearElationActionTurns(combat,{resetPunchline:true});
+  const resumeIndex=combat.turns.findIndex(entry=>entry.id===resumeCombatantId);
+  if(resumeIndex>=0)await combat.update({round:Number(resumeRound),turn:resumeIndex});
+  else if(combat.started)await combat.update({round:Number(resumeRound),turn:0});
 }
 
 async function executeElationAction(combatant) {
