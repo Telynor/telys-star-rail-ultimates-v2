@@ -1,7489 +1,5620 @@
-const MODULE_ID = "telys-star-rail-ultimates";
-const SOCKET = `module.${MODULE_ID}`;
-
-const DEFAULT_PATHS = Object.freeze([
-  {id:"abundance",name:"Abundance",icon:`modules/${MODULE_ID}/assets/paths/Path_Abundance.png`,color:"#e5c878"},
-  {id:"beauty",name:"Beauty",icon:`modules/${MODULE_ID}/assets/paths/Path_Beauty.png`,color:"#e5c878"},
-  {id:"enigmata",name:"Enigmata",icon:`modules/${MODULE_ID}/assets/paths/Path_Enigmata.png`,color:"#e5c878"},
-  {id:"equilibrium",name:"Equilibrium",icon:`modules/${MODULE_ID}/assets/paths/Path_Equilibrium.png`,color:"#e5c878"},
-  {id:"finality",name:"Finality",icon:`modules/${MODULE_ID}/assets/paths/Path_Finality.png`,color:"#e5c878"},
-  {id:"fracture",name:"Fracture",icon:`modules/${MODULE_ID}/assets/paths/Path_Fracture.png`,color:"#e5c878"},
-  {id:"harmony",name:"Harmony",icon:`modules/${MODULE_ID}/assets/paths/Path_Harmony.png`,color:"#e5c878"},
-  {id:"nihility",name:"Nihility",icon:`modules/${MODULE_ID}/assets/paths/Path_Nihility.png`,color:"#e5c878"},
-  {id:"order",name:"Order",icon:`modules/${MODULE_ID}/assets/paths/Path_Order.png`,color:"#e5c878"},
-  {id:"permanence",name:"Permanence",icon:`modules/${MODULE_ID}/assets/paths/Path_Permanence.png`,color:"#e5c878"},
-  {id:"propagation",name:"Propagation",icon:`modules/${MODULE_ID}/assets/paths/Path_Propagation.png`,color:"#e5c878"},
-  {id:"remembrance",name:"Remembrance",icon:`modules/${MODULE_ID}/assets/paths/Path_Remembrance.png`,color:"#e5c878"},
-  {id:"trailblaze",name:"Trailblaze",icon:`modules/${MODULE_ID}/assets/paths/Path_Trailblaze.png`,color:"#e5c878"},
-  {id:"voracity",name:"Voracity",icon:`modules/${MODULE_ID}/assets/paths/Path_Voracity.png`,color:"#e5c878"}
-]);
-
-const DEFAULT_CONFIG = Object.freeze({
-  enabled: false,
-  current: 0,
-  max: 100,
-  regenScore: 10,
-  attackGain: 10,
-  attackedGain: 5,
-  attackedMode: "hit",
-  mainParty: false,
-  partyGMOverride: false,
-  receivesRewards: false,
-  lockEnergyAfterUltimate: true,
-  energyLockCombatId: "",
-  energyLockRound: null,
-  breakCharacter: false,
-  superBreakCharacter: false,
-  breakEffectScore: 10,
-  breakDamageDice: 1,
-  breakDamageDie: 6,
-  isBoss: false,
-  bossPhaseCount: 1,
-  bossPhase2ActorUuid: "",
-  bossPhase3ActorUuid: "",
-  bossPhase2TokenWidth: 0,
-  bossPhase2TokenHeight: 0,
-  bossPhase3TokenWidth: 0,
-  bossPhase3TokenHeight: 0,
-  bossInheritsMainPhaseCount: false,
-  bossHudPortrait: "",
-  bossHudPortraitX: 50,
-  bossHudPortraitY: 50,
-  bossHudPortraitScale: 100,
-  bossHudWidth: 920,
-  bossHudHealthHeight: 20,
-  bossHudToughnessHeight: 9,
-  skillEnabled: true,
-  skillScript: "",
-  skillText: "",
-  skillPointCost: 1,
-  skillButtonImage: "",
-  techniqueEnabled: false,
-  techniqueText: "",
-  techniqueButtonImage: "",
-  talentPointsCurrent: 0,
-  talentPointsMax: 0,
-  talentPointsOvercapMax: 0,
-  talentCombatId: "",
-  talentScript: "",
-  talentText: "",
-  talentIcon: "",
-  trialCharacter: false,
-  combatHudPortrait: "",
-  combatHudPortraitX: 50,
-  combatHudPortraitY: 50,
-  combatHudPortraitScale: 100,
-  combatHudPortraitFlip: false,
-  carouselImage: "",
-  carouselImageX: 50,
-  carouselImageY: 50,
-  carouselImageScale: 100,
-  carouselImageFlip: false,
-  carouselFrameColorOverride: false,
-  carouselFrameColorPreset: "ally-blue",
-  carouselFrameColor: "#58dfee",
-  punchlineGain: 1,
-  elationActionScript: "",
-  elationActionText: "",
-  ultimateScript: "",
-  ultimateText: "",
-  splashImage: "",
-  splashDuration: 1,
-  splashX: 50,
-  splashY: 50,
-  splashScale: 100,
-  ultimateName: "Ultimate",
-  ultimateSubtitle: "",
-  titleX: 17,
-  titleY: 78,
-  titleSize: 48,
-  titleAlign: "left",
-  fontFile: "",
-  subtitleFontFile: "",
-  ultimateButtonImage: "",
-  ultimateButtonAdjustEnabled: false,
-  ultimateButtonX: 50,
-  ultimateButtonY: 50,
-  ultimateButtonScale: 100,
-  orbImage: "",
-  chargeColor: "#596171",
-  readyColor: "#20e6ff",
-  showPercent: true,
-  showHudPercent: true,
-  elementId: "",
-  pathId: ""
-});
-
-const state = {
-  orbs: new Map(),
-  skillButtons: new Map(),
-  talentButtons: new Map(),
-  techniqueButtons: new Map(),
-  skillMeter: null,
-  skillLocks: new Set(),
-  pendingSkills: new Map(),
-  skillSpendLock: false,
-  talentPointHud: null,
-  talentTurnQueues: new Map(),
-  talentTurnQueueLocks: new Set(),
-  techniqueHud: null,
-  techniqueSpendLock: false,
-  ahaButton: null,
-  ahaCombatantPromises: new Map(),
-  punchlineMeter: null,
-  pendingElationActions: new Map(),
-  activeElationActions: new Set(),
-  lastElationSequenceKey: "",
-  processedMessages: new Set(),
-  ultimateLocks: new Set(),
-  pendingUltimates: new Map(),
-  ultimateQueues: new Map(),
-  splashBroadcasts: new Map(),
-  receivedSplashIds: new Set(),
-  lastTargetsByActor: new Map(),
-  recentToughness: new Map(),
-  lastDamageDisplay: null,
-  activeTalents: new Set(),
-  talentEvents: new Set(),
-  lastTalentTurns: new Map(),
-  lastCombatTurns: new Map(),
-  specialAha: null,
-  gmPanel: null,
-  actionAdvances: new Map(),
-  sheetObservers: new WeakMap(),
-  suppressCombatHook: false,
-  lastAhaTurnKey: "",
-  ahaVideoCache: {source: "", objectUrl: "", promise: null},
-  partyCombatHud: null,
-  bossHud: null,
-  bossPhaseControl: null,
-  initiativePortraitEditors: new Map(),
-  bossTransitionLocks: new Set()
-};
-state.craftingApp = null;
-state.craftingLocks = new Set();
-state.initiativeCarousel = null;
-state.bossTransitionVisuals = 0;
-state.bossTransitionVisualsUntil = 0;
-
-let ahaToolbarOpening = false;
-let gmToolbarOpening = false;
-
-const DEFAULT_AHA_CONFIG = Object.freeze({
-  elationEnabled: false,
-  elationPathId: "",
-  punchlineIcon: "icons/svg/mask.svg",
-  punchlineFontFile: "",
-  punchlineFontSize: 39,
-  punchlineIconOffsetX: 0,
-  punchlineIconOffsetY: 0,
-  video: "",
-  buttonImage: "icons/svg/explosion.svg",
-  color: "#ff4fd8",
-  initiativeEnabled: false,
-  combatantImage: "icons/svg/mystery-man.svg"
-});
-
-const DEFAULT_TECHNIQUE_POINT_CONFIG = Object.freeze({
-  maximum: 5,
-  starting: 3
-});
-
-const DEFAULT_SKILL_POINT_CONFIG = Object.freeze({
-  maximum: 5,
-  starting: 3,
-  pointsPerRow: 5,
-  pointSpacing: 1,
-  illuminatedIcon: "icons/svg/sun.svg",
-  emptyIcon: "icons/svg/circle.svg",
-  numberFontFile: ""
-});
-
-const DEFAULT_TALENT_POINT_CONFIG = Object.freeze({
-  numberFontFile: ""
-});
-
-const DEFAULT_COMBAT_HUD_DESIGN = Object.freeze({
-  memberWidth: 184, memberHeight: 150,
-  portraitLeft: 0, portraitRight: 25, portraitTop: 0, portraitBottom: 17,
-  hpLeft: 22, hpRight: 0, hpBottom: 20, hpHeight: 9,
-  orbRight: 7, orbBottom: 34, orbSize: 54,
-  talentLeft: 5, talentBottom: 20, talentSize: 32,
-  nameLeft: 8, nameBottom: 0, nameWidth: 128
-});
-
-const DEFAULT_INITIATIVE_CAROUSEL_CONFIG = Object.freeze({
-  enabled: true,
-  allowLengthResize: true,
-  maximumWidth: 220,
-  maximumHeight: 900
-});
-const DEFAULT_INITIATIVE_FRAME_COLORS=Object.freeze([
-  {id:"ally-blue",name:"Ally Blue",color:"#58dfee"},
-  {id:"enemy-red",name:"Enemy Red",color:"#e54b55"},
-  {id:"elation-pink",name:"Elation Pink",color:"#ff77df"},
-  {id:"gold",name:"Gold",color:"#e5c878"}
-]);
-
-const DEFAULT_TOUGHNESS = Object.freeze({enabled: true, current: 100, max: 100, weaknesses: [], temporaryWeaknesses: [], discoveredWeaknesses: []});
-
-const DEFAULT_EIDOLON_CONFIG = Object.freeze({
-  backgroundImage: "",
-  fiveShardOverlay: "",
-  e3Overlay: "",
-  referenceImage: "",
-  titleFontFile: "",
-  mask1: "",
-  mask2: "",
-  mask3: "",
-  mask4: "",
-  mask5: "",
-  mask6: ""
-});
-
-const EIDOLON_MASKS = Object.freeze({
-  1: "polygon(29.1% 0%, 48.5% 0%, 48.6% 22.7%, 50.5% 32.5%, 47.2% 33.0%, 42.0% 28.0%, 36.8% 25.2%, 32.3% 17.3%)",
-  2: "polygon(53.2% 0%, 73.8% 0%, 73.2% 28.7%, 70.7% 41.7%, 67.6% 52.0%, 60.5% 55.5%, 52.5% 42.0%, 51.8% 24.0%)",
-  3: "polygon(73.5% 0%, 100% 0%, 100% 46.0%, 91.8% 48.8%, 83.3% 47.7%, 80.4% 42.8%, 81.8% 31.8%, 72.6% 25.0%)",
-  4: "polygon(73.0% 51.2%, 91.8% 49.6%, 90.7% 67.8%, 86.8% 75.0%, 84.6% 90.0%, 78.0% 93.5%, 74.2% 100%, 68.4% 98.0%, 64.0% 81.5%, 63.8% 73.5%)",
-  5: "polygon(48.5% 47.0%, 56.0% 57.0%, 63.0% 81.0%, 62.2% 88.0%, 62.2% 100%, 54.5% 100%, 47.5% 93.0%, 42.7% 88.5%, 38.7% 80.0%, 41.8% 70.0%, 44.0% 56.0%)",
-  6: "polygon(34.2% 33.8%, 52.0% 35.3%, 47.7% 54.0%, 41.0% 68.3%, 35.2% 75.0%, 28.7% 80.5%, 22.0% 79.4%, 18.4% 72.0%, 14.5% 61.0%, 15.8% 50.2%, 24.8% 42.5%)"
-});
-
-function defaultEidolonSlots() {
-  return Array.from({length: 6}, (_entry, index) => ({
-    number: index + 1,
-    active: false,
-    title: `Eidolon ${index + 1}`,
-    artwork: "",
-    offsetX: 0,
-    offsetY: 0,
-    scale: 100
-  }));
-}
-
-function getEidolonConfig() {
-  return foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_EIDOLON_CONFIG), game.settings.get(MODULE_ID, "eidolonConfig") ?? {}, {inplace: false, insertKeys: true, overwrite: true});
-}
-
-function getEidolons(actor) {
-  const stored = actor?.getFlag(MODULE_ID, "eidolons") ?? {};
-  const slots = defaultEidolonSlots().map((fallback, index) => {
-    const value = Array.isArray(stored.slots) ? stored.slots[index] ?? {} : {};
-    return {...fallback, ...value, number: index + 1, active: Boolean(value.active), offsetX: clamp(value.offsetX, -100, 100), offsetY: clamp(value.offsetY, -100, 100), scale: clamp(value.scale || 100, 25, 400)};
-  });
-  return {currencyUuid: String(stored.currencyUuid ?? ""), slots};
-}
-
-function eidolonDataDefaults() {
-  return {currencyUuid: "", slots: defaultEidolonSlots()};
-}
-
-function activeGM() {
-  return game.users?.find(user => user.active && user.isGM);
-}
-
-function isAuthority() {
-  return game.user?.isGM && activeGM()?.id === game.user.id;
-}
-
-function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, Number(value) || 0));
-}
-
-function signedNumber(value) {
-  const number = Number(value) || 0;
-  return number >= 0 ? `+${number}` : String(number);
-}
-
-function escapeHTML(value) {
-  const div = document.createElement("div");
-  div.textContent = String(value ?? "");
-  return div.innerHTML;
-}
-
-function resolveAssetUrl(path) {
-  const value = String(path || "").trim();
-  if (!value) return "";
-  try {
-    return new URL(value, document.baseURI).href;
-  } catch (_error) {
-    return value;
-  }
-}
-
-function resolveActorSheetRoot(app, html) {
-  const appElement = app?.element?.jquery ? app.element[0] : app?.element;
-  const htmlElement = html?.jquery ? html[0] : html instanceof HTMLElement ? html : null;
-  const enclosingElement = htmlElement?.closest?.(".application, .window-app, [data-appid]");
-  const candidates = [htmlElement, enclosingElement, appElement].filter((element, index, list) => element instanceof HTMLElement && list.indexOf(element) === index);
-  const navigation = 'nav.tabs[data-group="primary"], nav.sheet-tabs[data-group="primary"], .tabs-right nav.tabs';
-  const content = '.tab-body, .sheet-body, [data-application-part="body"]';
-  return candidates.find(element => {
-    const root = $(element);
-    return root.find(navigation).length && root.find(content).length;
-  }) ?? enclosingElement ?? appElement ?? htmlElement;
-}
-
-function getConfig(actor) {
-  const stored = actor?.getFlag(MODULE_ID, "ultimate") ?? {};
-  const config = foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_CONFIG), stored, {
-    inplace: false,
-    insertKeys: true,
-    overwrite: true
-  });
-  config.max = Math.max(1, Number(config.max) || 100);
-  config.current = clamp(config.current, 0, config.max);
-  config.skillPointCost = Math.max(0, Math.floor(Number(config.skillPointCost) || 0));
-  config.talentPointsMax = Math.max(0, Math.floor(Number(config.talentPointsMax) || 0));
-  config.talentPointsOvercapMax = Math.max(config.talentPointsMax, Math.floor(Number(config.talentPointsOvercapMax) || config.talentPointsMax));
-  config.bossPhaseCount = clamp(Math.floor(Number(config.bossPhaseCount) || 1), 1, 3);
-  for(const key of ["bossPhase2TokenWidth","bossPhase2TokenHeight","bossPhase3TokenWidth","bossPhase3TokenHeight"])config[key]=clamp(config[key],0,20);
-  config.bossHudPortraitX = clamp(config.bossHudPortraitX, 0, 100);
-  config.bossHudPortraitY = clamp(config.bossHudPortraitY, 0, 100);
-  config.bossHudPortraitScale = clamp(config.bossHudPortraitScale, 50, 400);
-  config.bossHudWidth = clamp(config.bossHudWidth, 420, 1400);
-  config.bossHudHealthHeight = clamp(config.bossHudHealthHeight, 12, 48);
-  config.bossHudToughnessHeight = clamp(config.bossHudToughnessHeight, 4, 24);
-  config.carouselImageX = clamp(config.carouselImageX, 0, 100);
-  config.carouselImageY = clamp(config.carouselImageY, 0, 100);
-  config.carouselImageScale = clamp(config.carouselImageScale, 50, 400);
-  config.carouselImageFlip = Boolean(config.carouselImageFlip);
-  config.carouselFrameColorOverride = Boolean(config.carouselFrameColorOverride);
-  if(!/^#[0-9a-f]{6}$/i.test(String(config.carouselFrameColor??"")))config.carouselFrameColor="#58dfee";
-  return config;
-}
-
-function getInitiativeCarouselConfig() {
-  const stored = game.settings.get(MODULE_ID, "initiativeCarouselConfig") ?? {};
-  const config = foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_INITIATIVE_CAROUSEL_CONFIG), stored, {inplace:false, insertKeys:true, overwrite:true});
-  config.enabled = Boolean(config.enabled);
-  config.allowLengthResize = config.allowLengthResize !== false;
-  config.maximumWidth = clamp(config.maximumWidth, 190, 420);
-  config.maximumHeight = clamp(config.maximumHeight, 260, 1200);
-  return config;
-}
-
-function getInitiativeFrameColors(){const stored=game.settings.get(MODULE_ID,"initiativeFrameColors");return (Array.isArray(stored)&&stored.length?stored:DEFAULT_INITIATIVE_FRAME_COLORS).map(entry=>({id:String(entry.id||foundry.utils.randomID()),name:String(entry.name||"Frame Color"),color:/^#[0-9a-f]{6}$/i.test(String(entry.color||""))?String(entry.color):"#58dfee"}));}
-function resolvedInitiativeFrameColor(config){return getInitiativeFrameColors().find(entry=>entry.id===config.carouselFrameColorPreset)?.color||config.carouselFrameColor||"#58dfee";}
-function initiativeFrameColorOptions(config){const selected=String(config.carouselFrameColorPreset||"");return getInitiativeFrameColors().map(entry=>({...entry,selected:entry.id===selected}));}
-
-function getToughness(actor) {
-  const stored = actor?.getFlag(MODULE_ID, "toughness") ?? {};
-  const config = foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_TOUGHNESS), stored, {inplace: false, insertKeys: true, overwrite: true});
-  config.enabled = Object.hasOwn(stored, "enabled") ? Boolean(stored.enabled) : actor?.type === "npc";
-  config.max = Math.max(1, Number(config.max) || 100);
-  config.current = clamp(config.current, 0, config.max);
-  config.weaknesses = Array.isArray(config.weaknesses) ? config.weaknesses : [];
-  config.temporaryWeaknesses = Array.isArray(config.temporaryWeaknesses) ? config.temporaryWeaknesses : [];
-  config.discoveredWeaknesses = Array.isArray(config.discoveredWeaknesses) ? config.discoveredWeaknesses : [];
-  return config;
-}
-
-function toughnessTargetParts(target) {
-  const tokenDocument = target?.documentName === "Token" ? target
-    : target?.document?.documentName === "Token" ? target.document
-    : target?.documentName === "Actor" && target?.parent?.documentName === "Token" ? target.parent
-    : null;
-  const actor = tokenDocument?.actor ?? target?.actor ?? target;
-  return {actor, tokenDocument};
-}
-
-function temporaryToughnessWeaknesses(target) {
-  const {actor, tokenDocument} = toughnessTargetParts(target);
-  const tokenValues = tokenDocument?.getFlag(MODULE_ID, "temporaryWeaknesses");
-  return Array.isArray(tokenValues) ? tokenValues : getToughness(actor).temporaryWeaknesses;
-}
-
-function toughnessWeaknessMode(target) {
-  const {actor, tokenDocument} = toughnessTargetParts(target);
-  return String(tokenDocument?.getFlag(MODULE_ID, "weaknessMode") ?? actor?.getFlag(MODULE_ID, "weaknessMode") ?? "");
-}
-
-function effectiveToughnessWeaknesses(target) {
-  const mode = toughnessWeaknessMode(target);
-  if (mode === "none") return [];
-  if (mode === "all") return getElements().map(element => element.id);
-  const {actor} = toughnessTargetParts(target);
-  const config = getToughness(actor);
-  return [...new Set([...config.weaknesses, ...temporaryToughnessWeaknesses(target)])];
-}
-
-async function setToughnessWeaknessMode(target, mode = "") {
-  if (!game.user.isGM || !["", "all", "none"].includes(mode)) return false;
-  const {actor, tokenDocument} = toughnessTargetParts(target);
-  if (!actor || !["npc","character"].includes(actor.type)) return false;
-  if (tokenDocument) await tokenDocument.setFlag(MODULE_ID, "weaknessMode", mode);
-  else await actor.setFlag(MODULE_ID, "weaknessMode", mode);
-  refreshToughnessBars();
-  return true;
-}
-
-async function setTemporaryToughnessWeaknesses(target, elementIds) {
-  const {actor, tokenDocument} = toughnessTargetParts(target);
-  if (!game.user.isGM || !actor || !["npc","character"].includes(actor.type)) return false;
-  const config = getToughness(actor);
-  const valid = new Set(getElements().map(element => element.id));
-  const temporaryWeaknesses = [...new Set(elementIds ?? [])].filter(id => valid.has(id) && !config.weaknesses.includes(id));
-  if (tokenDocument) await tokenDocument.setFlag(MODULE_ID, "temporaryWeaknesses", temporaryWeaknesses);
-  else await actor.update({[`flags.${MODULE_ID}.toughness.temporaryWeaknesses`]: temporaryWeaknesses});
-  await setToughnessWeaknessMode(target, "");
-  refreshToughnessBars();
-  return true;
-}
-
-async function addTemporaryToughnessWeakness(target, elementId) {
-  return setTemporaryToughnessWeaknesses(target, [...temporaryToughnessWeaknesses(target), elementId]);
-}
-
-async function resetTemporaryToughnessWeaknesses(target = null) {
-  if (!game.user.isGM) return 0;
-  const targets = target ? [target] : (canvas.tokens?.placeables ?? []).filter(token => ["npc","character"].includes(token.actor?.type)).map(token => token.document);
-  let reset = 0;
-  for (const entry of targets) {
-    const {actor, tokenDocument} = toughnessTargetParts(entry);
-    const config = getToughness(actor);
-    if (!temporaryToughnessWeaknesses(entry).length && !toughnessWeaknessMode(entry)) continue;
-    if (tokenDocument) await tokenDocument.setFlag(MODULE_ID, "temporaryWeaknesses", []);
-    else await actor.update({[`flags.${MODULE_ID}.toughness.temporaryWeaknesses`]: []});
-    if (tokenDocument) await tokenDocument.unsetFlag(MODULE_ID, "weaknessMode");
-    else await actor.unsetFlag(MODULE_ID, "weaknessMode");
-    await actor.update({[`flags.${MODULE_ID}.toughness.discoveredWeaknesses`]: config.discoveredWeaknesses.filter(id => config.weaknesses.includes(id))});
-    reset++;
-  }
-  refreshToughnessBars();
-  return reset;
-}
-
-async function setToughness(actor, value) {
-  if (!actor || !game.user.isGM) return;
-  const config = getToughness(actor);
-  await actor.update({[`flags.${MODULE_ID}.toughness.current`]: clamp(value, 0, config.max)});
-}
-
-async function resetCanvasToughness() {
-  if (!game.user.isGM) return ui.notifications.warn("Only a GM can reset Toughness.");
-  if (!canvas?.ready) return ui.notifications.warn("Open a Scene before resetting Toughness.");
-  const actors = new Map();
-  for (const token of canvas.tokens?.placeables ?? []) {
-    const actor = token.actor;
-    if (!actor || !["npc","character"].includes(actor.type)) continue;
-    const stored = actor.getFlag(MODULE_ID, "toughness");
-    if (!stored || !getToughness(actor).enabled) continue;
-    actors.set(actor.uuid, actor);
-  }
-  if (!actors.size) return ui.notifications.info("No Toughness-enabled actors are present on this Scene.");
-  const confirmed = await Dialog.confirm({
-    title: "Reset All Toughness",
-    content: `<p>Restore the current Toughness of <strong>${actors.size}</strong> actor${actors.size === 1 ? "" : "s"} on this Scene to each actor's configured maximum?</p><p>Weaknesses and maximum values will not be changed.</p>`,
-    yes: () => true,
-    no: () => false,
-    defaultYes: false
-  });
-  if (!confirmed) return;
-  let reset = 0;
-  for (const actor of actors.values()) {
-    const toughness = getToughness(actor);
-    if (toughness.current === toughness.max) continue;
-    await actor.update({[`flags.${MODULE_ID}.toughness.current`]: toughness.max});
-    reset++;
-  }
-  refreshToughnessBars();
-  ui.notifications.info(`Reset Toughness for ${reset} actor${reset === 1 ? "" : "s"}.`);
-}
-
-function regenModifier(config) {
-  const parsed = Number(config.regenScore);
-  const score = Number.isFinite(parsed) ? clamp(parsed, 1, 30) : 10;
-  return Math.floor((score - 10) / 2);
-}
-
-function breakEffectModifier(config) {
-  const parsed = Number(config.breakEffectScore);
-  const score = Number.isFinite(parsed) ? clamp(parsed, 1, 30) : 10;
-  return Math.floor((score - 10) / 2);
-}
-
-function energyAbilityMarkup(actor, tagName = "div") {
-  const config = getConfig(actor);
-  const editable = game.user.isGM || actor.isOwner;
-  return `<${tagName} class="tsru-energy-ability ability-score" data-tsru-energy-ability data-actor-id="${actor.id}" title="Energy gained = base gain + Energy Regen modifier">
-    <div class="tsru-energy-ability-label">ENERGY REGEN</div>
-    <div class="tsru-energy-ability-modifier">${signedNumber(regenModifier(config))}</div>
-    <input class="tsru-energy-ability-score" type="number" min="1" max="30" step="1" value="${Number.isFinite(Number(config.regenScore)) ? clamp(config.regenScore, 1, 30) : 10}" aria-label="Energy Regen ability score" ${editable ? "" : "disabled"}>
-  </${tagName}>`;
-}
-
-function breakAbilityMarkup(actor, tagName = "div") {
-  const config = getConfig(actor);
-  const editable = game.user.isGM || actor.isOwner;
-  return `<${tagName} class="tsru-energy-ability tsru-break-ability ability-score" data-tsru-break-ability data-actor-id="${actor.id}" title="Break damage multiplier uses the Break Effect modifier">
-    <div class="tsru-energy-ability-label">BREAK EFFECT</div>
-    <div class="tsru-energy-ability-modifier">${signedNumber(breakEffectModifier(config))}</div>
-    <input class="tsru-energy-ability-score" type="number" min="1" max="30" step="1" value="${Number.isFinite(Number(config.breakEffectScore)) ? clamp(config.breakEffectScore, 1, 30) : 10}" aria-label="Break Effect ability score" ${editable ? "" : "disabled"}>
-  </${tagName}>`;
-}
-
-async function injectEnergyAbility(app, html, attempt = 0) {
-  const actor = app.actor ?? app.document;
-  if (actor?.documentName !== "Actor" || actor.type !== "character") return;
-  const appElement = app.element?.jquery ? app.element[0] : app.element;
-  const hookElement = html?.jquery ? html[0] : html instanceof HTMLElement ? html : null;
-  const rootElement = appElement?.isConnected ? appElement : hookElement;
-  if (!rootElement) {
-    if (attempt < 6) window.setTimeout(() => injectEnergyAbility(app, null, attempt + 1), 75);
-    return;
-  }
-  const root = $(rootElement);
-  if (root.find("[data-tsru-energy-ability]").length) return;
-  const explicitCha = root.find('[data-ability="cha"], [data-ability-id="cha"], [data-key="cha"]').filter((_index, element) => {
-    const rect = element.getBoundingClientRect();
-    return rect.width >= 45 && rect.width <= 160 && rect.height >= 40 && rect.height <= 150 && /\bCHA\b/i.test(element.textContent);
-  }).first();
-  let chaCard = explicitCha;
-  if (!chaCard.length) {
-    chaCard = root.find("li, div").filter((_index, element) => {
-      const rect = element.getBoundingClientRect();
-      const text = element.textContent?.replace(/\s+/g, " ").trim() ?? "";
-      return rect.width >= 45 && rect.width <= 160 && rect.height >= 45 && rect.height <= 130 && /^CHA\b/i.test(text) && /[+-]\d/.test(text);
-    }).first();
-  }
-  if (!chaCard.length) {
-    if (attempt < 6) window.setTimeout(() => injectEnergyAbility(app, null, attempt + 1), 75);
-    else console.debug(`${MODULE_ID} | CHA ability card not found for`, actor.name);
-    return;
-  }
-  const tagName = chaCard.prop("tagName")?.toLowerCase() || "div";
-  chaCard.after(`${energyAbilityMarkup(actor, tagName)}${breakAbilityMarkup(actor, tagName)}`);
-  const card = chaCard.next("[data-tsru-energy-ability]");
-  card.parent().addClass("tsru-seven-ability-row");
-  const score = card.find(".tsru-energy-ability-score");
-  score.on("input.tsru", event => {
-    event.stopPropagation();
-    const value = clamp(event.currentTarget.value, 1, 30);
-    card.find(".tsru-energy-ability-modifier").text(signedNumber(Math.floor((value - 10) / 2)));
-  });
-  score.on("change.tsru", async event => {
-    event.preventDefault();
-    event.stopPropagation();
-    if (!(game.user.isGM || actor.isOwner)) return;
-    const value = clamp(event.currentTarget.value, 1, 30);
-    event.currentTarget.value = value;
-    const updatedConfig = foundry.utils.deepClone(getConfig(actor));
-    updatedConfig.regenScore = value;
-    await actor.setFlag(MODULE_ID, "ultimate", updatedConfig);
-    card.find(".tsru-energy-ability-modifier").text(signedNumber(Math.floor((value - 10) / 2)));
-    ui.notifications.info(`${actor.name}'s Energy Regen is now ${value} (${signedNumber(Math.floor((value - 10) / 2))}).`);
-  });
-  const breakCard = card.next("[data-tsru-break-ability]");
-  const breakScore = breakCard.find(".tsru-energy-ability-score");
-  breakScore.on("input.tsru", event => {
-    event.stopPropagation();
-    const value = clamp(event.currentTarget.value, 1, 30);
-    breakCard.find(".tsru-energy-ability-modifier").text(signedNumber(Math.floor((value - 10) / 2)));
-  });
-  breakScore.on("change.tsru", async event => {
-    event.preventDefault();
-    event.stopPropagation();
-    if (!(game.user.isGM || actor.isOwner)) return;
-    const value = clamp(event.currentTarget.value, 1, 30);
-    event.currentTarget.value = value;
-    await actor.update({[`flags.${MODULE_ID}.ultimate.breakEffectScore`]: value});
-    breakCard.find(".tsru-energy-ability-modifier").text(signedNumber(Math.floor((value - 10) / 2)));
-    ui.notifications.info(`${actor.name}'s Break Effect is now ${value} (${signedNumber(Math.floor((value - 10) / 2))}).`);
-  });
-}
-
-function energyGain(config, kind) {
-  const base = kind === "attack" ? config.attackGain : config.attackedGain;
-  const tetsuoBonus = game.actors?.some(actor => actor.type === "character" && foundry.utils.getProperty(actor.getFlag(MODULE_ID, "scriptState") ?? {}, "tetsuo.teamBuff.active")) ? 1 : 0;
-  return Math.max(0, (Number(base) || 0) + regenModifier(config) + tetsuoBonus);
-}
-
-function isEnergyLocked(actor) {
-  if (!actor) return false;
-  const config = getConfig(actor);
-  if (!config.lockEnergyAfterUltimate || !config.energyLockCombatId || config.energyLockRound === null) return false;
-  const combat = game.combats.get(config.energyLockCombatId);
-  return Boolean(combat?.started && Number(combat.round) <= Number(config.energyLockRound));
-}
-
-async function lockEnergyUntilNextRound(actor, combat) {
-  if (!actor || !combat?.started || !getConfig(actor).lockEnergyAfterUltimate) return;
-  await actor.update({
-    [`flags.${MODULE_ID}.ultimate.energyLockCombatId`]: combat.id,
-    [`flags.${MODULE_ID}.ultimate.energyLockRound`]: Number(combat.round)
-  });
-}
-
-async function clearExpiredEnergyLocks(combat) {
-  if (!combat?.started) return;
-  const updates = game.actors
-    .filter(actor => {
-      const config = getConfig(actor);
-      return config.energyLockCombatId === combat.id && config.energyLockRound !== null && Number(combat.round) > Number(config.energyLockRound);
-    })
-    .map(actor => ({_id: actor.id, [`flags.${MODULE_ID}.ultimate.energyLockCombatId`]: "", [`flags.${MODULE_ID}.ultimate.energyLockRound`]: null}));
-  if (updates.length) await Actor.updateDocuments(updates);
-}
-
-async function setEnergy(actor, value, {overrideLock = false} = {}) {
-  if (!actor) return;
-  const config = getConfig(actor);
-  const current = clamp(value, 0, config.max);
-  if (current > config.current && isEnergyLocked(actor) && !overrideLock) return config.current;
-  await actor.update({[`flags.${MODULE_ID}.ultimate.current`]: current});
-  return current;
-}
-
-async function addEnergy(actor, amount, reason = "") {
-  if (!actor || !isAuthority()) return;
-  const config = getConfig(actor);
-  if (!config.enabled || !amount) return;
-  if (Number(amount) > 0 && isEnergyLocked(actor)) return;
-  const before = config.current;
-  const after = clamp(before + Number(amount), 0, config.max);
-  if (after === before) return;
-  await setEnergy(actor, after);
-  Hooks.callAll("tsruEnergyChanged", actor, before, after, reason);
-}
-
-function canObserveActor(actor) {
-  if (!actor) return false;
-  return game.user.isGM || actor.isOwner;
-}
-
-function actorFromUuidish(value) {
-  if (!value) return null;
-  if (value instanceof Actor) return value;
-  if (value.actor instanceof Actor) return value.actor;
-  if (value.document?.actor instanceof Actor) return value.document.actor;
-  if (value.actorId) return game.actors.get(value.actorId) ?? null;
-  const id = String(value).split(".").at(-1);
-  return game.actors.get(id) ?? canvas?.tokens?.get(id)?.actor ?? null;
-}
-
-async function actorFromUuid(value) {
-  if (!value) return null;
-  try {
-    const doc = await fromUuid(value);
-    return doc?.actor ?? (doc instanceof Actor ? doc : null);
-  } catch (_error) {
-    return actorFromUuidish(value);
-  }
-}
-
-function userLayout(actorId) {
-  const all = game.settings.get(MODULE_ID, "orbLayouts") ?? {};
-  return foundry.utils.mergeObject({x: 80, y: 180, size: 128, visible: false}, all[actorId] ?? {}, {inplace: false});
-}
-
-async function saveLayout(actorId, changes) {
-  const layouts = foundry.utils.deepClone(game.settings.get(MODULE_ID, "orbLayouts") ?? {});
-  layouts[actorId] = foundry.utils.mergeObject(layouts[actorId] ?? {}, changes, {inplace: false});
-  await game.settings.set(MODULE_ID, "orbLayouts", layouts);
-}
-
-function getAhaConfig() {
-  return foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_AHA_CONFIG), game.settings.get(MODULE_ID, "ahaConfig") ?? {}, {inplace: false});
-}
-
-function currentPunchline() {
-  return Math.max(0, Math.floor(Number(game.settings.get(MODULE_ID, "punchline")) || 0));
-}
-
-async function setPunchline(value, {broadcast = true} = {}) {
-  if (!isAuthority()) return currentPunchline();
-  const next = Math.max(0, Math.floor(Number(value) || 0));
-  await game.settings.set(MODULE_ID, "punchline", next);
-  if (broadcast) game.socket.emit(SOCKET, {type: "punchlineChanged", value: next, sourceUserId: game.user.id});
-  refreshPunchlineHUD();
-  Hooks.callAll("tsruPunchlineChanged", next);
-  return next;
-}
-
-async function addPunchline(amount = 1) {
-  if (!isAuthority()) throw new Error("Only the active GM can change Punchline directly.");
-  if (!getAhaConfig().elationEnabled) return currentPunchline();
-  return setPunchline(currentPunchline() + (Number(amount) || 0));
-}
-
-async function awardPunchlineForAttack(actor, eventKey = "") {
-  if (!isAuthority() || actor?.type !== "character" || !getAhaConfig().elationEnabled) return;
-  const key = `punchline-attack:${eventKey || actor.uuid}`;
-  if (state.processedMessages.has(key)) return;
-  state.processedMessages.add(key);
-  window.setTimeout(() => state.processedMessages.delete(key), 120000);
-  const ahaConfig = getAhaConfig();
-  const actorConfig = getConfig(actor);
-  const isElation = Boolean(ahaConfig.elationPathId) && actorConfig.pathId === ahaConfig.elationPathId;
-  let multiplier = 1;
-  const scriptState = actor.getFlag(MODULE_ID, "scriptState") ?? {};
-  const larkTurn = foundry.utils.getProperty(scriptState, "lark.skillTurn");
-  if (larkTurn && larkTurn.round === game.combat?.round && larkTurn.turn === game.combat?.turn) multiplier *= 2;
-  if (game.actors.some(entry => entry.type === "character" && foundry.utils.getProperty(entry.getFlag(MODULE_ID, "scriptState") ?? {}, "tetsuo.teamBuff.active"))) multiplier *= 2;
-  const gain = (isElation ? Math.max(0, Math.floor(Number(actorConfig.punchlineGain) || 0)) : 1) * multiplier;
-  if (gain > 0) await addPunchline(gain);
-}
-
-async function spendPunchline(amount = 1) {
-  if (!isAuthority()) throw new Error("Only the active GM can change Punchline directly.");
-  const cost = Math.max(0, Math.floor(Number(amount) || 0));
-  if (currentPunchline() < cost) return false;
-  await setPunchline(currentPunchline() - cost);
-  return true;
-}
-
-function punchlineScriptHelpers(actor) {
-  const request = (operation, amount) => {
-    if (isAuthority()) {
-      if (operation === "add") return addPunchline(amount);
-      if (operation === "spend") return spendPunchline(amount);
-      if (operation === "set") return setPunchline(amount);
-    }
-    game.socket.emit(SOCKET, {type: "changePunchline", operation, amount: Number(amount) || 0, actorUuid: actor?.uuid, sourceUserId: game.user.id});
-    return Promise.resolve(true);
-  };
-  return Object.freeze({
-    get: currentPunchline,
-    add: amount => request("add", amount),
-    spend: amount => request("spend", amount),
-    set: amount => request("set", amount)
-  });
-}
-
-function talentCombatForActor(actor) {
-  const combat = game.combat;
-  if (!combat?.started || actor?.type !== "character") return null;
-  // Use the initiative roster itself as the source of truth. This also supports
-  // hidden combatants and synthetic/unlinked token actors.
-  return Array.from(combat.combatants ?? []).some(combatant =>
-    combatant.actorId === actor.id || combatant.actor?.id === actor.id
-  ) ? combat : null;
-}
-
-function currentTalentPoints(actor) {
-  const combat = talentCombatForActor(actor);
-  if (!combat) return 0;
-  const config = getConfig(actor);
-  if (config.talentCombatId !== combat.id) return 0;
-  const trigger = Math.max(0, Math.floor(Number(config.talentPointsMax) || 0));
-  const overcap = Math.max(trigger, Math.floor(Number(config.talentPointsOvercapMax) || trigger));
-  return clamp(Math.floor(Number(config.talentPointsCurrent) || 0), 0, overcap);
-}
-
-function talentPointLimits(actor) {
-  const config = getConfig(actor);
-  const trigger = Math.max(0, Math.floor(Number(config.talentPointsMax) || 0));
-  return {trigger, overcap: Math.max(trigger, Math.floor(Number(config.talentPointsOvercapMax) || trigger))};
-}
-
-function isTalentTurnCombatant(combatant) {
-  return Boolean(combatant?.getFlag(MODULE_ID, "talentTurnCombatant"));
-}
-
-function queueTalentTurn(actor, combat = talentCombatForActor(actor)) {
-  if (!isAuthority() || !combat?.started || !actor || talentPointLimits(actor).trigger < 1) return false;
-  if (combat.combatants.some(entry => isTalentTurnCombatant(entry) && entry.actorId === actor.id)) return false;
-  const queue = state.talentTurnQueues.get(combat.id) ?? [];
-  if (queue.includes(actor.id)) return false;
-  queue.push(actor.id);
-  state.talentTurnQueues.set(combat.id, queue);
-  return true;
-}
-
-function queueReadyTalentTurns(combat) {
-  if (!isAuthority() || !combat?.started) return;
-  const seen = new Set();
-  for (const combatant of combat.combatants ?? []) {
-    if (isTalentTurnCombatant(combatant)) continue;
-    const actor = game.actors.get(combatant.actorId) ?? combatant.actor;
-    if (!actor || actor.type !== "character" || seen.has(actor.id)) continue;
-    seen.add(actor.id);
-    const {trigger} = talentPointLimits(actor);
-    if (trigger > 0 && currentTalentPoints(actor) >= trigger) queueTalentTurn(actor, combat);
-  }
-}
-
-async function setTalentPoints(actor, value) {
-  const combat = talentCombatForActor(actor);
-  if (!isAuthority() || !combat) return currentTalentPoints(actor);
-  const config = getConfig(actor);
-  const {trigger, overcap} = talentPointLimits(actor);
-  const next = clamp(Math.floor(Number(value) || 0), 0, overcap);
-  const before = currentTalentPoints(actor);
-  if (next !== before || config.talentCombatId !== combat.id) await actor.update({[`flags.${MODULE_ID}.ultimate.talentPointsCurrent`]: next, [`flags.${MODULE_ID}.ultimate.talentCombatId`]: combat.id});
-  if (next !== before) Hooks.callAll("tsruTalentPointsChanged", actor, before, next);
-  if (trigger > 0 && next >= trigger && queueTalentTurn(actor, combat)) {
-    window.setTimeout(() => processTalentTurnQueue(combat).catch(error => {
-      console.error(`${MODULE_ID} | Could not process ${actor.name}'s ready Talent turn`, error);
-      ui.notifications.error(`Could not insert ${actor.name}'s Talent turn: ${error.message}`);
-    }), 0);
-  }
-  return next;
-}
-
-function talentScriptHelpers(actor) {
-  return Object.freeze({
-    get: () => currentTalentPoints(actor),
-    max: () => Math.max(0, Math.floor(Number(getConfig(actor).talentPointsMax) || 0)),
-    set: value => setTalentPoints(actor, value),
-    add: amount => setTalentPoints(actor, currentTalentPoints(actor) + (Number(amount) || 0)),
-    spend: async amount => {
-      const cost = Math.max(0, Math.floor(Number(amount) || 0));
-      if (currentTalentPoints(actor) < cost) return false;
-      await setTalentPoints(actor, currentTalentPoints(actor) - cost);
-      return true;
-    }
-  });
-}
-
-function skillPointScriptHelpers(actor) {
-  const request = (operation, amount) => {
-    if (isAuthority()) {
-      if (operation === "set") return setSkillPoints(amount);
-      if (operation === "add") return setSkillPoints(currentSkillPoints() + (Number(amount) || 0));
-      if (operation === "spend") {
-        const cost = Math.max(0, Math.floor(Number(amount) || 0));
-        if (currentSkillPoints() < cost) return Promise.resolve(false);
-        return setSkillPoints(currentSkillPoints() - cost).then(() => true);
-      }
-    }
-    game.socket.emit(SOCKET, {type: "changeSkillPoints", operation, amount: Number(amount) || 0, actorUuid: actor?.uuid, sourceUserId: game.user.id});
-    return Promise.resolve(true);
-  };
-  return Object.freeze({
-    get: currentSkillPoints,
-    max: () => getSkillPointConfig().maximum,
-    set: value => request("set", value),
-    add: amount => request("add", amount),
-    spend: amount => request("spend", amount)
-  });
-}
-
-function scriptRuntimeHelpers(actor) {
-  const scope = "scriptState";
-  return Object.freeze({
-    specialAha: fixedPunchline => triggerSpecialAha(actor, fixedPunchline),
-    moduleId: MODULE_ID,
-    state: Object.freeze({
-      get: (key, fallback = null) => foundry.utils.getProperty(actor.getFlag(MODULE_ID, scope) ?? {}, key) ?? fallback,
-      set: async (key, value) => {
-        const stored = foundry.utils.deepClone(actor.getFlag(MODULE_ID, scope) ?? {});
-        foundry.utils.setProperty(stored, key, value);
-        await actor.setFlag(MODULE_ID, scope, stored);
-        return value;
-      },
-      unset: async key => {
-        const stored = foundry.utils.deepClone(actor.getFlag(MODULE_ID, scope) ?? {});
-        const removed = foundry.utils.unsetProperty(stored, key);
-        if (removed) await actor.setFlag(MODULE_ID, scope, stored);
-        return removed;
-      }
-    })
-  });
-}
-
-async function runTalentScript(actor, event) {
-  const script = getConfig(actor).talentScript?.trim();
-  if (!script || !talentCombatForActor(actor) || state.activeTalents.has(actor.id)) return;
-  state.activeTalents.add(actor.id);
-  try {
-    const token = actor.getActiveTokens(true, true)?.[0] ?? null;
-    const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
-    const execute = new AsyncFunction("actor", "token", "event", "game", "canvas", "ui", "foundry", "Hooks", "punchline", "talent", "skillPoints", "tsru", `"use strict";\n${script}`);
-    await execute(actor, token, event, game, canvas, ui, foundry, Hooks, punchlineScriptHelpers(actor), talentScriptHelpers(actor), skillPointScriptHelpers(actor), scriptRuntimeHelpers(actor));
-  } catch (error) {
-    console.error(`${MODULE_ID} | ${actor.name} Talent failed during ${event.type}`, error);
-    ui.notifications.error(`${actor.name}'s Talent failed: ${error.message}`);
-  } finally { state.activeTalents.delete(actor.id); }
-}
-
-async function dispatchTalentEvent(type, detail = {}, eventKey = "") {
-  // Talents are descriptive text actions now. Legacy scripts are retained in stored
-  // data for rollback compatibility, but are intentionally never executed.
-  return;
-}
-
-function punchlineLayout() {
-  return foundry.utils.mergeObject({x: 580, y: 145, size: 54, visible: true}, game.settings.get(MODULE_ID, "punchlineLayout") ?? {}, {inplace: false});
-}
-
-async function savePunchlineLayout(changes) {
-  const layout = foundry.utils.mergeObject(punchlineLayout(), changes, {inplace: false});
-  await game.settings.set(MODULE_ID, "punchlineLayout", layout);
-  return layout;
-}
-
-class PunchlineMeter {
-  constructor() { this.element = null; this.drag = null; this.resize = null; }
-  render() {
-    const config = getAhaConfig();
-    const layout = punchlineLayout();
-    if (!combatHasInitiative() || !config.elationEnabled || (!punchlineOverrideEnabled() && !combatHasLivingElation()) || !layout.visible) return this.destroy();
-    if (!this.element) {
-      this.element = document.createElement("div");
-      this.element.className = "tsru-punchline-meter";
-      this.element.innerHTML = `<div class="tsru-punchline-drag" title="Move Punchline counter"><i class="fas fa-grip-lines"></i></div><img class="tsru-punchline-icon"><div class="tsru-punchline-number"></div><button type="button" class="tsru-punchline-close" title="Hide Punchline counter"><i class="fas fa-xmark"></i></button><div class="tsru-punchline-resize" title="Resize"></div>`;
-      document.body.appendChild(this.element);
-      this.activateListeners();
-    }
-    this.element.style.left = `${clamp(layout.x, 0, window.innerWidth - 40)}px`;
-    this.element.style.top = `${clamp(layout.y, 0, window.innerHeight - 40)}px`;
-    this.element.style.setProperty("--tsru-punchline-size", `${clamp(layout.size, 30, 160)}px`);
-    this.element.style.setProperty("--tsru-punchline-font-scale", String(clamp(config.punchlineFontSize, 12, 160) / 54));
-    this.element.style.setProperty("--tsru-punchline-icon-x", `${clamp(config.punchlineIconOffsetX, -100, 100)}px`);
-    this.element.style.setProperty("--tsru-punchline-icon-y", `${clamp(config.punchlineIconOffsetY, -100, 100)}px`);
-    this.element.style.setProperty("--tsru-punchline-color", config.color || DEFAULT_AHA_CONFIG.color);
-    const icon = this.element.querySelector(".tsru-punchline-icon");
-    icon.src = config.punchlineIcon || DEFAULT_AHA_CONFIG.punchlineIcon;
-    icon.style.transform = `translate(${clamp(config.punchlineIconOffsetX, -100, 100)}px, ${clamp(config.punchlineIconOffsetY, -100, 100)}px)`;
-    this.element.querySelector(".tsru-punchline-number").textContent = String(currentPunchline());
-    loadSplashFont(config.punchlineFontFile).then(font => this.element?.style.setProperty("--tsru-punchline-font", font)).catch(error => console.warn(`${MODULE_ID} | Could not load Punchline font`, error));
-    return this;
-  }
-  activateListeners() {
-    const drag = this.element.querySelector(".tsru-punchline-drag"); const resize = this.element.querySelector(".tsru-punchline-resize");
-    drag.addEventListener("pointerdown", event => { event.preventDefault(); const rect = this.element.getBoundingClientRect(); this.drag = {dx: event.clientX - rect.left, dy: event.clientY - rect.top}; drag.setPointerCapture(event.pointerId); });
-    drag.addEventListener("pointermove", event => { if (!this.drag) return; this.element.style.left = `${clamp(event.clientX - this.drag.dx, 0, window.innerWidth - 40)}px`; this.element.style.top = `${clamp(event.clientY - this.drag.dy, 0, window.innerHeight - 40)}px`; });
-    drag.addEventListener("pointerup", async event => { if (!this.drag) return; this.drag = null; drag.releasePointerCapture(event.pointerId); const rect = this.element.getBoundingClientRect(); await savePunchlineLayout({x: Math.round(rect.left), y: Math.round(rect.top)}); });
-    resize.addEventListener("pointerdown", event => { event.preventDefault(); this.resize = {startX: event.clientX, startSize: punchlineLayout().size}; resize.setPointerCapture(event.pointerId); });
-    resize.addEventListener("pointermove", event => { if (!this.resize) return; this.element.style.setProperty("--tsru-punchline-size", `${clamp(this.resize.startSize + event.clientX - this.resize.startX, 30, 160)}px`); });
-    resize.addEventListener("pointerup", async event => { if (!this.resize) return; const size = clamp(this.resize.startSize + event.clientX - this.resize.startX, 30, 160); this.resize = null; resize.releasePointerCapture(event.pointerId); await savePunchlineLayout({size: Math.round(size)}); this.render(); });
-    this.element.querySelector(".tsru-punchline-close").addEventListener("click", async () => { await savePunchlineLayout({visible: false}); this.destroy(); });
-  }
-  destroy() { this.element?.remove(); this.element = null; if (state.punchlineMeter === this) state.punchlineMeter = null; }
-}
-
-function refreshPunchlineHUD() {
-  if (!combatHasInitiative() || !getAhaConfig().elationEnabled || (!punchlineOverrideEnabled() && !combatHasLivingElation()) || !punchlineLayout().visible) { state.punchlineMeter?.destroy(); return; }
-  if (!state.punchlineMeter) state.punchlineMeter = new PunchlineMeter();
-  state.punchlineMeter.render();
-}
-
-function appendToCanvasLayer(element) {
-  const board = document.querySelector("#board");
-  const canvasLayer = document.querySelector("#canvas");
-  if (board instanceof HTMLCanvasElement) board.insertAdjacentElement("afterend", element);
-  else (board ?? canvasLayer ?? document.body).appendChild(element);
-}
-
-function ahaLayout() {
-  return foundry.utils.mergeObject({x: 220, y: 180, size: 128, visible: false}, game.settings.get(MODULE_ID, "ahaLayout") ?? {}, {inplace: false});
-}
-
-async function saveAhaLayout(changes) {
-  const layout = foundry.utils.mergeObject(ahaLayout(), changes, {inplace: false});
-  await game.settings.set(MODULE_ID, "ahaLayout", layout);
-  return layout;
-}
-
-async function preloadAhaVideo(video = getAhaConfig().video) {
-  const source = String(video || "");
-  const cache = state.ahaVideoCache;
-  if (!source) {
-    if (cache.objectUrl) URL.revokeObjectURL(cache.objectUrl);
-    state.ahaVideoCache = {source: "", objectUrl: "", promise: null};
-    return "";
-  }
-  if (cache.source === source && cache.objectUrl) return cache.objectUrl;
-  if (cache.source === source && cache.promise) return cache.promise;
-  if (cache.objectUrl) URL.revokeObjectURL(cache.objectUrl);
-  const pending = fetch(resolveAssetUrl(source), {cache: "force-cache"})
-    .then(response => {
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      return response.blob();
-    })
-    .then(blob => {
-      if (state.ahaVideoCache.source !== source) return source;
-      const objectUrl = URL.createObjectURL(blob);
-      state.ahaVideoCache = {source, objectUrl, promise: null};
-      console.log(`${MODULE_ID} | Preloaded Aha Instant video (${Math.round(blob.size / 1024)} KB)`);
-      return objectUrl;
-    })
-    .catch(error => {
-      if (state.ahaVideoCache.source === source) state.ahaVideoCache = {source, objectUrl: "", promise: null};
-      console.warn(`${MODULE_ID} | Could not preload Aha Instant video; playback will use the original asset`, error);
-      return source;
-    });
-  state.ahaVideoCache = {source, objectUrl: "", promise: pending};
-  return pending;
-}
-
-async function playAhaVideo({video}) {
-  if (!video) return;
-  const playbackSource = await preloadAhaVideo(video);
-  document.querySelectorAll(".tsru-aha-overlay").forEach(element => element.remove());
-  const overlay = document.createElement("div");
-  overlay.className = "tsru-aha-overlay";
-  overlay.innerHTML = `<video src="${escapeHTML(playbackSource || video)}" autoplay playsinline preload="auto"></video>`;
-  appendToCanvasLayer(overlay);
-  const player = overlay.querySelector("video");
-  let removed = false;
-  const failsafe = window.setTimeout(remove, 10000);
-  function remove() {
-    if (removed) return;
-    removed = true;
-    window.clearTimeout(failsafe);
-    try { player.pause(); } catch (_error) {}
-    player.removeAttribute("src");
-    player.load();
-    overlay.remove();
-  }
-  player.addEventListener("ended", remove, {once: true});
-  player.addEventListener("error", remove, {once: true});
-  const playback = player.play();
-  if (playback?.catch) playback.catch(() => {
-    player.muted = true;
-    player.play().catch(error => {
-      console.warn(`${MODULE_ID} | Aha Instant video could not autoplay on this client`, error);
-      remove();
-    });
-  });
-}
-
-function triggerAhaInstant() {
-  if (!game.user.isGM) return;
-  const config = getAhaConfig();
-  if (!config.elationEnabled) return ui.notifications.warn("Aha Instant is disabled because Elation is not on the team.");
-  if (!config.video) return ui.notifications.warn("Configure an Aha Instant WebM first.");
-  playAhaVideo(config);
-  game.socket.emit(SOCKET, {type: "showAhaVideo", sourceUserId: game.user.id, playbackId: foundry.utils.randomID(), video: config.video});
-}
-
-function isAhaCombatant(combatant) {
-  return Boolean(combatant?.getFlag(MODULE_ID, "ahaInstantCombatant"));
-}
-
-function isElationActionCombatant(combatant) {
-  return Boolean(combatant?.getFlag(MODULE_ID, "elationActionCombatant"));
-}
-
-function isLivingElationCombatant(combatant) {
-  if (!combatant || isAhaCombatant(combatant) || isElationActionCombatant(combatant) || isTalentTurnCombatant(combatant)) return false;
-  const actor = combatant.actor ?? game.actors.get(combatant.actorId);
-  if (actor?.type !== "character" || !getAhaConfig().elationPathId || getConfig(actor).pathId !== getAhaConfig().elationPathId) return false;
-  return Number(foundry.utils.getProperty(actor, "system.attributes.hp.value") ?? 0) > 0;
-}
-
-function combatHasLivingElation(combat = game.combat) {
-  return Boolean(combat?.combatants?.some(isLivingElationCombatant));
-}
-
-function punchlineOverrideEnabled() {
-  return Boolean(game.settings.get(MODULE_ID, "punchlineOverride"));
-}
-
-async function postTalentText(actor) {
-  return postAbilityText(actor, "talent", getConfig(actor).talentText);
-}
-
-async function beginTalentTurn(combatant) {
-  if (!isAuthority() || !isTalentTurnCombatant(combatant) || combatant.getFlag(MODULE_ID, "talentActivated")) return;
-  const actor = game.actors.get(combatant.getFlag(MODULE_ID, "talentActorId")) ?? combatant.actor;
-  if (!actor) return;
-  await postTalentText(actor);
-  await combatant.setFlag(MODULE_ID, "talentActivated", true);
-}
-
-async function processTalentTurnQueue(combat) {
-  if (!isAuthority() || !combat?.started || state.talentTurnQueueLocks.has(combat.id) || combat.combatants.some(isTalentTurnCombatant)) return false;
-  state.talentTurnQueueLocks.add(combat.id);
-  try {
-    queueReadyTalentTurns(combat);
-    const queue = state.talentTurnQueues.get(combat.id) ?? [];
-    while (queue.length) {
-      const actorId = queue[0];
-      const actor = game.actors.get(actorId);
-      if (!actor || !talentCombatForActor(actor) || currentTalentPoints(actor) < talentPointLimits(actor).trigger) {
-        queue.shift();
-        state.talentTurnQueues.set(combat.id, queue);
-        continue;
-      }
-      const resume = combat.combatant;
-      const currentInit = Number(resume?.initiative ?? 0);
-      const next = combat.turns[Number(combat.turn ?? 0) + 1];
-      let initiative = next ? (currentInit + Number(next.initiative ?? currentInit - 1)) / 2 : currentInit - 0.001;
-      if (!Number.isFinite(initiative)) initiative = currentInit - 0.001;
-      let temporary = null;
-      try {
-        [temporary] = await combat.createEmbeddedDocuments("Combatant", [{
-          name:`TALENT - ${actor.name}`,
-          actorId:actor.id,
-          tokenId:null,
-          sceneId:null,
-          initiative,
-          img:getConfig(actor).talentIcon || actor.img,
-          flags:{[MODULE_ID]:{talentTurnCombatant:true,talentActorId:actor.id,resumeCombatantId:resume?.id ?? null,resumeRound:combat.round}}
-        }]);
-      } catch (error) {
-        console.error(`${MODULE_ID} | Could not insert ${actor.name}'s Talent turn`, error);
-        ui.notifications.error(`Could not insert ${actor.name}'s Talent turn: ${error.message}`);
-        return false;
-      }
-      if (!temporary) return false;
-      queue.shift();
-      state.talentTurnQueues.set(combat.id, queue);
-      const index = combat.turns.findIndex(entry => entry.id === temporary.id);
-      if (index >= 0) {
-        state.suppressCombatHook = true;
-        try { await combat.update({turn:index}); } finally { state.suppressCombatHook = false; }
-      }
-      await beginTalentTurn(temporary);
-      return true;
-    }
-    state.talentTurnQueues.delete(combat.id);
-    return false;
-  } finally {
-    state.talentTurnQueueLocks.delete(combat.id);
-  }
-}
-
-async function finishTalentTurn(combat, temporary) {
-  const actor = game.actors.get(temporary?.getFlag(MODULE_ID, "talentActorId")) ?? temporary?.actor;
-  const resumeId = temporary?.getFlag(MODULE_ID, "resumeCombatantId");
-  const resumeRound = temporary?.getFlag(MODULE_ID, "resumeRound");
-  const trigger = actor ? talentPointLimits(actor).trigger : 0;
-  if (actor && trigger > 0) await setTalentPoints(actor, currentTalentPoints(actor) - trigger);
-  state.suppressCombatHook = true;
-  try {
-    if (temporary && combat.combatants.has(temporary.id)) await combat.deleteEmbeddedDocuments("Combatant", [temporary.id]);
-    const resumeIndex = combat.turns.findIndex(entry => entry.id === resumeId);
-    if (resumeIndex >= 0) await combat.update({turn:resumeIndex,round:resumeRound ?? combat.round});
-  } finally { state.suppressCombatHook = false; }
-  if (actor && trigger > 0 && currentTalentPoints(actor) >= trigger) queueTalentTurn(actor, combat);
-  await processTalentTurnQueue(combat);
-}
-
-function combatTurnSnapshot(combat) {
-  const combatant = combat?.combatant;
-  return combatant ? {
-    id: combatant.id,
-    actorId: combatant.actorId ?? combatant.actor?.id ?? null,
-    round: combat.round,
-    ultimate: Boolean(combatant.getFlag(MODULE_ID, "temporaryUltimate")),
-    elation: isElationActionCombatant(combatant),
-    talent: isTalentTurnCombatant(combatant),
-    actionAdvance: Boolean(combatant.getFlag(MODULE_ID, "actionAdvance"))
-  } : null;
-}
-
-async function cleanupDepartedTemporaryTurn(combat, previousTurn) {
-  if (!isAuthority() || !combat || !previousTurn?.id) return false;
-  const temporary = combat.combatants.get(previousTurn.id);
-  const kind = previousTurn.talent || isTalentTurnCombatant(temporary) ? "talent"
-    : previousTurn.actionAdvance || temporary?.getFlag(MODULE_ID, "actionAdvance") ? "actionAdvance"
-    : previousTurn.elation || isElationActionCombatant(temporary) ? "elation"
-    : previousTurn.ultimate || temporary?.getFlag(MODULE_ID, "temporaryUltimate") ? "ultimate"
-    : "";
-  if (!kind) return false;
-
-  try {
-    if (kind === "talent") {
-      await finishTalentTurn(combat, temporary);
-    } else if (kind === "actionAdvance") {
-      const tracked = state.actionAdvances.get(combat.id);
-      const advance=tracked?.combatantId===previousTurn.id?tracked:(temporary?{combatantId:temporary.id,resumeCombatantId:temporary.getFlag(MODULE_ID,"resumeCombatantId")??null,resumeRound:temporary.getFlag(MODULE_ID,"resumeRound")??combat.round,aha:false,reuseSource:false}:null);
-      if(advance)await finishActionAdvance(combat,advance);
-    } else if (kind === "elation") {
-      await completeElationAction(previousTurn.id);
-    } else if (kind === "ultimate" && previousTurn.actorId) {
-      await completeUltimate(previousTurn.actorId);
-    }
-  } catch (error) {
-    console.error(`${MODULE_ID} | ${kind} departure cleanup failed; forcing temporary turn removal`, error);
-  } finally {
-    if (combat.combatants.has(previousTurn.id)) {
-      state.suppressCombatHook = true;
-      try { await combat.deleteEmbeddedDocuments("Combatant", [previousTurn.id]); }
-      finally { state.suppressCombatHook = false; }
-    }
-    if (kind === "actionAdvance") state.actionAdvances.delete(combat.id);
-    if (kind === "elation") {
-      const pending = state.pendingElationActions.get(previousTurn.id);
-      if (pending?.timer) window.clearTimeout(pending.timer);
-      state.pendingElationActions.delete(previousTurn.id);
-      state.activeElationActions.delete(previousTurn.id);
-    }
-  }
-  return true;
-}
-
-async function removeOrphanedTemporaryTurns(combat) {
-  if (!isAuthority() || !combat) return;
-  const staleAdvances=combat.combatants.filter(entry=>entry.getFlag(MODULE_ID,"actionAdvance")&&entry.id!==combat.combatant?.id);
-  for(const temporary of staleAdvances){
-    const tracked=state.actionAdvances.get(combat.id);
-    const advance=tracked?.combatantId===temporary.id?tracked:{combatantId:temporary.id,resumeCombatantId:temporary.getFlag(MODULE_ID,"resumeCombatantId")??null,resumeRound:temporary.getFlag(MODULE_ID,"resumeRound")??combat.round,aha:false,reuseSource:false};
-    await finishActionAdvance(combat,advance);
-  }
-  const queue = state.ultimateQueues.get(combat.id);
-  const orphanedUltimates = combat.combatants.filter(entry => {
-    if (!entry.getFlag(MODULE_ID, "temporaryUltimate")) return false;
-    const pending = state.pendingUltimates.get(entry.actorId);
-    return pending?.combatantId !== entry.id && queue?.activeActorId !== entry.actorId;
-  });
-  const completedElation = combat.combatants.filter(entry => isElationActionCombatant(entry) && entry.getFlag(MODULE_ID, "completed"));
-  const ids = [...new Set([...orphanedUltimates, ...completedElation].map(entry => entry.id))];
-  if (!ids.length) return;
-  state.suppressCombatHook = true;
-  try { await combat.deleteEmbeddedDocuments("Combatant", ids); }
-  finally { state.suppressCombatHook = false; }
-}
-
-async function ensureAhaCombatantUnlocked(combat) {
-  if (!isAuthority() || !combat) return null;
-  const config = getAhaConfig();
-  const existingAha = combat.combatants.filter(isAhaCombatant);
-  const existing = existingAha[0] ?? null;
-  if (!config.elationEnabled || !config.initiativeEnabled || !combatHasLivingElation(combat)) {
-    if (combat.combatants.some(isElationActionCombatant)) await clearElationActionTurns(combat);
-    if (existingAha.length) await combat.deleteEmbeddedDocuments("Combatant", existingAha.map(entry => entry.id));
-    return null;
-  }
-  // Older versions could race several initiative-update hooks and create one
-  // Aha combatant per roll. Repair those encounters while retaining one entry.
-  if (existingAha.length > 1) {
-    await combat.deleteEmbeddedDocuments("Combatant", existingAha.slice(1).map(entry => entry.id));
-  }
-  const rolledInitiatives = combat.combatants
-    .filter(combatant => !isAhaCombatant(combatant) && !isElationActionCombatant(combatant) && combatant.initiative !== null && Number.isFinite(Number(combatant.initiative)))
-    .map(combatant => Number(combatant.initiative));
-  if (!rolledInitiatives.length) return existing ?? null;
-  const data = {
-    name: "Aha Instant",
-    initiative: Math.min(...rolledInitiatives) - 1,
-    img: config.combatantImage || config.buttonImage || DEFAULT_AHA_CONFIG.combatantImage
-  };
-  if (existing) {
-    await existing.update(data);
-    return existing;
-  }
-  const [created] = await combat.createEmbeddedDocuments("Combatant", [{
-    ...data,
-    flags: {[MODULE_ID]: {ahaInstantCombatant: true}}
-  }]);
-  return created ?? null;
-}
-
-async function ensureAhaCombatant(combat) {
-  if (!isAuthority() || !combat) return null;
-  const pending = state.ahaCombatantPromises.get(combat.id);
-  if (pending) return pending;
-  const task = ensureAhaCombatantUnlocked(combat);
-  state.ahaCombatantPromises.set(combat.id, task);
-  try { return await task; }
-  finally {
-    if (state.ahaCombatantPromises.get(combat.id) === task) state.ahaCombatantPromises.delete(combat.id);
-  }
-}
-
-async function clearElationActionTurns(combat, {resetPunchline = false, resume = false, resumeRound = null} = {}) {
-  if (!isAuthority() || !combat) return;
-  const temporary = combat.combatants.filter(isElationActionCombatant);
-  state.suppressCombatHook = true;
-  try {
-    if (temporary.length) await combat.deleteEmbeddedDocuments("Combatant", temporary.map(entry => entry.id));
-    if (resetPunchline) await setPunchline(0);
-    if (resume && combat.started) await combat.update({round: Number(resumeRound ?? combat.round) + 1, turn: 0});
-  } finally { state.suppressCombatHook = false; }
-  for (const entry of temporary) {
-    const pending = state.pendingElationActions.get(entry.id);
-    if (pending?.timer) window.clearTimeout(pending.timer);
-    state.pendingElationActions.delete(entry.id);
-    state.activeElationActions.delete(entry.id);
-  }
-}
-
-async function triggerSpecialAha(actor, fixedPunchline = 20) {
-  if (!isAuthority()) {
-    game.socket.emit(SOCKET, {type: "triggerSpecialAha", actorUuid: actor?.uuid, fixedPunchline, sourceUserId: game.user.id});
-    return true;
-  }
-  const combat = game.combat;
-  const aha = combat?.combatants?.find(isAhaCombatant);
-  if (!combat?.started || !aha || !getAhaConfig().elationEnabled) return false;
-  if (state.specialAha) return false;
-  const interrupted = combat.combatant;
-  state.specialAha = {
-    id: foundry.utils.randomID(),
-    combatId: combat.id,
-    resumeRound: combat.round,
-    resumeCombatantId: interrupted?.id ?? null,
-    savedPunchline: currentPunchline()
-  };
-  state.lastElationSequenceKey = "";
-  await setPunchline(Math.max(0, Math.floor(Number(fixedPunchline) || 20)));
-  const ahaIndex = combat.turns.findIndex(entry => entry.id === aha.id);
-  if (ahaIndex < 0) { state.specialAha = null; return false; }
-  await combat.update({turn: ahaIndex});
-  return true;
-}
-
-async function finishSpecialAha(combat) {
-  const special = state.specialAha?.combatId === combat?.id ? state.specialAha : null;
-  if (!special) return false;
-  state.specialAha = null;
-  await clearElationActionTurns(combat);
-  await setPunchline(special.savedPunchline);
-  const resumeIndex = combat.turns.findIndex(entry => entry.id === special.resumeCombatantId);
-  if (resumeIndex >= 0) await combat.update({round: special.resumeRound, turn: resumeIndex});
-  return true;
-}
-
-async function createElationActionTurns(combat) {
-  if (!isAuthority() || !combat?.started || !getAhaConfig().elationEnabled) return [];
-  const aha = combat.combatant;
-  if (!isAhaCombatant(aha)) return [];
-  const sequenceKey = `${combat.id}:${combat.round}:${aha.id}:${state.specialAha?.id ?? "normal"}`;
-  if (state.lastElationSequenceKey === sequenceKey) return combat.combatants.filter(isElationActionCombatant);
-  state.lastElationSequenceKey = sequenceKey;
-  await clearElationActionTurns(combat);
-  const pathId = getAhaConfig().elationPathId;
-  if (!pathId) { if (!await finishSpecialAha(combat)) await setPunchline(0); return []; }
-
-  const seenActors = new Set();
-  const eligible = combat.combatants.filter(combatant => {
-    const actor = combatant.actor;
-    if (isAhaCombatant(combatant) || isElationActionCombatant(combatant) || combatant.getFlag(MODULE_ID, "temporaryUltimate") || actor?.type !== "character" || combatant.initiative === null) return false;
-    if (seenActors.has(actor.id) || getConfig(actor).pathId !== pathId) return false;
-    seenActors.add(actor.id);
-    return true;
-  }).sort((left, right) => Number(right.initiative) - Number(left.initiative) || String(left.actor?.name ?? "").localeCompare(String(right.actor?.name ?? "")) || left.id.localeCompare(right.id));
-
-  if (!eligible.length) { if (!await finishSpecialAha(combat)) await setPunchline(0); return []; }
-  const ahaInitiative = Number(aha.initiative ?? -999);
-  const permanentTurns=combat.turns.filter(entry=>!isElationActionCombatant(entry)&&!isTalentTurnCombatant(entry)&&!entry.getFlag(MODULE_ID,"temporaryUltimate")&&!entry.getFlag(MODULE_ID,"actionAdvance")),ahaIndex=permanentTurns.findIndex(entry=>entry.id===aha.id),nextNatural=ahaIndex>=0?(permanentTurns[ahaIndex+1]??permanentTurns[0]??null):permanentTurns[0]??null,nextRound=ahaIndex>=0&&ahaIndex+1<permanentTurns.length?combat.round:Number(combat.round||0)+1;
-  return combat.createEmbeddedDocuments("Combatant", eligible.map((source, index) => ({
-    name: `ELATION ACTION â€” ${source.actor.name}`,
-    actorId: source.actor.id,
-    // Actor-backed rather than token-backed so the temporary turn cannot collide
-    // with the character's existing token combatant.
-    tokenId: null,
-    sceneId: null,
-    initiative: ahaInitiative - ((index + 1) / 1000),
-    img: source.actor.img || "icons/svg/mystery-man.svg",
-    flags: {[MODULE_ID]: {elationActionCombatant: true, sequenceKey, sequenceOrder: index, sourceCombatantId: source.id, resumeCombatantId:nextNatural?.id??null, resumeRound:nextRound, completed: false}}
-  })));
-}
-
-async function syncAhaCombatants() {
-  if (!isAuthority()) return;
-  for (const combat of game.combats ?? []) await ensureAhaCombatant(combat);
-}
-
-async function maybeEnsureAhaCombatant(combat, {force = false} = {}) {
-  if (!isAuthority() || !combat || !getAhaConfig().elationEnabled || !getAhaConfig().initiativeEnabled) return null;
-  const hasRolledInitiative = combat.combatants.some(combatant => !isAhaCombatant(combatant) && combatant.initiative !== null);
-  if (!force && !hasRolledInitiative) return null;
-  try { return await ensureAhaCombatant(combat); }
-  catch (error) {
-    console.error(`${MODULE_ID} | Could not add Aha Instant to combat`, error);
-    ui.notifications.error(`Could not add Aha Instant to initiative: ${error.message}`);
-    return null;
-  }
-}
-
-class AhaButton {
-  constructor() { this.element = null; this.drag = null; this.resize = null; }
-  render() {
-    if (!game.user.isGM || !getAhaConfig().elationEnabled) return this.destroy();
-    const layout = ahaLayout();
-    if (!layout.visible) return this.destroy();
-    const config = getAhaConfig();
-    if (!this.element) {
-      this.element = document.createElement("div");
-      this.element.className = "tsru-aha-widget";
-      this.element.innerHTML = `<div class="tsru-aha-drag" title="Drag Aha Instant"><i class="fas fa-grip-lines"></i></div><button type="button" class="tsru-aha-button" title="Play Aha Instant for everyone"><img></button><div class="tsru-aha-label">Aha Instant</div><button type="button" class="tsru-aha-close" title="Hide Aha Instant"><i class="fas fa-xmark"></i></button><div class="tsru-aha-resize" title="Resize"></div>`;
-      document.body.appendChild(this.element);
-      this.activateListeners();
-    }
-    this.element.style.left = `${clamp(layout.x, 0, window.innerWidth - 40)}px`;
-    this.element.style.top = `${clamp(layout.y, 0, window.innerHeight - 40)}px`;
-    this.element.style.setProperty("--tsru-aha-size", `${clamp(layout.size, 72, 360)}px`);
-    this.element.style.setProperty("--tsru-aha-color", config.color || DEFAULT_AHA_CONFIG.color);
-    this.element.querySelector("img").src = config.buttonImage || DEFAULT_AHA_CONFIG.buttonImage;
-    return this;
-  }
-  activateListeners() {
-    const drag = this.element.querySelector(".tsru-aha-drag");
-    const resize = this.element.querySelector(".tsru-aha-resize");
-    drag.addEventListener("pointerdown", event => {
-      event.preventDefault(); const rect = this.element.getBoundingClientRect();
-      this.drag = {dx: event.clientX - rect.left, dy: event.clientY - rect.top}; drag.setPointerCapture(event.pointerId);
-    });
-    drag.addEventListener("pointermove", event => {
-      if (!this.drag) return;
-      this.element.style.left = `${clamp(event.clientX - this.drag.dx, 0, window.innerWidth - 40)}px`;
-      this.element.style.top = `${clamp(event.clientY - this.drag.dy, 0, window.innerHeight - 40)}px`;
-    });
-    drag.addEventListener("pointerup", async event => {
-      if (!this.drag) return; this.drag = null; drag.releasePointerCapture(event.pointerId);
-      const rect = this.element.getBoundingClientRect(); await saveAhaLayout({x: Math.round(rect.left), y: Math.round(rect.top)});
-    });
-    resize.addEventListener("pointerdown", event => {
-      event.preventDefault(); const rect = this.element.getBoundingClientRect();
-      this.resize = {startX: event.clientX, startSize: rect.width}; resize.setPointerCapture(event.pointerId);
-    });
-    resize.addEventListener("pointermove", event => {
-      if (!this.resize) return;
-      this.element.style.setProperty("--tsru-aha-size", `${clamp(this.resize.startSize + event.clientX - this.resize.startX, 72, 360)}px`);
-    });
-    resize.addEventListener("pointerup", async event => {
-      if (!this.resize) return; const size = clamp(this.resize.startSize + event.clientX - this.resize.startX, 72, 360);
-      this.resize = null; resize.releasePointerCapture(event.pointerId); await saveAhaLayout({size: Math.round(size)});
-    });
-    this.element.querySelector(".tsru-aha-close").addEventListener("click", async () => { await saveAhaLayout({visible: false}); this.destroy(); });
-    this.element.querySelector(".tsru-aha-button").addEventListener("click", triggerAhaInstant);
-  }
-  destroy() { this.element?.remove(); this.element = null; if (state.ahaButton === this) state.ahaButton = null; }
-}
-
-function refreshAhaButton() {
-  if (!game.user.isGM || !getAhaConfig().elationEnabled || !ahaLayout().visible) { state.ahaButton?.destroy(); return; }
-  if (!state.ahaButton) state.ahaButton = new AhaButton();
-  state.ahaButton.render();
-}
-
-async function showAhaButton() {
-  if (!getAhaConfig().elationEnabled) return ui.notifications.warn("Enable â€˜Elation on Team?â€™ before showing Aha Instant.");
-  await saveAhaLayout({visible: true}); refreshAhaButton();
-}
-
-function openAhaInstantControls() {
-  if (!game.user.isGM || ahaToolbarOpening) return;
-  ahaToolbarOpening = true;
-  window.setTimeout(() => { ahaToolbarOpening = false; }, 350);
-  try { new AhaConfig().render(true); }
-  catch (error) {
-    console.error(`${MODULE_ID} | Could not open Aha Instant configuration`, error);
-    ui.notifications.error(`Could not open Aha Instant configuration: ${error.message}`);
-  }
-}
-
-function registerAhaToolbarFallback() {
-  if (document.documentElement.dataset.tsruAhaToolbarListener) return;
-  document.documentElement.dataset.tsruAhaToolbarListener = "true";
-  document.addEventListener("click", event => {
-    const ahaControl = event.target.closest?.('[data-tool="tsru-aha-instant"], [data-control="tsru-aha-instant"], [data-action="tsru-aha-instant"]');
-    if (ahaControl) return openAhaInstantControls();
-    const gmControl = event.target.closest?.('[data-tool="tsru-gm-panel"], [data-control="tsru-gm-panel"], [data-action="tsru-gm-panel"]');
-    if (gmControl) openStarRailGMPanel();
-  }, true);
-}
-
-
-function getTechniquePointConfig() {
-  const stored = game.settings.get(MODULE_ID, "techniquePointConfig") ?? {};
-  const config = foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_TECHNIQUE_POINT_CONFIG), stored, {inplace: false});
-  config.maximum = Math.max(1, Math.floor(Number(config.maximum) || DEFAULT_TECHNIQUE_POINT_CONFIG.maximum));
-  config.starting = clamp(Math.floor(Number(config.starting)), 0, config.maximum);
-  return config;
-}
-
-function currentTechniquePoints() {
-  return clamp(Math.floor(Number(game.settings.get(MODULE_ID, "techniquePoints"))), 0, getTechniquePointConfig().maximum);
-}
-
-async function setTechniquePoints(value, {broadcast = true} = {}) {
-  if (!isAuthority()) return currentTechniquePoints();
-  const next = clamp(Math.floor(Number(value)), 0, getTechniquePointConfig().maximum);
-  await game.settings.set(MODULE_ID, "techniquePoints", next);
-  if (broadcast) game.socket.emit(SOCKET, {type: "techniquePointsChanged", value: next, sourceUserId: game.user.id});
-  refreshResourceHuds();
-  refreshTechniqueButtons();
-  Hooks.callAll("tsruTechniquePointsChanged", next);
-  return next;
-}
-
-function combatHasInitiative() {
-  return Boolean(game.combat?.started);
-}
-
-function visibleTalentActors() {
-  if (!combatHasInitiative()) return [];
-  return game.actors.filter(actor => actor.type === "character" && talentCombatForActor(actor) && (game.user.isGM || actor.isOwner) && Number(getConfig(actor).talentPointsMax) > 0);
-}
-
-function visibleTechniqueActors() {
-  if (combatHasInitiative()) return [];
-  return game.actors.filter(actor => actor.type === "character" && getConfig(actor).techniqueEnabled && (game.user.isGM || actor.isOwner));
-}
-
-function resourceHudLayout(key, fallback) {
-  return foundry.utils.mergeObject(fallback, game.settings.get(MODULE_ID, key) ?? {}, {inplace: false});
-}
-
-async function saveResourceHudLayout(key, changes, fallback) {
-  await game.settings.set(MODULE_ID, key, foundry.utils.mergeObject(resourceHudLayout(key, fallback), changes, {inplace: false}));
-}
-
-function activateResourceHudDrag(element, handle, settingKey, fallback) {
-  let drag = null;
-  handle.addEventListener("pointerdown", event => {
-    event.preventDefault();
-    const rect = element.getBoundingClientRect();
-    drag = {dx: event.clientX - rect.left, dy: event.clientY - rect.top};
-    handle.setPointerCapture(event.pointerId);
-  });
-  handle.addEventListener("pointermove", event => {
-    if (!drag) return;
-    element.style.left = `${clamp(event.clientX - drag.dx, 0, window.innerWidth - 60)}px`;
-    element.style.top = `${clamp(event.clientY - drag.dy, 0, window.innerHeight - 40)}px`;
-  });
-  handle.addEventListener("pointerup", async event => {
-    if (!drag) return;
-    drag = null;
-    handle.releasePointerCapture(event.pointerId);
-    const rect = element.getBoundingClientRect();
-    await saveResourceHudLayout(settingKey, {x: Math.round(rect.left), y: Math.round(rect.top)}, fallback);
-  });
-}
-
-function requestTalentAdjustment(actor, delta) {
-  if (!actor || !talentCombatForActor(actor)) return ui.notifications.warn("Talent Points can only be adjusted for a token in the active combat.");
-  if (!game.user.isGM && !actor.isOwner) return ui.notifications.error("You do not own this character.");
-  if (isAuthority()) return setTalentPoints(actor, currentTalentPoints(actor) + delta).then(refreshResourceHuds);
-  const gm = activeGM();
-  if (!gm) return ui.notifications.error("A GM must be connected to adjust Talent Points.");
-  game.socket.emit(SOCKET, {type: "changeTalentPoints", actorId: actor.id, delta, sourceUserId: game.user.id});
-}
-
-class TalentPointHud {
-  constructor() { this.element = null; }
-  render() {
-    const actors = visibleTalentActors();
-    if (!actors.length) return this.destroy();
-    const fallback = {x: 24, y: 180, minimized: false};
-    const layout = resourceHudLayout("talentHudLayout", fallback);
-    if (!this.element) {
-      this.element = document.createElement("section");
-      this.element.className = "tsru-resource-hud tsru-talent-hud";
-      this.element.innerHTML = '<header><span><i class="fas fa-star"></i> Talent Points</span><span class="tsru-resource-header-actions"><i class="fas fa-grip-lines tsru-resource-drag" title="Move Talent Points"></i><button type="button" data-talent-hud-toggle title="Minimize Talent Points"><i class="fas fa-window-minimize"></i></button></span></header><div class="tsru-resource-list"></div>';
-      document.body.appendChild(this.element);
-      activateResourceHudDrag(this.element, this.element.querySelector(".tsru-resource-drag"), "talentHudLayout", fallback);
-      this.element.addEventListener("click", event => {
-        const toggle = event.target.closest("[data-talent-hud-toggle]");
-        if (toggle) {
-          saveResourceHudLayout("talentHudLayout", {minimized: !resourceHudLayout("talentHudLayout", fallback).minimized}, fallback).then(refreshResourceHuds);
-          return;
-        }
-        const button = event.target.closest("[data-talent-delta]");
-        if (!button) return;
-        requestTalentAdjustment(game.actors.get(button.dataset.actorId), Number(button.dataset.talentDelta));
-      });
-    }
-    this.element.style.left = `${clamp(layout.x, 0, window.innerWidth - 60)}px`;
-    this.element.style.top = `${clamp(layout.y, 0, window.innerHeight - 40)}px`;
-    this.element.classList.toggle("is-minimized", Boolean(layout.minimized));
-    const toggleIcon = this.element.querySelector("[data-talent-hud-toggle] i");
-    if (toggleIcon) toggleIcon.className = layout.minimized ? "fas fa-window-maximize" : "fas fa-window-minimize";
-    const toggle = this.element.querySelector("[data-talent-hud-toggle]");
-    if (toggle) toggle.title = layout.minimized ? "Expand Talent Points" : "Minimize Talent Points";
-    this.element.querySelector(".tsru-resource-list").innerHTML = actors.map(actor => {
-      const config = getConfig(actor);
-      return `<div class="tsru-resource-row"><img src="${escapeHTML(config.talentIcon || actor.img || "icons/svg/star.svg")}" alt=""><span class="tsru-resource-name">${escapeHTML(actor.name)}</span><button type="button" data-actor-id="${actor.id}" data-talent-delta="-1" title="Remove 1 Talent Point"><i class="fas fa-minus"></i></button><strong>${currentTalentPoints(actor)}/${Math.max(0, Number(config.talentPointsMax) || 0)}</strong><button type="button" data-actor-id="${actor.id}" data-talent-delta="1" title="Add 1 Talent Point"><i class="fas fa-plus"></i></button></div>`;
-    }).join("");
-    return this;
-  }
-  destroy() { this.element?.remove(); this.element = null; if (state.talentPointHud === this) state.talentPointHud = null; }
-}
-
-async function requestTechnique(actor) {
-  if (combatHasInitiative()) return ui.notifications.warn("Techniques cannot be used while initiative is active.");
-  if (!actor || (!game.user.isGM && !actor.isOwner)) return ui.notifications.error("You do not own this character.");
-  if (!getConfig(actor).techniqueEnabled) return ui.notifications.warn("This character's Technique is disabled.");
-  if (currentTechniquePoints() < 1) return ui.notifications.warn("The party has no Technique Points remaining.");
-  if (isAuthority()) return executeTechnique(actor.id, game.user.id);
-  if (!activeGM()) return ui.notifications.error("A GM must be connected to spend a shared Technique Point.");
-  game.socket.emit(SOCKET, {type: "activateTechnique", actorId: actor.id, requestingUserId: game.user.id});
-}
-
-async function executeTechnique(actorId, requestingUserId) {
-  if (!isAuthority() || state.techniqueSpendLock || combatHasInitiative()) return;
-  const actor = game.actors.get(actorId);
-  const requester = game.users.get(requestingUserId);
-  if (!actor || actor.type !== "character" || (!requester?.isGM && !actor.testUserPermission(requester, "OWNER"))) return;
-  const config = getConfig(actor);
-  if (!config.techniqueEnabled || currentTechniquePoints() < 1) return;
-  state.techniqueSpendLock = true;
-  try {
-    await setTechniquePoints(currentTechniquePoints() - 1);
-    const body = await TextEditor.enrichHTML(config.techniqueText || "<em>No Technique description has been entered.</em>", {async: true, secrets: actor.isOwner});
-    await ChatMessage.create({
-      speaker: ChatMessage.getSpeaker({actor}),
-      content: `<article class="tsru-technique-chat"><h3><img src="${escapeHTML(config.techniqueButtonImage || actor.img || "icons/svg/lightning.svg")}" alt="">${escapeHTML(actor.name)} â€” Technique</h3><div>${body}</div></article>`
-    });
-    ui.notifications.info(`${actor.name} used their Technique. ${currentTechniquePoints()} Technique Point(s) remain.`);
-  } finally {
-    state.techniqueSpendLock = false;
-    refreshResourceHuds();
-  }
-}
-
-function activateStarRailActionDrag(element, actor, action) {
-  if (!element || !actor) return;
-  element.draggable = true;
-  element.classList.add("tsru-macro-draggable");
-  element.addEventListener("dragstart", event => {
-    const config = getConfig(actor);
-    const actionDetails = {
-      skill: {label: "Skill", img: config.skillButtonImage || actor.img},
-      technique: {label: "Technique", img: config.techniqueButtonImage || actor.img},
-      ultimate: {label: config.ultimateName || "Ultimate", img: config.ultimateButtonImage || config.orbImage || actor.img},
-      talent: {label: "Talent", img: config.talentIcon || actor.img}
-    }[action];
-    if (!actionDetails) return;
-    event.dataTransfer.setData("text/plain", JSON.stringify({type:"TSRUAction",action,actorId:actor.id,actorUuid:actor.uuid,name:`${actor.name} â€” ${actionDetails.label}`,img:actionDetails.img || "icons/svg/d20.svg"}));
-    event.dataTransfer.effectAllowed = "copy";
-  });
-}
-
-async function createStarRailActionMacro(data, slot) {
-  if (data?.type !== "TSRUAction" || !["skill", "technique", "ultimate", "talent"].includes(data.action)) return true;
-  const actor = game.actors.get(data.actorId) ?? await fromUuid(data.actorUuid).catch(() => null);
-  if (!actor || actor.type !== "character") { ui.notifications.error("The character for this Star Rail action no longer exists."); return false; }
-  if (!game.user.isGM && !actor.isOwner) { ui.notifications.error("You can only create action macros for characters you own."); return false; }
-  let macro = game.macros.find(entry => entry.getFlag(MODULE_ID,"action") === data.action && entry.getFlag(MODULE_ID,"actorId") === actor.id && entry.isOwner);
-  if (!macro) {
-    const method = {skill:"requestSkill",technique:"requestTechnique",ultimate:"requestUltimate",talent:"showTalentPopup"}[data.action];
-    macro = await Macro.create({name:data.name,type:"script",img:data.img || actor.img || "icons/svg/d20.svg",command:`const actor = game.actors.get("${actor.id}");\nif (!actor) return ui.notifications.error("Character not found.");\nreturn game.modules.get("${MODULE_ID}")?.api?.${method}(actor);`,flags:{[MODULE_ID]:{action:data.action,actorId:actor.id}}});
-  }
-  await game.user.assignHotbarMacro(macro,slot);
-  requestAnimationFrame(refreshUltimateHotbarMacros);
-  return false;
-}
-
-function ultimateMacroDisplay(actor) {
-  const config = getConfig(actor);
-  const maximum = Math.max(1, Number(config.max) || 1);
-  const percent = clamp((Number(config.current) / maximum) * 100, 0, 100);
-  const ready = Boolean(config.enabled) && percent >= 100;
-  const element = getElements().find(entry => entry.id === config.elementId);
-  const color = ready
-    ? (element?.readyColor || config.readyColor || DEFAULT_CONFIG.readyColor)
-    : (element?.chargeColor || config.chargeColor || DEFAULT_CONFIG.chargeColor);
-  return {percent, ready, color};
-}
-
-function refreshUltimateHotbarMacros() {
-  if (!game?.user) return;
-  const slots = new Set(document.querySelectorAll("#hotbar [data-slot], #action-bar [data-slot], .hotbar [data-slot], #hotbar [data-macro-id], #action-bar [data-macro-id], .hotbar [data-macro-id]"));
-  for (const slot of slots) {
-    const slotNumber = String(slot.dataset.slot ?? "");
-    const storedMacro = slotNumber ? game.user.hotbar?.[slotNumber] : null;
-    const storedMacroId = typeof storedMacro === "string" ? storedMacro : storedMacro?.id;
-    const macroId = slot.dataset.macroId ?? slot.querySelector?.("[data-macro-id]")?.dataset.macroId ?? storedMacroId;
-    const macro = game.macros.get(macroId);
-    const action = macro?.getFlag(MODULE_ID, "action");
-    const isUltimate = action === "ultimate";
-    const isSkill = action === "skill";
-    const isTalent = action === "talent";
-    slot.classList.toggle("tsru-ultimate-macro", isUltimate);
-    slot.classList.toggle("tsru-skill-macro", isSkill);
-    slot.classList.toggle("tsru-talent-macro", isTalent);
-    slot.querySelectorAll(":scope > .tsru-hotbar-energy-fill, :scope > .tsru-hotbar-energy-label, :scope > .tsru-hotbar-action-label").forEach(node => node.remove());
-    if (isSkill || isTalent) {
-      slot.classList.remove("has-energy", "is-ready");
-      const actor = game.actors.get(macro.getFlag(MODULE_ID, "actorId"));
-      const label = document.createElement("span");
-      label.className = "tsru-hotbar-action-label";
-      label.textContent = isTalent ? "TALENT" : "SKILL";
-      label.setAttribute("aria-hidden", "true");
-      slot.append(label);
-      if (isTalent && actor) slot.title = plainAbilityText(getConfig(actor).talentText) || `${actor.name} Talent`;
-      continue;
-    }
-    if (!isUltimate) { slot.classList.remove("has-energy", "is-ready"); continue; }
-    const actor = game.actors.get(macro.getFlag(MODULE_ID, "actorId"));
-    if (!actor) continue;
-    const display = ultimateMacroDisplay(actor);
-    slot.style.setProperty("--tsru-hotbar-energy", `${display.percent}%`);
-    slot.style.setProperty("--tsru-hotbar-energy-ratio", String(display.percent / 100));
-    slot.style.setProperty("--tsru-hotbar-glow", `${2 + (12 * display.percent / 100)}px`);
-    slot.style.setProperty("--tsru-hotbar-energy-color", display.color);
-    slot.classList.toggle("has-energy", display.percent > 0);
-    slot.classList.toggle("is-ready", display.ready);
-    const fill = document.createElement("span");
-    fill.className = "tsru-hotbar-energy-fill";
-    fill.setAttribute("aria-hidden", "true");
-    const label = document.createElement("span");
-    label.className = "tsru-hotbar-energy-label";
-    label.textContent = `${Math.round(display.percent)}%`;
-    label.setAttribute("aria-label", `${actor.name} Ultimate Energy: ${Math.round(display.percent)}%`);
-    slot.append(fill, label);
-  }
-}
-
-class TechniqueHud {
-  constructor() { this.element = null; }
-  render() {
-    const actors = visibleTechniqueActors();
-    if (!actors.length) return this.destroy();
-    const fallback = {x: 24, y: 420};
-    const layout = resourceHudLayout("techniqueHudLayout", fallback);
-    if (!this.element) {
-      this.element = document.createElement("section");
-      this.element.className = "tsru-resource-hud tsru-technique-hud";
-      this.element.innerHTML = '<header><span><i class="fas fa-bolt"></i> Technique Points: <strong class="tsru-technique-count"></strong></span><i class="fas fa-grip-lines tsru-resource-drag"></i></header><div class="tsru-technique-buttons"></div>';
-      document.body.appendChild(this.element);
-      activateResourceHudDrag(this.element, this.element.querySelector(".tsru-resource-drag"), "techniqueHudLayout", fallback);
-      this.element.addEventListener("click", event => {
-        const button = event.target.closest("[data-technique-actor]");
-        if (button) requestTechnique(game.actors.get(button.dataset.techniqueActor));
-      });
-    }
-    this.element.style.left = `${clamp(layout.x, 0, window.innerWidth - 60)}px`;
-    this.element.style.top = `${clamp(layout.y, 0, window.innerHeight - 40)}px`;
-    this.element.querySelector(".tsru-technique-count").textContent = `${currentTechniquePoints()}/${getTechniquePointConfig().maximum}`;
-    this.element.querySelector(".tsru-technique-buttons").innerHTML = actors.map(actor => {
-      const config = getConfig(actor);
-      const unavailable = currentTechniquePoints() < 1;
-      return `<button type="button" class="tsru-technique-button ${unavailable ? "is-unavailable" : ""}" data-technique-actor="${actor.id}" aria-disabled="${unavailable}" title="Use ${escapeHTML(actor.name)}'s Technique (costs 1 Technique Point)"><img src="${escapeHTML(config.techniqueButtonImage || actor.img || "icons/svg/lightning.svg")}" alt=""><span>${escapeHTML(actor.name)}</span></button>`;
-    }).join("");
-    for (const button of this.element.querySelectorAll("[data-technique-actor]")) activateStarRailActionDrag(button, game.actors.get(button.dataset.techniqueActor), "technique");
-    return this;
-  }
-  destroy() { this.element?.remove(); this.element = null; if (state.techniqueHud === this) state.techniqueHud = null; }
-}
-
-function refreshResourceHuds() {
-  const talentActors = visibleTalentActors();
-  if (game.user.isGM && talentActors.length) {
-    if (!state.talentPointHud) state.talentPointHud = new TalentPointHud();
-    state.talentPointHud.render();
-  } else state.talentPointHud?.destroy();
-  refreshTalentButtons();
-  const techniqueActors = visibleTechniqueActors();
-  if (techniqueActors.length) {
-    if (!state.techniqueHud) state.techniqueHud = new TechniqueHud();
-    state.techniqueHud.render();
-  } else state.techniqueHud?.destroy();
-}
-
-function getSkillPointConfig() {
-  const stored = game.settings.get(MODULE_ID, "skillPointConfig") ?? {};
-  const config = foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_SKILL_POINT_CONFIG), stored, {inplace: false});
-  config.maximum = Math.max(1, Math.floor(Number(config.maximum) || DEFAULT_SKILL_POINT_CONFIG.maximum));
-  config.starting = clamp(Math.floor(Number(config.starting)), 0, config.maximum);
-  config.pointsPerRow = clamp(Math.floor(Number(config.pointsPerRow)), 1, config.maximum);
-  config.pointSpacing = clamp(Number(config.pointSpacing), -50, 50);
-  return config;
-}
-
-function getTalentPointConfig() {
-  return foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_TALENT_POINT_CONFIG), game.settings.get(MODULE_ID, "talentPointConfig") ?? {}, {inplace:false});
-}
-
-async function refreshTalentPointFont() {
-  try {
-    const font = await loadSplashFont(getTalentPointConfig().numberFontFile);
-    document.documentElement.style.setProperty("--tsru-talent-number-font", font);
-  } catch (error) {
-    console.warn(`${MODULE_ID} | Could not load Talent Point font`, error);
-    document.documentElement.style.removeProperty("--tsru-talent-number-font");
-  }
-}
-
-function currentSkillPoints() {
-  return clamp(Math.floor(Number(game.settings.get(MODULE_ID, "skillPoints"))), 0, getSkillPointConfig().maximum);
-}
-
-async function setSkillPoints(value, {broadcast = true} = {}) {
-  if (!isAuthority()) return currentSkillPoints();
-  const next = clamp(Math.floor(Number(value)), 0, getSkillPointConfig().maximum);
-  await game.settings.set(MODULE_ID, "skillPoints", next);
-  if (broadcast) game.socket.emit(SOCKET, {type: "skillPointsChanged", value: next, sourceUserId: game.user.id});
-  refreshSkillUI();
-  Hooks.callAll("tsruSkillPointsChanged", next);
-  return next;
-}
-
-function skillMeterLayout() {
-  return foundry.utils.mergeObject({x: 420, y: 80, size: 42, visible: true}, game.settings.get(MODULE_ID, "skillMeterLayout") ?? {}, {inplace: false});
-}
-
-async function saveSkillMeterLayout(changes) {
-  const layout = foundry.utils.mergeObject(skillMeterLayout(), changes, {inplace: false});
-  await game.settings.set(MODULE_ID, "skillMeterLayout", layout);
-  return layout;
-}
-
-function skillButtonLayout(actorId) {
-  const layouts = game.settings.get(MODULE_ID, "skillButtonLayouts") ?? {};
-  const index = Math.max(0, game.actors.filter(actor => actor.type === "character").findIndex(actor => actor.id === actorId));
-  return foundry.utils.mergeObject({x: 240, y: 330 + index * 118, size: 96, visible: false}, layouts[actorId] ?? {}, {inplace: false});
-}
-
-function plainAbilityText(value) {
-  const div = document.createElement("div");
-  div.innerHTML = String(value ?? "");
-  return (div.textContent || "").trim();
-}
-
-function selectedMainCharacter() {
-  const localId = game.settings.get(MODULE_ID, "selectedMainCharacterId");
-  const worldId = (game.settings.get(MODULE_ID, "partySelections") ?? {})[game.user.id];
-  const candidates=[localId,worldId,game.user.character?.id,canvas?.tokens?.controlled?.find(token=>token.actor?.type==="character" && token.actor.isOwner)?.actor?.id];
-  for(const actorId of candidates){const actor=game.actors.get(actorId);if(actor?.type==="character" && (game.user.isGM || actor.isOwner))return actor;}
-  const owned=game.actors.filter(actor=>actor.type==="character" && actor.isOwner);
-  return owned.length===1 ? owned[0] : null;
-}
-
-async function setLocalMainCharacter(actorId) {
-  const actor=game.actors.get(actorId);
-  if(!actor || actor.type!=="character" || (!game.user.isGM && !actor.isOwner)) return false;
-  await game.settings.set(MODULE_ID,"selectedMainCharacterId",actor.id);
-  return true;
-}
-
-function talentButtonLayout(actorId) {
-  const layouts = game.settings.get(MODULE_ID, "talentButtonLayouts") ?? {};
-  return foundry.utils.mergeObject({x:360,y:330,size:96,visible:false}, layouts[actorId] ?? {}, {inplace:false});
-}
-
-function techniqueButtonLayout(actorId) {
-  const layouts = game.settings.get(MODULE_ID, "techniqueButtonLayouts") ?? {};
-  return foundry.utils.mergeObject({x:480,y:330,size:96,visible:false}, layouts[actorId] ?? {}, {inplace:false});
-}
-
-async function saveTechniqueButtonLayout(actorId, changes) {
-  const layouts = foundry.utils.deepClone(game.settings.get(MODULE_ID, "techniqueButtonLayouts") ?? {});
-  layouts[actorId] = foundry.utils.mergeObject(layouts[actorId] ?? {}, changes, {inplace:false});
-  await game.settings.set(MODULE_ID, "techniqueButtonLayouts", layouts);
-}
-
-async function saveTalentButtonLayout(actorId, changes) {
-  const layouts = foundry.utils.deepClone(game.settings.get(MODULE_ID, "talentButtonLayouts") ?? {});
-  layouts[actorId] = foundry.utils.mergeObject(layouts[actorId] ?? {}, changes, {inplace:false});
-  await game.settings.set(MODULE_ID, "talentButtonLayouts", layouts);
-}
-
-async function showTalentPopup(actor) {
-  if (!actor || (!game.user.isGM && !actor.isOwner)) return ui.notifications.error("You do not own this character.");
-  const config = getConfig(actor);
-  const {trigger, overcap} = talentPointLimits(actor);
-  const body = await TextEditor.enrichHTML(config.talentText || "<em>No Talent description has been entered.</em>", {async:true,secrets:actor.isOwner,relativeTo:actor});
-  const content = `<section class="tsru-talent-dialog" data-actor-id="${actor.id}"><header><img src="${escapeHTML(config.talentIcon || actor.img || "icons/svg/star.svg")}" alt=""><div><strong>${escapeHTML(actor.name)} â€” Talent</strong><span data-talent-count>${currentTalentPoints(actor)}/${trigger}${overcap > trigger ? ` (overcap ${overcap})` : ""}</span></div></header><div class="tsru-talent-description">${body}</div><footer><button type="button" data-talent-popup-delta="-1"><i class="fas fa-minus"></i></button><button type="button" data-talent-popup-delta="1"><i class="fas fa-plus"></i></button></footer></section>`;
-  const dialog = new Dialog({title:`${actor.name} â€” Talent`,content,buttons:{close:{icon:'<i class="fas fa-check"></i>',label:"Close"}},render:html => {
-    html.find("[data-talent-popup-delta]").on("click", async event => {
-      await requestTalentAdjustment(actor, Number(event.currentTarget.dataset.talentPopupDelta));
-      const limits = talentPointLimits(actor);
-      html.find("[data-talent-count]").text(`${currentTalentPoints(actor)}/${limits.trigger}${limits.overcap > limits.trigger ? ` (overcap ${limits.overcap})` : ""}`);
-    });
-  }});
-  dialog.render(true);
-}
-
-class TalentButton {
-  constructor(actor) { this.actor=actor; this.element=null; this.drag=null; this.resize=null; }
-  render() {
-    const layout=talentButtonLayout(this.actor.id), config=getConfig(this.actor);
-    if (!layout.visible) return this.destroy();
-    if (!this.element) {
-      this.element=document.createElement("div");
-      this.element.className="tsru-skill-widget tsru-talent-widget";
-      this.element.dataset.actorId=this.actor.id;
-      this.element.innerHTML=`<div class="tsru-skill-drag" title="Move Talent button"><i class="fas fa-grip-lines"></i></div><button type="button" class="tsru-skill-button tsru-talent-button"><img></button><div class="tsru-skill-label">Talent</div><button type="button" class="tsru-skill-close" title="Hide Talent button"><i class="fas fa-xmark"></i></button><div class="tsru-skill-resize" title="Resize"></div>`;
-      document.body.appendChild(this.element);
-      const drag=this.element.querySelector(".tsru-skill-drag"),resize=this.element.querySelector(".tsru-skill-resize");
-      drag.addEventListener("pointerdown",e=>{e.preventDefault();const r=this.element.getBoundingClientRect();this.drag={dx:e.clientX-r.left,dy:e.clientY-r.top};drag.setPointerCapture(e.pointerId);});
-      drag.addEventListener("pointermove",e=>{if(!this.drag)return;this.element.style.left=`${clamp(e.clientX-this.drag.dx,0,window.innerWidth-40)}px`;this.element.style.top=`${clamp(e.clientY-this.drag.dy,0,window.innerHeight-40)}px`;});
-      drag.addEventListener("pointerup",async e=>{if(!this.drag)return;this.drag=null;drag.releasePointerCapture(e.pointerId);const r=this.element.getBoundingClientRect();await saveTalentButtonLayout(this.actor.id,{x:Math.round(r.left),y:Math.round(r.top)});});
-      resize.addEventListener("pointerdown",e=>{e.preventDefault();this.resize={startX:e.clientX,startSize:this.element.getBoundingClientRect().width};resize.setPointerCapture(e.pointerId);});
-      resize.addEventListener("pointermove",e=>{if(this.resize)this.element.style.setProperty("--tsru-skill-size",`${clamp(this.resize.startSize+e.clientX-this.resize.startX,64,280)}px`);});
-      resize.addEventListener("pointerup",async e=>{if(!this.resize)return;const size=clamp(this.resize.startSize+e.clientX-this.resize.startX,64,280);this.resize=null;resize.releasePointerCapture(e.pointerId);await saveTalentButtonLayout(this.actor.id,{size:Math.round(size)});});
-      this.element.querySelector(".tsru-skill-close").addEventListener("click",async()=>{await saveTalentButtonLayout(this.actor.id,{visible:false});this.destroy();});
-      this.element.querySelector(".tsru-talent-button").addEventListener("click",()=>showTalentPopup(this.actor));
-      activateStarRailActionDrag(this.element.querySelector(".tsru-talent-button"),this.actor,"talent");
-    }
-    this.element.style.left=`${clamp(layout.x,0,window.innerWidth-40)}px`;this.element.style.top=`${clamp(layout.y,0,window.innerHeight-40)}px`;this.element.style.setProperty("--tsru-skill-size",`${clamp(layout.size,64,280)}px`);
-    const button=this.element.querySelector(".tsru-talent-button");
-    button.querySelector("img").src=config.talentIcon || this.actor.img || "icons/svg/star.svg";
-    button.title=plainAbilityText(config.talentText) || `${this.actor.name} Talent`;
-    this.element.querySelector(".tsru-skill-label").textContent=`Talent ${currentTalentPoints(this.actor)}/${talentPointLimits(this.actor).trigger}`;
-    return this;
-  }
-  destroy(){this.element?.remove();this.element=null;state.talentButtons.delete(this.actor.id);}
-}
-
-function refreshTalentButtons() {
-  const actors = game.user.isGM
-    ? game.actors.filter(actor => actor.type === "character" && talentButtonLayout(actor.id).visible)
-    : [selectedMainCharacter()].filter(actor => actor && talentButtonLayout(actor.id).visible);
-  const actorIds = new Set(actors.map(actor => actor.id));
-  for (const [id,button] of [...state.talentButtons]) if (!actorIds.has(id)) button.destroy();
-  for (const actor of actors) {
-    let button=state.talentButtons.get(actor.id);
-    if(!button){button=new TalentButton(actor);state.talentButtons.set(actor.id,button);}
-    button.render();
-  }
-}
-
-async function placeTalentButton(actor, {openPopup = false} = {}) {
-  if (!actor) return ui.notifications.warn("Select your main character first.");
-  await saveTalentButtonLayout(actor.id,{visible:true});
-  refreshTalentButtons();
-  if (openPopup) showTalentPopup(actor);
-  else ui.notifications.info(`${actor.name}'s Talent button was placed.`);
-  return true;
-}
-
-function showGMTalentActorPicker() {
-  const actors = game.actors
-    .filter(actor => actor.type === "character")
-    .sort((left, right) => String(left.name).localeCompare(String(right.name), undefined, {sensitivity:"base"}));
-  if (!actors.length) return ui.notifications.warn("No player characters are available.");
-  const options = actors.map(actor => `<option value="${actor.id}">${escapeHTML(actor.name)}</option>`).join("");
-  const content = `<form class="tsru-talent-character-picker"><div class="form-group"><label>Select character</label><div class="form-fields"><select name="actorId">${options}</select></div><p class="hint">Creates that character's detached Talent button using the Talent configured on their sheet.</p></div></form>`;
-  new Dialog({
-    title:"Show Character Talent",
-    content,
-    buttons:{
-      ok:{icon:'<i class="fas fa-check"></i>',label:"OK",callback:html => placeTalentButton(game.actors.get(html.find('[name="actorId"]').val()))},
-      cancel:{icon:'<i class="fas fa-times"></i>',label:"Cancel"}
-    },
-    default:"ok"
-  }).render(true);
-}
-
-async function showTalentUI() {
-  if (game.user.isGM) return showGMTalentActorPicker();
-  return placeTalentButton(selectedMainCharacter(), {openPopup:true});
-}
-
-class TechniqueButton {
-  constructor(actor) { this.actor=actor; this.element=null; this.drag=null; this.resize=null; }
-  render() {
-    const layout=techniqueButtonLayout(this.actor.id), config=getConfig(this.actor);
-    if (!layout.visible || (!game.user.isGM && !this.actor.isOwner)) return this.destroy();
-    if (!this.element) {
-      this.element=document.createElement("div");
-      this.element.className="tsru-skill-widget tsru-technique-widget";
-      this.element.dataset.actorId=this.actor.id;
-      this.element.innerHTML=`<div class="tsru-skill-drag" title="Move Technique button"><i class="fas fa-grip-lines"></i></div><button type="button" class="tsru-skill-button tsru-technique-button"><img></button><div class="tsru-skill-label">Technique</div><button type="button" class="tsru-skill-close" title="Hide Technique button"><i class="fas fa-xmark"></i></button><div class="tsru-skill-resize" title="Resize"></div>`;
-      document.body.appendChild(this.element);
-      const drag=this.element.querySelector(".tsru-skill-drag"), resize=this.element.querySelector(".tsru-skill-resize");
-      drag.addEventListener("pointerdown",event=>{event.preventDefault();const rect=this.element.getBoundingClientRect();this.drag={dx:event.clientX-rect.left,dy:event.clientY-rect.top};drag.setPointerCapture(event.pointerId);});
-      drag.addEventListener("pointermove",event=>{if(!this.drag)return;this.element.style.left=`${clamp(event.clientX-this.drag.dx,0,window.innerWidth-40)}px`;this.element.style.top=`${clamp(event.clientY-this.drag.dy,0,window.innerHeight-40)}px`;});
-      drag.addEventListener("pointerup",async event=>{if(!this.drag)return;this.drag=null;drag.releasePointerCapture(event.pointerId);const rect=this.element.getBoundingClientRect();await saveTechniqueButtonLayout(this.actor.id,{x:Math.round(rect.left),y:Math.round(rect.top)});});
-      resize.addEventListener("pointerdown",event=>{event.preventDefault();this.resize={startX:event.clientX,startSize:this.element.getBoundingClientRect().width};resize.setPointerCapture(event.pointerId);});
-      resize.addEventListener("pointermove",event=>{if(this.resize)this.element.style.setProperty("--tsru-skill-size",`${clamp(this.resize.startSize+event.clientX-this.resize.startX,64,280)}px`);});
-      resize.addEventListener("pointerup",async event=>{if(!this.resize)return;const size=clamp(this.resize.startSize+event.clientX-this.resize.startX,64,280);this.resize=null;resize.releasePointerCapture(event.pointerId);await saveTechniqueButtonLayout(this.actor.id,{size:Math.round(size)});});
-      this.element.querySelector(".tsru-skill-close").addEventListener("click",async()=>{await saveTechniqueButtonLayout(this.actor.id,{visible:false});this.destroy();});
-      this.element.querySelector(".tsru-technique-button").addEventListener("click",()=>requestTechnique(this.actor));
-      activateStarRailActionDrag(this.element.querySelector(".tsru-technique-button"),this.actor,"technique");
-    }
-    this.element.style.left=`${clamp(layout.x,0,window.innerWidth-40)}px`;
-    this.element.style.top=`${clamp(layout.y,0,window.innerHeight-40)}px`;
-    this.element.style.setProperty("--tsru-skill-size",`${clamp(layout.size,64,280)}px`);
-    this.element.classList.toggle("is-unavailable",!config.techniqueEnabled || currentTechniquePoints()<1);
-    const button=this.element.querySelector(".tsru-technique-button");
-    button.querySelector("img").src=config.techniqueButtonImage || this.actor.img || "icons/svg/lightning.svg";
-    button.title=config.techniqueEnabled ? `${this.actor.name}: Use Technique` : `${this.actor.name}'s Technique is disabled.`;
-    return this;
-  }
-  destroy(){this.element?.remove();this.element=null;state.techniqueButtons.delete(this.actor.id);}
-}
-
-function refreshTechniqueButtons() {
-  const actors=game.actors.filter(actor=>actor.type==="character" && techniqueButtonLayout(actor.id).visible && (game.user.isGM || actor.isOwner));
-  const actorIds=new Set(actors.map(actor=>actor.id));
-  for(const [id,button] of [...state.techniqueButtons]) if(!actorIds.has(id)) button.destroy();
-  for(const actor of actors){let button=state.techniqueButtons.get(actor.id);if(!button){button=new TechniqueButton(actor);state.techniqueButtons.set(actor.id,button);}button.render();}
-}
-
-async function spawnAbilityBubbles(actor, selections={skill:true,ultimate:true,talent:true,technique:true}, {notify=true}={}) {
-  if (!actor || actor.type!=="character") return ui.notifications.warn("Select a character first.");
-  if (!game.user.isGM && !actor.isOwner) return ui.notifications.error("You do not own this character.");
-  if (selections.ultimate) {
-    await saveLayout(actor.id,{visible:true});
-    let orb=state.orbs.get(actor.id);
-    if(!orb){orb=new UltimateOrb(actor);state.orbs.set(actor.id,orb);}
-    orb.render();
-  }
-  if (selections.skill) await saveSkillButtonLayout(actor.id,{visible:true});
-  if (selections.talent) await saveTalentButtonLayout(actor.id,{visible:true});
-  if (selections.technique) await saveTechniqueButtonLayout(actor.id,{visible:true});
-  if(selections.skill){let button=state.skillButtons.get(actor.id);if(!button){button=new SkillButton(actor);state.skillButtons.set(actor.id,button);}button.render();}
-  if(selections.talent){let button=state.talentButtons.get(actor.id);if(!button){button=new TalentButton(actor);state.talentButtons.set(actor.id,button);}button.render();}
-  if(selections.technique){let button=state.techniqueButtons.get(actor.id);if(!button){button=new TechniqueButton(actor);state.techniqueButtons.set(actor.id,button);}button.render();}
-  const shown=[
-    selections.ultimate && state.orbs.get(actor.id)?.element?.isConnected,
-    selections.skill && state.skillButtons.get(actor.id)?.element?.isConnected,
-    selections.talent && state.talentButtons.get(actor.id)?.element?.isConnected,
-    selections.technique && state.techniqueButtons.get(actor.id)?.element?.isConnected
-  ].filter(Boolean).length;
-  if(!shown){ui.notifications.error(`No ability bubbles could be shown for ${actor.name}. Check that this player owns the character.`);return false;}
-  if (notify) ui.notifications.info(`${shown} ability bubble${shown===1?"":"s"} shown for ${actor.name}.`);
-  return shown;
-}
-
-function playerCharacterActors() {
-  return game.actors.filter(actor=>actor.type==="character")
-    .sort((a,b)=>String(a.name).localeCompare(String(b.name),undefined,{sensitivity:"base"}));
-}
-
-function showGMAbilityBubblePicker() {
-  const actors=playerCharacterActors();
-  if(!actors.length) return ui.notifications.warn("No player characters are available.");
-  const actorRows=actors.map((actor,index)=>`<label class="tsru-ability-actor"><input type="checkbox" name="actorId" value="${actor.id}" ${index===0?"checked":""}><img src="${escapeHTML(actor.img || "icons/svg/mystery-man.svg")}" alt=""><span>${escapeHTML(actor.name)}</span></label>`).join("");
-  const content=`<form class="tsru-ability-bubble-picker"><fieldset><legend>Ability bubbles</legend><label><input type="checkbox" name="skill" checked> Skill</label><label><input type="checkbox" name="ultimate" checked> Ult</label><label><input type="checkbox" name="talent" checked> Talent</label><label><input type="checkbox" name="technique" checked> Technique</label></fieldset><div class="tsru-ability-actors">${actorRows}</div></form>`;
-  const selectedActors=html=>html.find('[name="actorId"]:checked').toArray().map(input=>game.actors.get(input.value)).filter(Boolean);
-  new Dialog({title:"Show All Ability Bubbles",content,buttons:{
-    spawn:{icon:'<i class="fas fa-circle-play"></i>',label:"Spawn Buttons",callback:async html=>{const selections={skill:html.find('[name="skill"]').prop("checked"),ultimate:html.find('[name="ultimate"]').prop("checked"),talent:html.find('[name="talent"]').prop("checked"),technique:html.find('[name="technique"]').prop("checked")};for(const actor of selectedActors(html))await spawnAbilityBubbles(actor,selections,{notify:false});ui.notifications.info("Selected ability bubbles were shown.");}},
-    all:{icon:'<i class="fas fa-layer-group"></i>',label:"Spawn All Buttons",callback:async html=>{for(const actor of selectedActors(html))await spawnAbilityBubbles(actor,{skill:true,ultimate:true,talent:true,technique:true},{notify:false});ui.notifications.info("All ability bubbles were shown.");}},
-    cancel:{icon:'<i class="fas fa-times"></i>',label:"Cancel"}
-  },default:"spawn"}).render(true);
-}
-
-async function showAllAbilityBubbles() {
-  if(game.user.isGM) return showGMAbilityBubblePicker();
-  const actor=selectedMainCharacter();
-  if(!actor) return ui.notifications.warn("Select your main character in the HSR Hub first.");
-  return spawnAbilityBubbles(actor,{skill:true,ultimate:true,talent:true,technique:true});
-}
-
-async function saveSkillButtonLayout(actorId, changes) {
-  const layouts = foundry.utils.deepClone(game.settings.get(MODULE_ID, "skillButtonLayouts") ?? {});
-  layouts[actorId] = foundry.utils.mergeObject(layouts[actorId] ?? {}, changes, {inplace: false});
-  await game.settings.set(MODULE_ID, "skillButtonLayouts", layouts);
-}
-
-class SkillPointMeter {
-  constructor() { this.element = null; this.drag = null; this.resize = null; }
-  render() {
-    const layout = skillMeterLayout();
-    if (!combatHasInitiative() || !layout.visible) return this.destroy();
-    if (!this.element) {
-      this.element = document.createElement("div");
-      this.element.className = "tsru-skill-meter";
-      this.element.innerHTML = `<div class="tsru-skill-meter-drag" title="Move Skill Point meter"><i class="fas fa-grip-lines"></i></div><div class="tsru-skill-meter-content"><div class="tsru-skill-point-number"></div><div class="tsru-skill-point-separator" aria-hidden="true"></div><div class="tsru-skill-pips"></div></div><div class="tsru-skill-meter-underline"></div><button type="button" class="tsru-skill-meter-close" title="Hide Skill Point meter"><i class="fas fa-xmark"></i></button><div class="tsru-skill-meter-resize" title="Resize"></div>`;
-      document.body.appendChild(this.element);
-      this.activateListeners();
-    }
-    const config = getSkillPointConfig();
-    const current = currentSkillPoints();
-    const spent = config.maximum - current;
-    const drainOrder = [];
-    for (let start = 0; start < config.maximum; start += config.pointsPerRow) {
-      const end = Math.min(start + config.pointsPerRow, config.maximum);
-      for (let index = end - 1; index >= start; index--) drainOrder.push(index);
-    }
-    const empty = new Set(drainOrder.slice(0, spent));
-    const pips = Array.from({length: config.maximum}, (_entry, index) => {
-      const active = !empty.has(index);
-      const src = active ? config.illuminatedIcon : config.emptyIcon;
-      return `<img class="tsru-skill-pip ${active ? "is-filled" : "is-empty"}" src="${escapeHTML(src)}" alt="${active ? "Filled" : "Empty"} Skill Point">`;
-    }).join("");
-    this.element.querySelector(".tsru-skill-pips").innerHTML = pips;
-    this.element.querySelector(".tsru-skill-pips").style.setProperty("--tsru-skill-columns", String(config.pointsPerRow));
-    this.element.querySelector(".tsru-skill-pips").style.setProperty("--tsru-skill-point-gap", `${config.pointSpacing}px`);
-    this.element.querySelector(".tsru-skill-point-number").textContent = String(current);
-    loadSplashFont(config.numberFontFile).then(font => this.element?.style.setProperty("--tsru-skill-number-font", font)).catch(error => console.warn(`${MODULE_ID} | Could not load Skill Point font`, error));
-    this.element.style.left = `${clamp(layout.x, 0, window.innerWidth - 40)}px`;
-    this.element.style.top = `${clamp(layout.y, 0, window.innerHeight - 40)}px`;
-    this.element.style.setProperty("--tsru-skill-pip-size", `${clamp(layout.size, 24, 100)}px`);
-    return this;
-  }
-  activateListeners() {
-    const drag = this.element.querySelector(".tsru-skill-meter-drag");
-    const resize = this.element.querySelector(".tsru-skill-meter-resize");
-    drag.addEventListener("pointerdown", event => { event.preventDefault(); const rect = this.element.getBoundingClientRect(); this.drag = {dx: event.clientX - rect.left, dy: event.clientY - rect.top}; drag.setPointerCapture(event.pointerId); });
-    drag.addEventListener("pointermove", event => { if (!this.drag) return; this.element.style.left = `${clamp(event.clientX - this.drag.dx, 0, window.innerWidth - 40)}px`; this.element.style.top = `${clamp(event.clientY - this.drag.dy, 0, window.innerHeight - 40)}px`; });
-    drag.addEventListener("pointerup", async event => { if (!this.drag) return; this.drag = null; drag.releasePointerCapture(event.pointerId); const rect = this.element.getBoundingClientRect(); await saveSkillMeterLayout({x: Math.round(rect.left), y: Math.round(rect.top)}); });
-    resize.addEventListener("pointerdown", event => { event.preventDefault(); this.resize = {startX: event.clientX, startSize: skillMeterLayout().size}; resize.setPointerCapture(event.pointerId); });
-    resize.addEventListener("pointermove", event => { if (!this.resize) return; this.element.style.setProperty("--tsru-skill-pip-size", `${clamp(this.resize.startSize + event.clientX - this.resize.startX, 24, 100)}px`); });
-    resize.addEventListener("pointerup", async event => { if (!this.resize) return; const size = clamp(this.resize.startSize + event.clientX - this.resize.startX, 24, 100); this.resize = null; resize.releasePointerCapture(event.pointerId); await saveSkillMeterLayout({size: Math.round(size)}); this.render(); });
-    this.element.querySelector(".tsru-skill-meter-close").addEventListener("click", async () => { await saveSkillMeterLayout({visible: false}); this.destroy(); });
-  }
-  destroy() { this.element?.remove(); this.element = null; if (state.skillMeter === this) state.skillMeter = null; }
-}
-
-function canUseSkillActor(actor) {
-  return Boolean(actor?.type === "character" && (game.user.isGM || actor.isOwner));
-}
-
-class SkillButton {
-  constructor(actor) { this.actor = actor; this.element = null; this.drag = null; this.resize = null; }
-  render() {
-    const layout = skillButtonLayout(this.actor.id);
-    if (!canUseSkillActor(this.actor) || !layout.visible) return this.destroy();
-    if (!this.element) {
-      this.element = document.createElement("div");
-      this.element.className = "tsru-skill-widget";
-      this.element.dataset.actorId = this.actor.id;
-      this.element.innerHTML = `<div class="tsru-skill-drag" title="Move Skill button"><i class="fas fa-grip-lines"></i></div><button type="button" class="tsru-skill-button"><img></button><div class="tsru-skill-label">Skill</div><button type="button" class="tsru-skill-close" title="Hide Skill button"><i class="fas fa-xmark"></i></button><div class="tsru-skill-resize" title="Resize"></div>`;
-      document.body.appendChild(this.element);
-      this.activateListeners();
-      activateStarRailActionDrag(this.element.querySelector(".tsru-skill-button"), this.actor, "skill");
-    }
-    const config = getConfig(this.actor);
-    const element = getElements().find(entry => entry.id === config.elementId);
-    const cost = Math.max(0, Math.floor(Number(config.skillPointCost) || 0));
-    const available = getConfig(this.actor).skillEnabled && currentSkillPoints() >= cost && !state.skillLocks.has(this.actor.id);
-    this.element.style.left = `${clamp(layout.x, 0, window.innerWidth - 40)}px`;
-    this.element.style.top = `${clamp(layout.y, 0, window.innerHeight - 40)}px`;
-    this.element.style.setProperty("--tsru-skill-size", `${clamp(layout.size, 64, 280)}px`);
-    this.element.style.setProperty("--tsru-skill-color", element?.readyColor || DEFAULT_CONFIG.readyColor);
-    this.element.classList.toggle("is-unavailable", !available);
-    const button = this.element.querySelector(".tsru-skill-button");
-    button.disabled = false;
-    button.setAttribute("aria-disabled", String(!available));
-    button.title = available ? `${this.actor.name}: Use Skill (costs ${cost} Skill Point${cost === 1 ? "" : "s"})` : state.skillLocks.has(this.actor.id) ? "This Skill is currently resolving." : `This Skill requires ${cost} Skill Points.`;
-    button.querySelector("img").src = config.skillButtonImage || this.actor.img || "icons/svg/sword.svg";
-    return this;
-  }
-  activateListeners() {
-    const drag = this.element.querySelector(".tsru-skill-drag"); const resize = this.element.querySelector(".tsru-skill-resize");
-    drag.addEventListener("pointerdown", event => { event.preventDefault(); const rect = this.element.getBoundingClientRect(); this.drag = {dx: event.clientX - rect.left, dy: event.clientY - rect.top}; drag.setPointerCapture(event.pointerId); });
-    drag.addEventListener("pointermove", event => { if (!this.drag) return; this.element.style.left = `${clamp(event.clientX - this.drag.dx, 0, window.innerWidth - 40)}px`; this.element.style.top = `${clamp(event.clientY - this.drag.dy, 0, window.innerHeight - 40)}px`; });
-    drag.addEventListener("pointerup", async event => { if (!this.drag) return; this.drag = null; drag.releasePointerCapture(event.pointerId); const rect = this.element.getBoundingClientRect(); await saveSkillButtonLayout(this.actor.id, {x: Math.round(rect.left), y: Math.round(rect.top)}); });
-    resize.addEventListener("pointerdown", event => { event.preventDefault(); const rect = this.element.getBoundingClientRect(); this.resize = {startX: event.clientX, startSize: rect.width}; resize.setPointerCapture(event.pointerId); });
-    resize.addEventListener("pointermove", event => { if (!this.resize) return; this.element.style.setProperty("--tsru-skill-size", `${clamp(this.resize.startSize + event.clientX - this.resize.startX, 64, 280)}px`); });
-    resize.addEventListener("pointerup", async event => { if (!this.resize) return; const size = clamp(this.resize.startSize + event.clientX - this.resize.startX, 64, 280); this.resize = null; resize.releasePointerCapture(event.pointerId); await saveSkillButtonLayout(this.actor.id, {size: Math.round(size)}); });
-    this.element.querySelector(".tsru-skill-close").addEventListener("click", async () => { await saveSkillButtonLayout(this.actor.id, {visible: false}); this.destroy(); });
-    this.element.querySelector(".tsru-skill-button").addEventListener("click", () => requestSkill(this.actor));
-  }
-  destroy() { this.element?.remove(); this.element = null; state.skillButtons.delete(this.actor.id); }
-}
-
-function refreshSkillUI() {
-  const meterLayout = skillMeterLayout();
-  if (combatHasInitiative() && meterLayout.visible) { if (!state.skillMeter) state.skillMeter = new SkillPointMeter(); state.skillMeter.render(); }
-  else state.skillMeter?.destroy();
-  for (const actor of game.actors ?? []) {
-    if (!canUseSkillActor(actor) || !skillButtonLayout(actor.id).visible) { state.skillButtons.get(actor.id)?.destroy(); continue; }
-    let button = state.skillButtons.get(actor.id);
-    if (!button) { button = new SkillButton(actor); state.skillButtons.set(actor.id, button); }
-    button.render();
-  }
-}
-
-async function showSkillUI() {
-  await saveSkillMeterLayout({visible: true});
-  for (const actor of game.actors.filter(canUseSkillActor)) await saveSkillButtonLayout(actor.id, {visible: true});
-  refreshSkillUI();
-}
-
-function getElements() {
-  return (game.settings.get(MODULE_ID, "elements") ?? []).map(element => ({
-    ...element,
-    chargeColor: element.chargeColor || element.color || DEFAULT_CONFIG.chargeColor,
-    readyColor: element.readyColor || element.color || DEFAULT_CONFIG.readyColor,
-    color: element.readyColor || element.color || DEFAULT_CONFIG.readyColor
-  }));
-}
-
-function getPaths() {
-  const stored = game.settings.get(MODULE_ID, "paths") ?? [];
-  return (Array.isArray(stored) ? stored : Object.values(stored)).filter(Boolean).map(path => ({...path, color:path.color || "#e5c878"}));
-}
-
-function getCraftingRecipes() {
-  const stored = game.settings.get(MODULE_ID, "craftingRecipes") ?? [];
-  return (Array.isArray(stored) ? stored : Object.values(stored)).filter(Boolean);
-}
-
-function partyCraftingActors() {
-  return game.actors.filter(actor => actor.type === "character" && getConfig(actor).mainParty);
-}
-
-function recipeItemKey(entry) {
-  return String(entry?.uuid || `${entry?.type || "loot"}:${entry?.name || ""}`).toLowerCase();
-}
-
-function itemMatchesRecipeEntry(item, entry) {
-  if (!item || !entry) return false;
-  const sourceId = item.getFlag?.("core", "sourceId");
-  if (entry.uuid && (item.uuid === entry.uuid || sourceId === entry.uuid)) return true;
-  return item.name === entry.name && (!entry.type || item.type === entry.type);
-}
-
-function itemQuantity(item) {
-  return Math.max(0, Number(item?.system?.quantity ?? 1) || 0);
-}
-
-function pooledCraftingInventory() {
-  const actors = partyCraftingActors();
-  const totals = new Map();
-  for (const actor of actors) for (const item of actor.items ?? []) {
-    const sourceId = item.getFlag?.("core", "sourceId");
-    const entry = {uuid:sourceId || item.uuid,name:item.name,type:item.type};
-    const key = recipeItemKey(entry);
-    const current = totals.get(key) ?? {quantity:0,items:[],name:item.name,img:item.img};
-    current.quantity += itemQuantity(item);
-    current.items.push({actor,item});
-    totals.set(key,current);
-  }
-  return {actors,totals};
-}
-
-function pooledQuantityFor(entry, actors=partyCraftingActors()) {
-  let quantity = 0;
-  for (const actor of actors) for (const item of actor.items ?? []) if (itemMatchesRecipeEntry(item,entry)) quantity += itemQuantity(item);
-  return quantity;
-}
-
-function actorUnlockedRecipes(actor) {
-  const value = actor?.getFlag(MODULE_ID,"unlockedCraftingRecipes") ?? [];
-  return new Set(Array.isArray(value) ? value : []);
-}
-
-function craftingLearningActors(sourceActor) {
-  const party = partyCraftingActors();
-  const ownerIds = new Set();
-  for (const actor of party) for (const user of game.users ?? []) if (!user.isGM && actor.testUserPermission(user,"OWNER")) ownerIds.add(user.id);
-  const recipients = new Map(party.map(actor=>[actor.id,actor]));
-  if(sourceActor)recipients.set(sourceActor.id,sourceActor);
-  for(const actor of game.actors.filter(entry=>entry.type==="character")){
-    if([...ownerIds].some(id=>actor.testUserPermission(game.users.get(id),"OWNER")))recipients.set(actor.id,actor);
-  }
-  return [...recipients.values()];
-}
-
-async function unlockCraftingRecipe(recipeId,sourceActor) {
-  const recipe=getCraftingRecipes().find(entry=>entry.id===recipeId);
-  if(!recipe)return false;
-  for(const actor of craftingLearningActors(sourceActor)){
-    const unlocked=actorUnlockedRecipes(actor);
-    if(unlocked.has(recipeId))continue;
-    unlocked.add(recipeId);
-    await actor.setFlag(MODULE_ID,"unlockedCraftingRecipes",[...unlocked]);
-  }
-  return true;
-}
-
-function craftingUserActors(user=game.user) {
-  return partyCraftingActors().filter(actor=>user.isGM||actor.testUserPermission(user,"OWNER"));
-}
-
-async function consumePartyIngredients(recipe) {
-  const actors=partyCraftingActors();
-  for(const ingredient of recipe.ingredients??[])if(pooledQuantityFor(ingredient,actors)<Math.max(1,Number(ingredient.quantity)||1))throw new Error(`Not enough ${ingredient.name}.`);
-  for(const ingredient of recipe.ingredients??[]){
-    let remaining=Math.max(1,Number(ingredient.quantity)||1);
-    for(const actor of actors){
-      for(const item of [...(actor.items??[])]){
-        if(!remaining||!itemMatchesRecipeEntry(item,ingredient))continue;
-        const quantity=itemQuantity(item),used=Math.min(quantity,remaining);
-        remaining-=used;
-        if(quantity<=used)await item.delete();
-        else await item.update({"system.quantity":quantity-used});
-      }
-      if(!remaining)break;
-    }
-  }
-}
-
-async function grantCraftingOutput(actor,output) {
-  if(!actor||!output?.itemData)throw new Error("This recipe has no configured output item.");
-  const quantity=Math.max(1,Number(output.quantity)||1);
-  const existing=actor.items.find(item=>itemMatchesRecipeEntry(item,output));
-  if(existing)return existing.update({"system.quantity":itemQuantity(existing)+quantity});
-  const data=foundry.utils.deepClone(output.itemData);delete data._id;delete data.folder;delete data.sort;delete data.ownership;
-  foundry.utils.setProperty(data,"system.quantity",quantity);
-  return actor.createEmbeddedDocuments("Item",[data]);
-}
-
-async function executeCraftRecipe(recipeId,actorId,requestingUserId) {
-  if(!isAuthority())return {ok:false,message:"No active GM is available."};
-  if(state.craftingLocks.has("party"))return {ok:false,message:"The party is already crafting. Please try again."};
-  const requester=game.users.get(requestingUserId),actor=game.actors.get(actorId),recipe=getCraftingRecipes().find(entry=>entry.id===recipeId);
-  if(!requester||!actor||!recipe)return {ok:false,message:"The recipe or receiving character no longer exists."};
-  if(!getConfig(actor).mainParty||(!requester.isGM&&!actor.testUserPermission(requester,"OWNER")))return {ok:false,message:"Choose one of your Main Party characters to receive the result."};
-  if(!requester.isGM&&!actorUnlockedRecipes(actor).has(recipeId))return {ok:false,message:"That recipe has not been unlocked."};
-  if(!recipe.output?.itemData)return {ok:false,message:"This recipe has no configured output item."};
-  state.craftingLocks.add("party");
-  try{await consumePartyIngredients(recipe);await grantCraftingOutput(actor,recipe.output);await unlockCraftingRecipe(recipeId,actor);return {ok:true,message:`Crafted ${Math.max(1,Number(recipe.output?.quantity)||1)} Ã— ${recipe.output?.name}.`};}
-  catch(error){console.error(`${MODULE_ID} | Crafting failed`,error);return {ok:false,message:error.message};}
-  finally{state.craftingLocks.delete("party");}
-}
-
-async function executeRedeemRecipeCard(actorId,itemId,requestingUserId) {
-  if(!isAuthority())return {ok:false,message:"No active GM is available."};
-  const requester=game.users.get(requestingUserId),actor=game.actors.get(actorId),item=actor?.items.get(itemId);
-  const recipeId=item?.getFlag(MODULE_ID,"recipeCard")?.recipeId;
-  const recipe=getCraftingRecipes().find(entry=>entry.id===recipeId);
-  if(!requester||!actor||!item||!recipe)return {ok:false,message:"That recipe card is no longer available."};
-  if(!requester.isGM&&!actor.testUserPermission(requester,"OWNER"))return {ok:false,message:"You do not own the character holding that card."};
-  if(actorUnlockedRecipes(actor).has(recipeId))return {ok:false,message:`${recipe.name} is already unlocked.`};
-  const quantity=itemQuantity(item);if(quantity<=1)await item.delete();else await item.update({"system.quantity":quantity-1});
-  await unlockCraftingRecipe(recipeId,actor);
-  return {ok:true,message:`${recipe.name} was unlocked for the party and their owners' characters.`};
-}
-
-async function ensureDefaultPaths() {
-  if (!game.user.isGM) return false;
-  const stored = getPaths();
-  const names = new Set(stored.map(path => String(path.name || "").trim().toLowerCase()));
-  const missing = DEFAULT_PATHS.filter(path => !names.has(path.name.toLowerCase())).map(path => ({...path}));
-  if (!missing.length) return false;
-  await game.settings.set(MODULE_ID, "paths", [...stored, ...missing]);
-  return true;
-}
-
-function droppedAssetPath(event) {
-  const transfer = event.originalEvent?.dataTransfer ?? event.dataTransfer;
-  const plain = transfer?.getData("text/plain") || transfer?.getData("text/uri-list") || "";
-  try {
-    const data = JSON.parse(plain);
-    return data.src || data.img || data.path || data.texture?.src || "";
-  } catch (_error) { return plain.trim(); }
-}
-
-function activateImageDrops(html) {
-  html.find(".tsru-drop-image").on("dragover", event => { event.preventDefault(); event.currentTarget.classList.add("is-dragover"); });
-  html.find(".tsru-drop-image").on("dragleave", event => event.currentTarget.classList.remove("is-dragover"));
-  html.find(".tsru-drop-image").on("drop", event => {
-    event.preventDefault(); event.currentTarget.classList.remove("is-dragover");
-    const path = droppedAssetPath(event);
-    if (path) $(event.currentTarget).val(path).trigger("change");
-  });
-}
-
-
-function getLightConeData(item) {
-  const stored = item?.getFlag?.(MODULE_ID, "lightCone") ?? {};
-  return {
-    enabled: Boolean(stored.enabled),
-    pathId: String(stored.pathId || ""),
-    description: String(stored.description ?? item?.system?.description?.value ?? ""),
-    image: String(stored.image || item?.img || "icons/svg/item-bag.svg")
-  };
-}
-
-function isLightCone(item) {
-  return Boolean(item?.getFlag?.(MODULE_ID, "lightCone")?.enabled);
-}
-
-function equippedLightCone(actor) {
-  const itemId = String(actor?.getFlag?.(MODULE_ID, "selectedLightConeItemId") || "");
-  return itemId ? actor.items?.get(itemId) ?? null : null;
-}
-
-async function ensureLightConeFolder() {
-  let folder = Array.from(game.folders ?? []).find(entry => entry.type === "Item" && entry.name === "Light Cones");
-  if (!folder) folder = await Folder.create({name: "Light Cones", type: "Item"});
-  return folder;
-}
-
-function lightConeFolderOptions(selectedId = "") {
-  return Array.from(game.folders ?? [])
-    .filter(folder => folder.type === "Item")
-    .sort((a, b) => String(a.name).localeCompare(String(b.name)))
-    .map(folder => `<option value="${escapeHTML(folder.id)}" ${folder.id === selectedId ? "selected" : ""}>${escapeHTML(folder.name)}</option>`)
-    .join("");
-}
-
-async function openLightConeGenerator() {
-  if (!game.user.isGM) return ui.notifications.warn("Only a GM can generate Light Cones.");
-  const paths = getPaths();
-  if (!paths.length) return ui.notifications.warn("Create at least one Path before generating a Light Cone.");
-  const options = paths.map(path => `<option value="${escapeHTML(path.id)}">${escapeHTML(path.name)}</option>`).join("");
-  const defaultFolder = await ensureLightConeFolder();
-  const folderOptions = lightConeFolderOptions(defaultFolder.id);
-  const content = `<form class="tsru-light-cone-generator">
-    <div class="form-group"><label>Name</label><div class="form-fields"><input type="text" name="name" placeholder="Light Cone name"></div></div>
-    <div class="form-group"><label>Path</label><div class="form-fields"><select name="pathId">${options}</select></div></div>
-    <div class="form-group"><label>Light Cone Image</label><div class="form-fields"><input type="text" name="image" value="icons/svg/item-bag.svg"><button type="button" class="file-picker" data-type="image" data-target="image"><i class="fas fa-file-import"></i></button></div></div>
-    <div class="form-group"><label>Target Item Folder</label><div class="form-fields"><select name="folderId">${folderOptions}</select></div></div>
-    <div class="form-group stacked"><label>Description</label><textarea name="description" rows="10" placeholder="Light Cone effects"></textarea></div>
-    <p class="notes">The Path restriction line will be inserted automatically at the top in bold uppercase text.</p>
-  </form>`;
-  const dialog = new Dialog({
-    title: "Generate New Light Cone",
-    content,
-    buttons: {
-      create: {
-        icon: '<i class="fas fa-plus"></i>',
-        label: "Create",
-        callback: async html => {
-          const name = String(html.find('[name="name"]').val() || "").trim();
-          const pathId = String(html.find('[name="pathId"]').val() || "");
-          const path = paths.find(entry => entry.id === pathId);
-          if (!name) return ui.notifications.warn("Enter a Light Cone name.");
-          if (!path) return ui.notifications.warn("Select a valid Path.");
-          const image = String(html.find('[name="image"]').val() || "icons/svg/item-bag.svg").trim();
-          const folderId = String(html.find('[name="folderId"]').val() || defaultFolder.id);
-          const body = String(html.find('[name="description"]').val() || "").trim();
-          const restriction = `<p><strong>THE FOLLOWING EFFECTS ONLY WORK ON CHARACTERS OF THE PATH OF ${escapeHTML(path.name).toUpperCase()}</strong></p>`;
-          const description = `${restriction}\n${body}`;
-          const lightCone = {enabled: true, pathId, image, description};
-          const item = await Item.create({
-            name,
-            type: "loot",
-            img: image,
-            folder: folderId,
-            system: {description: {value: description}, quantity: 1, attunement: 1},
-            flags: {[MODULE_ID]: {lightCone}}
-          });
-          ui.notifications.info(`Created Light Cone: ${name}.`);
-          item?.sheet?.render(true);
-        }
-      },
-      cancel: {icon: '<i class="fas fa-times"></i>', label: "Cancel"}
-    },
-    default: "create"
-  });
-  Hooks.once("renderDialog", rendered => {
-    if (rendered !== dialog) return;
-    rendered.element.find(".file-picker").on("click", event => {
-      const target = event.currentTarget.dataset.target;
-      const input = rendered.element.find(`[name="${target}"]`);
-      new FilePicker({type: "image", current: input.val(), callback: path => input.val(path)}).browse();
-    });
-  });
-  dialog.render(true);
-}
-
-function lightConeAttunementUpdate(item, equipped) {
-  const changes = {};
-  const statePath = `flags.${MODULE_ID}.lightConeAttunementState`;
-  const properties = new Set(Array.from(item?.system?.properties ?? []));
-  const saved = item?.getFlag?.(MODULE_ID, "lightConeAttunementState");
-  const supportsAttunement = foundry.utils.hasProperty(item, "system.attunement")
-    && foundry.utils.hasProperty(item, "system.attuned");
-  if (equipped) {
-    // Loot items have no attunement fields in D&D5e. Their selected Light Cone
-    // consumes a virtual slot in the prepared sheet context instead.
-    if (!supportsAttunement) return changes;
-    if (!saved) {
-      changes[statePath] = {
-        attunement: item?.system?.attunement,
-        attuned: Boolean(item?.system?.attuned),
-        hadMagic: properties.has("mgc")
-      };
-    }
-    // D&D5e 5.3 clears attunement during data preparation unless the item has
-    // the magical property, so Light Cones need it for as long as they are selected.
-    properties.add("mgc");
-    changes["system.properties"] = Array.from(properties);
-    if (foundry.utils.hasProperty(item, "system.attunement")) changes["system.attunement"] = "optional";
-    if (foundry.utils.hasProperty(item, "system.attuned")) changes["system.attuned"] = true;
-  } else {
-    if (saved && !saved.hadMagic) properties.delete("mgc");
-    changes["system.properties"] = Array.from(properties);
-    if (foundry.utils.hasProperty(item, "system.attunement")) changes["system.attunement"] = saved?.attunement ?? "";
-    if (foundry.utils.hasProperty(item, "system.attuned")) changes["system.attuned"] = saved?.attuned ?? false;
-    if (saved) changes[`flags.${MODULE_ID}.-=lightConeAttunementState`] = null;
-  }
-  return changes;
-}
-
-function itemIsAttuned(item) {
-  const attunement = item?.system?.attunement;
-  return item?.system?.attuned === true || attunement === 2 || String(attunement || "").toLowerCase() === "attuned";
-}
-
-function actorAttunementCapacity(actor) {
-  const attributes = actor?.system?.attributes ?? {};
-  const configured = Number(attributes.attunement?.max ?? attributes.attunementMax ?? 3);
-  return Number.isFinite(configured) ? Math.max(0, configured) : 3;
-}
-
-function actorAttunedItemCount(actor) {
-  const nativeCount = Array.from(actor?.items ?? []).filter(itemIsAttuned).length;
-  const cone = equippedLightCone(actor);
-  return nativeCount + (cone && !itemIsAttuned(cone) ? 1 : 0);
-}
-
-async function repairSelectedLightConeAttunements() {
-  if (!game.user.isGM) return;
-  for (const actor of game.actors.filter(entry => entry.type === "character")) {
-    const item = equippedLightCone(actor);
-    if (!item) continue;
-    const supportsAttunement = foundry.utils.hasProperty(item, "system.attunement")
-      && foundry.utils.hasProperty(item, "system.attuned");
-    let changes = {};
-    // Clean up the magical property added to loot by v2.25.5; loot uses the
-    // virtual selected-Light-Cone slot because its schema cannot be attuned.
-    if (!supportsAttunement && item.getFlag(MODULE_ID, "lightConeAttunementState")) changes = lightConeAttunementUpdate(item, false);
-    else if (supportsAttunement && !itemIsAttuned(item)) changes = lightConeAttunementUpdate(item, true);
-    if (Object.keys(changes).length) await item.update(changes, {tsruLightConeSelection: true});
-  }
-}
-
-function prepareLightConeAttunementContext(app, _partId, context) {
-  const actor = app?.actor ?? app?.document;
-  const attunement = context?.system?.attributes?.attunement;
-  if (actor?.documentName !== "Actor" || actor.type !== "character" || !attunement) return;
-  attunement.value = actorAttunedItemCount(actor);
-}
-
-async function unequipLightCone(item) {
-  const actor = item?.parent;
-  if (!(game.user.isGM || actor?.isOwner) || equippedLightCone(actor)?.id !== item?.id) return;
-  const attunement = lightConeAttunementUpdate(item, false);
-  if (Object.keys(attunement).length) await item.update(attunement, {tsruLightConeSelection: true});
-  await actor.unsetFlag(MODULE_ID, "selectedLightConeItemId");
-  clearLightConeContextBackdrop(actor.sheet?.element?.jquery ? actor.sheet.element[0] : actor.sheet?.element);
-  actor.sheet?.render(false);
-  ui.notifications.info(`${item.name} was unequipped as ${actor.name}'s Light Cone.`);
-}
-
-async function selectLightConeItem(item) {
-  const actor = item?.parent;
-  if (!(game.user.isGM || actor?.isOwner) || actor?.documentName !== "Actor" || actor.type !== "character") return;
-  const current = equippedLightCone(actor);
-  if (current?.id === item.id) return unequipLightCone(item);
-  if (!current && !itemIsAttuned(item)) {
-    const used = actorAttunedItemCount(actor);
-    const maximum = actorAttunementCapacity(actor);
-    if (used >= maximum) return ui.notifications.warn(`${actor.name} already has the maximum of ${maximum} attuned items.`);
-  }
-  if (current) {
-    const confirmed = await Dialog.confirm({
-      title: "Switch Light Cones?",
-      content: `<p><strong>${escapeHTML(actor.name)}</strong> is currently using <strong>${escapeHTML(current.name)}</strong>.</p><p>Unequip it and equip <strong>${escapeHTML(item.name)}</strong> instead?</p>`,
-      yes: () => true,
-      no: () => false,
-      defaultYes: false
-    });
-    if (!confirmed) return ui.notifications.info(`${current.name} remains equipped for ${actor.name}.`);
-  }
-  const newAttunement = lightConeAttunementUpdate(item, true);
-  if (Object.keys(newAttunement).length) await item.update(newAttunement, {tsruLightConeSelection: true});
-  try {
-    if (current) {
-      const oldAttunement = lightConeAttunementUpdate(current, false);
-      if (Object.keys(oldAttunement).length) await current.update(oldAttunement, {tsruLightConeSelection: true});
-    }
-    await actor.setFlag(MODULE_ID, "selectedLightConeItemId", item.id);
-  } catch (error) {
-    const rollback = lightConeAttunementUpdate(item, false);
-    if (Object.keys(rollback).length) await item.update(rollback, {tsruLightConeSelection: true}).catch(() => {});
-    throw error;
-  }
-  clearLightConeContextBackdrop(actor.sheet?.element?.jquery ? actor.sheet.element[0] : actor.sheet?.element);
-  actor.sheet?.render(false);
-  ui.notifications.info(`${item.name} is now equipped as ${actor.name}'s Light Cone.`);
-}
-
-function clearLightConeContextBackdrop(rootElement) {
-  $("#tsru-light-cone-context-fallback").remove();
-  const root = $(rootElement ?? []);
-  root.filter(".context").add(root.find(".context")).removeClass("context");
-  root.filter(".context-menu-open").add(root.find(".context-menu-open")).removeClass("context-menu-open");
-  document.body?.classList.remove("context", "context-menu-open");
-}
-
-function activateLightConeInventoryContext(app, html) {
-  const actor = app.actor ?? app.document;
-  if (!(game.user.isGM || actor?.isOwner) || actor?.documentName !== "Actor" || actor.type !== "character") return;
-  const renderedRoot = html?.jquery ? html[0] : html;
-  const appRoot = app.element?.jquery ? app.element[0] : app.element;
-  const rootElement = appRoot ?? renderedRoot;
-  if (!rootElement) return;
-  clearLightConeContextBackdrop(rootElement);
-  if (rootElement.dataset.tsruLightConeContext === "true") return;
-  rootElement.dataset.tsruLightConeContext = "true";
-
-  rootElement.addEventListener("contextmenu", event => {
-    const row = event.target.closest?.("[data-item-id], [data-document-id], [data-entry-id], [data-id].item, .item");
-    const itemId = row?.dataset?.itemId || row?.dataset?.documentId || row?.dataset?.entryId || row?.dataset?.id;
-    const item = actor.items.get(itemId);
-    if (!item) return;
-    const isEquipped = equippedLightCone(actor)?.id === item.id;
-    const pointer = {x: event.clientX, y: event.clientY};
-
-    const activate = activateEvent => {
-      activateEvent.preventDefault();
-      $("#tsru-light-cone-context-fallback").remove();
-      const operation = isEquipped ? unequipLightCone(item) : selectLightConeItem(item);
-      window.setTimeout(() => {
-        document.body?.dispatchEvent(new MouseEvent("click", {bubbles: true, cancelable: true}));
-        clearLightConeContextBackdrop(rootElement);
-      }, 0);
-      return operation;
-    };
-    const label = isEquipped ? "Unequip Light Cone" : "Select as Light Cone";
-    const icon = isEquipped ? "fa-link-slash" : "fa-id-card";
-    const optionMarkup = `<i class="fas ${icon} fa-fw"></i><span>${label}</span>`;
-
-    const addOption = attempts => {
-      const menus = $("#context-menu:visible, .context-menu:visible, [data-application-part='context-menu']:visible, [role='menu']:visible").not("#tsru-light-cone-context-fallback");
-      const menu = menus.last();
-      if (menu.length) {
-        const nestedList = menu.find(".context-items, ol, ul, menu").first();
-        const list = nestedList.length ? nestedList : menu;
-        menu.find("[data-tsru-select-light-cone]").remove();
-        const option = $(`<li class="context-item" data-tsru-select-light-cone tabindex="0">${optionMarkup}</li>`);
-        list.append(option);
-        option.on("click.tsru", activate);
-        option.on("keydown.tsru", keyEvent => {
-          if (keyEvent.key === "Enter" || keyEvent.key === " ") activate(keyEvent);
-        });
-        return;
-      }
-      if (attempts < 12) return requestAnimationFrame(() => addOption(attempts + 1));
-      $("#tsru-light-cone-context-fallback").remove();
-      const fallback = $(`<nav id="tsru-light-cone-context-fallback" class="tsru-light-cone-context-fallback" role="menu"><button type="button">${optionMarkup}</button></nav>`);
-      fallback.css({left: `${pointer.x}px`, top: `${pointer.y}px`}).appendTo(document.body);
-      fallback.find("button").on("click.tsru", activate);
-      window.setTimeout(() => {
-        const dismiss = dismissEvent => {
-          if (!dismissEvent.target.closest?.("#tsru-light-cone-context-fallback")) fallback.remove();
-          document.removeEventListener("pointerdown", dismiss, true);
-        };
-        document.addEventListener("pointerdown", dismiss, true);
-      }, 0);
-    };
-    requestAnimationFrame(() => addOption(0));
-  }, true);
-}
-
-async function injectLightConePanel(app, root, host) {
-  const actor = app.actor ?? app.document;
-  const renderKey = foundry.utils.randomID();
-  root.attr("data-tsru-light-cone-render", renderKey);
-  root.find("[data-tsru-light-cone]").remove();
-  const item = equippedLightCone(actor);
-  let description = "";
-  let cone = null;
-  let path = null;
-  let mismatch = false;
-  if (item) {
-    cone = getLightConeData(item);
-    const actorPathId = String(getConfig(actor).pathId || "");
-    mismatch = Boolean(cone.pathId && actorPathId && cone.pathId !== actorPathId);
-    path = getPaths().find(entry => entry.id === cone.pathId);
-    description = await TextEditor.enrichHTML(cone.description, {async: true, secrets: actor.isOwner});
-  }
-  if (root.attr("data-tsru-light-cone-render") !== renderKey) return;
-  const panel = item ? $(`<article class="tsru-light-cone-card ${mismatch ? "path-mismatch" : ""}" data-tsru-light-cone data-item-uuid="${escapeHTML(item.uuid)}">
-    <div class="tsru-light-cone-image"><img src="${escapeHTML(cone.image)}" alt="${escapeHTML(item.name)}"><div class="tsru-light-cone-description">${description || "<em>No description configured.</em>"}</div></div>
-    <footer><strong>${escapeHTML(item.name)}</strong><span>${escapeHTML(path?.name || "Any Path")}</span></footer>
-  </article>`) : $('<article class="tsru-light-cone-card unequipped" data-tsru-light-cone><div class="tsru-light-cone-image tsru-light-cone-empty"><i class="fas fa-id-card"></i><span>No Light Cone Equipped</span></div><footer><strong>Unequipped</strong><span>Light Cone</span></footer></article>');
-  (host?.length ? host : root).append(panel);
-}
-
-function lightConeCommonContainer(elements, rootElement) {
-  const nodes = elements.filter(Boolean);
-  if (!nodes.length) return null;
-  let candidate = nodes[0].parentElement;
-  while (candidate && candidate !== rootElement) {
-    if (nodes.every(node => candidate.contains(node))) return candidate;
-    candidate = candidate.parentElement;
-  }
-  return null;
-}
-
-function injectLightConeSheetPanel(app, html) {
-  const actor = app.actor ?? app.document;
-  if (actor?.documentName !== "Actor" || actor.type !== "character") return;
-  const renderedRoot = html?.jquery ? html[0] : html;
-  const appRoot = app.element?.jquery ? app.element[0] : app.element;
-  const rootElement = appRoot ?? renderedRoot;
-  if (!rootElement) return;
-  const root = $(rootElement);
-  root.find("[data-tsru-light-cone]").remove();
-
-  const identityIds = Array.from(actor.items ?? [])
-    .filter(item => item.type === "race" || item.type === "background")
-    .map(item => item.id);
-  const identityRows = identityIds.flatMap(id => root.find(`[data-item-id="${id}"], [data-document-id="${id}"], [data-entry-id="${id}"]`).toArray());
-  let hostElement = lightConeCommonContainer(identityRows, rootElement);
-
-  if (!hostElement && identityRows.length === 1) hostElement = identityRows[0].parentElement;
-  if (!hostElement) {
-    const identityControls = root.find("button, [role='button'], [data-action]").filter((_index, node) => /^(add|select)\s+(race|background)$/i.test(node.textContent?.replace(/\s+/g, " ").trim() || "")).toArray();
-    hostElement = lightConeCommonContainer(identityControls, rootElement);
-    if (!hostElement && identityControls.length === 1) hostElement = identityControls[0].parentElement;
-  }
-
-  if (!hostElement) {
-    const mainTab = root.find('.tab[data-tab="details"], section[data-tab="details"], .tab[data-tab="character"], section[data-tab="character"], [data-application-part="details"]').filter((_index, node) => !node.closest("[data-tsru-light-cone]")).first();
-    const rightColumn = mainTab.find(':scope > .right, :scope > [class*="right-column"], :scope > [class*="details-column"], :scope > :last-child').last();
-    if (rightColumn.length) hostElement = rightColumn[0];
-  }
-
-  const hostRect = hostElement?.getBoundingClientRect?.();
-  if (!hostElement || hostElement === rootElement || (hostRect?.width && hostRect.width > 520) || $(hostElement).is(".sheet-body, [data-application-part='body'], .tab")) {
-    console.warn(`${MODULE_ID} | Light Cone frame host was not found for ${actor.name}; refusing to place it over an arbitrary sheet tab.`);
-    return;
-  }
-  const host = $(hostElement).addClass("tsru-light-cone-sheet-host");
-  injectLightConePanel(app, root, host);
-}
-
-async function postLightConeToChat(item, actor) {
-  if (!item || !actor || !(game.user.isGM || actor.isOwner)) return;
-  const cone = getLightConeData(item);
-  const path = getPaths().find(entry => entry.id === cone.pathId);
-  const description = await TextEditor.enrichHTML(cone.description, {async: true, secrets: actor.isOwner});
-  await ChatMessage.create({
-    speaker: ChatMessage.getSpeaker({actor}),
-    content: `<section class="tsru-light-cone-chat"><header><img src="${escapeHTML(cone.image)}"><div><h3>${escapeHTML(item.name)}</h3><span>${escapeHTML(path?.name || "Any Path")} Light Cone</span></div></header><div class="tsru-light-cone-chat-description">${description || "<em>No description configured.</em>"}</div></section>`
-  });
-}
-
-async function injectCharacterBadges(app, html) {
-  const actor = app.actor ?? app.document;
-  if (actor?.documentName !== "Actor" || actor.type !== "character") return;
-  const rootElement = html?.jquery ? html[0] : html instanceof HTMLElement ? html : app.element?.[0] ?? app.element;
-  if (!rootElement) return;
-  const root = $(rootElement);
-  root.find("[data-tsru-character-badges]").remove();
-  root.find("[data-tsru-talent-counter]").remove();
-  const config = getConfig(actor);
-  const element = getElements().find(entry => entry.id === config.elementId);
-  const path = getPaths().find(entry => entry.id === config.pathId);
-  const typeName = String(actor.system?.details?.type?.value || actor.system?.details?.type || "").trim();
-  const speciesCandidates = root.find('.species, [class*="species"], [data-action*="species"], section, div').filter((_index, node) => {
-    const rect = node.getBoundingClientRect();
-    const text = node.textContent?.replace(/\s+/g, " ").trim() ?? "";
-    const matchesType = typeName && text.toLocaleLowerCase().startsWith(typeName.toLocaleLowerCase());
-    return rect.width >= 150 && rect.width <= 500 && rect.height >= 38 && rect.height <= 100 && (matchesType || /^Humanoid\b/i.test(text));
-  }).toArray().sort((a, b) => (a.getBoundingClientRect().width * a.getBoundingClientRect().height) - (b.getBoundingClientRect().width * b.getBoundingClientRect().height));
-  let host = speciesCandidates.length ? $(speciesCandidates[0]) : $();
-  const speciesHostFound = Boolean(host.length);
-  if (!host.length) {
-    const portrait = root.find('img[data-edit="img"], img.profile, img.portrait, [data-application-part="portrait"] img').first();
-    if (!portrait.length) return;
-    host = portrait.parent().addClass("tsru-portrait-badge-host");
-  } else host.addClass("tsru-species-badge-host");
-  if (speciesHostFound) {
-    const talentMaximum = Math.max(0, Math.floor(Number(config.talentPointsMax) || 0));
-    const talentCurrent = currentTalentPoints(actor);
-    host.before(`<div class="tsru-sheet-talent-counter" data-tsru-talent-counter title="Talent Points reset to 0 when combat starts"><span><i class="fas fa-star"></i> Talent Points</span><strong><b data-tsru-talent-current>${talentCurrent}</b><i>/</i><b data-tsru-talent-max>${talentMaximum}</b></strong></div>`);
-  }
-  if (!element?.icon && !path?.icon) return;
-  const badges = $(`<div class="tsru-character-badges" data-tsru-character-badges></div>`);
-  if (element?.icon) badges.append(`<div class="tsru-character-badge" title="Element: ${escapeHTML(element.name)}" style="--tsru-badge-color:${element.readyColor || element.color || "#fff"}"><img src="${escapeHTML(element.icon)}"></div>`);
-  if (path?.icon) badges.append(`<div class="tsru-character-badge" title="Path: ${escapeHTML(path.name)}"><img src="${escapeHTML(path.icon)}"></div>`);
-  host.append(badges);
-}
-
-function refreshTalentCounter(actor) {
-  if (!actor) return;
-  const config = getConfig(actor);
-  const maximum = Math.max(0, Math.floor(Number(config.talentPointsMax) || 0));
-  const current = currentTalentPoints(actor);
-  for (const app of Object.values(ui.windows ?? {})) {
-    if (app.actor?.id !== actor.id) continue;
-    const root = app.element?.jquery ? app.element : $(app.element ?? []);
-    root.find("[data-tsru-talent-current]").text(current);
-    root.find("[data-tsru-talent-max]").text(maximum);
-  }
-}
-
-class UltimateOrb {
-  constructor(actor) {
-    this.actor = actor;
-    this.element = null;
-    this.drag = null;
-    this.resize = null;
-  }
-
-  render() {
-    const config = getConfig(this.actor);
-    if (!canObserveActor(this.actor)) return this.destroy();
-    const layout = userLayout(this.actor.id);
-    if (!layout.visible) return this.destroy();
-
-    if (!this.element) {
-      this.element = document.createElement("div");
-      this.element.className = "tsru-orb-widget";
-      this.element.dataset.actorId = this.actor.id;
-      this.element.innerHTML = `
-        <div class="tsru-orb-drag" title="Drag Ultimate orb"><i class="fas fa-grip-lines"></i></div>
-        <button type="button" class="tsru-orb" aria-label="Activate Ultimate">
-          <img class="tsru-orb-image">
-          <span class="tsru-orb-fill"></span>
-          <span class="tsru-orb-percent"></span>
-        </button>
-        <div class="tsru-ready-text">Ultimate Ready</div>
-        <button type="button" class="tsru-orb-close" title="Hide orb"><i class="fas fa-xmark"></i></button>
-        <div class="tsru-orb-resize" title="Resize"></div>`;
-      document.body.appendChild(this.element);
-      this.activateListeners();
-      activateStarRailActionDrag(this.element, this.actor, "ultimate");
-    }
-
-    const percent = clamp((config.current / config.max) * 100, 0, 100);
-    const ready = percent >= 100;
-    const element = getElements().find(entry => entry.id === config.elementId);
-    const color = ready
-      ? (element?.readyColor || DEFAULT_CONFIG.readyColor)
-      : (element?.chargeColor || DEFAULT_CONFIG.chargeColor);
-    this.element.style.left = `${clamp(layout.x, 0, window.innerWidth - 40)}px`;
-    this.element.style.top = `${clamp(layout.y, 0, window.innerHeight - 40)}px`;
-    this.element.style.setProperty("--tsru-size", `${clamp(layout.size, 72, 360)}px`);
-    this.element.style.setProperty("--tsru-fill", `${percent}%`);
-    this.element.style.setProperty("--tsru-color", color || DEFAULT_CONFIG.chargeColor);
-    this.element.style.setProperty("--tsru-ultimate-x", `${config.ultimateButtonAdjustEnabled ? clamp(config.ultimateButtonX, 0, 100) : 50}%`);
-    this.element.style.setProperty("--tsru-ultimate-y", `${config.ultimateButtonAdjustEnabled ? clamp(config.ultimateButtonY, 0, 100) : 50}%`);
-    this.element.style.setProperty("--tsru-ultimate-scale", String((config.ultimateButtonAdjustEnabled ? clamp(config.ultimateButtonScale, 50, 400) : 100) / 100));
-    this.element.classList.toggle("has-energy", percent > 0 && !ready);
-    this.element.classList.toggle("is-ready", ready);
-    this.element.querySelector(".tsru-orb-image").src = config.ultimateButtonImage || config.orbImage || this.actor.img || "icons/svg/mystery-man.svg";
-    this.element.querySelector(".tsru-orb-percent").textContent = config.showPercent ? `${Math.round(percent)}%` : "";
-    this.element.querySelector(".tsru-orb").disabled = !ready || state.ultimateLocks.has(this.actor.id);
-    this.element.querySelector(".tsru-orb").title = ready ? `${this.actor.name}: Activate Ultimate` : `${this.actor.name}: ${config.current}/${config.max} Energy`;
-    return this;
-  }
-
-  activateListeners() {
-    const dragHandle = this.element.querySelector(".tsru-orb-drag");
-    const resizeHandle = this.element.querySelector(".tsru-orb-resize");
-    dragHandle.addEventListener("pointerdown", event => {
-      event.preventDefault();
-      const rect = this.element.getBoundingClientRect();
-      this.drag = {dx: event.clientX - rect.left, dy: event.clientY - rect.top};
-      dragHandle.setPointerCapture(event.pointerId);
-    });
-    dragHandle.addEventListener("pointermove", event => {
-      if (!this.drag) return;
-      const x = clamp(event.clientX - this.drag.dx, 0, window.innerWidth - 40);
-      const y = clamp(event.clientY - this.drag.dy, 0, window.innerHeight - 40);
-      this.element.style.left = `${x}px`;
-      this.element.style.top = `${y}px`;
-    });
-    dragHandle.addEventListener("pointerup", async event => {
-      if (!this.drag) return;
-      this.drag = null;
-      dragHandle.releasePointerCapture(event.pointerId);
-      const rect = this.element.getBoundingClientRect();
-      await saveLayout(this.actor.id, {x: Math.round(rect.left), y: Math.round(rect.top)});
-    });
-    resizeHandle.addEventListener("pointerdown", event => {
-      event.preventDefault();
-      const rect = this.element.getBoundingClientRect();
-      this.resize = {startX: event.clientX, startSize: rect.width};
-      resizeHandle.setPointerCapture(event.pointerId);
-    });
-    resizeHandle.addEventListener("pointermove", event => {
-      if (!this.resize) return;
-      const size = clamp(this.resize.startSize + event.clientX - this.resize.startX, 72, 360);
-      this.element.style.setProperty("--tsru-size", `${size}px`);
-    });
-    resizeHandle.addEventListener("pointerup", async event => {
-      if (!this.resize) return;
-      const size = clamp(this.resize.startSize + event.clientX - this.resize.startX, 72, 360);
-      this.resize = null;
-      resizeHandle.releasePointerCapture(event.pointerId);
-      await saveLayout(this.actor.id, {size: Math.round(size)});
-    });
-    this.element.querySelector(".tsru-orb-close").addEventListener("click", async () => {
-      await saveLayout(this.actor.id, {visible: false});
-      this.destroy();
-    });
-    this.element.querySelector(".tsru-orb").addEventListener("click", () => requestUltimate(this.actor));
-  }
-
-  destroy() {
-    this.element?.remove();
-    this.element = null;
-    state.orbs.delete(this.actor.id);
-  }
-}
-
-function bossPhaseActorUuids(actor) {
-  const config=getConfig(actor);
-  return [actor?.uuid || (actor?.id ? `Actor.${actor.id}` : ""),String(config.bossPhase2ActorUuid||""),String(config.bossPhase3ActorUuid||"")];
-}
-
-function bossEncounter(combatant) {
-  if(!combatant || combatant.getFlag(MODULE_ID,"actionAdvance") || combatant.getFlag(MODULE_ID,"temporaryUltimate") || isTalentTurnCombatant(combatant) || isElationActionCombatant(combatant) || isAhaCombatant(combatant))return null;
-  const stored=combatant?.getFlag(MODULE_ID,"bossEncounter");
-  if(stored){const encounter=foundry.utils.deepClone(stored);const actor=combatant?.actor;if(!encounter.bossConfig&&actor)encounter.bossConfig=getConfig(actor);if(!encounter.originalActorData&&actor)encounter.originalActorData=actor.toObject();return encounter;}
-  const actor=combatant?.actor;
-  const config=getConfig(actor);
-  if(!actor || !config.isBoss)return null;
-  return {rootOriginalActorId:actor.id,planOwnerActorId:actor.id,currentPhase:1,totalPhases:config.bossPhaseCount,phaseActorUuids:bossPhaseActorUuids(actor),defeated:false,originalTokenTexture:combatant.token?.texture?.src || actor.prototypeToken?.texture?.src || actor.img,originalTokenWidth:combatant.token?.width || actor.prototypeToken?.width || 1,originalTokenHeight:combatant.token?.height || actor.prototypeToken?.height || 1,originalActorData:actor.toObject(),bossConfig:config};
-}
-
-async function ensureBossEncounter(combatant) {
-  if(!isAuthority() || !combatant?.parent || combatant.getFlag(MODULE_ID,"bossEncounter"))return bossEncounter(combatant);
-  const encounter=bossEncounter(combatant);
-  if(!encounter)return null;
-  await combatant.setFlag(MODULE_ID,"bossEncounter",encounter);
-  return encounter;
-}
-
-async function ensureBossEncounters(combat=game.combat) {
-  if(!isAuthority() || !combat)return;
-  for(const combatant of combat.combatants ?? [])await ensureBossEncounter(combatant);
-  refreshBossHud();
-  refreshInitiativeCarousel();
-}
-
-async function bossActorFromUuid(uuid) {
-  if(!uuid)return null;
-  const direct=String(uuid).match(/^Actor\.([^.]+)$/);
-  return direct ? game.actors.get(direct[1]) : (await fromUuid(String(uuid)).catch(()=>null));
-}
-
-function bossPortraitConfig(actor, fallback={}) {
-  const config=getConfig(actor);
-  return {image:config.bossHudPortrait || actor?.prototypeToken?.texture?.src || actor?.img || fallback.image || "icons/svg/mystery-man.svg",x:config.bossHudPortraitX,y:config.bossHudPortraitY,scale:config.bossHudPortraitScale};
-}
-
-async function overwriteBossActor(target, sourceData, encounter, {restore=false}={}) {
-  if(!target || !sourceData)return false;
-  const data=foundry.utils.deepClone(sourceData);
-  const rootConfig=foundry.utils.deepClone(encounter.bossConfig || getConfig(target));
-  const phaseConfig=foundry.utils.getProperty(data,`flags.${MODULE_ID}.ultimate`) || {};
-  for(const key of ["bossHudPortrait","bossHudPortraitX","bossHudPortraitY","bossHudPortraitScale"])if(Object.hasOwn(phaseConfig,key))rootConfig[key]=phaseConfig[key];
-  const rootToughness=foundry.utils.getProperty(data,`flags.${MODULE_ID}.toughness`) || {};
-  const update={name:data.name,img:data.img,system:data.system,prototypeToken:data.prototypeToken,[`flags.${MODULE_ID}.ultimate`]:restore ? (foundry.utils.getProperty(data,`flags.${MODULE_ID}.ultimate`)||rootConfig) : rootConfig,[`flags.${MODULE_ID}.toughness`]:rootToughness};
-  await target.update(update,{render:false,animate:false,tsruBossTransition:true});
-  const itemIds=target.items?.map(item=>item.id) ?? [];
-  if(itemIds.length)await target.deleteEmbeddedDocuments("Item",itemIds,{render:false,animate:false,tsruBossTransition:true});
-  const items=(data.items ?? []).map(item=>{const copy=foundry.utils.deepClone(item);delete copy._id;return copy;});
-  if(items.length)await target.createEmbeddedDocuments("Item",items,{render:false,animate:false,tsruBossTransition:true});
-  const effectIds=target.effects?.map(effect=>effect.id) ?? [];
-  if(effectIds.length)await target.deleteEmbeddedDocuments("ActiveEffect",effectIds,{render:false,animate:false,tsruBossTransition:true});
-  const effects=(data.effects ?? []).map(effect=>{const copy=foundry.utils.deepClone(effect);delete copy._id;return copy;});
-  if(effects.length)await target.createEmbeddedDocuments("ActiveEffect",effects,{render:false,animate:false,tsruBossTransition:true});
-  return true;
-}
-
-async function replaceBossPhase(combatant,nextActor,encounter) {
-  const token=combatant.token, actor=combatant.actor;
-  if(!token || !nextActor || !actor)return false;
-  const nextData=nextActor.toObject();
-  const texture=nextActor.prototypeToken?.texture?.src || nextActor.img || token.texture?.src;
-  state.bossTransitionVisuals++;
-  try{
-    await overwriteBossActor(actor,nextData,encounter);
-    const hp=actor.system?.attributes?.hp;
-    if(Number(hp?.value??0)<=0 && Number(hp?.max??0)>0)await actor.update({"system.attributes.hp.value":Number(hp.max)},{render:false,animate:false,tsruBossTransition:true});
-    const phase=encounter.currentPhase,design=encounter.bossConfig||{};
-    const width=Number(design[`bossPhase${phase}TokenWidth`])||Number(nextActor.prototypeToken?.width)||1;
-    const height=Number(design[`bossPhase${phase}TokenHeight`])||Number(nextActor.prototypeToken?.height)||1;
-    await token.update({name:nextActor.name,"texture.src":texture,width,height},{animate:false,render:false,tsruBossTransition:true});
-    await combatant.update({name:nextActor.name,img:texture,[`flags.${MODULE_ID}.bossEncounter`]:encounter},{render:false,animate:false,tsruBossTransition:true});
-  }finally{state.bossTransitionVisuals=Math.max(0,state.bossTransitionVisuals-1);state.bossTransitionVisualsUntil=Date.now()+1500;}
-  refreshBossHud();
-  refreshInitiativeCarousel();
-  ui.notifications.info(`${nextActor.name} entered boss phase ${encounter.currentPhase}.`);
-  return true;
-}
-
-async function finishBossEncounter(combatant,encounter) {
-  const original=game.actors.get(encounter.rootOriginalActorId) || combatant.actor;
-  const token=combatant.token;
-  encounter.defeated=true;
-  if(original && token){
-    if(encounter.originalActorData)await overwriteBossActor(original,encounter.originalActorData,encounter,{restore:true});
-    await token.update({name:original.name,"texture.src":encounter.originalTokenTexture || original.prototypeToken?.texture?.src || original.img});
-    await combatant.update({name:original.name,img:encounter.originalTokenTexture || original.img,[`flags.${MODULE_ID}.bossEncounter`]:encounter});
-    const hp=original.system?.attributes?.hp;
-    if(Number(hp?.value??0)!==0)await original.update({"system.attributes.hp.value":0});
-    await original.toggleStatusEffect?.("dead",{active:true}).catch?.(()=>{});
-  } else await combatant.update({[`flags.${MODULE_ID}.bossEncounter`]:encounter});
-  refreshBossHud();
-  ui.notifications.info(`${original?.name || combatant.name} has been defeated.`);
-}
-
-async function switchBossPhase(combatant,phase) {
-  if(!game.user?.isGM)return;
-  let encounter=await ensureBossEncounter(combatant);
-  if(!encounter || encounter.defeated)return ui.notifications.warn("That combatant is not an active boss.");
-  phase=clamp(Math.floor(phase),1,encounter.totalPhases);
-  if(phase===encounter.currentPhase)return;
-  const nextActor=phase===1 ? null : await bossActorFromUuid(encounter.phaseActorUuids?.[phase-1]);
-  if(phase>1 && !nextActor)return ui.notifications.warn(`No actor is configured for boss phase ${phase}.`);
-  encounter.currentPhase=phase;
-  if(phase===1){
-    state.bossTransitionVisuals++;
-    try{
-      await overwriteBossActor(combatant.actor,encounter.originalActorData,encounter,{restore:true});
-      await combatant.token?.update({name:encounter.originalActorData.name,"texture.src":encounter.originalTokenTexture,width:encounter.originalTokenWidth||1,height:encounter.originalTokenHeight||1},{animate:false,render:false,tsruBossTransition:true});
-      await combatant.update({name:encounter.originalActorData.name,img:encounter.originalTokenTexture,[`flags.${MODULE_ID}.bossEncounter`]:encounter},{render:false,animate:false,tsruBossTransition:true});
-    }finally{state.bossTransitionVisuals=Math.max(0,state.bossTransitionVisuals-1);state.bossTransitionVisualsUntil=Date.now()+1500;}
-  }else await replaceBossPhase(combatant,nextActor,encounter);
-  state.bossPhaseControl?.render();
-}
-
-async function handleBossPhaseDefeat(actor) {
-  if(!isAuthority() || Number(actor?.system?.attributes?.hp?.value??1)>0)return;
-  const combat=game.combat;
-  if(!combat?.started)return;
-  const combatant=combat.combatants.find(entry=>entry.actor?.id===actor.id && bossEncounter(entry) && !bossEncounter(entry).defeated);
-  if(!combatant || state.bossTransitionLocks.has(combatant.id))return;
-  state.bossTransitionLocks.add(combatant.id);
-  try{
-    let encounter=await ensureBossEncounter(combatant);
-    if(!encounter || encounter.defeated)return;
-    if(encounter.currentPhase < encounter.totalPhases){
-      const nextActor=await bossActorFromUuid(encounter.phaseActorUuids?.[encounter.currentPhase]);
-      if(nextActor){
-        encounter.currentPhase+=1;
-        await replaceBossPhase(combatant,nextActor,encounter);
-        return;
-      }
-    }
-    await finishBossEncounter(combatant,encounter);
-  }catch(error){console.error(`${MODULE_ID} | Boss phase transition failed`,error);ui.notifications.error(`Boss phase transition failed: ${error.message}`);}
-  finally{state.bossTransitionLocks.delete(combatant.id);}
-}
-
-function carouselPortraitData(combatant) {
-  if (isAhaCombatant(combatant)) return {image:getAhaConfig().combatantImage || getAhaConfig().buttonImage || DEFAULT_AHA_CONFIG.combatantImage,x:50,y:50,scale:100};
-  const actor=combatant?.actor;
-  const config=getConfig(actor);
-  return {image:config.carouselImage || actor?.img || combatant?.img || "icons/svg/mystery-man.svg",x:config.carouselImageX,y:config.carouselImageY,scale:config.carouselImageScale,flip:config.carouselImageFlip};
-}
-
-function openInitiativePortraitEditor(actor){
-  if(!actor)return;
-  const existing=state.initiativePortraitEditors.get(actor.id);
-  if(existing)return existing.bringToTop?.();
-  const config=getConfig(actor),colors=getInitiativeFrameColors();
-  const frameColor=config.carouselFrameColorOverride?(colors.find(entry=>entry.id===config.carouselFrameColorPreset)?.color||config.carouselFrameColor||"#58dfee"):"#58dfee";
-  const content=`<form class="tsru-initiative-portrait-editor">
-    <div class="tsru-initiative-editor-stage" data-initiative-editor-stage>
-      <button type="button" class="tsru-hsr-turn tsru-initiative-art-mask is-ally is-active ${config.carouselFrameColorOverride?"has-custom-frame":""}" style="--turn-color:${frameColor};--portrait-x:${config.carouselImageX}%;--portrait-y:${config.carouselImageY}%;--portrait-scale:${config.carouselImageScale/100};--portrait-flip:${config.carouselImageFlip?-1:1}"><span class="tsru-hsr-turn-pointer"><i></i></span><span class="tsru-hsr-turn-card"><span class="tsru-initiative-art-layer"><img src="${escapeHTML(config.carouselImage||actor.img||"icons/svg/mystery-man.svg")}" alt="${escapeHTML(actor.name)}" draggable="false"></span><b>${escapeHTML(actor.name)}</b><small>19</small></span></button>
-    </div>
-    <p class="notes">Drop artwork into the preview, drag to reposition it, and use the mouse wheel to zoom. Every change saves automatically.</p>
-    <label><strong>Initiative portrait</strong><span class="tsru-file-control"><input type="text" name="carouselImage" value="${escapeHTML(config.carouselImage)}" placeholder="Use actor portrait"><button type="button" data-initiative-image-picker title="Browse Files"><i class="fas fa-file-import"></i></button></span></label>
-    <div class="tsru-initiative-editor-values"><label>X <input type="number" name="carouselImageX" min="0" max="100" value="${config.carouselImageX}"></label><label>Y <input type="number" name="carouselImageY" min="0" max="100" value="${config.carouselImageY}"></label><label>Scale <input type="number" name="carouselImageScale" min="50" max="400" value="${config.carouselImageScale}"></label><label>Flip <input type="checkbox" name="carouselImageFlip" ${config.carouselImageFlip?"checked":""}></label></div>
-    <div class="tsru-initiative-editor-status"><i class="fas fa-check"></i> <span>Saved</span></div>
-  </form>`;
-  let saveTimer=null,saving=false,pending=false,flushSave=()=>{},cleanupEditorEvents=()=>{};
-  const dialog=new Dialog({title:`${actor.name} â€” Initiative Portrait`,content,buttons:{close:{label:"Close"}},render:html=>{
-    const form=html.find(".tsru-initiative-portrait-editor"),stage=form.find("[data-initiative-editor-stage]")[0],image=stage?.querySelector("img"),card=stage?.querySelector(".tsru-hsr-turn"),status=form.find(".tsru-initiative-editor-status span");
-    const values=({normalize=false}={})=>{const data={carouselImage:String(form.find('[name="carouselImage"]').val()||""),carouselImageX:clamp(Number(form.find('[name="carouselImageX"]').val())||0,0,100),carouselImageY:clamp(Number(form.find('[name="carouselImageY"]').val())||0,0,100),carouselImageScale:clamp(Number(form.find('[name="carouselImageScale"]').val())||100,50,400),carouselImageFlip:Boolean(form.find('[name="carouselImageFlip"]').prop("checked"))};if(normalize){form.find('[name="carouselImageX"]').val(Math.round(data.carouselImageX));form.find('[name="carouselImageY"]').val(Math.round(data.carouselImageY));form.find('[name="carouselImageScale"]').val(Math.round(data.carouselImageScale));}return data;};
-    const preview=()=>{const data=values();image.src=data.carouselImage||actor.img||"icons/svg/mystery-man.svg";card.style.setProperty("--portrait-x",`${data.carouselImageX}%`);card.style.setProperty("--portrait-y",`${data.carouselImageY}%`);card.style.setProperty("--portrait-scale",String(data.carouselImageScale/100));card.style.setProperty("--portrait-flip",data.carouselImageFlip?-1:1);};
-    const save=async()=>{if(saving){pending=true;return;}saving=true;pending=false;status.text("Savingâ€¦");const data=values();try{await actor.update({[`flags.${MODULE_ID}.ultimate.carouselImage`]:data.carouselImage,[`flags.${MODULE_ID}.ultimate.carouselImageX`]:data.carouselImageX,[`flags.${MODULE_ID}.ultimate.carouselImageY`]:data.carouselImageY,[`flags.${MODULE_ID}.ultimate.carouselImageScale`]:data.carouselImageScale,[`flags.${MODULE_ID}.ultimate.carouselImageFlip`]:data.carouselImageFlip},{tsruAutosave:true,render:false});refreshInitiativeCarousel();status.text("Saved");}catch(error){console.error(`${MODULE_ID} | Initiative portrait autosave failed`,error);status.text("Save failed");}finally{saving=false;if(pending)save();}};
-    flushSave=save;const scheduleSave=()=>{values({normalize:true});preview();status.text("Unsaved changesâ€¦");window.clearTimeout(saveTimer);saveTimer=window.setTimeout(()=>{saveTimer=null;save();},180);};
-    form.on("input change","input",scheduleSave);
-    form.find("[data-initiative-image-picker]").on("click",event=>{event.preventDefault();new FilePicker({type:"image",current:values().carouselImage,callback:path=>form.find('[name="carouselImage"]').val(path).trigger("change")}).browse();});
-    const inStage=event=>event.composedPath?.().includes(stage)||stage.contains(event.target);
-    const extractDropPath=event=>{const direct=droppedAssetPath(event);if(direct)return direct;const transfer=event.dataTransfer;for(const type of ["application/json","text","text/html"]){const raw=transfer?.getData(type)||"";if(!raw)continue;try{const data=JSON.parse(raw);const path=data.src||data.img||data.path||data.texture?.src;if(path)return path;}catch(_error){const match=raw.match(/(?:src|href)=["']([^"']+)["']/i);if(match)return match[1];}}return "";};
-    let drag=null;
-    const onDragOver=event=>{if(!inStage(event))return;event.preventDefault();event.stopImmediatePropagation();if(event.dataTransfer)event.dataTransfer.dropEffect="copy";stage.classList.add("is-dragover");};
-    const onDrop=event=>{if(!inStage(event))return;event.preventDefault();event.stopImmediatePropagation();stage.classList.remove("is-dragover");const path=extractDropPath(event);if(path)form.find('[name="carouselImage"]').val(path).trigger("change");else ui.notifications.warn("Drop an image from Foundry's file browser, or use the browse button.");};
-    const onPointerDown=event=>{const hit=event.target.closest?.(".tsru-hsr-turn-card");if(event.button!==0||!hit||!stage.contains(hit))return;event.preventDefault();event.stopPropagation();const data=values();drag={pointerId:event.pointerId,x:event.clientX,y:event.clientY,startX:data.carouselImageX,startY:data.carouselImageY,rect:hit.getBoundingClientRect()};stage.setPointerCapture?.(event.pointerId);};
-    const onPointerMove=event=>{if(!drag||drag.pointerId!==event.pointerId)return;event.preventDefault();event.stopPropagation();const x=clamp(drag.startX+(event.clientX-drag.x)/Math.max(1,drag.rect.width)*100,0,100),y=clamp(drag.startY+(event.clientY-drag.y)/Math.max(1,drag.rect.height)*100,0,100);form.find('[name="carouselImageX"]').val(Math.round(x));form.find('[name="carouselImageY"]').val(Math.round(y));scheduleSave();};
-    const finish=event=>{if(!drag||drag.pointerId!==event.pointerId)return;event.preventDefault();stage.releasePointerCapture?.(event.pointerId);drag=null;};
-    const onWheel=event=>{if(!inStage(event))return;event.preventDefault();event.stopImmediatePropagation();const input=form.find('[name="carouselImageScale"]'),current=values({normalize:true}).carouselImageScale,next=clamp(current+(event.deltaY<0?5:-5),50,400);input.val(next);scheduleSave();};
-    document.addEventListener("dragover",onDragOver,true);document.addEventListener("drop",onDrop,true);document.addEventListener("pointerdown",onPointerDown,true);document.addEventListener("pointermove",onPointerMove,true);document.addEventListener("pointerup",finish,true);document.addEventListener("pointercancel",finish,true);document.addEventListener("wheel",onWheel,{capture:true,passive:false});
-    cleanupEditorEvents=()=>{document.removeEventListener("dragover",onDragOver,true);document.removeEventListener("drop",onDrop,true);document.removeEventListener("pointerdown",onPointerDown,true);document.removeEventListener("pointermove",onPointerMove,true);document.removeEventListener("pointerup",finish,true);document.removeEventListener("pointercancel",finish,true);document.removeEventListener("wheel",onWheel,true);};preview();
-  },close:()=>{cleanupEditorEvents();if(saveTimer){window.clearTimeout(saveTimer);flushSave();}state.initiativePortraitEditors.delete(actor.id);}}, {width:520,height:"auto",resizable:true,classes:["tsru-initiative-editor-dialog"]});
-  state.initiativePortraitEditors.set(actor.id,dialog);dialog.render(true);
-}
-
-function carouselTurnKind(combatant) {
-  if(isAhaCombatant(combatant))return "aha";
-  if(isElationActionCombatant(combatant))return "elation";
-  if(isTalentTurnCombatant(combatant))return "talent";
-  if(combatant?.getFlag(MODULE_ID,"temporaryUltimate"))return "ultimate";
-  if(combatant?.getFlag(MODULE_ID,"actionAdvance"))return "advance";
-  return "normal";
-}
-
-class HsrInitiativeCarousel {
-  constructor(){this.element=null;this.drag=null;this.resize=null;this.scrollTop=0;this.currentCombatantId=null;}
-  layout(){const saved=game.settings.get(MODULE_ID,"initiativeCarouselLayout")||{},config=getInitiativeCarouselConfig();return {x:0,y:Number.isFinite(Number(saved.y))?Number(saved.y):86,width:clamp(saved.width??config.maximumWidth,190,config.maximumWidth),height:clamp(saved.height??520,180,1200)};}
-  async saveLayout(changes={}){const next={...this.layout(),...changes};await game.settings.set(MODULE_ID,"initiativeCarouselLayout",next);return next;}
-  turnMarkup(combatant,{active=false,nextRound=false}={}){
-    const portrait=carouselPortraitData(combatant),kind=carouselTurnKind(combatant);
-    const displayName=combatant?.actor?.name||combatant?.name||"Unknown";
-    const inserted=kind!=="normal"&&kind!=="aha";
-    const actorConfig=getConfig(combatant?.actor);
-    const disposition=Number(combatant?.token?.disposition);
-    const friendlyDisposition=Number(globalThis.CONST?.TOKEN_DISPOSITIONS?.FRIENDLY??1);
-    const allied=Number.isFinite(disposition)?disposition===friendlyDisposition:combatant?.actor?.type==="character";
-    const customFrameColor=combatant?.actor?.type==="character"&&actorConfig.carouselFrameColorOverride?resolvedInitiativeFrameColor(actorConfig):"";
-    const labels={ultimate:"ULT",talent:"TALENT",advance:"ADV",elation:"ELATION",aha:"AHA"};
-    const initiative=Number.isFinite(Number(combatant.initiative))?Number(combatant.initiative):"â€”";
-    return `<button type="button" class="tsru-hsr-turn tsru-initiative-art-mask ${active?"is-active":""} ${inserted?"is-inserted":""} ${allied?"is-ally":"is-enemy"} ${customFrameColor?"has-custom-frame":""} is-${kind} ${nextRound?"is-next-round":""}" data-combatant-id="${combatant.id}" title="${escapeHTML(displayName)} â€” Initiative ${initiative}" style="--portrait-x:${portrait.x}%;--portrait-y:${portrait.y}%;--portrait-scale:${portrait.scale/100};--portrait-flip:${portrait.flip?-1:1};${customFrameColor?`--turn-color:${customFrameColor};`:""}"><span class="tsru-hsr-turn-pointer"><i></i></span><span class="tsru-hsr-turn-card"><span class="tsru-initiative-art-layer"><img src="${escapeHTML(portrait.image)}" alt="${escapeHTML(displayName)}"></span><b>${escapeHTML(displayName)}</b>${labels[kind]?`<em>${labels[kind]}</em>`:""}<small>${initiative}</small></span></button>`;
-  }
-  render(){
-    const config=getInitiativeCarouselConfig(),combat=game.combat;
-    if(!config.enabled||!combat?.started||!combat.turns?.length)return this.destroy();
-    document.body.classList.add("tsru-hsr-carousel-active");
-    if(!this.element){
-      this.element=document.createElement("section");this.element.className="tsru-hsr-initiative-carousel";document.body.appendChild(this.element);
-      this.element.addEventListener("click",async event=>{const control=event.target.closest("[data-carousel-control]");if(!control||!game.user.isGM)return;event.preventDefault();event.stopPropagation();const activeCombat=game.combat;if(!activeCombat)return;control.disabled=true;try{if(control.dataset.carouselControl==="previous-turn")await activeCombat.previousTurn();else if(control.dataset.carouselControl==="next-turn")await activeCombat.nextTurn();else if(control.dataset.carouselControl==="end-combat"){if(typeof activeCombat.deleteDialog==="function")await activeCombat.deleteDialog();else await activeCombat.delete();}}catch(error){console.error(`${MODULE_ID} | Carousel combat control failed`,error);ui.notifications.error(`Could not update combat: ${error.message}`);}finally{if(control.isConnected)control.disabled=false;}});
-      this.element.addEventListener("click",event=>{const button=event.target.closest("[data-combatant-id]");if(!button)return;const entry=game.combat?.combatants.get(button.dataset.combatantId),token=entry?.token?.object;if(token){token.control({releaseOthers:true});canvas.animatePan(token.center);}});
-      this.element.addEventListener("pointerdown",event=>{const handle=event.target.closest(".tsru-hsr-carousel-drag");if(!handle)return;event.preventDefault();const rect=this.element.getBoundingClientRect();this.drag={dx:event.clientX-rect.left,dy:event.clientY-rect.top};handle.setPointerCapture(event.pointerId);});
-      this.element.addEventListener("pointermove",event=>{if(!this.drag)return;this.element.style.left="0px";this.element.style.top=`${clamp(event.clientY-this.drag.dy,0,innerHeight-60)}px`;dockSceneControlsBesideCarousel(this.element);});
-      this.element.addEventListener("pointerup",event=>{if(!this.drag)return;this.drag=null;event.target.releasePointerCapture?.(event.pointerId);const rect=this.element.getBoundingClientRect();this.saveLayout({x:0,y:Math.round(rect.top)});dockSceneControlsBesideCarousel(this.element);});
-      this.element.addEventListener("pointerdown",event=>{const handle=event.target.closest(".tsru-hsr-carousel-resize");if(!handle||!getInitiativeCarouselConfig().allowLengthResize)return;event.preventDefault();event.stopPropagation();const rect=this.element.getBoundingClientRect();this.resize={startX:event.clientX,startY:event.clientY,startWidth:rect.width,startHeight:rect.height};handle.setPointerCapture(event.pointerId);});
-      this.element.addEventListener("pointermove",event=>{if(!this.resize)return;const config=getInitiativeCarouselConfig();const viewportMaximum=Math.max(180,Math.min(config.maximumHeight,innerHeight-this.element.getBoundingClientRect().top-16));const height=clamp(this.resize.startHeight+event.clientY-this.resize.startY,180,viewportMaximum),width=clamp(this.resize.startWidth+event.clientX-this.resize.startX,190,Math.min(config.maximumWidth,innerWidth-8));this.element.style.width=`${width}px`;this.element.style.height=`${height}px`;dockSceneControlsBesideCarousel(this.element);});
-      this.element.addEventListener("pointerup",event=>{if(!this.resize)return;const rect=this.element.getBoundingClientRect(),height=Math.round(rect.height),width=Math.round(rect.width);this.resize=null;event.target.releasePointerCapture?.(event.pointerId);this.saveLayout({width,height});dockSceneControlsBesideCarousel(this.element);});
-      this.element.addEventListener("wheel",event=>{const viewport=event.target.closest(".tsru-hsr-carousel-viewport");if(!viewport||viewport.scrollHeight<=viewport.clientHeight)return;event.preventDefault();event.stopPropagation();viewport.scrollTop+=event.deltaY;this.scrollTop=viewport.scrollTop;},{passive:false});
-    }
-    const layout=this.layout(),turns=[...combat.turns].filter(entry=>game.user.isGM||(!entry.hidden&&!entry.token?.hidden));
-    this.element.style.left="0px";this.element.style.top=`${clamp(layout.y,0,innerHeight-60)}px`;
-    const currentId=combat.combatant?.id,currentIndex=Math.max(0,turns.findIndex(entry=>entry.id===currentId));
-    if(this.currentCombatantId!==currentId){this.currentCombatantId=currentId;this.scrollTop=0;}
-    let remaining=turns.slice(currentIndex),wrapped=turns.slice(0,currentIndex),activeRow=0;
-    const current=combat.combatant,currentKind=carouselTurnKind(current),resumeId=current?.getFlag(MODULE_ID,"resumeCombatantId");
-    if(currentKind!=="normal"&&currentKind!=="aha"&&resumeId){const resumed=turns.find(entry=>entry.id===resumeId);if(resumed){remaining=[resumed,current,...remaining.slice(1).filter(entry=>entry.id!==resumeId)];wrapped=wrapped.filter(entry=>entry.id!==resumeId);activeRow=1;}}
-    const rows=[];
-    remaining.forEach((entry,index)=>rows.push(this.turnMarkup(entry,{active:index===activeRow})));
-    rows.push(`<div class="tsru-hsr-round-divider"><i></i><strong>ROUND ${Number(combat.round||0)+1}</strong><i></i></div>`);
-    if(wrapped.length)wrapped.forEach(entry=>rows.push(this.turnMarkup(entry,{nextRound:true})));
-    else if(turns[0])rows.push(this.turnMarkup(turns[0],{nextRound:true}));
-    const maximumHeight=Math.max(180,Math.min(config.maximumHeight,innerHeight-clamp(layout.y,0,innerHeight-60)-16));
-    const height=clamp(layout.height,180,maximumHeight);
-    this.element.style.width=`${layout.width}px`;this.element.style.height=`${height}px`;
-    this.element.classList.toggle("is-length-resizable",config.allowLengthResize);
-    this.element.classList.toggle("has-gm-controls",game.user.isGM);
-    const gmControls=game.user.isGM?`<nav class="tsru-hsr-carousel-gm-controls" aria-label="Combat controls"><button type="button" data-carousel-control="previous-turn" title="Previous turn" aria-label="Previous turn"><i class="fas fa-step-backward"></i></button><button type="button" data-carousel-control="next-turn" title="Next turn" aria-label="Next turn"><i class="fas fa-step-forward"></i></button><button type="button" class="is-danger" data-carousel-control="end-combat" title="End combat" aria-label="End combat"><i class="fas fa-flag-checkered"></i></button></nav>`:"";
-    this.element.innerHTML=`<span class="tsru-hsr-carousel-drag" title="Move initiative carousel vertically"><i class="fas fa-grip-lines"></i></span><div class="tsru-hsr-carousel-viewport"><div class="tsru-hsr-carousel-list">${rows.join("")}</div></div>${gmControls}${config.allowLengthResize?'<span class="tsru-hsr-carousel-resize" title="Resize carousel width and length"></span>':""}`;
-    this.element.querySelector(".tsru-hsr-carousel-viewport").scrollTop=this.scrollTop;
-    dockSceneControlsBesideCarousel(this.element);
-    return this;
-  }
-  destroy(){undockSceneControls();this.element?.remove();this.element=null;document.body.classList.remove("tsru-hsr-carousel-active");if(state.initiativeCarousel===this)state.initiativeCarousel=null;}
-}
-
-function refreshInitiativeCarousel(){if(!state.initiativeCarousel)state.initiativeCarousel=new HsrInitiativeCarousel();state.initiativeCarousel.render();}
-
-function sceneControlsPanel(){return document.querySelector("#scene-controls")??document.querySelector("#controls");}
-function undockSceneControls(){for(const panel of document.querySelectorAll(".tsru-controls-docked-by-carousel")){panel.classList.remove("tsru-controls-docked-by-carousel");panel.style.removeProperty("--tsru-controls-left");panel.style.removeProperty("--tsru-controls-top");}}
-function dockSceneControlsBesideCarousel(carousel=state.initiativeCarousel?.element){
-  document.getElementById("tsru-left-controls-toggle")?.remove();document.body.classList.remove("tsru-left-controls-collapsed");
-  for(const panel of [document.querySelector("#scene-controls"),document.querySelector("#controls")].filter(Boolean)){panel.classList.remove("collapsed");panel.removeAttribute("aria-hidden");}
-  undockSceneControls();
-  const panel=sceneControlsPanel();if(!carousel||!panel||!document.body.classList.contains("tsru-hsr-carousel-active"))return;
-  const rect=carousel.getBoundingClientRect();panel.classList.add("tsru-controls-docked-by-carousel");panel.style.setProperty("--tsru-controls-left",`${Math.round(rect.right+4)}px`);panel.style.setProperty("--tsru-controls-top",`${Math.round(rect.top)}px`);
-}
-
-function applySceneNavigationVisibility(){document.body.classList.toggle("tsru-hide-scene-navigation",!game.settings.get(MODULE_ID,"showSceneNavigation"));}
-
-class BossHud {
-  constructor(){this.element=null;this.drag=null;}
-  attachBelowInterfaceUi(){
-    if(!this.element)return;
-    const foundryInterface=document.querySelector("#interface");
-    const uiTop=foundryInterface?.querySelector(":scope > #ui-top");
-    if(foundryInterface && uiTop){
-      this.element.classList.add("tsru-boss-hud-interface-layer");
-      if(this.element.parentElement!==foundryInterface || this.element.nextElementSibling!==uiTop)foundryInterface.insertBefore(this.element,uiTop);
-    }
-  }
-  render(){
-    const combat=game.combat;
-    const bosses=combat ? combat.combatants.map(combatant=>({combatant,encounter:bossEncounter(combatant)})).filter(entry=>entry.encounter && !entry.encounter.defeated) : [];
-    if(!bosses.length)return this.destroy();
-    if(!this.element){this.element=document.createElement("section");this.element.className="tsru-boss-hud";document.body.appendChild(this.element);this.attachBelowInterfaceUi();const layout=game.settings.get(MODULE_ID,"bossHudLayout")||{};this.element.style.left=`${layout.x??Math.max(20,(innerWidth-920)/2)}px`;this.element.style.top=`${clamp(Number(layout.y??54),0,innerHeight-40)}px`;this.element.addEventListener("pointerdown",event=>{const handle=event.target.closest(".tsru-boss-drag");if(!handle)return;event.preventDefault();const rect=this.element.getBoundingClientRect();this.drag={dx:event.clientX-rect.left,dy:event.clientY-rect.top};handle.setPointerCapture(event.pointerId);});this.element.addEventListener("pointermove",event=>{if(!this.drag)return;this.element.style.left=`${clamp(event.clientX-this.drag.dx,0,innerWidth-80)}px`;this.element.style.top=`${clamp(event.clientY-this.drag.dy,0,innerHeight-40)}px`;});this.element.addEventListener("pointerup",async event=>{if(!this.drag)return;this.drag=null;this.userMoved=true;const rect=this.element.getBoundingClientRect();await game.settings.set(MODULE_ID,"bossHudLayout",{x:Math.round(rect.left),y:Math.round(rect.top)});});}
-    this.attachBelowInterfaceUi();
-    this.element.innerHTML=bosses.map(({combatant,encounter})=>{
-      const actor=combatant.actor;
-      const design=encounter.bossConfig || getConfig(actor);
-      const hp=actor?.system?.attributes?.hp ?? {};
-      const value=Math.max(0,Number(hp.value)||0),max=Math.max(1,Number(hp.max)||1),percent=clamp(value/max*100,0,100);
-      const toughness=getToughness(actor),toughnessPercent=clamp(toughness.current/toughness.max*100,0,100);
-      const remaining=Math.max(0,encounter.totalPhases-encounter.currentPhase+1);
-      const orbs=Array.from({length:encounter.totalPhases},(_v,index)=>`<i class="${index<remaining?"is-active":""}"></i>`).join("");
-      const portrait=bossPortraitConfig(actor);
-      const weaknesses=getElements().filter(element=>effectiveToughnessWeaknesses(actor).includes(element.id)).map(element=>`<img src="${escapeHTML(element.icon||"icons/svg/aura.svg")}" title="${escapeHTML(element.name)}">`).join("");
-      return `<article class="tsru-boss-entry" data-combatant-id="${combatant.id}" style="--boss-width:${design.bossHudWidth}px;--boss-health-h:${design.bossHudHealthHeight}px;--boss-toughness-h:${design.bossHudToughnessHeight}px;--boss-portrait-x:${portrait.x}%;--boss-portrait-y:${portrait.y}%;--boss-portrait-scale:${portrait.scale/100}"><div class="tsru-boss-drag" title="Move boss bar"><i class="fas fa-grip-lines"></i></div><div class="tsru-boss-portrait"><img src="${escapeHTML(portrait.image)}" alt="${escapeHTML(actor?.name||combatant.name)}"></div><div class="tsru-boss-main"><header><span class="tsru-boss-phases">${orbs}</span><strong>${escapeHTML(actor?.name||combatant.name)}</strong><span class="tsru-boss-weaknesses">${weaknesses}</span></header><div class="tsru-boss-health" style="--boss-hp:${percent}%"><i></i><span>${Math.round(percent)}%</span></div><div class="tsru-boss-toughness" style="--boss-toughness:${toughnessPercent}%"><i></i></div></div></article>`;
-    }).join("");
-    return this;
-  }
-  destroy(){this.element?.remove();this.element=null;if(state.bossHud===this)state.bossHud=null;}
-}
-
-class BossPhaseControl {
-  constructor(){this.element=null;this.drag=null;this.dragFrame=null;}
-  bosses(){
-    const entries=new Map();
-    for(const combatant of game.combat?.combatants??[]){
-      const encounter=bossEncounter(combatant);
-      if(!encounter||encounter.defeated)continue;
-      const config=encounter.bossConfig||getConfig(combatant.actor);
-      const totalPhases=clamp(Number(encounter.totalPhases??config.bossPhaseCount)||1,1,3);
-      if(!config.isBoss||totalPhases<2)continue;
-      const actorId=encounter.rootOriginalActorId||combatant.actor?.id||combatant.id;
-      if(!entries.has(actorId))entries.set(actorId,{combatant,encounter,totalPhases,name:combatant.actor?.name||combatant.name||"Boss"});
-    }
-    return [...entries.values()].sort((left,right)=>left.name.localeCompare(right.name,undefined,{sensitivity:"base"}));
-  }
-  render(){
-    if(!game.user?.isGM)return this.destroy();
-    const bosses=this.bosses();
-    if(!this.element){
-      this.element=document.createElement("section");this.element.className="tsru-boss-phase-control";document.body.appendChild(this.element);this.element.style.left="240px";this.element.style.top="180px";
-      this.element.addEventListener("click",event=>{const button=event.target.closest("[data-boss-phase]");if(!button)return;const combatant=game.combat?.combatants.get(button.dataset.combatantId);if(combatant)switchBossPhase(combatant,Number(button.dataset.bossPhase));});
-      this.element.addEventListener("pointerdown",event=>{if(!event.target.closest(".tsru-boss-phase-drag")||event.target.closest("button"))return;event.preventDefault();const rect=this.element.getBoundingClientRect();this.drag={pointerId:event.pointerId,dx:event.clientX-rect.left,dy:event.clientY-rect.top,startX:rect.left,startY:rect.top,x:rect.left,y:rect.top};this.element.setPointerCapture?.(event.pointerId);this.element.classList.add("is-dragging");});
-      this.element.addEventListener("pointermove",event=>{if(!this.drag||event.pointerId!==this.drag.pointerId)return;this.drag.x=clamp(event.clientX-this.drag.dx,0,innerWidth-this.element.offsetWidth);this.drag.y=clamp(event.clientY-this.drag.dy,0,innerHeight-40);if(this.dragFrame)return;this.dragFrame=requestAnimationFrame(()=>{this.dragFrame=null;if(!this.drag)return;this.element.style.transform=`translate3d(${this.drag.x-this.drag.startX}px,${this.drag.y-this.drag.startY}px,0)`;});});
-      const finishDrag=event=>{if(!this.drag||event.pointerId!==this.drag.pointerId)return;if(this.dragFrame){cancelAnimationFrame(this.dragFrame);this.dragFrame=null;}this.element.style.left=`${this.drag.x}px`;this.element.style.top=`${this.drag.y}px`;this.element.style.transform="";this.element.releasePointerCapture?.(event.pointerId);this.drag=null;this.element.classList.remove("is-dragging");};
-      this.element.addEventListener("pointerup",finishDrag);this.element.addEventListener("pointercancel",finishDrag);
-    }
-    const rows=bosses.map(({combatant,encounter,totalPhases,name})=>`<article class="tsru-boss-phase-row"><div class="tsru-boss-phase-identity"><img src="${escapeHTML(combatant.actor?.img||combatant.img||"icons/svg/mystery-man.svg")}" alt=""><span><strong>${escapeHTML(name)}</strong><small>Phase ${encounter.currentPhase} of ${totalPhases}</small></span></div><div class="tsru-boss-phase-buttons">${Array.from({length:totalPhases},(_v,index)=>`<button type="button" data-combatant-id="${combatant.id}" data-boss-phase="${index+1}" class="${encounter.currentPhase===index+1?"is-active":""}" title="Switch ${escapeHTML(name)} to Phase ${index+1}">${index+1}</button>`).join("")}</div></article>`).join("");
-    this.element.innerHTML=`<header class="tsru-boss-phase-drag"><i class="fas fa-grip-lines"></i><strong>Boss Phase Controls</strong><button type="button" data-close-boss-phase title="Close"><i class="fas fa-xmark"></i></button></header><div class="tsru-boss-phase-list">${rows||'<p class="notes">No multi-phase bosses are currently in the initiative order.</p>'}</div>`;
-    this.element.querySelector("[data-close-boss-phase]").onclick=()=>this.destroy();return this;
-  }
-  destroy(){if(this.dragFrame)cancelAnimationFrame(this.dragFrame);this.dragFrame=null;this.element?.remove();this.element=null;if(state.bossPhaseControl===this)state.bossPhaseControl=null;}
-}
-
-function showBossPhaseControl(){if(!state.bossPhaseControl)state.bossPhaseControl=new BossPhaseControl();state.bossPhaseControl.render();}
-
-function refreshBossHud(){
-  state.bossPhaseControl?.render();
-  if(!game.combat){state.bossHud?.destroy();return;}
-  if(!state.bossHud)state.bossHud=new BossHud();
-  state.bossHud.render();
-}
-
-function bossDesignerPreview(actor,config=getConfig(actor)){
-  const portrait=bossPortraitConfig(actor,{image:config.bossHudPortrait});
-  const toughness=getToughness(actor);
-  const weaknesses=getElements().filter(element=>toughness.weaknesses.includes(element.id)).map(element=>`<img src="${escapeHTML(element.icon||"icons/svg/aura.svg")}" title="${escapeHTML(element.name)}">`).join("");
-  return `<article class="tsru-boss-entry tsru-boss-preview-entry" style="--boss-width:${config.bossHudWidth}px;--boss-health-h:${config.bossHudHealthHeight}px;--boss-toughness-h:${config.bossHudToughnessHeight}px;--boss-portrait-x:${config.bossHudPortraitX}%;--boss-portrait-y:${config.bossHudPortraitY}%;--boss-portrait-scale:${config.bossHudPortraitScale/100}"><div class="tsru-boss-portrait"><img src="${escapeHTML(config.bossHudPortrait||portrait.image)}" alt=""></div><div class="tsru-boss-main"><header><span class="tsru-boss-phases"><i class="is-active"></i><i class="is-active"></i><i class="is-active"></i></span><strong>${escapeHTML(actor.name)}</strong><span class="tsru-boss-weaknesses">${weaknesses}</span></header><div class="tsru-boss-health" style="--boss-hp:72%"><i></i><span>72%</span></div><div class="tsru-boss-toughness" style="--boss-toughness:58%"><i></i></div></div></article>`;
-}
-
-function getCombatHudDesign() {
-  const stored = game.settings.get(MODULE_ID, "combatHudDesign") ?? {};
-  const design = foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_COMBAT_HUD_DESIGN), stored, {inplace: false});
-  for (const key of Object.keys(DEFAULT_COMBAT_HUD_DESIGN)) design[key] = Math.max(0, Number(design[key]) || 0);
-  design.memberWidth = clamp(design.memberWidth, 100, 400);
-  design.memberHeight = clamp(design.memberHeight, 80, 320);
-  design.orbSize = clamp(design.orbSize, 24, 140);
-  design.talentSize = clamp(design.talentSize, 18, 100);
-  design.hpHeight = clamp(design.hpHeight, 3, 30);
-  return design;
-}
-
-function combatHudDesignStyle(design = getCombatHudDesign()) {
-  const vars = {
-    "member-w": design.memberWidth, "member-h": design.memberHeight,
-    "portrait-l": design.portraitLeft, "portrait-r": design.portraitRight, "portrait-t": design.portraitTop, "portrait-b": design.portraitBottom,
-    "hp-l": design.hpLeft, "hp-r": design.hpRight, "hp-b": design.hpBottom, "hp-h": design.hpHeight,
-    "orb-r": design.orbRight, "orb-b": design.orbBottom, "orb-size": design.orbSize,
-    "talent-l": design.talentLeft, "talent-b": design.talentBottom, "talent-size": design.talentSize,
-    "name-l": design.nameLeft, "name-b": design.nameBottom, "name-w": design.nameWidth
-  };
-  return Object.entries(vars).map(([key, value]) => `--${key}:${Number(value)}px`).join(";");
-}
-
-function combatHudDesignerPreview(actor = null, config = null, design = getCombatHudDesign()) {
-  actor ??= game.actors.find(entry => entry.type === "character") ?? null;
-  config ??= actor ? getConfig(actor) : DEFAULT_CONFIG;
-  const portrait = config.combatHudPortrait || actor?.img || "icons/svg/mystery-man.svg";
-  const orb = config.ultimateButtonImage || config.orbImage || actor?.img || "icons/svg/mystery-man.svg";
-  const talent = config.talentIcon || "icons/svg/aura.svg";
-  return `<article class="tsru-combat-party-member tsru-combat-hud-design-sample" style="${combatHudDesignStyle(design)};--hud-x:${clamp(config.combatHudPortraitX,0,100)}%;--hud-y:${clamp(config.combatHudPortraitY,0,100)}%;--hud-scale:${clamp(config.combatHudPortraitScale,50,300)/100};--hud-flip:${config.combatHudPortraitFlip ? -1 : 1};--tsru-ultimate-x:${config.ultimateButtonAdjustEnabled ? clamp(config.ultimateButtonX,0,100) : 50}%;--tsru-ultimate-y:${config.ultimateButtonAdjustEnabled ? clamp(config.ultimateButtonY,0,100) : 50}%;--tsru-ultimate-scale:${(config.ultimateButtonAdjustEnabled ? clamp(config.ultimateButtonScale,50,400) : 100)/100};--energy:72%;--energy-color:#20e6ff;--hp:78%">
-    <div class="tsru-combat-party-portrait"><img src="${escapeHTML(portrait)}" alt=""></div><strong class="tsru-combat-party-name">${escapeHTML(actor?.name || "Character Preview")}</strong>
-    <div class="tsru-combat-party-hp"><i></i><span>78/100</span></div><div class="tsru-combat-party-talent"><img src="${escapeHTML(talent)}" alt=""><strong>2/7</strong></div>
-    <div class="tsru-combat-party-ultimate-wrap"><button type="button" disabled><span class="tsru-hud-orb-fill"></span><img src="${escapeHTML(orb)}" alt=""><strong>72%</strong></button></div></article>`;
-}
-
-function activateCombatHudDesignCanvas(root, design, rerender) {
-  const preview = root.find("[data-tsru-design-preview]");
-  const decorate = () => {
-    const sample = preview.find(".tsru-combat-hud-design-sample");
-    const parts = [[sample,"member"],[sample.find(".tsru-combat-party-portrait"),"portrait"],[sample.find(".tsru-combat-party-hp"),"hp"],[sample.find(".tsru-combat-party-ultimate-wrap"),"orb"],[sample.find(".tsru-combat-party-talent"),"talent"],[sample.find(".tsru-combat-party-name"),"name"]];
-    for (const [element,key] of parts) if (element.length) { element.attr("data-hud-design-part",key); if (!element.children(".tsru-hud-design-resize").length) element.append('<i class="tsru-hud-design-resize" title="Drag to resize"></i>'); }
-  };
-  decorate();
-  let interaction = null;
-  preview.on("pointerdown.tsru-design", "[data-hud-design-part]", event => {
-    if (event.button !== 0) return;
-    event.preventDefault(); event.stopImmediatePropagation();
-    const part = event.currentTarget.dataset.hudDesignPart;
-    interaction = {part, resize:Boolean($(event.target).closest(".tsru-hud-design-resize").length), x:event.clientX, y:event.clientY, original:{...design}};
-    event.currentTarget.setPointerCapture?.(event.pointerId);
-  });
-  preview.on("pointermove.tsru-design", "[data-hud-design-part]", event => {
-    if (!interaction) return;
-    const dx=event.clientX-interaction.x, dy=event.clientY-interaction.y;
-    event.currentTarget.style.transform=`translate(${dx}px,${dy}px)`;
-  });
-  preview.on("pointerup.tsru-design pointercancel.tsru-design", "[data-hud-design-part]", event => {
-    if (!interaction) return;
-    const {part,resize,original}=interaction, dx=event.clientX-interaction.x, dy=event.clientY-interaction.y; interaction=null;
-    const set=(key,value)=>{design[key]=Math.max(0,Math.round(value)); root.find(`[name="${key}"]`).val(design[key]);};
-    if (part==="member" && resize) { set("memberWidth",original.memberWidth+dx); set("memberHeight",original.memberHeight+dy); }
-    if (part==="portrait") { if(resize){set("portraitRight",original.portraitRight-dx);set("portraitBottom",original.portraitBottom-dy);}else{set("portraitLeft",original.portraitLeft+dx);set("portraitRight",original.portraitRight-dx);set("portraitTop",original.portraitTop+dy);set("portraitBottom",original.portraitBottom-dy);} }
-    if (part==="hp") { if(resize){set("hpRight",original.hpRight-dx);set("hpHeight",original.hpHeight+dy);}else{set("hpLeft",original.hpLeft+dx);set("hpRight",original.hpRight-dx);set("hpBottom",original.hpBottom-dy);} }
-    if (part==="orb") { if(resize)set("orbSize",original.orbSize+dx);else{set("orbRight",original.orbRight-dx);set("orbBottom",original.orbBottom-dy);} }
-    if (part==="talent") { if(resize)set("talentSize",original.talentSize+dx);else{set("talentLeft",original.talentLeft+dx);set("talentBottom",original.talentBottom-dy);} }
-    if (part==="name") { if(resize)set("nameWidth",original.nameWidth+dx);else{set("nameLeft",original.nameLeft+dx);set("nameBottom",original.nameBottom-dy);} }
-    rerender(); decorate();
-  });
-  return decorate;
-}
-
-async function openCombatHudDesigner() {
-  if (!game.user.isGM) return ui.notifications.warn("Only a GM can configure the universal combat HUD design.");
-  const design = getCombatHudDesign();
-  const labels = {
-    memberWidth:"Character width",memberHeight:"Character height",portraitLeft:"Portrait left",portraitRight:"Portrait right",portraitTop:"Portrait top",portraitBottom:"Portrait bottom",
-    hpLeft:"HP left",hpRight:"HP right",hpBottom:"HP bottom",hpHeight:"HP height",orbRight:"Orb right",orbBottom:"Orb bottom",orbSize:"Orb size",
-    talentLeft:"Talent left",talentBottom:"Talent bottom",talentSize:"Talent size",nameLeft:"Name left",nameBottom:"Name bottom",nameWidth:"Name width"
-  };
-  const fields = Object.entries(labels).map(([key,label]) => `<label><span>${label}</span><input type="number" name="${key}" min="0" max="400" value="${design[key]}"></label>`).join("");
-  const content = `<form class="tsru-combat-hud-designer"><p>These measurements define the universal relationship between splash art, HP bars, Talent icons, names, and Ultimate orbs. Individual sheets inherit this geometry.</p><div class="tsru-combat-hud-design-preview" data-tsru-design-preview>${combatHudDesignerPreview(null,null,design)}</div><div class="tsru-combat-hud-design-fields">${fields}</div></form>`;
-  const dialog = new Dialog({title:"Combat HUD Designer",content,buttons:{save:{icon:'<i class="fas fa-save"></i>',label:"Save Universal Design",callback:async html=>{
-    const next = {...design};
-    html.find("[name]").each((_i,field)=>next[field.name]=Number(field.value));
-    await game.settings.set(MODULE_ID,"combatHudDesign",next);
-    refreshCombatPartyHud();
-    ui.notifications.info("Universal combat HUD design saved.");
-  }},cancel:{icon:'<i class="fas fa-times"></i>',label:"Cancel"}},default:"save"},{width:720,height:780,resizable:true,classes:["tsru-combat-hud-designer-dialog"]});
-  Hooks.once("renderDialog", rendered => {
-    if (rendered !== dialog) return;
-    const root = rendered.element;
-    let decorateDesign = null;
-    const renderDraft = () => {
-      const draft={...design}; root.find(".tsru-combat-hud-design-fields [name]").each((_i,field)=>draft[field.name]=Number(field.value));
-      Object.assign(design,draft);
-      root.find("[data-tsru-design-preview]").html(combatHudDesignerPreview(null,null,draft));
-      decorateDesign?.();
-    };
-    root.on("input change",".tsru-combat-hud-design-fields input",renderDraft);
-    decorateDesign = activateCombatHudDesignCanvas(root,design,renderDraft);
-  });
-  dialog.render(true);
-}
-
-function combatPartyActors() {
-  const combat = game.combat;
-  if (!combat?.started) return [];
-  const seen = new Set();
-  const actors = Array.from(combat.combatants ?? []).filter(combatant => {
-    if (!game.user.isGM && (combatant.hidden || combatant.token?.hidden)) return false;
-    const actor = combatant.actor;
-    if (!actor || actor.type !== "character" || !getConfig(actor).mainParty || seen.has(actor.id)) return false;
-    seen.add(actor.id);
-    return true;
-  }).map(combatant => combatant.actor);
-  const playerOwned = actor => game.users.some(user => !user.isGM && actor.testUserPermission(user, "OWNER"));
-  const players = actors.filter(playerOwned);
-  const gmpcs = actors.filter(actor => !playerOwned(actor));
-  const byName = (a, b) => String(a.name).localeCompare(String(b.name), undefined, {sensitivity: "base"});
-  const selections = game.settings.get(MODULE_ID, "partySelections") ?? {};
-  const selectedIds = new Set(Object.entries(selections)
-    .filter(([userId]) => !game.users.get(userId)?.isGM)
-    .map(([, actorId]) => String(actorId || "")));
-  const selectedPlayers = players.filter(actor => selectedIds.has(actor.id)).sort(byName);
-  const otherPlayers = players.filter(actor => !selectedIds.has(actor.id)).sort(byName);
-  gmpcs.sort(byName);
-  if (!game.user.isGM) {
-    const selectedId = String(selections[game.user.id] || "");
-    const index = selectedPlayers.findIndex(actor => actor.id === selectedId && actor.isOwner);
-    if (index > 0) selectedPlayers.unshift(selectedPlayers.splice(index, 1)[0]);
-  }
-  return [...selectedPlayers, ...otherPlayers, ...gmpcs];
-}
-
-function combatHudTalentMarkup(actor, config) {
-  if (!config.talentText && Number(config.talentPointsMax) <= 0) return "";
-  const current = currentTalentPoints(actor);
-  const maximum = Math.max(0, Number(config.talentPointsMax) || 0);
-  const element = getElements().find(entry => entry.id === config.elementId);
-  const progress = maximum > 0 ? clamp(current / maximum, 0, 1) : 0;
-  return `<div class="tsru-combat-party-talent ${progress >= 1 ? "is-full" : ""}" style="--talent-progress:${progress * 360}deg;--talent-color:${escapeHTML(element?.color || "#e5c878")}" title="${escapeHTML(plainAbilityText(config.talentText) || `${actor.name} Talent`)}"><img src="${escapeHTML(config.talentIcon || actor.img || "icons/svg/star.svg")}" alt=""><strong>${current}/${maximum}</strong></div>`;
-}
-
-class CombatPartyHud {
-  constructor() { this.element = null; this.drag = null; }
-  render() {
-    const actors = combatPartyActors();
-    if (!actors.length) return this.destroy();
-    if (!this.element) {
-      this.element = document.createElement("section");
-      this.element.className = "tsru-combat-party-hud";
-      this.element.addEventListener("pointerdown", event => {
-        const handle = event.target.closest("[data-tsru-hud-drag]");
-        if (!handle || event.button !== 0) return;
-        event.preventDefault();
-        const rect = this.element.getBoundingClientRect();
-        this.drag = {dx: event.clientX - rect.left, dy: event.clientY - rect.top};
-        handle.setPointerCapture(event.pointerId);
-      });
-      this.element.addEventListener("pointermove", event => {
-        if (!this.drag) return;
-        this.element.style.setProperty("--hud-translate", "0px");
-        this.element.style.left = `${clamp(event.clientX - this.drag.dx, 0, window.innerWidth - 50)}px`;
-        this.element.style.top = `${clamp(event.clientY - this.drag.dy, 0, window.innerHeight - 30)}px`;
-        this.element.style.bottom = "auto";
-      });
-      this.element.addEventListener("pointerup", async event => {
-        if (!this.drag) return;
-        this.drag = null;
-        event.target.closest("[data-tsru-hud-drag]")?.releasePointerCapture?.(event.pointerId);
-        const rect = this.element.getBoundingClientRect();
-        await saveCombatPartyHudLayout({x: Math.round(rect.left), y: Math.round(rect.top)});
-      });
-      this.element.addEventListener("click", async event => {
-        const control = event.target.closest("[data-tsru-hud-control]");
-        if (control) {
-          const layout = combatPartyHudLayout();
-          const action = control.dataset.tsruHudControl;
-          if (action === "minimize") await saveCombatPartyHudLayout({minimized: true});
-          if (action === "expand") await saveCombatPartyHudLayout({minimized: false});
-          if (action === "smaller") await saveCombatPartyHudLayout({scale: clamp(layout.scale - .1, .5, 1.75)});
-          if (action === "larger") await saveCombatPartyHudLayout({scale: clamp(layout.scale + .1, .5, 1.75)});
-          return refreshCombatPartyHud();
-        }
-        const button = event.target.closest("[data-tsru-party-ultimate]");
-        if (!button) return;
-        const actor = game.actors.get(button.dataset.actorId);
-        if (!actor || (!game.user.isGM && !actor.isOwner)) return ui.notifications.warn("You can only activate an Ultimate for a character you own.");
-        requestUltimate(actor);
-      });
-      document.body.appendChild(this.element);
-    }
-    const layout = combatPartyHudLayout();
-    this.element.style.setProperty("--hud-user-scale", layout.scale);
-    if (Number.isFinite(layout.x) && Number.isFinite(layout.y)) {
-      this.element.style.setProperty("--hud-translate", "0px");
-      this.element.style.left = `${clamp(layout.x, 0, window.innerWidth - 50)}px`;
-      this.element.style.top = `${clamp(layout.y, 0, window.innerHeight - 30)}px`;
-      this.element.style.bottom = "auto";
-    } else {
-      this.element.style.setProperty("--hud-translate", "-50%");
-      this.element.style.left = "50%";
-      this.element.style.top = "auto";
-      this.element.style.bottom = "12px";
-    }
-    if (layout.minimized) {
-      this.element.classList.add("is-minimized");
-      this.element.innerHTML = '<button type="button" class="tsru-combat-hud-expand" data-tsru-hud-control="expand"><i class="fas fa-users"></i> Party HUD</button>';
-      return this;
-    }
-    this.element.classList.remove("is-minimized");
-    this.element.innerHTML = `<header class="tsru-combat-party-controls"><span class="tsru-combat-party-drag" data-tsru-hud-drag title="Drag combat party HUD"><i class="fas fa-grip-lines"></i></span><button type="button" data-tsru-hud-control="smaller" title="Make HUD smaller"><i class="fas fa-minus"></i></button><span>${Math.round(layout.scale * 100)}%</span><button type="button" data-tsru-hud-control="larger" title="Make HUD larger"><i class="fas fa-plus"></i></button><button type="button" data-tsru-hud-control="minimize" title="Minimize party HUD"><i class="fas fa-window-minimize"></i></button></header><div class="tsru-combat-party-line">${actors.map(actor => {
-      const config = getConfig(actor);
-      const hp = actor.system?.attributes?.hp ?? {};
-      const hpValue = Math.max(0, Number(hp.value) || 0);
-      const hpMax = Math.max(1, Number(hp.max) || 1);
-      const hpTemp = Math.max(0, Number(hp.temp) || 0);
-      const hpPercent = clamp((hpValue / hpMax) * 100, 0, 100);
-      const shieldPercent = clamp((hpTemp / hpMax) * 100, 0, 100);
-      const energyPercent = clamp((Number(config.current) / Math.max(1, Number(config.max))) * 100, 0, 100);
-      const ready = config.enabled && energyPercent >= 100 && !state.ultimateLocks.has(actor.id);
-      const owned = game.user.isGM || actor.isOwner;
-      const element = getElements().find(entry => entry.id === config.elementId);
-      const energyColor = ready ? (element?.readyColor || DEFAULT_CONFIG.readyColor) : (element?.chargeColor || DEFAULT_CONFIG.chargeColor);
-      const portrait = config.combatHudPortrait || actor.img || "icons/svg/mystery-man.svg";
-      return `<article class="tsru-combat-party-member ${owned ? "is-owned" : ""} ${hpTemp > 0 ? "has-shield" : ""}" data-actor-id="${actor.id}" style="${combatHudDesignStyle()};--hud-x:${clamp(config.combatHudPortraitX, 0, 100)}%;--hud-y:${clamp(config.combatHudPortraitY, 0, 100)}%;--hud-scale:${clamp(config.combatHudPortraitScale, 50, 300) / 100};--hud-flip:${config.combatHudPortraitFlip ? -1 : 1};--tsru-ultimate-x:${config.ultimateButtonAdjustEnabled ? clamp(config.ultimateButtonX,0,100) : 50}%;--tsru-ultimate-y:${config.ultimateButtonAdjustEnabled ? clamp(config.ultimateButtonY,0,100) : 50}%;--tsru-ultimate-scale:${(config.ultimateButtonAdjustEnabled ? clamp(config.ultimateButtonScale,50,400) : 100)/100};--energy:${energyPercent}%;--energy-color:${energyColor};--hp:${hpPercent}%;--shield:${shieldPercent}%">
-        <div class="tsru-combat-party-portrait"><img src="${escapeHTML(portrait)}" alt="${escapeHTML(actor.name)}"></div>
-        <strong class="tsru-combat-party-name">${escapeHTML(actor.name)}</strong>
-        <div class="tsru-combat-party-hp" title="${hpTemp > 0 ? `${hpTemp} temporary HP shield Â· ` : ""}${hpValue}/${hpMax} HP"><b class="tsru-combat-party-shield-icon" aria-hidden="true"><i class="fas fa-shield-halved"></i></b><i class="tsru-combat-party-shield"></i><i class="tsru-combat-party-health"></i><span>${hpValue}/${hpMax}</span></div>
-        ${combatHudTalentMarkup(actor, config)}
-        <div class="tsru-combat-party-ultimate-wrap ${ready ? "is-ready" : ""}">${config.trialCharacter ? '<b class="tsru-combat-party-trial">Trial</b>' : ""}<button type="button" data-tsru-party-ultimate data-actor-id="${actor.id}" class="${ready ? "is-ready" : "is-unavailable"} ${owned ? "" : "is-locked"}" aria-disabled="${!owned || !ready}" title="${owned ? (ready ? "Activate Ultimate" : "Ultimate is not ready; drag it to the hotbar to create its macro") : "Only this character's owner can activate their Ultimate"}"><span class="tsru-hud-orb-fill"></span><img src="${escapeHTML(config.ultimateButtonImage || config.orbImage || actor.img || "icons/svg/mystery-man.svg")}" alt="">${config.showHudPercent ? `<strong>${Math.round(energyPercent)}%</strong>` : ""}</button></div>
-      </article>`;
-    }).join("")}</div>`;
-    for (const button of this.element.querySelectorAll("[data-tsru-party-ultimate]")) {
-      const actor = game.actors.get(button.dataset.actorId);
-      if (actor && (game.user.isGM || actor.isOwner)) activateStarRailActionDrag(button, actor, "ultimate");
-    }
-    return this;
-  }
-  destroy() { this.element?.remove(); this.element = null; if (state.partyCombatHud === this) state.partyCombatHud = null; }
-}
-
-function combatPartyHudLayout() {
-  const stored = game.settings.get(MODULE_ID, "combatPartyHudLayout") ?? {};
-  const hasX = stored.x !== null && stored.x !== undefined && Number.isFinite(Number(stored.x));
-  const hasY = stored.y !== null && stored.y !== undefined && Number.isFinite(Number(stored.y));
-  return {scale: clamp(Number(stored.scale) || 1, .5, 1.75), minimized: Boolean(stored.minimized), x: hasX ? Number(stored.x) : null, y: hasY ? Number(stored.y) : null};
-}
-
-async function saveCombatPartyHudLayout(changes) {
-  await game.settings.set(MODULE_ID, "combatPartyHudLayout", {...combatPartyHudLayout(), ...changes});
-}
-
-function refreshCombatPartyHud() {
-  if (!game.combat?.started) { state.partyCombatHud?.destroy(); return; }
-  if (!state.partyCombatHud) state.partyCombatHud = new CombatPartyHud();
-  state.partyCombatHud.render();
-}
-
-async function showCombatPartyHud({notify = true} = {}) {
-  if (!game.combat?.started) { if (notify) ui.notifications.warn("The combat party HUD only appears while initiative is active."); return false; }
-  await saveCombatPartyHudLayout({minimized: false});
-  refreshCombatPartyHud();
-  refreshBossHud();
-  refreshInitiativeCarousel();
-  const shown = Boolean(document.querySelector(".tsru-combat-party-hud:not(.is-minimized)"));
-  if (notify && shown) ui.notifications.info("Combat party HUD shown.");
-  return shown;
-}
-
-function refreshOrb(actor) {
-  if (actor) state.orbs.get(actor.id)?.render();
-}
-
-function refreshAllOrbs() {
-  for (const orb of [...state.orbs.values()]) orb.destroy();
-  for (const actor of game.actors.filter(actor => actor.type === "character" && canObserveActor(actor) && userLayout(actor.id).visible)) {
-    const orb = new UltimateOrb(actor);
-    state.orbs.set(actor.id, orb);
-    orb.render();
-  }
-  refreshCombatPartyHud();
-}
-
-async function toggleOrb(actor) {
-  const layout = userLayout(actor.id);
-  await saveLayout(actor.id, {visible: !layout.visible});
-  refreshOrb(actor);
-}
-
-async function showOrb(actor, {notify = true} = {}) {
-  if (!game.user?.isGM) {
-    if (notify) ui.notifications.warn("Only a GM can show a detached Ultimate orb from a character sheet.");
-    return false;
-  }
-  if (!actor) {
-    if (notify) ui.notifications.error("No character was found for this Ultimate orb.");
-    return false;
-  }
-  const config = getConfig(actor);
-  if (!config.enabled) {
-    if (notify) ui.notifications.warn(`${actor.name}'s Ultimate system is not enabled. Enable it and save the configuration first.`);
-    return false;
-  }
-  await saveLayout(actor.id, {visible: true});
-  let orb = state.orbs.get(actor.id);
-  if (!orb) {
-    orb = new UltimateOrb(actor);
-    state.orbs.set(actor.id, orb);
-  }
-  orb.render();
-  const shown = Boolean(orb.element?.isConnected);
-  if (notify && shown) ui.notifications.info(`${actor.name}'s detached Ultimate orb was shown.`);
-  return shown;
-}
-
-async function placeGMActionButton(actor, action) {
-  if (!game.user?.isGM) return ui.notifications.warn("Only a GM can place character action buttons.");
-  if (!actor || actor.type !== "character") return ui.notifications.warn("Choose a character first.");
-  const config = getConfig(actor);
-  if (action === "skill") {
-    if (!config.skillEnabled) return ui.notifications.warn(`${actor.name}'s Skill button is disabled on their sheet.`);
-    await saveSkillButtonLayout(actor.id, {visible: true});
-    refreshSkillUI();
-    ui.notifications.info(`${actor.name}'s Skill button was placed.`);
-    return true;
-  }
-  if (action === "ultimate") {
-    if (!config.enabled) return ui.notifications.warn(`${actor.name}'s Ultimate system is disabled on their sheet.`);
-    await saveLayout(actor.id, {visible: true});
-    let orb = state.orbs.get(actor.id);
-    if (!orb) {
-      orb = new UltimateOrb(actor);
-      state.orbs.set(actor.id, orb);
-    }
-    orb.render();
-    ui.notifications.info(`${actor.name}'s Ultimate button was placed.`);
-    return true;
-  }
-  return ui.notifications.warn("Choose Skill or Ultimate.");
-}
-
-async function loadSplashFont(fontFile) {
-  if (!fontFile) return "Arial, sans-serif";
-  const family = `TSRU-${Math.abs([...fontFile].reduce((hash, char) => ((hash << 5) - hash) + char.charCodeAt(0) | 0, 0))}`;
-  if (![...document.fonts].some(font => font.family === family)) {
-    const face = new FontFace(family, `url("${String(fontFile).replace(/["\\]/g, "\\$&")}")`);
-    await face.load();
-    document.fonts.add(face);
-  }
-  return `"${family}", Arial, sans-serif`;
-}
-
-async function showSplash({actorName, image, duration = 1, splashX = 50, splashY = 50, splashScale = 100, ultimateName = "Ultimate", ultimateSubtitle = "", titleX = 17, titleY = 78, titleSize = 48, titleAlign = "left", fontFile = "", subtitleFontFile = "", color = DEFAULT_CONFIG.chargeColor}) {
-  if (!image) return;
-  document.querySelectorAll(".tsru-splash").forEach(element => element.remove());
-  const splash = document.createElement("div");
-  splash.className = "tsru-splash";
-  const isVideo = /\.(webm|mp4|m4v)(\?.*)?$/i.test(image);
-  let fontFamily = "Arial, sans-serif";
-  let subtitleFontFamily = "Arial, sans-serif";
-  try { fontFamily = await loadSplashFont(fontFile); }
-  catch (error) { console.warn(`${MODULE_ID} | Could not load splash font`, error); }
-  try { subtitleFontFamily = await loadSplashFont(subtitleFontFile || fontFile); }
-  catch (error) { console.warn(`${MODULE_ID} | Could not load subtitle font`, error); }
-  const x = clamp(titleX, 0, 100);
-  const y = clamp(titleY, 0, 100);
-  const size = clamp(titleSize, 16, 140);
-  const align = ["left", "center", "right"].includes(titleAlign) ? titleAlign : "left";
-  splash.style.setProperty("--tsru-accent", color || DEFAULT_CONFIG.chargeColor);
-  splash.style.setProperty("--tsru-title-x", `${x}%`);
-  splash.style.setProperty("--tsru-title-y", `${y}%`);
-  splash.style.setProperty("--tsru-title-size", `${size}px`);
-  splash.style.setProperty("--tsru-title-font", fontFamily);
-  splash.style.setProperty("--tsru-subtitle-font", subtitleFontFamily);
-  splash.style.setProperty("--tsru-title-align", align);
-  splash.style.setProperty("--tsru-splash-x", `${clamp(splashX, 0, 100)}%`);
-  splash.style.setProperty("--tsru-splash-y", `${clamp(splashY, 0, 100)}%`);
-  splash.style.setProperty("--tsru-splash-scale", String(clamp(splashScale, 25, 500) / 100));
-  splash.innerHTML = `<div class="tsru-splash-backdrop"></div><div class="tsru-splash-media"><div class="tsru-splash-artwork"><div class="tsru-splash-artboard">${isVideo ? `<video src="${escapeHTML(image)}" autoplay muted playsinline></video>` : `<img src="${escapeHTML(image)}" alt="${escapeHTML(actorName)} Ultimate">`}</div></div><div class="tsru-title-card tsru-align-${align}"><i class="tsru-title-square tsru-title-square-one"></i><i class="tsru-title-square tsru-title-square-two"></i><div class="tsru-title-copy"><div class="tsru-title-name">${escapeHTML(ultimateName || actorName || "Ultimate")}</div><div class="tsru-title-bar">${ultimateSubtitle ? `<div class="tsru-title-subtitle">${escapeHTML(ultimateSubtitle)}</div>` : ""}</div></div></div></div>`;
-  appendToCanvasLayer(splash);
-  requestAnimationFrame(() => splash.classList.add("show"));
-  window.setTimeout(() => {
-    splash.classList.remove("show");
-    window.setTimeout(() => splash.remove(), 260);
-  }, Math.max(100, Number(duration) * 1000));
-}
-
-function hasTemporaryUltimateTurn(actorId) {
-  return game.combats.some(combat => combat.combatants.some(entry => entry.actorId === actorId && entry.getFlag(MODULE_ID, "temporaryUltimate")));
-}
-
-function hasQueuedUltimateRequest(actorId) {
-  return [...state.ultimateQueues.values()].some(queue => queue.requests?.some(request => request.actorId === actorId));
-}
-
-async function reconcileUltimateLock(actorId) {
-  if (!actorId || !state.ultimateLocks.has(actorId)) return false;
-  if (hasTemporaryUltimateTurn(actorId) || hasQueuedUltimateRequest(actorId)) return false;
-  const pending = state.pendingUltimates.get(actorId);
-  if (pending?.timer) window.clearTimeout(pending.timer);
-  state.pendingUltimates.delete(actorId);
-  for (const [combatId, queue] of state.ultimateQueues) {
-    if (queue.activeActorId !== actorId) continue;
-    queue.activeActorId = null;
-    window.setTimeout(() => processUltimateQueue(combatId), 0);
-  }
-  state.ultimateLocks.delete(actorId);
-  if (isAuthority()) game.socket.emit(SOCKET, {type: "ultimateState", actorId, locked: false});
-  refreshOrb(game.actors.get(actorId));
-  console.warn(`${MODULE_ID} | Cleared a stale Ultimate lock for`, game.actors.get(actorId)?.name ?? actorId);
-  return true;
-}
-
-async function requestUltimate(actor) {
-  const config = getConfig(actor);
-  if (!game.user.isGM && !actor?.isOwner) return ui.notifications.error("You do not own this character.");
-  if (!config.enabled || config.current < config.max) return ui.notifications.warn("This Ultimate is not ready.");
-  await reconcileUltimateLock(actor.id);
-  if (state.ultimateLocks.has(actor.id)) return ui.notifications.warn("This Ultimate is already queued or resolving.");
-  if (game.user.isGM && isAuthority()) return executeUltimate(actor.id, game.user.id);
-  const gm = activeGM();
-  if (!gm) return ui.notifications.error("A GM must be connected to activate an Ultimate.");
-  const requestId = foundry.utils.randomID();
-  game.socket.emit(SOCKET, {type: "activateUltimate", requestId, actorId: actor.id, requestingUserId: game.user.id});
-}
-
-async function insertUltimateTurn(actor, resume = {}) {
-  const combat = game.combat;
-  if (!combat?.started) return null;
-  const current = combat.combatant;
-  const currentInit = Number(current?.initiative ?? 0);
-  const turn = Number(combat.turn ?? 0);
-  const next = combat.turns[turn + 1];
-  let initiative = next ? (currentInit + Number(next.initiative ?? currentInit - 1)) / 2 : currentInit - 0.001;
-  if (!Number.isFinite(initiative)) initiative = currentInit - 0.001;
-  const token = actor.getActiveTokens(true, true)?.[0];
-  const [temporary] = await combat.createEmbeddedDocuments("Combatant", [{
-    name: `ULTIMATE â€” ${actor.name}`,
-    actorId: actor.id,
-    tokenId: token?.id ?? null,
-    sceneId: token?.parent?.id ?? canvas.scene?.id ?? null,
-    initiative,
-    img: getConfig(actor).ultimateButtonImage || getConfig(actor).orbImage || actor.img,
-    flags: {[MODULE_ID]: {temporaryUltimate: true, resumeCombatantId: resume.combatantId ?? current?.id ?? null, resumeRound: resume.round ?? combat.round}}
-  }]);
-  if (!temporary) return null;
-  const index = combat.turns.findIndex(entry => entry.id === temporary.id);
-  if (index >= 0) {
-    state.suppressCombatHook = true;
-    await combat.update({turn: index});
-    state.suppressCombatHook = false;
-  }
-  return temporary;
-}
-
-async function removeUltimateTurn(temporary, {resume = true} = {}) {
-  if (!temporary) return;
-  const combat = temporary.parent;
-  const resumeId = temporary.getFlag(MODULE_ID, "resumeCombatantId");
-  const resumeRound = temporary.getFlag(MODULE_ID, "resumeRound");
-  state.suppressCombatHook = true;
-  try {
-    if (combat?.combatants.has(temporary.id)) await combat.deleteEmbeddedDocuments("Combatant", [temporary.id]);
-    if (resume) {
-      const resumeIndex = combat.turns.findIndex(entry => entry.id === resumeId);
-      if (resumeIndex >= 0) await combat.update({turn: resumeIndex, round: resumeRound ?? combat.round});
-    }
-  } finally { state.suppressCombatHook = false; }
-}
-
-async function postAbilityText(actor, kind, text, {combatantId = ""} = {}) {
-  const description = String(text ?? "").trim();
-  const content = description
-    ? await TextEditor.enrichHTML(description, {async: true, secrets: game.user.isGM, relativeTo: actor})
-    : "<em>No ability text has been configured.</em>";
-  const labels = {skill: "Skill", ultimate: "Ultimate", elation: "Elation Action", talent: "Talent"};
-  const icons = {skill: "fa-hand-sparkles", ultimate: "fa-burst", elation: "fa-masks-theater", talent: "fa-star"};
-  const completion = kind === "elation" && combatantId
-    ? `<footer><button type="button" data-tsru-complete-elation="${escapeHTML(combatantId)}"><i class="fas fa-check"></i> Complete Elation Action</button></footer>`
-    : kind === "ultimate" && combatantId
-      ? `<footer><button type="button" data-tsru-complete-ultimate="${escapeHTML(actor.id)}"><i class="fas fa-check"></i> Ultimate Complete</button></footer>`
-      : "";
-  return ChatMessage.create({
-    speaker: ChatMessage.getSpeaker({actor, token: actor.getActiveTokens(true, true)?.[0]?.document}),
-    content: `<article class="tsru-ability-chat tsru-ability-chat-${kind}"><header><i class="fas ${icons[kind]}"></i><div><strong>${escapeHTML(actor.name)}</strong><span>${labels[kind]}</span></div></header><div class="tsru-ability-chat-body">${content}</div>${completion}</article>`
-  });
-}
-
-async function runUltimateScript(actor, combatantId = "") {
-  return postAbilityText(actor, "ultimate", getConfig(actor).ultimateText, {combatantId});
-}
-
-async function runSkillScript(actor) {
-  return postAbilityText(actor, "skill", getConfig(actor).skillText);
-}
-
-async function runElationActionScript(actor, combatantId = "") {
-  return postAbilityText(actor, "elation", getConfig(actor).elationActionText, {combatantId});
-}
-
-async function completeElationAction(combatantId, userId) {
-  if (!isAuthority()) return;
-  const pending = state.pendingElationActions.get(combatantId);
-  const combat = (pending?.combatId ? game.combats.get(pending.combatId) : null)
-    ?? game.combats.find(entry => entry.combatants.has(combatantId))
-    ?? game.combat;
-  const combatant = combat?.combatants.get(combatantId);
-  const completingUser = userId ? game.users.get(userId) : null;
-  if (userId && !completingUser?.isGM && !combatant?.actor?.testUserPermission(completingUser, "OWNER")) return;
-  if (pending?.timer) window.clearTimeout(pending.timer);
-  state.pendingElationActions.delete(combatantId);
-  state.activeElationActions.delete(combatantId);
-  if (!combatant || !isElationActionCombatant(combatant)) return;
-  const resumeRound = combatant.getFlag(MODULE_ID, "resumeRound") ?? combat.round;
-  const resumeCombatantId=combatant.getFlag(MODULE_ID,"resumeCombatantId");
-  const remainingIds = combat.turns
-    .filter(entry => entry.id !== combatantId && isElationActionCombatant(entry) && !entry.getFlag(MODULE_ID, "completed"))
-    .sort((left, right) => Number(left.getFlag(MODULE_ID, "sequenceOrder")) - Number(right.getFlag(MODULE_ID, "sequenceOrder")))
-    .map(entry => entry.id);
-  state.suppressCombatHook = true;
-  try { await combat.deleteEmbeddedDocuments("Combatant", [combatantId]); }
-  finally { state.suppressCombatHook = false; }
-  const remaining = remainingIds.map(id => combat.combatants.get(id)).filter(Boolean);
-  if (remaining.length) {
-    const next = remaining[0];
-    const index = combat.turns.findIndex(entry => entry.id === next.id);
-    if (index >= 0) await combat.update({turn: index});
-    await executeElationAction(next);
-    return;
-  }
-  if (await finishSpecialAha(combat)) return;
-  const advance=state.actionAdvances.get(combat.id);
-  if(advance?.aha){await clearElationActionTurns(combat,{resetPunchline:true});await finishActionAdvance(combat,advance);return;}
-  await clearElationActionTurns(combat,{resetPunchline:true});
-  const resumeIndex=combat.turns.findIndex(entry=>entry.id===resumeCombatantId);
-  if(resumeIndex>=0)await combat.update({round:Number(resumeRound),turn:resumeIndex});
-  else if(combat.started)await combat.update({round:Number(resumeRound),turn:0});
-}
-
-async function executeElationAction(combatant) {
-  if (!isAuthority() || !combatant || state.activeElationActions.has(combatant.id) || combatant.getFlag(MODULE_ID, "completed")) return;
-  if (state.pendingElationActions.size && !state.pendingElationActions.has(combatant.id)) return;
-  const actor = combatant.actor;
-  if (!actor) return completeElationAction(combatant.id);
-  state.activeElationActions.add(combatant.id);
-  await dispatchTalentEvent("elationAction", {sourceActor: actor, combatant, combat: combatant.parent}, combatant.id);
-  const owner = game.users.find(user => user.active && !user.isGM && actor.testUserPermission(user, "OWNER")) ?? activeGM();
-  const pending = {combatId: combatant.parent.id, userId: owner?.id, timer: window.setTimeout(() => completeElationAction(combatant.id, owner?.id), 600000)};
-  state.pendingElationActions.set(combatant.id, pending);
-  if (!owner || owner.id === game.user.id) {
-    try { await runElationActionScript(actor, combatant.id); }
-    catch (error) { console.error(`${MODULE_ID} | Elation Action failed`, error); ui.notifications.error(`${actor.name}'s Elation Action failed: ${error.message}`); }
-  } else game.socket.emit(SOCKET, {type: "useElationAction", combatantId: combatant.id, actorId: actor.id, targetUserId: owner.id});
-}
-
-async function requestSkill(actor) {
-  const config = getConfig(actor);
-  if (!game.user.isGM && !actor?.isOwner) return ui.notifications.error("You do not own this character.");
-  if (!config.skillEnabled) return ui.notifications.warn("This character's Skill button is disabled.");
-  const cost = Math.max(0, Math.floor(Number(config.skillPointCost) || 0));
-  if (currentSkillPoints() < cost) return ui.notifications.warn(`This Skill requires ${cost} Skill Points.`);
-  if (state.skillLocks.has(actor.id)) return ui.notifications.warn("This Skill is already resolving.");
-  if (game.user.isGM && isAuthority()) return executeSkill(actor.id, game.user.id);
-  const gm = activeGM();
-  if (!gm) return ui.notifications.error("A GM must be connected to spend a shared Skill Point.");
-  const requestId = foundry.utils.randomID();
-  ui.notifications.info(`${actor.name}'s Skill request was sent to the GM.`);
-  game.socket.emit(SOCKET, {type: "activateSkill", requestId, actorId: actor.id, requestingUserId: game.user.id});
-}
-
-async function completeSkill(actorId) {
-  if (!isAuthority()) return;
-  const pending = state.pendingSkills.get(actorId);
-  if (pending?.timer) window.clearTimeout(pending.timer);
-  state.pendingSkills.delete(actorId);
-  state.skillLocks.delete(actorId);
-  game.socket.emit(SOCKET, {type: "skillState", actorId, locked: false});
-  refreshSkillUI();
-}
-
-async function executeSkill(actorId, requestingUserId) {
-  if (!isAuthority() || state.skillLocks.has(actorId) || state.skillSpendLock) return false;
-  const actor = game.actors.get(actorId);
-  const requester = game.users.get(requestingUserId);
-  if (!actor || actor.type !== "character" || (!requester?.isGM && !actor.testUserPermission(requester, "OWNER"))) return false;
-  const config = getConfig(actor);
-  if (!config.skillEnabled) { ui.notifications.warn(`${actor.name}'s Skill button is disabled.`); return false; }
-  const cost = Math.max(0, Math.floor(Number(config.skillPointCost) || 0));
-  if (currentSkillPoints() < cost) { ui.notifications.warn(`This Skill requires ${cost} Skill Points.`); return false; }
-
-  state.skillSpendLock = true;
-  state.skillLocks.add(actorId);
-  game.socket.emit(SOCKET, {type: "skillState", actorId, locked: true});
-  try {
-    await setSkillPoints(currentSkillPoints() - cost);
-    await dispatchTalentEvent("skillUsed", {sourceActor: actor, requestingUserId}, `${actor.id}:${Date.now()}`);
-    const pending = {actorId, requestingUserId, timer: window.setTimeout(() => completeSkill(actorId), 120000)};
-    state.pendingSkills.set(actorId, pending);
-    if (requestingUserId === game.user.id) {
-      await runSkillScript(actor);
-      await completeSkill(actorId);
-    } else game.socket.emit(SOCKET, {type: "useSkill", actorId, targetUserId: requestingUserId});
-    return true;
-  } catch (error) {
-    console.error(`${MODULE_ID} | Skill failed`, error);
-    ui.notifications.error(`Skill failed: ${error.message}`);
-    await completeSkill(actorId);
-    return false;
-  } finally { state.skillSpendLock = false; }
-}
-
-async function completeUltimate(actorId) {
-  if (!isAuthority()) return;
-  const pending = state.pendingUltimates.get(actorId);
-  if (pending?.timer) window.clearTimeout(pending.timer);
-  const combat = (pending?.combatId ? game.combats.get(pending.combatId) : null)
-    ?? game.combats.find(entry => entry.combatants.some(combatant => combatant.actorId === actorId && combatant.getFlag(MODULE_ID, "temporaryUltimate")))
-    ?? game.combat;
-  const temporaryIds = combat?.combatants
-    .filter(combatant => combatant.actorId === actorId && combatant.getFlag(MODULE_ID, "temporaryUltimate"))
-    .map(combatant => combatant.id) ?? [];
-  const queueCombatId = pending?.combatId ?? combat?.id ?? [...state.ultimateQueues].find(([_id, entry]) => entry.activeActorId === actorId)?.[0];
-  const queue = queueCombatId ? state.ultimateQueues.get(queueCombatId) : null;
-  try {
-    if (temporaryIds.length) {
-      state.suppressCombatHook = true;
-      try { await combat.deleteEmbeddedDocuments("Combatant", temporaryIds); }
-      finally { state.suppressCombatHook = false; }
-    }
-  } catch (error) {
-    console.error(`${MODULE_ID} | Could not remove completed Ultimate turn`, error);
-    ui.notifications.error(`The Ultimate finished, but its temporary initiative turn could not be removed: ${error.message}`);
-  } finally {
-    state.pendingUltimates.delete(actorId);
-    state.ultimateLocks.delete(actorId);
-    game.socket.emit(SOCKET, {type: "ultimateState", actorId, locked: false});
-    refreshOrb(game.actors.get(actorId));
-    if (queue) queue.activeActorId = null;
-  }
-  if (queue) {
-    try { await processUltimateQueue(queueCombatId); }
-    catch (error) {
-      console.error(`${MODULE_ID} | Could not continue the Ultimate queue`, error);
-      ui.notifications.error(`Could not continue the Ultimate queue: ${error.message}`);
-    }
-  }
-}
-
-async function completeImmediateUltimate(actorId) {
-  if (!isAuthority()) return;
-  state.ultimateLocks.delete(actorId);
-  game.socket.emit(SOCKET, {type: "ultimateState", actorId, locked: false});
-  refreshOrb(game.actors.get(actorId));
-}
-
-async function beginImmediateUltimate(actor, requestingUserId) {
-  broadcastUltimateSplash(actor);
-  if (requestingUserId === game.user.id) {
-    try { await runUltimateScript(actor); }
-    catch (error) {
-      console.error(`${MODULE_ID} | Immediate Ultimate failed`, error);
-      ui.notifications.error(`Ultimate failed: ${error.message}`);
-    } finally { await completeImmediateUltimate(actor.id); }
-    return;
-  }
-  game.socket.emit(SOCKET, {type: "useUltimate", actorId: actor.id, combatantId: "", immediate: true, targetUserId: requestingUserId});
-}
-
-function ultimateInitiative(actor, combat) {
-  const combatant = combat?.combatants.find(entry => entry.actorId === actor.id && !entry.getFlag(MODULE_ID, "temporaryUltimate"));
-  return Number.isFinite(Number(combatant?.initiative)) ? Number(combatant.initiative) : -Infinity;
-}
-
-async function finishUltimateQueue(combatId) {
-  const queue = state.ultimateQueues.get(combatId);
-  const combat = game.combats.get(combatId);
-  state.ultimateQueues.delete(combatId);
-  if (!queue || !combat) return;
-  const resumeIndex = combat.turns.findIndex(entry => entry.id === queue.resumeCombatantId);
-  if (resumeIndex < 0) return;
-  state.suppressCombatHook = true;
-  try { await combat.update({round: queue.resumeRound ?? combat.round, turn: resumeIndex}); }
-  finally { state.suppressCombatHook = false; }
-}
-
-function retryUltimateSplashBroadcast(playbackId) {
-  const pending = state.splashBroadcasts.get(playbackId);
-  if (!pending) return;
-  if (!pending.remaining.size) {
-    window.clearTimeout(pending.timer);
-    state.splashBroadcasts.delete(playbackId);
-    return;
-  }
-  if (pending.attempts >= 3) {
-    const missed = [...pending.remaining].map(id => game.users.get(id)?.name ?? id);
-    console.warn(`${MODULE_ID} | Ultimate splash was not acknowledged by`, missed);
-    ui.notifications.warn(`Ultimate splash could not be confirmed for: ${missed.join(", ")}.`);
-    state.splashBroadcasts.delete(playbackId);
-    return;
-  }
-  pending.attempts++;
-  for (const targetUserId of pending.remaining) game.socket.emit(SOCKET, {...pending.payload, targetUserId});
-  pending.timer = window.setTimeout(() => retryUltimateSplashBroadcast(playbackId), 900);
-}
-
-function broadcastUltimateSplash(actor) {
-  const config = getConfig(actor);
-  const element = getElements().find(entry => entry.id === config.elementId);
-  const splash = {actorName: actor.name, image: config.splashImage, duration: config.splashDuration, splashX: config.splashX, splashY: config.splashY, splashScale: config.splashScale, ultimateName: config.ultimateName, ultimateSubtitle: config.ultimateSubtitle, titleX: config.titleX, titleY: config.titleY, titleSize: config.titleSize, titleAlign: config.titleAlign, fontFile: config.fontFile, subtitleFontFile: config.subtitleFontFile, color: element?.chargeColor || DEFAULT_CONFIG.chargeColor};
-  showSplash(splash);
-  const recipients = new Set(game.users.filter(user => user.active && user.id !== game.user.id).map(user => user.id));
-  if (!recipients.size) return;
-  const playbackId = foundry.utils.randomID();
-  const payload = {type: "showSplash", playbackId, sourceUserId: game.user.id, ...splash};
-  state.splashBroadcasts.set(playbackId, {payload, remaining: recipients, attempts: 0, timer: null});
-  retryUltimateSplashBroadcast(playbackId);
-}
-
-async function beginQueuedUltimate(request, queue, combat) {
-  const actor = game.actors.get(request.actorId);
-  if (!actor) return completeUltimate(request.actorId);
-  broadcastUltimateSplash(actor);
-  queue.activeActorId = actor.id;
-  const temporary = await insertUltimateTurn(actor, {combatantId: queue.resumeCombatantId, round: queue.resumeRound});
-  if (!temporary) throw new Error("Foundry could not create the temporary Ultimate combatant.");
-  const pending = {actorId: actor.id, requestingUserId: request.requestingUserId, combatId: combat.id, combatantId: temporary?.id ?? null, timer: window.setTimeout(() => completeUltimate(actor.id), 600000)};
-  state.pendingUltimates.set(actor.id, pending);
-  if (request.requestingUserId === game.user.id) await runUltimateScript(actor, temporary?.id ?? "");
-  else game.socket.emit(SOCKET, {type: "useUltimate", actorId: actor.id, combatantId: temporary?.id ?? "", targetUserId: request.requestingUserId});
-}
-
-async function processUltimateQueue(combatId) {
-  const queue = state.ultimateQueues.get(combatId);
-  const combat = game.combats.get(combatId);
-  if (!queue || !combat || queue.activeActorId) return;
-  if (queue.startTimer) { window.clearTimeout(queue.startTimer); queue.startTimer = null; }
-  if (!queue.requests.length) return finishUltimateQueue(combatId);
-  queue.requests.sort((left,right)=>left.requestedAt-right.requestedAt||left.sequence-right.sequence);
-  const request = queue.requests.shift();
-  try { await beginQueuedUltimate(request, queue, combat); }
-  catch (error) {
-    console.error(`${MODULE_ID} | Could not begin queued Ultimate`, error);
-    ui.notifications.error(`Could not begin ${game.actors.get(request.actorId)?.name ?? "the character"}'s Ultimate turn: ${error.message}`);
-    state.pendingUltimates.delete(request.actorId);
-    state.ultimateLocks.delete(request.actorId);
-    game.socket.emit(SOCKET, {type: "ultimateState", actorId: request.actorId, locked: false});
-    queue.activeActorId = null;
-    await processUltimateQueue(combatId);
-  }
-}
-
-async function executeUltimate(actorId, requestingUserId) {
-  if (!isAuthority() || state.ultimateLocks.has(actorId)) return;
-  const actor = game.actors.get(actorId);
-  const requester = game.users.get(requestingUserId);
-  if (!actor || (!requester?.isGM && !actor.testUserPermission(requester, "OWNER"))) return;
-  const config = getConfig(actor);
-  if (!config.enabled || config.current < config.max) return;
-  state.ultimateLocks.add(actorId);
-  game.socket.emit(SOCKET, {type: "ultimateState", actorId, locked: true});
-  refreshOrb(actor);
-  try {
-    await dispatchTalentEvent("ultimateUsed", {sourceActor: actor, requestingUserId}, `${actor.id}:${Date.now()}`);
-    await setEnergy(actor, 0);
-    const combat = game.combat;
-    await lockEnergyUntilNextRound(actor, combat);
-    if (!combat?.started) {
-      broadcastUltimateSplash(actor);
-      await runUltimateScript(actor);
-      state.ultimateLocks.delete(actorId);
-      game.socket.emit(SOCKET, {type: "ultimateState", actorId, locked: false});
-      return refreshOrb(actor);
-    }
-    const current = combat.combatant;
-    const isOwnNormalTurn = current?.actorId === actor.id
-      && !current.getFlag(MODULE_ID, "temporaryUltimate")
-      && !isElationActionCombatant(current)
-      && !isAhaCombatant(current);
-    if (isOwnNormalTurn) {
-      return beginImmediateUltimate(actor, requestingUserId);
-    }
-    let queue = state.ultimateQueues.get(combat.id);
-    if (!queue) {
-      const isOtherMainPartyActor = current?.actorId !== actor.id && current?.actor?.type === "character" && getConfig(current.actor).mainParty;
-      const waitsForAlly = Boolean(isOtherMainPartyActor && !current.getFlag(MODULE_ID, "temporaryUltimate"));
-      queue = {resumeCombatantId: waitsForAlly ? null : current?.id ?? null, resumeRound: combat.round, waitTurnId: waitsForAlly ? current.id : null, activeActorId: null, requests: [], sequence: 0, startTimer: null};
-      state.ultimateQueues.set(combat.id, queue);
-    }
-    queue.requests.push({actorId, requestingUserId, initiative: ultimateInitiative(actor, combat), requestedAt: Date.now(), sequence: queue.sequence++});
-    if (!queue.waitTurnId && !queue.activeActorId && !queue.startTimer) queue.startTimer = window.setTimeout(() => processUltimateQueue(combat.id), 225);
-  } catch (error) {
-    console.error(`${MODULE_ID} | Ultimate failed`, error);
-    ui.notifications.error(`Ultimate failed: ${error.message}`);
-    await completeUltimate(actorId);
-  }
-}
-
-async function onSocket(payload) {
-  if (!payload?.type) return;
-  if(payload.type==="craftRecipe"&&isAuthority()){
-    const result=await executeCraftRecipe(payload.recipeId,payload.actorId,payload.requestingUserId);
-    game.socket.emit(SOCKET,{type:"craftingResult",targetUserId:payload.requestingUserId,...result});return;
-  }
-  if(payload.type==="redeemRecipeCard"&&isAuthority()){
-    const result=await executeRedeemRecipeCard(payload.actorId,payload.itemId,payload.requestingUserId);
-    game.socket.emit(SOCKET,{type:"craftingResult",targetUserId:payload.requestingUserId,...result});return;
-  }
-  if(payload.type==="craftingResult"&&payload.targetUserId===game.user.id){
-    (payload.ok?ui.notifications.info:ui.notifications.error).call(ui.notifications,payload.message);state.craftingApp?.render(false);return;
-  }
-  if (payload.type === "breakResult" || payload.type === "damageResult") { await showBreakResult(payload); return; }
-  if (payload.type === "ahaConfigChanged") {
-    state.punchlineMeter?.destroy();
-    refreshAhaButton();
-    refreshPunchlineHUD();
-    preloadAhaVideo(payload.video ?? getAhaConfig().video);
-    return;
-  }
-  if (payload.type === "punchlineChanged") { refreshPunchlineHUD(); return; }
-  if (payload.type === "changePunchline" && isAuthority()) {
-    const requester = game.users.get(payload.sourceUserId);
-    const actor = await actorFromUuid(payload.actorUuid);
-    if (!getAhaConfig().elationEnabled || !actor || (!requester?.isGM && !actor.testUserPermission(requester, "OWNER"))) return;
-    if (payload.operation === "add") await addPunchline(payload.amount);
-    else if (payload.operation === "spend") await spendPunchline(payload.amount);
-    else if (payload.operation === "set") await setPunchline(payload.amount);
-    return;
-  }
-  if (payload.type === "changeTalentPoints" && isAuthority()) {
-    const requester = game.users.get(payload.sourceUserId);
-    const actor = game.actors.get(payload.actorId);
-    if (!actor || (!requester?.isGM && !actor.testUserPermission(requester, "OWNER")) || !talentCombatForActor(actor)) return;
-    await setTalentPoints(actor, currentTalentPoints(actor) + clamp(Number(payload.delta), -1, 1));
-    refreshResourceHuds();
-    return;
-  }
-  if (payload.type === "activateTechnique" && isAuthority()) {
-    await executeTechnique(payload.actorId, payload.requestingUserId);
-    return;
-  }
-  if (payload.type === "techniquePointsChanged") { refreshResourceHuds(); refreshTechniqueButtons(); return; }
-  if (payload.type === "changeSkillPoints" && isAuthority()) {
-    const requester = game.users.get(payload.sourceUserId);
-    const actor = await actorFromUuid(payload.actorUuid);
-    if (!actor || (!requester?.isGM && !actor.testUserPermission(requester, "OWNER"))) return;
-    if (payload.operation === "set") await setSkillPoints(payload.amount);
-    else if (payload.operation === "add") await setSkillPoints(currentSkillPoints() + (Number(payload.amount) || 0));
-    else if (payload.operation === "spend") {
-      const cost = Math.max(0, Math.floor(Number(payload.amount) || 0));
-      if (currentSkillPoints() >= cost) await setSkillPoints(currentSkillPoints() - cost);
-    }
-    return;
-  }
-  if (payload.type === "triggerSpecialAha" && isAuthority()) {
-    const requester = game.users.get(payload.sourceUserId);
-    const actor = await actorFromUuid(payload.actorUuid);
-    if (!actor || (!requester?.isGM && !actor.testUserPermission(requester, "OWNER"))) return;
-    await triggerSpecialAha(actor, payload.fixedPunchline);
-    return;
-  }
-  if (payload.type === "useElationAction" && payload.targetUserId === game.user.id) {
-    const actor = game.actors.get(payload.actorId);
-    try {
-      if (!actor?.isOwner) throw new Error("You no longer own this character.");
-      await runElationActionScript(actor, payload.combatantId);
-    } catch (error) {
-      console.error(`${MODULE_ID} | Player Elation Action failed`, error);
-      ui.notifications.error(`Elation Action failed: ${error.message}`);
-      game.socket.emit(SOCKET, {type: "elationActionComplete", combatantId: payload.combatantId, userId: game.user.id, failed: true});
-    }
-    return;
-  }
-  if (payload.type === "elationActionComplete" && isAuthority()) return completeElationAction(payload.combatantId, payload.userId);
-  if (payload.type === "skillPointsChanged") { refreshSkillUI(); return; }
-  if (payload.type === "activateSkill" && isAuthority()) {
-    const accepted = await executeSkill(payload.actorId, payload.requestingUserId) === true;
-    game.socket.emit(SOCKET, {type: "playerActionResult", targetUserId: payload.requestingUserId, requestId: payload.requestId, accepted, action: "Skill", message: accepted ? "Skill activated successfully." : "The GM could not activate that Skill. Check ownership, the Skill toggle, and available Skill Points."});
-    return;
-  }
-  if (payload.type === "useSkill" && payload.targetUserId === game.user.id) {
-    const actor = game.actors.get(payload.actorId);
-    try {
-      if (!actor?.isOwner) throw new Error("You no longer own this character.");
-      await runSkillScript(actor);
-      game.socket.emit(SOCKET, {type: "skillComplete", actorId: payload.actorId, userId: game.user.id});
-    } catch (error) {
-      console.error(`${MODULE_ID} | Player Skill failed`, error);
-      ui.notifications.error(`Skill failed: ${error.message}`);
-      game.socket.emit(SOCKET, {type: "skillComplete", actorId: payload.actorId, userId: game.user.id, failed: true});
-    }
-    return;
-  }
-  if (payload.type === "skillComplete" && isAuthority()) {
-    const pending = state.pendingSkills.get(payload.actorId);
-    if (pending?.requestingUserId === payload.userId) await completeSkill(payload.actorId);
-    return;
-  }
-  if (payload.type === "skillState") {
-    payload.locked ? state.skillLocks.add(payload.actorId) : state.skillLocks.delete(payload.actorId);
-    refreshSkillUI();
-    return;
-  }
-  if (payload.type === "applyManualChatDamage" && isAuthority()) {
-    const requestingUser = game.users.get(payload.sourceUserId);
-    const message = game.messages.get(payload.messageId);
-    const target = await fromUuid(payload.targetUuid).catch(() => actorFromUuid(payload.targetUuid));
-    const result = await applyChatRollAsDamage(message, target, requestingUser, payload.applicationId);
-    game.socket.emit(SOCKET, {type: "manualChatDamageResult", targetUserId: payload.sourceUserId, messageId: payload.messageId, ...result});
-    return;
-  }
-  if (payload.type === "manualChatDamageResult" && payload.targetUserId === game.user.id) {
-    const notify = payload.ok ? ui.notifications.info : ui.notifications.error;
-    notify.call(ui.notifications, payload.message);
-    const message = game.messages.get(payload.messageId);
-    document.querySelectorAll(`[data-tsru-chat-damage-control="${CSS.escape(payload.messageId ?? "")}"]`).forEach(control => renderManualDamageControl(control, message, payload.applications, payload.done));
-    return;
-  }
-  if (payload.type === "finishManualChatDamage" && isAuthority()) {
-    const requestingUser = game.users.get(payload.sourceUserId);
-    const message = game.messages.get(payload.messageId);
-    const result = await finishManualChatDamage(message, requestingUser);
-    game.socket.emit(SOCKET, {type: "manualChatDamageResult", targetUserId: payload.sourceUserId, messageId: payload.messageId, ...result});
-    return;
-  }
-  if (payload.type === "applyChatTempHp" && isAuthority()) {
-    const requestingUser = game.users.get(payload.sourceUserId);
-    const message = game.messages.get(payload.messageId);
-    const target = await fromUuid(payload.targetUuid).catch(() => actorFromUuid(payload.targetUuid));
-    const result = await applyChatRollAsTempHp(message, target, requestingUser);
-    game.socket.emit(SOCKET, {type: "chatTempHpResult", targetUserId: payload.sourceUserId, messageId: payload.messageId, ...result});
-    return;
-  }
-  if (payload.type === "chatTempHpResult" && payload.targetUserId === game.user.id) {
-    const notify = payload.ok ? ui.notifications.info : ui.notifications.error;
-    notify.call(ui.notifications, payload.message);
-    document.querySelectorAll(`[data-tsru-temp-hp-message="${CSS.escape(payload.messageId ?? "")}"]`).forEach(button => {
-      button.disabled = false;
-      button.innerHTML = '<i class="fas fa-shield-halved"></i><span>Add as TempHP</span>';
-    });
-    return;
-  }
-  if (payload.type === "applyToughness" && isAuthority()) {
-    const requestingUser = game.users.get(payload.sourceUserId);
-    const attacker = await actorFromUuid(payload.attackerUuid);
-    if (!attacker || (!requestingUser?.isGM && !attacker.testUserPermission(requestingUser, "OWNER"))) return;
-    const targets = (await Promise.all((payload.targetUuids ?? []).map(actorFromUuid))).filter(Boolean);
-    await applyToughnessDamage(attacker, targets, Number(payload.amount) || 0, payload.eventKey);
-    return;
-  }
-  if (payload.type === "showAhaVideo") {
-    if (payload.sourceUserId !== game.user.id) playAhaVideo(payload);
-    return;
-  }
-  if (payload.type === "activateUltimate" && isAuthority()) {
-    const actor = game.actors.get(payload.actorId);
-    const before = Number(getConfig(actor).current);
-    await executeUltimate(payload.actorId, payload.requestingUserId);
-    const accepted = Boolean(actor && Number(getConfig(actor).current) < before);
-    const queue = game.combat?.id ? state.ultimateQueues.get(game.combat.id) : null;
-    const waiting = Boolean(accepted && queue?.waitTurnId);
-    game.socket.emit(SOCKET, {type: "playerActionResult", targetUserId: payload.requestingUserId, requestId: payload.requestId, accepted, action: "Ultimate", message: accepted ? (waiting ? "Ultimate queued. It will begin when the current Main Party turn ends." : "Ultimate activated successfully.") : "The GM could not activate that Ultimate. Check ownership, Energy, and the character's Ultimate toggle."});
-    return;
-  }
-  if (payload.type === "playerActionResult" && payload.targetUserId === game.user.id) {
-    const notify = payload.accepted ? ui.notifications.info : ui.notifications.error;
-    notify.call(ui.notifications, payload.message || `${payload.action ?? "Action"} request ${payload.accepted ? "accepted" : "rejected"}.`);
-    return;
-  }
-  if (payload.type === "showSplash") {
-    if (payload.sourceUserId === game.user.id) return;
-    if (payload.targetUserId && payload.targetUserId !== game.user.id) return;
-    const playbackId = payload.playbackId;
-    const alreadyReceived = playbackId && state.receivedSplashIds.has(playbackId);
-    if (playbackId) {
-      state.receivedSplashIds.add(playbackId);
-      window.setTimeout(() => state.receivedSplashIds.delete(playbackId), 60000);
-    }
-    if (!alreadyReceived) await showSplash(payload);
-    if (playbackId) game.socket.emit(SOCKET, {type: "ultimateSplashAck", playbackId, sourceUserId: game.user.id, targetUserId: payload.sourceUserId});
-    return;
-  }
-  if (payload.type === "ultimateSplashAck" && payload.targetUserId === game.user.id) {
-    const pending = state.splashBroadcasts.get(payload.playbackId);
-    pending?.remaining.delete(payload.sourceUserId);
-    if (pending && !pending.remaining.size) {
-      window.clearTimeout(pending.timer);
-      state.splashBroadcasts.delete(payload.playbackId);
-    }
-    return;
-  }
-  if (payload.type === "useUltimate" && payload.targetUserId === game.user.id) {
-    const actor = game.actors.get(payload.actorId);
-    try {
-      if (!actor?.isOwner) throw new Error("You no longer own this character.");
-      await runUltimateScript(actor, payload.combatantId ?? "");
-      if (payload.immediate) game.socket.emit(SOCKET, {type: "immediateUltimateComplete", actorId: payload.actorId, userId: game.user.id});
-    } catch (error) {
-      console.error(`${MODULE_ID} | Player Ultimate failed`, error);
-      ui.notifications.error(`Ultimate failed: ${error.message}`);
-      game.socket.emit(SOCKET, {type: payload.immediate ? "immediateUltimateComplete" : "ultimateComplete", actorId: payload.actorId, userId: game.user.id, failed: true});
-    }
-    return;
-  }
-  if (payload.type === "immediateUltimateComplete" && isAuthority()) {
-    const completingUser = game.users.get(payload.userId);
-    const actor = game.actors.get(payload.actorId);
-    if (state.ultimateLocks.has(payload.actorId) && (completingUser?.isGM || actor?.testUserPermission(completingUser, "OWNER"))) await completeImmediateUltimate(payload.actorId);
-    return;
-  }
-  if (payload.type === "ultimateComplete" && isAuthority()) {
-    const pending = state.pendingUltimates.get(payload.actorId);
-    const completingUser = game.users.get(payload.userId);
-    const actor = game.actors.get(payload.actorId);
-    if ((pending || game.combats.some(combat => combat.combatants.some(entry => entry.actorId === payload.actorId && entry.getFlag(MODULE_ID, "temporaryUltimate"))))
-      && (completingUser?.isGM || actor?.testUserPermission(completingUser, "OWNER"))) await completeUltimate(payload.actorId);
-    return;
-  }
-  if (payload.type === "ultimateState") {
-    payload.locked ? state.ultimateLocks.add(payload.actorId) : state.ultimateLocks.delete(payload.actorId);
-    refreshOrb(game.actors.get(payload.actorId));
-  }
-}
-
-function isAttackMessage(message) {
-  const flags = message.flags ?? {};
-  const dnd = flags.dnd5e ?? {};
-  const type = String(dnd.roll?.type ?? dnd.type ?? message.rolls?.[0]?.options?.type ?? "").toLowerCase();
-  return type.includes("attack") || Boolean(dnd.item?.activityId || dnd.activity?.id) && message.rolls?.some(roll => String(roll.options?.type ?? "").includes("attack"));
-}
-
-function targetActorIdsFromMessage(message) {
-  const flags = message.flags ?? {};
-  const candidates = [
-    flags.dnd5e?.targets,
-    flags.dnd5e?.use?.targets,
-    flags.dnd5e?.activity?.targets,
-    flags[MODULE_ID]?.targets
-  ].filter(Boolean).flatMap(value => Array.isArray(value) ? value : Object.values(value));
-  const ids = new Set();
-  for (const target of candidates) {
-    const raw = target?.actorUuid ?? target?.actorId ?? target?.uuid ?? target?.tokenUuid ?? target?.id ?? target;
-    const text = String(raw ?? "");
-    const actorMatch = text.match(/Actor\.([^.]+)/);
-    const tokenMatch = text.match(/Token\.([^.]+)/);
-    if (actorMatch) ids.add(actorMatch[1]);
-    else if (target?.actorId) ids.add(target.actorId);
-    else if (tokenMatch) {
-      const actor = canvas?.tokens?.get(tokenMatch[1])?.actor;
-      if (actor) ids.add(actor.id);
-    }
-  }
-  if (!ids.size) {
-    const messageUser = game.users.get(message.user?.id ?? message.user);
-    for (const target of messageUser?.targets ?? []) if (target.actor) ids.add(target.actor.id);
-  }
-  return ids;
-}
-
-function rawDiceTotal(rolls) {
-  const seen = new Set();
-  const dice = [];
-  const visit = term => {
-    if (!term || typeof term !== "object" || seen.has(term)) return;
-    seen.add(term);
-    if (Array.isArray(term.results) && (term.faces || term.number)) dice.push(term);
-    for (const key of ["dice", "terms", "rolls", "operands", "roll", "damageRoll"]) {
-      const children = term[key];
-      if (Array.isArray(children)) children.forEach(visit);
-      else visit(children);
-    }
-  };
-  for (const roll of rolls ?? []) visit(roll);
-  return dice.flatMap(die => die.results ?? []).filter(result => result?.active !== false && result?.discarded !== true)
-    .reduce((total, result) => total + (Number(result?.result) || 0), 0);
-}
-
-function fullDamageTotal(rolls) {
-  return (rolls ?? []).reduce((total, roll) => total + Math.max(0, Number(roll?.total) || 0), 0);
-}
-
-function actorFromChatMessage(message) {
-  return game.actors.get(message?.speaker?.actor) ?? canvas?.tokens?.get(message?.speaker?.token)?.actor ?? null;
-}
-
-function manualChatDamageAmount(message) {
-  if (message?.getFlag?.(MODULE_ID, "breakDamageRoll")) {
-    return Math.max(0, Math.floor(Number(message.getFlag(MODULE_ID, "hpDamageAmount")) || 0));
-  }
-  return Math.max(0, Math.floor(fullDamageTotal(Array.isArray(message?.rolls) ? message.rolls : [])));
-}
-
-function manualDamageApplications(message) {
-  const applications = message?.getFlag(MODULE_ID, "manualDamageApplications");
-  if (Array.isArray(applications)) return applications;
-  const legacy = message?.getFlag(MODULE_ID, "manualDamageApplied");
-  return legacy ? [legacy] : [];
-}
-
-function isManualChatDamageEligible(message) {
-  const actor = actorFromChatMessage(message);
-  const combat = game.combat;
-  if (!combat?.started || actor?.type !== "character" || manualChatDamageAmount(message) <= 0) return false;
-  if (!combat.combatants.some(combatant => combatant.actorId === actor.id)) return false;
-  return message.getFlag(MODULE_ID, "breakDamageRoll") || !/weakness break/i.test(String(message.flavor ?? ""));
-}
-
-async function applyDirectChatDamage(target, amount) {
-  const hp = target?.system?.attributes?.hp;
-  if (!hp || !Number.isFinite(Number(hp.value))) return 0;
-  const damage = Math.max(0, Math.floor(Number(amount) || 0));
-  const temporary = Math.max(0, Number(hp.temp) || 0);
-  const absorbed = Math.min(temporary, damage);
-  const remaining = damage - absorbed;
-  const updates = {"system.attributes.hp.value": Math.max(0, Number(hp.value) - remaining)};
-  if (hp.temp !== undefined && hp.temp !== null) updates["system.attributes.hp.temp"] = Math.max(0, temporary - absorbed);
-  await target.update(updates);
-  return damage;
-}
-
-function superBreakLabel(superBreak) { return superBreak ? "Super Break" : "Break"; }
-
-async function applyChatRollAsDamage(message, target, requestingUser, applicationId = "") {
-  if (!isAuthority()) return {ok: false, message: "Only the active GM can apply chat damage."};
-  const {actor: targetActor} = toughnessTargetParts(target);
-  if (!message || !targetActor) return {ok: false, message: "The roll or target no longer exists."};
-  if (message.getFlag(MODULE_ID, "manualDamageDone")) return {ok: false, done: true, applications: manualDamageApplications(message), message: "Damage application has already been marked done."};
-  const attacker = actorFromChatMessage(message);
-  if (!attacker || (!requestingUser?.isGM && !attacker.testUserPermission(requestingUser, "OWNER"))) return {ok: false, message: "You do not control the character that made this roll."};
-  if (!isManualChatDamageEligible(message)) return {ok: false, message: "This roll is not eligible for combat damage."};
-  const combat = game.combat;
-  if (!combat?.combatants.some(combatant => combatant.actorId === targetActor.id || combatant.actor?.id === targetActor.id || combatant.actor?.uuid === targetActor.uuid)) return {ok: false, message: "The targeted creature is not in the current combat."};
-  const total = manualChatDamageAmount(message);
-  const config = getConfig(attacker);
-  const isBreakDamageRoll = Boolean(message.getFlag(MODULE_ID, "breakDamageRoll"));
-  const isSuperBreakDamageRoll = Boolean(message.getFlag(MODULE_ID, "superBreakDamageRoll"));
-  const hpDamage = isBreakDamageRoll ? total : config.breakCharacter ? Math.min(1, total) : total;
-  const rolledDiceDamage = rawDiceTotal(message.rolls);
-  const toughnessDamage = isBreakDamageRoll ? 0 : config.breakCharacter ? total : (rolledDiceDamage > 0 ? rolledDiceDamage : total);
-  const resolvedApplicationId = applicationId || foundry.utils.randomID();
-  const targetUuid = toughnessTargetParts(target).tokenDocument?.uuid ?? targetActor.uuid;
-  const eventKey = `manual-chat-damage:${message.id}:${resolvedApplicationId}:${targetUuid}`;
-  if (isBreakDamageRoll) {
-    const breakType = isSuperBreakDamageRoll ? "superBreak" : "break";
-    state.lastDamageDisplay = {
-      type: breakType,
-      label: isSuperBreakDamageRoll ? "Super Break" : "Break",
-      color: damageResultColor(attacker),
-      critical: false,
-      attackerId: attacker.id,
-      expires: Date.now() + 15000
-    };
-  }
-  await applyDirectChatDamage(targetActor, hpDamage);
-  if (attacker.type === "character" && hpDamage > 0) {
-    if (isBreakDamageRoll) {
-      const elementColor = damageResultColor(attacker);
-      await broadcastDamageResult(target, hpDamage, {
-        plainDamage: false,
-        superBreak: isSuperBreakDamageRoll,
-        color: elementColor,
-        fontFile: isSuperBreakDamageRoll ? getBreakFonts().superBreakFontFile : getBreakFonts().breakFontFile
-      });
-    } else {
-      await broadcastDamageOnce(attacker, target, hpDamage, eventKey, {critical:damageRollWasCritical(message)});
-    }
-  }
-  const appliedToughness = toughnessDamage > 0 ? await applyToughnessDamage(attacker, [target], toughnessDamage, eventKey) : 0;
-  const detail = {sourceActor: attacker, targetActor, amount: hpDamage, origin: message, manual: true};
-  await dispatchTalentEvent("damageDealt", detail, eventKey);
-  await dispatchTalentEvent("damageTaken", detail, eventKey);
-  await awardPunchlineForAttack(attacker, eventKey);
-  if (targetActor.type === "character") {
-    const targetConfig = getConfig(targetActor);
-    if (targetConfig.attackedMode === "targeted" || targetConfig.attackedMode === "hit") await addEnergy(targetActor, energyGain(targetConfig, "attacked"), "hit");
-  }
-  const application = {id: resolvedApplicationId, actorUuid: attacker.uuid, targetUuid, targetName: targetActor.name, amount: hpDamage, total, damageKind: isSuperBreakDamageRoll ? "superBreak" : isBreakDamageRoll ? "break" : "normal", toughnessDamage: appliedToughness, toughnessAttempted: toughnessDamage, userId: requestingUser?.id, appliedAt: Date.now()};
-  const applications = [...manualDamageApplications(message), application];
-  await message.setFlag(MODULE_ID, "manualDamageApplications", applications);
-  return {ok: true, applications, done: false, message: isBreakDamageRoll ? `${superBreakLabel(isSuperBreakDamageRoll)} applied ${hpDamage} HP damage to ${targetActor.name}.` : `${total} roll damage applied to ${targetActor.name} (${hpDamage} HP, ${appliedToughness} Toughness).`};
-}
-
-async function finishManualChatDamage(message, requestingUser) {
-  if (!isAuthority()) return {ok: false, message: "Only the active GM can finish chat damage."};
-  const attacker = actorFromChatMessage(message);
-  if (!message || !attacker || (!requestingUser?.isGM && !attacker.testUserPermission(requestingUser, "OWNER"))) return {ok: false, message: "You do not control the character that made this roll."};
-  await message.setFlag(MODULE_ID, "manualDamageDone", true);
-  return {ok: true, done: true, applications: manualDamageApplications(message), message: "Finished applying damage from this roll."};
-}
-
-async function applyChatRollAsTempHp(message, target, requestingUser) {
-  if (!isAuthority()) return {ok: false, message: "Only the active GM can apply temporary HP from chat."};
-  const sourceActor = actorFromChatMessage(message);
-  const {actor: targetActor} = toughnessTargetParts(target);
-  if (!message || !sourceActor || !targetActor) return {ok: false, message: "The roll or target no longer exists."};
-  if (!requestingUser?.isGM && !sourceActor.testUserPermission(requestingUser, "OWNER")) return {ok: false, message: "You do not control the character that made this roll."};
-  const amount = manualChatDamageAmount(message);
-  if (amount <= 0) return {ok: false, message: "This roll has no positive total to add as temporary HP."};
-  const hp = targetActor.system?.attributes?.hp;
-  if (!hp || hp.temp === undefined || hp.temp === null) return {ok: false, message: `${targetActor.name} does not have a temporary HP field.`};
-  const before = Math.max(0, Number(hp.temp) || 0);
-  const after = before + amount;
-  await targetActor.update({"system.attributes.hp.temp": after});
-  return {ok: true, amount, before, after, targetName: targetActor.name, message: `Added ${amount} temporary HP to ${targetActor.name} (${before} â†’ ${after}).`};
-}
-
-async function limitBreakAttackHpDamage(attacker, target, amount, eventId, options = {}) {
-  if (!getConfig(attacker).breakCharacter || !["npc","character"].includes(target?.type) || !getToughness(target).enabled || Number(amount) <= 1) return;
-  const key = `break-hp-limit:${eventId}:${target.uuid}`;
-  if (state.processedMessages.has(key)) return;
-  state.processedMessages.add(key);
-  window.setTimeout(() => state.processedMessages.delete(key), 120000);
-  const initialHp = [options.midi?.oldHP, options.midi?.oldHp, options.midi?.oldHPValue, target.system?.attributes?.hp?.value]
-    .map(Number).find(Number.isFinite);
-  await new Promise(resolve => window.setTimeout(resolve, 100));
-  const hp = target.system?.attributes?.hp;
-  if (!hp || !Number.isFinite(initialHp)) return;
-  await target.update({"system.attributes.hp.value": Math.max(0, Math.min(Number(hp.max) || Infinity, initialHp - 1))});
-}
-
-const DEFAULT_DAMAGE_DISPLAY = Object.freeze({
-  damageFontFile: "",
-  breakFontFile: "",
-  superBreakFontFile: "",
-  damageFontSize: 56,
-  breakFontSize: 48,
-  superBreakFontSize: 48,
-  damageBold: true,
-  breakBold: true,
-  superBreakBold: true,
-  damageGradient: true,
-  breakGradient: true,
-  superBreakGradient: true,
-  damageInheritElement: true,
-  breakInheritElement: true,
-  superBreakInheritElement: true,
-  damageTopColor: "#ffd84d",
-  breakTopColor: "#ffd84d",
-  superBreakTopColor: "#ffd84d",
-  damageBottomColor: "#ffffff",
-  breakBottomColor: "#ffffff",
-  superBreakBottomColor: "#ffffff"
-});
-
-function getBreakFonts() {
-  const stored = game.settings.get(MODULE_ID, "breakFonts") ?? {};
-  const config = foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_DAMAGE_DISPLAY), stored, {inplace:false});
-  for (const type of ["damage", "break", "superBreak"]) {
-    config[`${type}FontSize`] = clamp(Number(config[`${type}FontSize`]) || DEFAULT_DAMAGE_DISPLAY[`${type}FontSize`], 16, 140);
-    config[`${type}Bold`] = Boolean(config[`${type}Bold`]);
-    config[`${type}Gradient`] = Boolean(config[`${type}Gradient`]);
-    config[`${type}InheritElement`] = config[`${type}InheritElement`] !== false;
-    if (!/^#[0-9a-f]{6}$/i.test(config[`${type}TopColor`] ?? "")) config[`${type}TopColor`] = "#ffd84d";
-    if (!/^#[0-9a-f]{6}$/i.test(config[`${type}BottomColor`] ?? "")) config[`${type}BottomColor`] = "#ffffff";
-  }
-  return config;
-}
-
-function damageDisplayStyle(type) {
-  const config = getBreakFonts();
-  const prefix = type === "superBreak" ? "superBreak" : type === "break" ? "break" : "damage";
-  return {
-    fontFile: config[`${prefix}FontFile`] || "",
-    fontSize: config[`${prefix}FontSize`],
-    bold: config[`${prefix}Bold`],
-    gradient: config[`${prefix}Gradient`],
-    inheritElement: config[`${prefix}InheritElement`],
-    topColor: config[`${prefix}TopColor`],
-    bottomColor: config[`${prefix}BottomColor`]
-  };
-}
-
-class BreakAppearanceConfig extends FormApplication {
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id:"tsru-break-appearance", title:"Damage Display Appearance",
-      template:`modules/${MODULE_ID}/templates/break-appearance.hbs`,
-      width:720, height:"auto", resizable:true, closeOnSubmit:true
-    });
-  }
-  getData() {
-    const elements = getElements().map((element, index) => ({...element, previewSelected:index===0}));
-    return {config:getBreakFonts(), elements, previewColor:elements[0]?.readyColor || "#ed4855"};
-  }
-  activateListeners(html) {
-    super.activateListeners(html);
-    html.find(".file-picker").on("click", event => {
-      const input=html.find(`[name="${event.currentTarget.dataset.target}"]`);
-      new FilePicker({type:"any",current:input.val(),callback:path=>input.val(path).trigger("input").trigger("change")}).browse();
-    });
-    let previewSequence = 0;
-    const refreshPreview = async () => {
-      const sequence = ++previewSequence;
-      const type = String(html.find('[name="previewType"]').val() || "damage");
-      const prefix = type === "superBreak" ? "superBreak" : type === "break" ? "break" : "damage";
-      const color = html.find('[name="previewElement"] option:selected').data("readyColor") || "#ed4855";
-      const preview = html.find(".tsru-damage-style-preview");
-      const popup = preview.find(".tsru-break-popup");
-      const size = clamp(Number(html.find(`[name="${prefix}FontSize"]`).val()), 16, 140);
-      const bold = html.find(`[name="${prefix}Bold"]`).prop("checked");
-      const gradient = html.find(`[name="${prefix}Gradient"]`).prop("checked");
-      let fontFamily = "Arial, sans-serif";
-      try { fontFamily = await loadSplashFont(html.find(`[name="${prefix}FontFile"]`).val()); }
-      catch (_error) {}
-      if (sequence !== previewSequence) return;
-      popup.toggleClass("is-plain-damage", type === "damage" || type === "critical");
-      const inheritElement = html.find(`[name="${prefix}InheritElement"]`).prop("checked");
-      const topColor = inheritElement ? color : html.find(`[name="${prefix}TopColor"]`).val();
-      const bottomColor = html.find(`[name="${prefix}BottomColor"]`).val() || "#ffffff";
-      const label = type === "critical" ? "CRIT Hit" : type === "superBreak" ? "Super Break" : type === "break" ? "Break" : "";
-      renderDamageSvg(popup[0], {
-        label,
-        damage: "81433",
-        fontFamily,
-        fontSize: size,
-        bold,
-        gradient,
-        topColor,
-        bottomColor
-      });
-    };
-    html.on("input change", "input, select", refreshPreview);
-    refreshPreview();
-  }
-  async _updateObject(_event, formData) {
-    if (!game.user.isGM) return;
-    const config = {};
-    for (const type of ["damage", "break", "superBreak"]) {
-      config[`${type}FontFile`] = String(formData[`${type}FontFile`] ?? "").trim();
-      config[`${type}FontSize`] = clamp(Number(formData[`${type}FontSize`]), 16, 140);
-      config[`${type}Bold`] = Boolean(formData[`${type}Bold`]);
-      config[`${type}Gradient`] = Boolean(formData[`${type}Gradient`]);
-      config[`${type}InheritElement`] = Boolean(formData[`${type}InheritElement`]);
-      config[`${type}TopColor`] = /^#[0-9a-f]{6}$/i.test(formData[`${type}TopColor`] ?? "") ? formData[`${type}TopColor`] : "#ffd84d";
-      config[`${type}BottomColor`] = /^#[0-9a-f]{6}$/i.test(formData[`${type}BottomColor`] ?? "") ? formData[`${type}BottomColor`] : "#ffffff";
-    }
-    await game.settings.set(MODULE_ID, "breakFonts", config);
-    ui.notifications.info("Universal damage display appearance saved.");
-  }
-}
-
-function breakDisplayTarget(target) {
-  const {actor,tokenDocument}=toughnessTargetParts(target);
-  const preferred=[...(game.user?.targets??[]),...(canvas?.tokens?.controlled??[])].find(token=>token.actor?.id===actor?.id);
-  return canvas?.tokens?.get(tokenDocument?.id) ?? preferred ?? (canvas?.tokens?.placeables ?? []).find(token => token.actor?.id === actor?.id) ?? null;
-}
-
-function safePopupColor(value, fallback = "#ffffff") {
-  return /^#[0-9a-f]{6}$/i.test(String(value ?? "")) ? String(value) : fallback;
-}
-
-function renderDamageSvg(container, {label = "", damage = "0", fontFamily = "Arial, sans-serif", fontSize = 48, bold = true, gradient = true, topColor = "#ffffff", bottomColor = "#ffffff"} = {}) {
-  if (!container) return;
-  container.replaceChildren();
-  const ns = "http://www.w3.org/2000/svg";
-  const size = clamp(Number(fontSize), 16, 140);
-  const labelSize = size * .52;
-  const width = Math.max(150, String(damage).length * size * .72, String(label).length * labelSize * .68);
-  const height = label ? size * 1.65 : size * 1.2;
-  const svg = document.createElementNS(ns, "svg");
-  svg.classList.add("tsru-damage-svg");
-  svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-  svg.setAttribute("width", String(width));
-  svg.setAttribute("height", String(height));
-  svg.setAttribute("overflow", "visible");
-  const id = `tsru-gradient-${foundry.utils.randomID()}`;
-  const defs = document.createElementNS(ns, "defs");
-  const linear = document.createElementNS(ns, "linearGradient");
-  linear.id = id;
-  linear.setAttribute("x1", "0"); linear.setAttribute("y1", "0");
-  linear.setAttribute("x2", "0"); linear.setAttribute("y2", "100%");
-  for (const [offset, color] of [["0%", safePopupColor(topColor)], ["38%", safePopupColor(topColor)], ["100%", safePopupColor(bottomColor)]]) {
-    const stop = document.createElementNS(ns, "stop");
-    stop.setAttribute("offset", offset);
-    stop.setAttribute("stop-color", color);
-    linear.appendChild(stop);
-  }
-  defs.appendChild(linear); svg.appendChild(defs);
-  const addText = (text, y, textSize) => {
-    const node = document.createElementNS(ns, "text");
-    node.textContent = text;
-    node.setAttribute("x", "50%");
-    node.setAttribute("y", String(y));
-    node.setAttribute("text-anchor", "middle");
-    node.setAttribute("dominant-baseline", "middle");
-    node.setAttribute("fill", gradient ? `url(#${id})` : "#ffffff");
-    node.setAttribute("stroke", "#18181e");
-    node.setAttribute("stroke-opacity", "0.95");
-    node.setAttribute("stroke-width", "1.5");
-    node.setAttribute("paint-order", "stroke fill");
-    node.style.fontFamily = fontFamily;
-    node.style.fontSize = `${textSize}px`;
-    node.style.fontWeight = bold ? "900" : "400";
-    node.style.filter = "drop-shadow(0 1px 1px rgba(0,0,0,.65))";
-    svg.appendChild(node);
-  };
-  if (label) addText(label, labelSize * .72, labelSize);
-  addText(String(damage), label ? labelSize + size * .62 : height * .52, size);
-  container.appendChild(svg);
-}
-
-function installDamageScrollingTextOverride() {
-  const layer = canvas?.interface;
-  if (!layer?.createScrollingText || layer.__tsruDamageTextOriginal) return;
-  try {
-    const original = layer.createScrollingText;
-    Object.defineProperty(layer, "__tsruDamageTextOriginal", {value:original, configurable:true});
-    layer.createScrollingText = function(origin, content, options = {}) {
-      if(state.bossTransitionVisuals>0 || state.bossTransitionVisualsUntil>Date.now() || options?.tsruBossTransition)return Promise.resolve();
-      const numeric = /^[+\-âˆ’]?\s*\d+(?:\.\d+)?$/.test(String(content ?? "").trim());
-      if (!numeric || state.customDamageScrollingText) return original.call(this, origin, content, options);
-      const recent = state.lastDamageDisplay?.expires > Date.now() ? state.lastDamageDisplay : null;
-      const style = damageDisplayStyle(recent?.type || "damage");
-      const topColor = (recent?.forceElementColor || style.inheritElement) ? (recent?.color || "#ffffff") : style.topColor;
-      const statusLabel = recent?.label || (recent?.critical ? "CRIT Hit" : "");
-      const shown = statusLabel ? `${statusLabel}\n${content}` : content;
-      return Promise.resolve(loadSplashFont(style.fontFile)).catch(() => "Arial, sans-serif").then(fontFamily => original.call(this, origin, shown, {
-        ...options,
-        fontFamily,
-        fontSize: style.fontSize,
-        fontWeight: style.bold ? "900" : "400",
-        fill: style.gradient ? [safePopupColor(topColor), safePopupColor(style.bottomColor)] : "#ffffff",
-        fillGradientType: 0,
-        fillGradientStops: [0, 1],
-        stroke: "#202028",
-        strokeThickness: 2,
-        duration: 1200,
-        distance: 42
-      }));
-    };
-  } catch(error) {
-    console.warn(`${MODULE_ID} | Could not restyle Foundry damage scrolling text`, error);
-  }
-}
-
-async function broadcastDamageResult(target, damage, {plainDamage=false, critical=false, superBreak=false, forceElementColor=false, color="", fontFile=""}={}) {
-  const {actor}=toughnessTargetParts(target);
-  const token=breakDisplayTarget(target);
-  const display={type:plainDamage?"damageResult":"breakResult",actorId:actor?.id??"",tokenId:token?.id??"",sceneId:canvas?.scene?.id??"",damage,plainDamage,critical,superBreak,forceElementColor,color,fontFile};
-  await showBreakResult(display);
-  game.socket.emit(SOCKET,display);
-}
-
-function damageResultColor(attacker, {_hpDamage = false} = {}) {
-  const config = getConfig(attacker);
-  const assigned = String(config.elementId ?? "").trim();
-  const element = getElements().find(entry =>
-    String(entry.id ?? "") === assigned ||
-    (assigned && String(entry.name ?? "").toLowerCase() === assigned.toLowerCase())
-  );
-  const candidates = [element?.readyColor, element?.color, element?.chargeColor, config.readyColor, config.chargeColor];
-  return candidates.find(color => /^#[0-9a-f]{6}$/i.test(String(color ?? ""))) || "#ffffff";
-}
-
-function damageRollWasCritical(source) {
-  const confirmed = value => value === true;
-  const criticalRoll = roll => confirmed(roll?.isCritical) || confirmed(roll?.options?.critical);
-  return confirmed(source?.isCritical)
-    || confirmed(source?.critical)
-    || confirmed(source?.flags?.dnd5e?.roll?.critical)
-    || confirmed(source?.flags?.["midi-qol"]?.isCritical)
-    || criticalRoll(source?.attackRoll)
-    || Boolean(source?.attackRolls?.some?.(criticalRoll))
-    || Boolean(source?.rolls?.some?.(criticalRoll));
-}
-
-async function broadcastDamageOnce(attacker, target, amount, eventId, {critical = false} = {}) {
-  const value = Math.max(0, Math.floor(Number(amount) || 0));
-  const targetActor = target?.actor ?? target?.document?.actor ?? target;
-  if (!attacker || attacker.type !== "character" || !targetActor || value <= 0) return false;
-  const key = `damage-popup:${eventId || "unknown"}:${targetActor.uuid || targetActor.id}:${value}`;
-  if (state.processedMessages.has(key)) return false;
-  state.processedMessages.add(key);
-  window.setTimeout(() => state.processedMessages.delete(key), 120000);
-  const forceElementColor = Boolean(getConfig(attacker).breakCharacter && value === 1);
-  state.lastDamageDisplay = {color:damageResultColor(attacker, {hpDamage:true}), critical:Boolean(critical), forceElementColor, expires:Date.now() + 15000};
-  await broadcastDamageResult(target, value, {
-    plainDamage: true,
-    critical,
-    forceElementColor,
-    color: damageResultColor(attacker, {hpDamage:true}),
-    fontFile: getBreakFonts().damageFontFile
-  });
-  return true;
-}
-
-async function showBreakResult(payload) {
-  if (payload.sceneId && canvas?.scene?.id !== payload.sceneId) return;
-  const token = canvas?.tokens?.get(payload.tokenId) ?? breakDisplayTarget(game.actors.get(payload.actorId));
-  const damage = String(Math.max(0, Math.floor(Number(payload.damage) || 0)));
-  const type = payload.plainDamage ? "damage" : payload.superBreak ? "superBreak" : "break";
-  const label = payload.plainDamage ? (payload.critical ? "CRIT Hit" : "") : payload.superBreak ? "Super Break" : "Break";
-  const style = damageDisplayStyle(type);
-  let fontFamily = "Arial, sans-serif";
-  try { fontFamily = await loadSplashFont(style.fontFile || payload.fontFile); }
-  catch(error) { console.warn(`${MODULE_ID} | Could not load damage popup font`, error); }
-  installDamageScrollingTextOverride();
-
-  const view = canvas?.app?.view ?? document.querySelector("#board canvas");
-  const rect = view?.getBoundingClientRect?.();
-  let left = window.innerWidth / 2;
-  let top = window.innerHeight / 2;
-  if (token && rect) {
-    const stageScale = Math.abs(Number(canvas?.stage?.scale?.y)) || 1;
-    const worldPoint = new PIXI.Point(token.center.x, token.center.y - token.h / 2 - 12 / stageScale);
-    const screenPoint = canvas?.stage?.worldTransform?.apply?.(worldPoint) ?? token.getGlobalPosition?.(new PIXI.Point()) ?? worldPoint;
-    const screenWidth = Number(canvas?.app?.renderer?.screen?.width) || rect.width;
-    const screenHeight = Number(canvas?.app?.renderer?.screen?.height) || rect.height;
-    left = rect.left + screenPoint.x * (rect.width / screenWidth);
-    top = rect.top + screenPoint.y * (rect.height / screenHeight);
-  }
-
-  const configuredTop = (payload.forceElementColor || style.inheritElement) ? payload.color : style.topColor;
-  const topColor = safePopupColor(configuredTop, "#ffffff");
-  const bottomColor = safePopupColor(style.bottomColor, "#ffffff");
-  const popup = document.createElement("div");
-  popup.className = `tsru-break-popup${payload.plainDamage ? " is-plain-damage" : ""}`;
-  popup.style.left = `${left}px`;
-  popup.style.top = `${top}px`;
-  renderDamageSvg(popup, {
-    label,
-    damage,
-    fontFamily,
-    fontSize: style.fontSize,
-    bold: style.bold,
-    gradient: style.gradient,
-    topColor,
-    bottomColor
-  });
-  document.body.append(popup);
-  window.setTimeout(() => popup.remove(), 1250);
-}
-
-async function applyWeaknessBreakDamage(attacker, target, {superBreak = false} = {}) {
-  const config = getConfig(attacker);
-  const targetActor = toughnessTargetParts(target).actor;
-  if (!targetActor || !config.breakCharacter || (superBreak && !config.superBreakCharacter)) return 0;
-  const count = clamp(Math.floor(config.breakDamageDice), 1, 20);
-  const faces = [4, 6, 8, 10, 12, 20].includes(Number(config.breakDamageDie)) ? Number(config.breakDamageDie) : 6;
-  const modifier = Math.max(1, breakEffectModifier(config));
-  const roll = await new Roll(`${count}d${faces}`).evaluate();
-  const damage = Math.max(0, Math.floor(superBreak ? (Number(roll.total) || 0) + breakEffectModifier(config) + 1 : (Number(roll.total) || 0) * modifier));
-  const element = getElements().find(entry => entry.id === config.elementId);
-  await roll.toMessage({
-    speaker: ChatMessage.getSpeaker({actor: attacker}),
-    flavor: `${attacker.name} â€” ${superBreak ? "Super Break" : "Break"} (${count}d${faces} ${superBreak ? `+ ${breakEffectModifier(config) + 1}` : `Ã— ${modifier}`}): ${damage} HP damage`,
-    flags: {
-      [MODULE_ID]: {
-        breakDamageRoll: true,
-        superBreakDamageRoll: Boolean(superBreak),
-        damageKind: superBreak ? "superBreak" : "break",
-        hpDamageAmount: damage,
-        elementColor: element?.readyColor || "#ffffff"
-      }
-    }
-  });
-  ui.notifications.info(`${superBreak ? "Super Break" : "Break"} rolled ${damage} HP damage. Use Apply Damage on the chat card.`);
-  return damage;
-}
-
-function midiDamageRolls(workflow) {
-  const rolls = [];
-  for (const candidate of [workflow?.damageRolls, workflow?.damageRoll, workflow?.damageRollArray, workflow?.otherDamageRolls, workflow?.otherDamageRoll]) {
-    if (Array.isArray(candidate)) rolls.push(...candidate);
-    else if (candidate && typeof candidate === "object") rolls.push(candidate);
-  }
-  return [...new Set(rolls)];
-}
-
-function isDamageMessage(message) {
-  const dnd = message.flags?.dnd5e ?? {};
-  const type = String(dnd.roll?.type ?? dnd.type ?? message.rolls?.[0]?.options?.type ?? "").toLowerCase();
-  return type.includes("damage") || message.rolls?.some(roll => String(roll.options?.type ?? roll.options?.rollType ?? "").toLowerCase().includes("damage"));
-}
-
-function damageRollsFromAppliedMessage(message) {
-  const rolls = Array.isArray(message?.rolls) ? message.rolls : [];
-  const explicitDamage = rolls.filter(roll => {
-    const className = String(roll?.constructor?.name ?? "").toLowerCase();
-    const rollType = String(roll?.options?.type ?? roll?.options?.rollType ?? "").toLowerCase();
-    return className.includes("damageroll") || rollType.includes("damage");
-  });
-  if (explicitDamage.length) return explicitDamage;
-  return rolls.filter(roll => !String(roll?.constructor?.name ?? "").toLowerCase().includes("d20roll"));
-}
-
-function processDnd5eAppliedDamage(...args) {
-  const target=args.find(value=>value?.documentName==="Actor" || value?.documentName==="Token" || value?.actor?.documentName==="Actor");
-  const options=[...args].reverse().find(value=>value && typeof value==="object" && value!==target) ?? {};
-  const numeric=args.find(value=>typeof value==="number" && Number.isFinite(value));
-  const amount=numeric ?? Number(options.amount ?? options.damage ?? options.appliedDamage ?? options.total ?? 0);
-  if (!target || !Number.isFinite(Number(amount)) || Number(amount)<=0) return;
-  return processAppliedDamage(target,Number(amount),options);
-}
-
-async function processAppliedDamage(target, amount, options = {}) {
-  if (!isAuthority() || !target) return;
-  const origin = options.origin;
-  const sourceUuid = options.midi?.sourceActorUuid ?? options.sourceActorUuid ?? options.workflow?.actor?.uuid;
-  let attacker = options.sourceActor ?? options.workflow?.actor ?? (sourceUuid ? await fromUuid(sourceUuid).catch(() => null) : null);
-  attacker = attacker?.actor ?? attacker;
-  if (!attacker && options.item?.actor) attacker=options.item.actor;
-  if (!attacker && origin?.speaker?.actor) attacker = game.actors.get(origin.speaker.actor);
-  if (!attacker && origin?.speaker?.token) attacker = canvas?.tokens?.get(origin.speaker.token)?.actor;
-  if (!attacker || attacker.documentName !== "Actor") return;
-
-  const targetActor = target?.actor ?? target?.document?.actor ?? target;
-  const damageEventId = origin?.id ?? options.midi?.workflowId ?? "unknown";
-
-  if (Number(amount) > 0) {
-    const shownDamage=getConfig(attacker).breakCharacter ? Math.min(1,Math.floor(Number(amount))) : Math.floor(Number(amount));
-    const critical = damageRollWasCritical(options.midi ?? options.workflow ?? origin);
-    await broadcastDamageOnce(attacker, target, shownDamage, damageEventId, {critical});
-    const detail = {sourceActor: attacker, targetActor, amount: Number(amount), origin, midi: options.midi ?? null};
-    await dispatchTalentEvent("damageDealt", detail, `${damageEventId}:${targetActor.uuid}`);
-    await dispatchTalentEvent("damageTaken", detail, `${damageEventId}:${targetActor.uuid}`);
-  }
-
-  await limitBreakAttackHpDamage(attacker, targetActor, amount, damageEventId, options);
-
-  if (targetActor?.type === "character" && Number(amount) > 0) {
-    const energyKey = `applied-energy:${damageEventId}:${targetActor.uuid}`;
-    if (!state.processedMessages.has(energyKey)) {
-      state.processedMessages.add(energyKey);
-      window.setTimeout(() => state.processedMessages.delete(energyKey), 120000);
-      const config = getConfig(targetActor);
-      if (config.attackedMode === "targeted" || config.attackedMode === "hit") {
-        await addEnergy(targetActor, energyGain(config, "attacked"), "hit");
-      }
-    }
-  }
-
-  const damageRolls = damageRollsFromAppliedMessage(origin);
-  const toughnessDamage = getConfig(attacker).breakCharacter ? fullDamageTotal(damageRolls) : rawDiceTotal(damageRolls);
-  if (toughnessDamage <= 0) return;
-  const eventKey = `applied-damage:${damageEventId}:${targetActor.uuid}:${toughnessDamage}`;
-  await applyToughnessDamage(attacker, [target], toughnessDamage, eventKey);
-}
-
-async function delayBrokenCombatant(target) {
-  const combat = game.combat;
-  const actor = toughnessTargetParts(target).actor;
-  if (!combat?.started || !actor) return;
-  const tokenId = toughnessTargetParts(target).tokenDocument?.id;
-  const combatant = combat.combatants.find(entry => entry.actor?.id === actor.id && (!tokenId || entry.tokenId === tokenId) && !entry.getFlag(MODULE_ID, "temporaryUltimate") && !isElationActionCombatant(entry));
-  if (!combatant || combatant.getFlag(MODULE_ID, "brokenInitiative")) return;
-  const index = combat.turns.findIndex(entry => entry.id === combatant.id);
-  const canDelay = index > combat.turn && combatant.initiative !== null;
-  const original = combatant.initiative;
-  await combatant.setFlag(MODULE_ID, "brokenInitiative", {initiative:original, round:combat.round, delayed:canDelay});
-  if (!canDelay) return;
-  const activeId = combat.combatant?.id;
-  const lowest = Math.min(...combat.combatants.map(entry => Number(entry.initiative)).filter(Number.isFinite));
-  state.suppressCombatHook = true;
-  try {
-    await combatant.update({initiative:lowest - 1});
-    const activeIndex = combat.turns.findIndex(entry => entry.id === activeId);
-    if (activeIndex >= 0 && activeIndex !== combat.turn) await combat.update({turn:activeIndex});
-  } finally { state.suppressCombatHook = false; }
-}
-
-async function restoreBrokenCombatant(combatant, {preserveActive = true} = {}) {
-  const stored = combatant?.getFlag(MODULE_ID, "brokenInitiative");
-  if (!combatant || !isAuthority()) return;
-  const actor = combatant.actor;
-  if (!stored && (!getToughness(actor).enabled || getToughness(actor).current !== 0)) return;
-  const toughness = getToughness(actor);
-  if (toughness.enabled && toughness.current === 0) {
-    await actor.update({[`flags.${MODULE_ID}.toughness.current`]:toughness.max});
-    ui.notifications.info(`${actor.name}'s Toughness recovered to full.`);
-  }
-  const combat = combatant.parent, activeId = combat?.combatant?.id;
-  state.suppressCombatHook = true;
-  try {
-    if (stored?.delayed && stored.initiative !== null) await combatant.update({initiative:stored.initiative});
-    if (stored) await combatant.unsetFlag(MODULE_ID, "brokenInitiative");
-    const activeIndex = combat?.turns.findIndex(entry => entry.id === activeId) ?? -1;
-    if (preserveActive && activeIndex >= 0 && activeIndex !== combat.turn) await combat.update({turn:activeIndex});
-  } finally { state.suppressCombatHook = false; }
-  refreshToughnessBars();
-}
-
-async function skipBrokenCombatantTurn(combat, combatant) {
-  const stored = combatant?.getFlag(MODULE_ID, "brokenInitiative");
-  if (!isAuthority() || !combat?.started || !stored || !getToughness(combatant.actor).enabled || getToughness(combatant.actor).current !== 0) return false;
-  const beforeTurns=[...combat.turns];
-  const currentIndex=beforeTurns.findIndex(entry=>entry.id===combatant.id);
-  const nextId=beforeTurns[currentIndex+1]?.id ?? null;
-  const round=combat.round;
-  await restoreBrokenCombatant(combatant,{preserveActive:false});
-  state.suppressCombatHook=true;
-  try {
-    const nextIndex=nextId ? combat.turns.findIndex(entry=>entry.id===nextId) : -1;
-    if (nextIndex >= 0) await combat.update({round,turn:nextIndex});
-    else await combat.update({round:round+1,turn:0});
-  } finally { state.suppressCombatHook=false; }
-  state.lastCombatTurns.set(combat.id,combatTurnSnapshot(combat));
-  ui.notifications.info(`${combatant.name}'s broken turn was skipped.`);
-  return true;
-}
-
-async function applyToughnessDamage(attacker, targets, amount, eventKey = "") {
-  if (!isAuthority() || !attacker || amount <= 0) return 0;
-  const targetList = [...targets].filter(Boolean);
-  const targetSignature = targetList.map(target => (target?.actor ?? target?.document?.actor ?? target)?.uuid ?? target?.id ?? "target").sort().join(",");
-  const signature = `${attacker.uuid}:${targetSignature}:${amount}`;
-  const now = Date.now();
-  const isManualApplication = String(eventKey).startsWith("manual-chat-damage:");
-  if (!isManualApplication && now - (state.recentToughness.get(signature) ?? 0) < 1500) return 0;
-  const processedKey = eventKey ? `toughness:${eventKey}` : "";
-  if (!isManualApplication && processedKey && state.processedMessages.has(processedKey)) return 0;
-  const elementId = getConfig(attacker).elementId;
-  const breakCharacter = getConfig(attacker).breakCharacter;
-  const freeForAll = game.actors.some(entry => entry.type === "character" && foundry.utils.getProperty(entry.getFlag(MODULE_ID, "scriptState") ?? {}, "lark.freeForAll.active"));
-  if (!elementId && !freeForAll) return 0;
-  let applied = false;
-  for (const target of targetList) {
-    const actor = target?.actor ?? target?.document?.actor ?? target;
-    if (!actor || !["npc","character"].includes(actor.type)) continue;
-    if (toughnessWeaknessMode(target) === "none") continue;
-    const toughness = getToughness(actor);
-    const matchesWeakness = Boolean(elementId && effectiveToughnessWeaknesses(target).includes(elementId));
-    if (!toughness.enabled || (!breakCharacter && !freeForAll && !matchesWeakness)) continue;
-    if (toughness.current <= 0) {
-      if (breakCharacter && getConfig(attacker).superBreakCharacter) {
-        await applyWeaknessBreakDamage(attacker, target, {superBreak:true});
-        applied = true;
-      }
-      continue;
-    }
-    const next = clamp(toughness.current - amount, 0, toughness.max);
-    const discoveredWeaknesses = matchesWeakness ? [...new Set([...toughness.discoveredWeaknesses, elementId])] : toughness.discoveredWeaknesses;
-    await actor.update({
-      [`flags.${MODULE_ID}.toughness.current`]: next,
-      [`flags.${MODULE_ID}.toughness.discoveredWeaknesses`]: discoveredWeaknesses
-    });
-    applied = true;
-    if (next === 0 && toughness.current > 0) {
-      ui.notifications.info(`${actor.name}'s Toughness was broken!`);
-      if (breakCharacter) await applyWeaknessBreakDamage(attacker, target);
-      await delayBrokenCombatant(target);
-    }
-  }
-  if (!isManualApplication && processedKey && applied) {
-    state.processedMessages.add(processedKey);
-    window.setTimeout(() => state.processedMessages.delete(processedKey), 120000);
-  }
-  if (applied) {
-    if (!isManualApplication) {
-      state.recentToughness.set(signature, now);
-      window.setTimeout(() => state.recentToughness.delete(signature), 2000);
-    }
-  }
-  return applied ? amount : 0;
-}
-
-async function processDnd5eDamageRolls(rolls, data = {}) {
-  const subject = data.subject;
-  const attacker = subject?.actor ?? subject?.item?.actor ?? subject?.parent?.actor ?? subject?.parent;
-  if (!attacker || attacker.documentName !== "Actor") return;
-  const rollList = Array.isArray(rolls) ? rolls : [rolls];
-  state.lastDamageDisplay = {
-    color: damageResultColor(attacker, {hpDamage:true}),
-    critical: damageRollWasCritical({rolls:rollList}),
-    forceElementColor: Boolean(getConfig(attacker).breakCharacter),
-    attackerId: attacker.id,
-    expires: Date.now() + 15000
-  };
-  const amount = getConfig(attacker).breakCharacter ? fullDamageTotal(rollList) : rawDiceTotal(rollList);
-  if (amount <= 0) return;
-  const targets = [...(game.user?.targets ?? [])];
-  if (!targets.length) return;
-  const rollKey = (Array.isArray(rolls) ? rolls : [rolls]).map(roll => roll?.id ?? roll?._id ?? roll?.formula ?? "roll").join(":");
-  const eventKey = `dnd5e-damage:${attacker.uuid}:${rollKey}`;
-  if (isAuthority()) return applyToughnessDamage(attacker, targets, amount, eventKey);
-  if (!attacker.isOwner) return;
-  const targetUuids = targets.map(target => target.document?.uuid ?? target.actor?.uuid).filter(Boolean);
-  if (targetUuids.length) game.socket.emit(SOCKET, {type: "applyToughness", sourceUserId: game.user.id, attackerUuid: attacker.uuid, targetUuids, amount, eventKey});
-}
-
-async function processCoreAttackMessage(message) {
-  const midiActive = game.modules.get("midi-qol")?.active;
-  const attackMessage = isAttackMessage(message);
-  const damageMessage = isDamageMessage(message);
-  const macroDamageMessage = Boolean(message.rolls?.length) && message.user?.id === game.user.id && /attack|damage|weapon|spell/i.test(String(message.flavor ?? message.content ?? ""));
-  const taggedBreakDamage = Boolean(message.getFlag(MODULE_ID, "breakDamageRoll"));
-  if (!attackMessage && !damageMessage && !macroDamageMessage) return;
-  if (state.processedMessages.has(message.id)) return;
-  state.processedMessages.add(message.id);
-  window.setTimeout(() => state.processedMessages.delete(message.id), 60000);
-  const midiWorkflowId = message.flags?.["midi-qol"]?.workflowId ?? message.flags?.["midi-qol"]?.workflowUuid ?? message.flags?.["midi-qol"]?.itemUuid;
-  const midiWorkflow = midiActive && midiWorkflowId ? globalThis.MidiQOL?.Workflow?.getWorkflow?.(midiWorkflowId) : null;
-  const attacker = midiWorkflow?.actor ?? game.actors.get(message.speaker?.actor) ?? canvas?.tokens?.get(message.speaker?.token)?.actor;
-  if (attacker?.type === "character" && (damageMessage || macroDamageMessage)) {
-    state.lastDamageDisplay = {
-      color: damageResultColor(attacker, {hpDamage:true}),
-      critical: damageRollWasCritical(message) || damageRollWasCritical(midiWorkflow),
-      forceElementColor: Boolean(getConfig(attacker).breakCharacter),
-      attackerId: attacker.id,
-      expires: Date.now() + 15000
-    };
-  }
-  let targetIds = targetActorIdsFromMessage(message);
-  if (!targetIds.size && midiWorkflow) {
-    const workflowTargets = midiWorkflow.hitTargets?.size ? midiWorkflow.hitTargets : midiWorkflow.targets;
-    for (const target of workflowTargets ?? []) {
-      const actor = target?.actor ?? target?.document?.actor;
-      if (actor) targetIds.add(actor.id);
-    }
-  }
-  if (attackMessage && attacker) state.lastTargetsByActor.set(attacker.id, [...targetIds]);
-  if (!targetIds.size && attacker) targetIds = new Set(state.lastTargetsByActor.get(attacker.id) ?? []);
-  if (!isAuthority()) {
-    if (!taggedBreakDamage && attacker?.isOwner && (damageMessage || macroDamageMessage)) {
-      const ownedTargets = [...(game.user.targets ?? [])];
-      const targetUuids = ownedTargets.map(target => target.document?.uuid ?? target.actor?.uuid).filter(Boolean);
-      const amount = getConfig(attacker).breakCharacter ? fullDamageTotal(message.rolls) : rawDiceTotal(message.rolls);
-      if (amount > 0 && targetUuids.length) game.socket.emit(SOCKET, {type: "applyToughness", sourceUserId: game.user.id, attackerUuid: attacker.uuid, targetUuids, amount, eventKey: midiWorkflowId || `chat:${message.id}`});
-    }
-    return;
-  }
-  if (attackMessage && attacker) await addEnergy(attacker, energyGain(getConfig(attacker), "attack"), "attack");
-  if ((damageMessage || macroDamageMessage) && attacker) {
-    if (taggedBreakDamage) return;
-    if (!midiActive) await awardPunchlineForAttack(attacker, `chat:${message.id}`);
-    const toughnessDamage = getConfig(attacker).breakCharacter ? fullDamageTotal(message.rolls) : rawDiceTotal(message.rolls);
-    await applyToughnessDamage(attacker, [...targetIds].map(id => game.actors.get(id)), toughnessDamage, midiWorkflowId || message.id);
-  }
-  if (midiActive) return;
-  if (!attackMessage) return;
-  for (const actorId of targetIds) {
-    const target = game.actors.get(actorId);
-    if (!target) continue;
-    const config = getConfig(target);
-    if (config.attackedMode === "targeted" || config.attackedMode === "hit") await addEnergy(target, energyGain(config, "attacked"), "attacked");
-  }
-}
-
-async function processMidiWorkflow(workflow) {
-  const key = workflow?.uuid ?? workflow?.id ?? workflow?.itemCardId ?? foundry.utils.randomID();
-  const attacker = workflow?.actor;
-  const targets = workflow?.targets ?? new Set();
-  const hitTargets = workflow?.hitTargets ?? new Set();
-  const usedAttackRoll = Boolean(workflow?.attackRoll || workflow?.attackRolls?.length || workflow?.activity?.attack);
-  const toughnessTargets = usedAttackRoll ? hitTargets : (hitTargets.size ? hitTargets : targets);
-  const damageRolls = midiDamageRolls(workflow);
-  const diceDamage = getConfig(attacker).breakCharacter ? fullDamageTotal(damageRolls) : rawDiceTotal(damageRolls);
-  if (attacker?.type === "character" && diceDamage > 0) {
-    state.lastDamageDisplay = {
-      color: damageResultColor(attacker, {hpDamage:true}),
-      critical: damageRollWasCritical(workflow),
-      forceElementColor: Boolean(getConfig(attacker).breakCharacter),
-      attackerId: attacker.id,
-      expires: Date.now() + 15000
-    };
-  }
-  if (!isAuthority()) {
-    if (attacker && diceDamage > 0 && toughnessTargets.size !== 0) {
-      const targetUuids = [...toughnessTargets].map(target => target?.document?.uuid ?? target?.actor?.uuid).filter(Boolean);
-      game.socket.emit(SOCKET, {type: "applyToughness", sourceUserId: game.user.id, attackerUuid: attacker.uuid, targetUuids, amount: diceDamage, eventKey: key});
-    }
-    return;
-  }
-  const attackKey = `midi-attack:${key}`;
-  if (attacker && !state.processedMessages.has(attackKey)) {
-    state.processedMessages.add(attackKey);
-    window.setTimeout(() => state.processedMessages.delete(attackKey), 120000);
-    await addEnergy(attacker, energyGain(getConfig(attacker), "attack"), "attack");
-    await dispatchTalentEvent("attackResolved", {
-      sourceActor: attacker,
-      item: workflow?.item ?? workflow?.activity?.item ?? null,
-      activity: workflow?.activity ?? null,
-      targets: [...targets],
-      hitTargets: [...hitTargets],
-      hit: hitTargets.size > 0,
-      workflow
-    }, `attack:${key}`);
-  }
-  if (attacker && (hitTargets.size > 0 || diceDamage > 0)) await awardPunchlineForAttack(attacker, `midi:${key}`);
-  const targetKey = [...toughnessTargets].map(target => target?.id ?? target?.document?.id ?? target?.actor?.id ?? "target").sort().join(",");
-  const damageKey = `midi-damage:${key}:${targetKey}:${diceDamage}`;
-  if (diceDamage > 0 && !state.processedMessages.has(damageKey)) {
-    state.processedMessages.add(damageKey);
-    window.setTimeout(() => state.processedMessages.delete(damageKey), 120000);
-    await applyToughnessDamage(attacker, toughnessTargets, diceDamage, key);
-  }
-  const displayDamage = getConfig(attacker).breakCharacter ? Math.min(1, fullDamageTotal(damageRolls)) : fullDamageTotal(damageRolls);
-  if (attacker?.type === "character" && displayDamage > 0) {
-    const critical = damageRollWasCritical(workflow);
-    for (const target of toughnessTargets) await broadcastDamageOnce(attacker, target, displayDamage, key, {critical});
-  }
-  for (const target of targets) {
-    const actor = target.actor ?? target.document?.actor;
-    if (!actor) continue;
-    const config = getConfig(actor);
-    const hit = [...hitTargets].some(entry => (entry.id ?? entry.document?.id) === (target.id ?? target.document?.id));
-    if (config.attackedMode === "targeted" || hit) await addEnergy(actor, energyGain(config, "attacked"), hit ? "hit" : "targeted");
-  }
-}
-
-class ElementManager extends FormApplication {
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id: "tsru-element-manager",
-      title: "Tely's Star Rail Ultimates â€” Elements",
-      template: `modules/${MODULE_ID}/templates/element-manager.hbs`,
-      width: 560,
-      height: "auto",
-      closeOnSubmit: true
-    });
-  }
-  getData() { return {elements: foundry.utils.deepClone(getElements())}; }
-  activateListeners(html) {
-    super.activateListeners(html);
-    activateImageDrops(html);
-    html.find(".tsru-add-element").on("click", async () => {
-      const elements = this._readElements(html);
-      elements.push({id: foundry.utils.randomID(), name: "New Element", icon: "icons/svg/aura.svg", chargeColor: "#596171", readyColor: "#20e6ff"});
-      await game.settings.set(MODULE_ID, "elementsDraft", elements);
-      this._elementsOverride = elements;
-      this.render(true);
-    });
-    html.find(".tsru-remove-element").on("click", event => {
-      const index = Number(event.currentTarget.closest(".tsru-element-row").dataset.index);
-      const elements = this._readElements(html);
-      elements.splice(index, 1);
-      this._elementsOverride = elements;
-      this.render(true);
-    });
-    html.find("input[data-color-index]").on("change", event => {
-      const index = event.currentTarget.dataset.colorIndex;
-      const kind = event.currentTarget.dataset.colorKind;
-      html.find(`input[name="elements.${index}.${kind}"]`).val(event.currentTarget.value);
-    });
-  }
-  async _render(...args) {
-    if (this._elementsOverride) {
-      const original = this.getData;
-      const override = this._elementsOverride;
-      this.getData = () => ({elements: override});
-      await super._render(...args);
-      this.getData = original;
-      return;
-    }
-    return super._render(...args);
-  }
-  _readElements(html) {
-    const data = new FormData(html[0]);
-    const expanded = foundry.utils.expandObject(Object.fromEntries(data.entries()));
-    return Object.values(expanded.elements ?? {}).map(entry => ({
-      id: entry.id || foundry.utils.randomID(),
-      name: entry.name?.trim() || "Element",
-      icon: entry.icon || "",
-      chargeColor: entry.chargeColor || "#596171",
-      readyColor: entry.readyColor || "#20e6ff"
-    }));
-  }
-  async _updateObject(_event, formData) {
-    const expanded = foundry.utils.expandObject(formData);
-    const elements = Object.values(expanded.elements ?? {}).map(entry => ({
-      id: entry.id,
-      name: entry.name,
-      icon: entry.icon,
-      chargeColor: entry.chargeColor || "#596171",
-      readyColor: entry.readyColor || "#20e6ff"
-    }));
-    await game.settings.set(MODULE_ID, "elements", elements);
-    this._elementsOverride = null;
-    refreshAllOrbs();
-    for (const app of Object.values(ui.windows ?? {})) if (app.actor?.type === "character") app.render(false);
-  }
-}
-
-class ElementMenu extends FormApplication {
-  render() { new ElementManager().render(true); return this; }
-}
-
-function craftingItemSnapshot(item,quantity=1) {
-  return {uuid:item.getFlag?.("core","sourceId")||item.uuid,name:item.name,img:item.img,type:item.type,quantity:Math.max(1,Number(quantity)||1),itemData:item.toObject()};
-}
-
-async function droppedCraftingItem(event) {
-  const raw=event.originalEvent?.dataTransfer?.getData("text/plain")||event.dataTransfer?.getData("text/plain")||"";
-  try{const data=JSON.parse(raw);const document=data.uuid?await fromUuid(data.uuid):null;return document?.documentName==="Item"?document:null;}catch(_error){return null;}
-}
-
-class RecipeManager extends FormApplication {
-  static get defaultOptions(){return foundry.utils.mergeObject(super.defaultOptions,{id:"tsru-recipe-manager",title:"Tely's Star Rail Ultimates â€” Recipes",template:`modules/${MODULE_ID}/templates/recipe-manager.hbs`,width:720,height:760,resizable:true,closeOnSubmit:false});}
-  getData(){return {recipes:foundry.utils.deepClone(this._recipesOverride??getCraftingRecipes()).map((recipe,recipeIndex)=>({...recipe,recipeIndex,ingredients:(recipe.ingredients??[]).map((ingredient,ingredientIndex)=>({...ingredient,recipeIndex,ingredientIndex}))}))};}
-  recipes(){return this._recipesOverride??foundry.utils.deepClone(getCraftingRecipes());}
-  async save(){await game.settings.set(MODULE_ID,"craftingRecipes",this.recipes());ui.notifications.info("Crafting recipes saved.");state.craftingApp?.render(false);}
-  activateListeners(html){
-    super.activateListeners(html);
-    html.find("[data-recipe-field]").on("change",event=>{const recipes=this.recipes(),recipe=recipes[Number(event.currentTarget.dataset.recipeIndex)];if(!recipe)return;const field=event.currentTarget.dataset.recipeField;recipe[field]=event.currentTarget.type==="number"?Math.max(1,Number(event.currentTarget.value)||1):event.currentTarget.value;this._recipesOverride=recipes;});
-    html.find("[data-ingredient-quantity]").on("change",event=>{const recipes=this.recipes(),recipe=recipes[Number(event.currentTarget.dataset.recipeIndex)],ingredient=recipe?.ingredients?.[Number(event.currentTarget.dataset.ingredientQuantity)];if(ingredient)ingredient.quantity=Math.max(1,Number(event.currentTarget.value)||1);this._recipesOverride=recipes;});
-    html.find("[data-output-quantity]").on("change",event=>{const recipes=this.recipes(),recipe=recipes[Number(event.currentTarget.dataset.recipeIndex)];if(recipe?.output)recipe.output.quantity=Math.max(1,Number(event.currentTarget.value)||1);this._recipesOverride=recipes;});
-    html.find("[data-action='add-recipe']").on("click",()=>{const recipes=this.recipes();recipes.push({id:foundry.utils.randomID(),name:"New Recipe",img:"icons/svg/forge.svg",description:"",ingredients:[],output:null});this._recipesOverride=recipes;this.render(true);});
-    html.find("[data-action='remove-recipe']").on("click",event=>{const recipes=this.recipes();recipes.splice(Number(event.currentTarget.dataset.recipeIndex),1);this._recipesOverride=recipes;this.render(true);});
-    html.find("[data-action='remove-ingredient']").on("click",event=>{const recipes=this.recipes(),recipe=recipes[Number(event.currentTarget.dataset.recipeIndex)];recipe?.ingredients?.splice(Number(event.currentTarget.dataset.ingredientIndex),1);this._recipesOverride=recipes;this.render(true);});
-    html.find("[data-crafting-drop]").on("dragover",event=>{event.preventDefault();event.currentTarget.classList.add("is-dragover");}).on("dragleave",event=>event.currentTarget.classList.remove("is-dragover")).on("drop",async event=>{event.preventDefault();event.currentTarget.classList.remove("is-dragover");const item=await droppedCraftingItem(event);if(!item)return ui.notifications.warn("Drop an Item document here.");const recipes=this.recipes(),recipe=recipes[Number(event.currentTarget.dataset.recipeIndex)];if(!recipe)return;if(event.currentTarget.dataset.craftingDrop==="ingredient")recipe.ingredients.push(craftingItemSnapshot(item));else recipe.output=craftingItemSnapshot(item);this._recipesOverride=recipes;this.render(true);});
-    html.find("[data-action='save-recipes']").on("click",()=>this.save());
-    html.find("[data-action='create-recipe-card']").on("click",async event=>{await this.save();const recipe=this.recipes()[Number(event.currentTarget.dataset.recipeIndex)];if(!recipe)return;await Item.create({name:`Recipe: ${recipe.name}`,type:"loot",img:recipe.img||recipe.output?.img||"icons/svg/book.svg",system:{quantity:1,description:{value:`<p>Redeem this card in the Crafting menu to unlock <strong>${escapeHTML(recipe.name)}</strong>.</p>`}},flags:{[MODULE_ID]:{recipeCard:{recipeId:recipe.id}}}});ui.notifications.info(`Created Recipe: ${recipe.name} in the Items directory.`);});
-  }
-  async _updateObject(){return this.save();}
-}
-
-class RecipeMenu extends FormApplication {render(){new RecipeManager().render(true);return this;}}
-
-class CraftingApplication extends FormApplication {
-  constructor(...args){super(...args);this.placed={};this.inventoryChecked=false;state.craftingApp=this;}
-  static get defaultOptions(){return foundry.utils.mergeObject(super.defaultOptions,{id:"tsru-crafting",title:"Party Crafting",template:`modules/${MODULE_ID}/templates/crafting.hbs`,width:760,height:720,resizable:true});}
-  getData(){
-    const recipes=getCraftingRecipes(),userActors=craftingUserActors(),unlocked=new Set(userActors.flatMap(actor=>[...actorUnlockedRecipes(actor)]));
-    const visible=(game.user.isGM?recipes:recipes.filter(recipe=>unlocked.has(recipe.id))).map(recipe=>({...recipe,placedReady:(recipe.ingredients??[]).every(ingredient=>(this.placed[recipe.id]?.[recipeItemKey(ingredient)]??0)>=Math.max(1,Number(ingredient.quantity)||1)),ingredients:(recipe.ingredients??[]).map(ingredient=>({...ingredient,key:recipeItemKey(ingredient),available:pooledQuantityFor(ingredient),placed:this.placed[recipe.id]?.[recipeItemKey(ingredient)]??0,enough:pooledQuantityFor(ingredient)>=Math.max(1,Number(ingredient.quantity)||1)}))}));
-    const cards=[];for(const actor of userActors)for(const item of actor.items??[]){const recipeId=item.getFlag(MODULE_ID,"recipeCard")?.recipeId,recipe=recipes.find(entry=>entry.id===recipeId);if(recipe)cards.push({actorId:actor.id,itemId:item.id,actorName:actor.name,name:recipe.name,img:item.img,quantity:itemQuantity(item)});}
-    return {recipes:visible,actors:userActors,cards,inventoryChecked:this.inventoryChecked,isGM:game.user.isGM};
-  }
-  activateListeners(html){
-    super.activateListeners(html);
-    html.find("[data-action='check-reagents']").on("click",()=>{this.inventoryChecked=true;this.render(false);});
-    html.find("[data-action='auto-place']").on("click",event=>{const recipe=getCraftingRecipes().find(entry=>entry.id===event.currentTarget.dataset.recipeId);if(!recipe)return;this.placed[recipe.id]={};for(const ingredient of recipe.ingredients??[])this.placed[recipe.id][recipeItemKey(ingredient)]=Math.min(Math.max(1,Number(ingredient.quantity)||1),pooledQuantityFor(ingredient));this.inventoryChecked=true;this.render(false);});
-    html.find("[data-place-delta]").on("click",event=>{const recipeId=event.currentTarget.dataset.recipeId,key=event.currentTarget.dataset.ingredientKey,delta=Number(event.currentTarget.dataset.placeDelta)||0,recipe=getCraftingRecipes().find(entry=>entry.id===recipeId),ingredient=recipe?.ingredients?.find(entry=>recipeItemKey(entry)===key);if(!ingredient)return;this.placed[recipeId]??={};this.placed[recipeId][key]=clamp((this.placed[recipeId][key]??0)+delta,0,Math.min(Math.max(1,Number(ingredient.quantity)||1),pooledQuantityFor(ingredient)));this.render(false);});
-    html.find("[data-action='craft']").on("click",event=>{const recipeId=event.currentTarget.dataset.recipeId,actorId=html.find(`[data-recipe-recipient='${recipeId}']`).val();if(!actorId)return ui.notifications.warn("Choose a receiving character.");event.currentTarget.disabled=true;if(isAuthority())executeCraftRecipe(recipeId,actorId,game.user.id).then(result=>{(result.ok?ui.notifications.info:ui.notifications.error).call(ui.notifications,result.message);this.placed[recipeId]={};this.render(false);});else game.socket.emit(SOCKET,{type:"craftRecipe",recipeId,actorId,requestingUserId:game.user.id});});
-    html.find("[data-action='redeem-card']").on("click",event=>{const actorId=event.currentTarget.dataset.actorId,itemId=event.currentTarget.dataset.itemId;event.currentTarget.disabled=true;if(isAuthority())executeRedeemRecipeCard(actorId,itemId,game.user.id).then(result=>{(result.ok?ui.notifications.info:ui.notifications.error).call(ui.notifications,result.message);this.render(false);});else game.socket.emit(SOCKET,{type:"redeemRecipeCard",actorId,itemId,requestingUserId:game.user.id});});
-  }
-  close(...args){if(state.craftingApp===this)state.craftingApp=null;return super.close(...args);}
-}
-
-function openCrafting(){if(state.craftingApp?.rendered)return state.craftingApp.bringToTop();new CraftingApplication().render(true);}
-
-class InitiativeFrameColorManager extends FormApplication {
-  static get defaultOptions(){return foundry.utils.mergeObject(super.defaultOptions,{id:"tsru-initiative-frame-colors",title:"Initiative Tracker Frame Colors",template:`modules/${MODULE_ID}/templates/initiative-frame-colors.hbs`,width:520,height:"auto",closeOnSubmit:true});}
-  getData(){return {colors:foundry.utils.deepClone(this._colorsOverride??getInitiativeFrameColors())};}
-  activateListeners(html){super.activateListeners(html);html.find("[data-action='add-frame-color']").on("click",()=>{this._colorsOverride=this._read(html);this._colorsOverride.push({id:foundry.utils.randomID(),name:"New Frame Color",color:"#58dfee"});this.render(true);});html.find("[data-action='remove-frame-color']").on("click",event=>{this._colorsOverride=this._read(html);this._colorsOverride.splice(Number(event.currentTarget.closest("[data-color-index]").dataset.colorIndex),1);this.render(true);});}
-  _read(html){const expanded=foundry.utils.expandObject(Object.fromEntries(new FormData(html[0]).entries()));return Object.values(expanded.colors??{}).map(entry=>({id:String(entry.id||foundry.utils.randomID()),name:String(entry.name||"Frame Color").trim()||"Frame Color",color:/^#[0-9a-f]{6}$/i.test(String(entry.color||""))?String(entry.color):"#58dfee"}));}
-  async _updateObject(_event,formData){const expanded=foundry.utils.expandObject(formData);const colors=Object.values(expanded.colors??{}).map(entry=>({id:String(entry.id||foundry.utils.randomID()),name:String(entry.name||"Frame Color").trim()||"Frame Color",color:/^#[0-9a-f]{6}$/i.test(String(entry.color||""))?String(entry.color):"#58dfee"}));await game.settings.set(MODULE_ID,"initiativeFrameColors",colors.length?colors:foundry.utils.deepClone(DEFAULT_INITIATIVE_FRAME_COLORS));this._colorsOverride=null;refreshInitiativeCarousel();for(const app of Object.values(ui.windows??{}))if((app.actor??app.document)?.type==="character")app.render(false);}
-}
-
-class PathManager extends FormApplication {
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {id: "tsru-path-manager", title: "Tely's Star Rail Ultimates â€” Paths", template: `modules/${MODULE_ID}/templates/path-manager.hbs`, width: 560, height: "auto", closeOnSubmit: true});
-  }
-  getData() { return {paths: foundry.utils.deepClone(this._pathsOverride ?? getPaths())}; }
-  activateListeners(html) {
-    super.activateListeners(html);
-    activateImageDrops(html);
-    html.find(".tsru-add-path").on("click", () => { this._pathsOverride = this._readPaths(html); this._pathsOverride.push({id: foundry.utils.randomID(), name: "New Path", icon: "icons/svg/upgrade.svg", color:"#e5c878"}); this.render(true); });
-    html.find(".tsru-remove-path").on("click", event => { const index = Number(event.currentTarget.closest(".tsru-path-row").dataset.index); this._pathsOverride = this._readPaths(html); this._pathsOverride.splice(index, 1); this.render(true); });
-  }
-  _readPaths(html) {
-    const data = new FormData(html[0]);
-    const expanded = foundry.utils.expandObject(Object.fromEntries(data.entries()));
-    return Object.values(expanded.paths ?? {}).map(entry => ({id: entry.id || foundry.utils.randomID(), name: entry.name?.trim() || "Path", icon: entry.icon || "", color:entry.color || "#e5c878"}));
-  }
-  async _updateObject(_event, formData) {
-    const expanded = foundry.utils.expandObject(formData);
-    const paths = Object.values(expanded.paths ?? {}).map(entry => ({id: entry.id, name: entry.name?.trim() || "Path", icon: entry.icon || "", color:entry.color || "#e5c878"}));
-    await game.settings.set(MODULE_ID, "paths", paths);
-    this._pathsOverride = null;
-    for (const app of Object.values(ui.windows ?? {})) if (app.actor?.type === "character") app.render(false);
-  }
-}
-
-class PathMenu extends FormApplication {
-  render() { new PathManager().render(true); return this; }
-}
-
-class AhaConfig extends FormApplication {
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id: "tsru-aha-config",
-      title: "Aha Instant",
-      template: `modules/${MODULE_ID}/templates/aha-config.hbs`,
-      width: 560,
-      height: "auto",
-      closeOnSubmit: true
-    });
-  }
-  getData() {
-    const config = getAhaConfig();
-    return {config, punchline: currentPunchline(), paths: getPaths().map(path => ({...path, selected: path.id === config.elationPathId}))};
-  }
-  activateListeners(html) {
-    super.activateListeners(html);
-    html.find(".file-picker").on("click", event => {
-      const button = event.currentTarget;
-      const target = button.dataset.target;
-      new FilePicker({type: button.dataset.type || "any", current: html.find(`[name="${target}"]`).val(), callback: path => html.find(`[name="${target}"]`).val(path).trigger("change")}).browse();
-    });
-    html.find("[data-color-for]").on("change", event => html.find(`[name="${event.currentTarget.dataset.colorFor}"]`).val(event.currentTarget.value));
-    html.find("[data-action='preview-aha']").on("click", () => playAhaVideo({video: html.find('[name="video"]').val()}));
-    html.find("[data-action='show-aha-button']").on("click", showAhaButton);
-    html.find("[data-action='show-punchline']").on("click", async () => { await savePunchlineLayout({visible: true}); refreshPunchlineHUD(); });
-    html.find("[data-action='reset-canvas-toughness']").on("click", resetCanvasToughness);
-    const refreshPunchlinePreview = () => {
-      const preview = html.find(".tsru-punchline-placement-preview");
-      const x = clamp(html.find('[name="punchlineIconOffsetX"]').val(), -100, 100);
-      const y = clamp(html.find('[name="punchlineIconOffsetY"]').val(), -100, 100);
-      preview.css("--tsru-preview-icon-x", `${x}px`).css("--tsru-preview-icon-y", `${y}px`);
-      preview.find(".tsru-preview-x-value").text(`${x}px`);
-      preview.find(".tsru-preview-y-value").text(`${y}px`);
-      preview.find("img").attr("src", html.find('[name="punchlineIcon"]').val() || DEFAULT_AHA_CONFIG.punchlineIcon);
-    };
-    html.find('[name="punchlineIconOffsetX"], [name="punchlineIconOffsetY"]').on("input change", refreshPunchlinePreview);
-    html.find('[name="punchlineIcon"]').on("input change", refreshPunchlinePreview);
-    refreshPunchlinePreview();
-    html.find("[data-action='sync-aha-initiative']").on("click", async () => {
-      if (!game.combat) return ui.notifications.warn("There is no active combat to add Aha Instant to.");
-      const combatant = await maybeEnsureAhaCombatant(game.combat, {force: true});
-      if (combatant) ui.notifications.info(`Aha Instant is in combat at initiative ${combatant.initiative}.`);
-    });
-  }
-  async _updateObject(_event, formData) {
-    const savedConfig = {
-      elationEnabled: Boolean(formData.elationEnabled),
-      elationPathId: formData.elationPathId || "",
-      punchlineIcon: formData.punchlineIcon || DEFAULT_AHA_CONFIG.punchlineIcon,
-      punchlineFontFile: formData.punchlineFontFile || "",
-      punchlineFontSize: clamp(formData.punchlineFontSize, 12, 160),
-      punchlineIconOffsetX: clamp(formData.punchlineIconOffsetX, -100, 100),
-      punchlineIconOffsetY: clamp(formData.punchlineIconOffsetY, -100, 100),
-      video: formData.video || "",
-      buttonImage: formData.buttonImage || DEFAULT_AHA_CONFIG.buttonImage,
-      color: formData.color || DEFAULT_AHA_CONFIG.color,
-      initiativeEnabled: Boolean(formData.initiativeEnabled),
-      combatantImage: formData.combatantImage || DEFAULT_AHA_CONFIG.combatantImage
-    };
-    await game.settings.set(MODULE_ID, "ahaConfig", savedConfig);
-    await setPunchline(formData.punchline);
-    refreshAhaButton();
-    state.punchlineMeter?.destroy();
-    refreshPunchlineHUD();
-    preloadAhaVideo(savedConfig.video);
-    game.socket.emit(SOCKET, {type: "ahaConfigChanged", sourceUserId: game.user.id, video: savedConfig.video});
-    if (!getAhaConfig().elationEnabled && game.combat) await clearElationActionTurns(game.combat);
-    await syncAhaCombatants();
-    for (const app of Object.values(ui.windows ?? {})) if (app.actor?.type === "character") app.render(false);
-    ui.notifications.info("Aha Instant configuration saved.");
-  }
-}
-
-class AhaMenu extends FormApplication {
-  render() { new AhaConfig().render(true); return this; }
-}
-
-class TechniquePointConfig extends FormApplication {
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id: "tsru-technique-point-config",
-      title: "Technique Point Configuration",
-      template: `modules/${MODULE_ID}/templates/technique-point-config.hbs`,
-      width: 480,
-      height: "auto",
-      closeOnSubmit: true
-    });
-  }
-  getData() { return {config: getTechniquePointConfig(), current: currentTechniquePoints()}; }
-  async _updateObject(_event, formData) {
-    const maximum = Math.max(1, Math.floor(Number(formData.maximum) || DEFAULT_TECHNIQUE_POINT_CONFIG.maximum));
-    const config = {maximum, starting: clamp(Math.floor(Number(formData.starting)), 0, maximum)};
-    await game.settings.set(MODULE_ID, "techniquePointConfig", config);
-    await setTechniquePoints(clamp(Math.floor(Number(formData.current)), 0, maximum));
-    refreshResourceHuds();
-    ui.notifications.info("Shared Technique Point configuration saved.");
-  }
-}
-class TechniquePointMenu extends FormApplication {
-  render() { new TechniquePointConfig().render(true); return this; }
-}
-
-class SkillPointConfig extends FormApplication {
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id: "tsru-skill-point-config",
-      title: "Skill Point Configuration",
-      template: `modules/${MODULE_ID}/templates/skill-point-config.hbs`,
-      width: 580,
-      height: "auto",
-      closeOnSubmit: true
-    });
-  }
-  getData() { return {config: getSkillPointConfig(), current: currentSkillPoints()}; }
-  activateListeners(html) {
-    super.activateListeners(html);
-    html.find(".file-picker").on("click", event => {
-      const button = event.currentTarget;
-      const target = button.dataset.target;
-      new FilePicker({type: button.dataset.type || "image", current: html.find(`[name="${target}"]`).val(), callback: path => html.find(`[name="${target}"]`).val(path).trigger("change")}).browse();
-    });
-    activateImageDrops(html);
-    html.find("[data-action='show-skill-ui']").on("click", showSkillUI);
-    html.find("[data-action='refill-skill-points']").on("click", async () => {
-      await setSkillPoints(getSkillPointConfig().maximum);
-      html.find('[name="current"]').val(currentSkillPoints());
-    });
-  }
-  async _updateObject(_event, formData) {
-    const maximum = Math.max(1, Math.floor(Number(formData.maximum) || DEFAULT_SKILL_POINT_CONFIG.maximum));
-    const config = {
-      maximum,
-      starting: clamp(Math.floor(Number(formData.starting)), 0, maximum),
-      pointsPerRow: clamp(Math.floor(Number(formData.pointsPerRow)), 1, maximum),
-      pointSpacing: clamp(Number(formData.pointSpacing), -50, 50),
-      illuminatedIcon: formData.illuminatedIcon || DEFAULT_SKILL_POINT_CONFIG.illuminatedIcon,
-      emptyIcon: formData.emptyIcon || DEFAULT_SKILL_POINT_CONFIG.emptyIcon,
-      numberFontFile: formData.numberFontFile || ""
-    };
-    await game.settings.set(MODULE_ID, "skillPointConfig", config);
-    await setSkillPoints(clamp(Math.floor(Number(formData.current)), 0, maximum));
-    refreshSkillUI();
-    ui.notifications.info("Shared Skill Point configuration saved.");
-  }
-}
-
-class SkillPointMenu extends FormApplication {
-  render() { new SkillPointConfig().render(true); return this; }
-}
-
-class TalentPointConfig extends FormApplication {
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id:"tsru-talent-point-config",
-      title:"Talent Point Configuration",
-      template:`modules/${MODULE_ID}/templates/talent-point-config.hbs`,
-      width:520,
-      height:"auto",
-      closeOnSubmit:true
-    });
-  }
-  getData() { return {config:getTalentPointConfig()}; }
-  activateListeners(html) {
-    super.activateListeners(html);
-    html.find(".file-picker").on("click", event => {
-      const button = event.currentTarget;
-      const target = button.dataset.target;
-      new FilePicker({type:"any", current:html.find(`[name="${target}"]`).val(), callback:path => html.find(`[name="${target}"]`).val(path).trigger("change")}).browse();
-    });
-  }
-  async _updateObject(_event, formData) {
-    await game.settings.set(MODULE_ID, "talentPointConfig", {numberFontFile:String(formData.numberFontFile || "").trim()});
-    await refreshTalentPointFont();
-    refreshResourceHuds();
-    refreshCombatPartyHud();
-    ui.notifications.info("Talent Point appearance saved.");
-  }
-}
-
-class TalentPointMenu extends FormApplication {
-  render() { new TalentPointConfig().render(true); return this; }
-}
-
-class EidolonAppearanceConfig extends FormApplication {
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id: "tsru-eidolon-appearance-config",
-      title: "Eidolon Interface Configuration",
-      template: `modules/${MODULE_ID}/templates/eidolon-config.hbs`,
-      width: 680,
-      height: "auto",
-      resizable: true,
-      closeOnSubmit: true
-    });
-  }
-  getData() { return {config: getEidolonConfig()}; }
-  activateListeners(html) {
-    super.activateListeners(html);
-    html.find(".file-picker").on("click", event => {
-      const target = event.currentTarget.dataset.target;
-      new FilePicker({type: event.currentTarget.dataset.type || "image", current: html.find(`[name="${target}"]`).val(), callback: path => html.find(`[name="${target}"]`).val(path).trigger("input")}).browse();
-    });
-    activateImageDrops(html);
-    const refresh = () => {
-      html.find(".tsru-eidolon-global-preview .tsru-eidolon-background").attr("src", html.find('[name="backgroundImage"]').val());
-      html.find(".tsru-eidolon-global-preview .tsru-eidolon-five-overlay").attr("src", html.find('[name="fiveShardOverlay"]').val());
-      html.find(".tsru-eidolon-global-preview .tsru-eidolon-e3-overlay").attr("src", html.find('[name="e3Overlay"]').val());
-    };
-    html.find("input").on("input change", refresh);
-    refresh();
-  }
-  async _updateObject(_event, formData) {
-    await game.settings.set(MODULE_ID, "eidolonConfig", {
-      backgroundImage: formData.backgroundImage || "",
-      fiveShardOverlay: formData.fiveShardOverlay || "",
-      e3Overlay: formData.e3Overlay || "",
-      referenceImage: formData.referenceImage || "",
-      titleFontFile: formData.titleFontFile || "",
-      mask1: formData.mask1 || "",
-      mask2: formData.mask2 || "",
-      mask3: formData.mask3 || "",
-      mask4: formData.mask4 || "",
-      mask5: formData.mask5 || "",
-      mask6: formData.mask6 || ""
-    });
-    for (const app of Object.values(ui.windows ?? {})) if (app.actor?.type === "character") app.render(false);
-    ui.notifications.info("Eidolon interface layers saved.");
-  }
-}
-
-class EidolonAppearanceMenu extends FormApplication {
-  render() { new EidolonAppearanceConfig().render(true); return this; }
-}
-
-async function insertActionAdvanceTurn(combatantId) {
-  if (!isAuthority()) return ui.notifications.warn("Only the active GM can insert an Action Advance turn.");
-  const combat = game.combat;
-  if (!combat?.started) return ui.notifications.warn("Start combat before inserting an Action Advance turn.");
-  if (state.actionAdvances.has(combat.id)) return ui.notifications.warn("Finish the current Action Advance turn first.");
-  const source = combat.combatants.get(combatantId);
-  if (!source || isElationActionCombatant(source)) return ui.notifications.warn("Choose a character, enemy, or Aha Instant in initiative.");
-  const advanceAha=isAhaCombatant(source);
-  const interrupted = combat.combatant;
-  if(advanceAha){
-    if(interrupted?.id===source.id)return ui.notifications.warn("It is already Aha Instant's turn.");
-    const index=combat.turns.findIndex(entry=>entry.id===source.id);
-    if(index<0)return ui.notifications.warn("Aha Instant is not available in the current turn order.");
-    state.actionAdvances.set(combat.id,{combatantId:source.id,resumeCombatantId:interrupted?.id??null,resumeRound:combat.round,aha:true,reuseSource:true});
-    state.lastElationSequenceKey="";
-    await combat.update({turn:index});
-    ui.notifications.info("Aha Instant receives an Action Advance turn.");
-    return true;
-  }
-  const currentInitiative = Number(interrupted?.initiative ?? 0);
-  const next = combat.turns[Number(combat.turn ?? 0) + 1];
-  let initiative = next ? (currentInitiative + Number(next.initiative ?? currentInitiative - 1)) / 2 : currentInitiative - 0.001;
-  if (!Number.isFinite(initiative)) initiative = currentInitiative - 0.001;
-  const [temporary] = await combat.createEmbeddedDocuments("Combatant", [{
-    name: `ACTION ADVANCE â€” ${source.name}`,
-    actorId: source.actorId,
-    tokenId: null,
-    sceneId: null,
-    initiative,
-    img: source.img ?? source.actor?.img ?? "icons/svg/mystery-man.svg",
-    flags: {[MODULE_ID]: {actionAdvance: true, sourceCombatantId: source.id, resumeCombatantId: interrupted?.id ?? null, resumeRound: combat.round}}
-  }]);
-  if (!temporary) return;
-  state.actionAdvances.set(combat.id, {combatantId: temporary.id, resumeCombatantId: interrupted?.id ?? null, resumeRound: combat.round, aha:advanceAha});
-  const index = combat.turns.findIndex(entry => entry.id === temporary.id);
-  if (index >= 0) await combat.update({turn: index});
-  ui.notifications.info(`${source.name} receives an Action Advance turn.`);
-}
-
-async function finishActionAdvance(combat, advance) {
-  if (!isAuthority() || !combat || !advance) return;
-  state.actionAdvances.delete(combat.id);
-  const temporary = combat.combatants.get(advance.combatantId);
-  if (temporary) await dispatchTalentEvent("turnEnd", {combat, combatant: temporary, sourceActor: temporary.actor ?? null}, `action-advance:${temporary.id}`);
-  state.suppressCombatHook = true;
-  try {
-    if (!advance.reuseSource && combat.combatants.has(advance.combatantId)) await combat.deleteEmbeddedDocuments("Combatant", [advance.combatantId]);
-    const resumeIndex = combat.turns.findIndex(entry => entry.id === advance.resumeCombatantId);
-    if (resumeIndex >= 0) {
-      await combat.update({round: advance.resumeRound, turn: resumeIndex});
-      const resumed = combat.combatants.get(advance.resumeCombatantId);
-      if (resumed) state.lastTalentTurns.set(combat.id, {key: `${combat.id}:${advance.resumeRound}:${resumed.id}`, combatantId: resumed.id, actorId: resumed.actor?.id ?? null});
-    }
-  } finally { state.suppressCombatHook = false; }
-}
-
-class StarRailGMPanel extends FormApplication {
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id: "tsru-gm-panel",
-      title: "Star Rail GM Panel",
-      template: `modules/${MODULE_ID}/templates/gm-panel.hbs`,
-      width: 820,
-      height: 720,
-      minWidth: 340,
-      minHeight: 300,
-      resizable: true,
-      closeOnSubmit: false
-    });
-  }
-  getData() {
-    const collapsedCards = game.settings.get(MODULE_ID, "gmPanelCollapsedCards") ?? {};
-    const canvasCharacterIds = new Set((canvas?.tokens?.placeables ?? []).filter(token => token.actor?.type === "character").map(token => token.actor.id));
-    const characters = game.actors
-      .filter(actor => actor.type === "character" && (getConfig(actor).mainParty || canvasCharacterIds.has(actor.id)))
-      .map(actor => {
-        const hasPlayerOwner=game.users.some(user=>!user.isGM && actor.testUserPermission(user,"OWNER"));
-        return {actor, config:getConfig(actor), hasPlayerOwner, isGMPC:!hasPlayerOwner, talentCurrent: currentTalentPoints(actor), talentEligible: Boolean(talentCombatForActor(actor)), modifier: signedNumber(regenModifier(getConfig(actor))), collapsed: Boolean(collapsedCards[`character:${actor.id}`])};
-      });
-    const normalCombatants = game.combat?.combatants?.filter(entry => !isAhaCombatant(entry) && !isElationActionCombatant(entry) && !entry.getFlag(MODULE_ID, "temporaryUltimate") && !entry.getFlag(MODULE_ID, "actionAdvance")) ?? [];
-    const actionAdvanceCombatants = game.combat?.combatants?.filter(entry => !isElationActionCombatant(entry) && !entry.getFlag(MODULE_ID, "temporaryUltimate") && !entry.getFlag(MODULE_ID, "actionAdvance")) ?? [];
-    const combatants = game.combat?.started ? actionAdvanceCombatants.map(entry => ({id: entry.id, name: entry.name, initiative: entry.initiative, img: entry.img})) : [];
-    const initiativeTokenIds = new Set(normalCombatants.map(entry => entry.tokenId).filter(Boolean));
-    const initiativeActorUuids = new Set(normalCombatants.map(entry => entry.actor?.uuid).filter(Boolean));
-    const elements = getElements();
-    const targetedIds = new Set([...(game.user?.targets ?? []), ...(canvas?.tokens?.controlled ?? [])].map(token => token.id));
-    const sceneEnemies = (canvas?.tokens?.placeables ?? []).filter(token => token.actor?.type === "npc" && (initiativeTokenIds.has(token.id) || initiativeActorUuids.has(token.actor.uuid))).map(token => {
-      const actor = token.actor;
-      const config = getToughness(actor);
-      const temporary = temporaryToughnessWeaknesses(token);
-      const weaknessMode = toughnessWeaknessMode(token);
-      return {
-        actor, token, tokenId: token.id, tokenUuid: token.document.uuid, targeted: targetedIds.has(token.id), weaknessMode,
-        collapsed: Boolean(collapsedCards[`npc:${token.document.uuid}`]),
-        allWeaknesses: weaknessMode === "all", noWeaknesses: weaknessMode === "none",
-        elements: elements.map(element => ({...element, permanent: config.weaknesses.includes(element.id), temporary: weaknessMode === "all" || temporary.includes(element.id)}))
-      };
-    });
-    const actionCharacters = game.actors.filter(actor => actor.type === "character").sort((left, right) => left.name.localeCompare(right.name)).map(actor => ({id: actor.id, name: actor.name}));
-    return {characters, actionCharacters, sceneEnemies, punchline: currentPunchline(), punchlineOverride: punchlineOverrideEnabled(), skillPoints: currentSkillPoints(), skillPointMax: getSkillPointConfig().maximum, combatants, hasCombat: Boolean(game.combat?.started), initiativeCarousel:getInitiativeCarouselConfig(), showSceneNavigation:game.settings.get(MODULE_ID,"showSceneNavigation")};
-  }
-  activateListeners(html) {
-    super.activateListeners(html);
-    html.find("[data-collapse-toggle]").on("click", async event => {
-      const button = event.currentTarget;
-      const key = button.dataset.collapseToggle;
-      const card = button.closest(".tsru-gm-collapsible");
-      if (!key || !card) return;
-      const collapsed = !card.classList.contains("collapsed");
-      card.classList.toggle("collapsed", collapsed);
-      button.setAttribute("aria-expanded", String(!collapsed));
-      const saved = foundry.utils.deepClone(game.settings.get(MODULE_ID, "gmPanelCollapsedCards") ?? {});
-      saved[key] = collapsed;
-      await game.settings.set(MODULE_ID, "gmPanelCollapsedCards", saved);
-    });
-    html.find("[data-resource-action]").on("click", async event => {
-      const action = event.currentTarget.dataset.resourceAction;
-      const delta = Number(event.currentTarget.dataset.delta) || 0;
-      if (action === "punchline") await setPunchline(currentPunchline() + delta);
-      if (action === "skillPoints") await setSkillPoints(currentSkillPoints() + delta);
-      this.refreshLiveValues();
-    });
-    html.find("[data-resource-input]").on("change", async event => {
-      if (event.currentTarget.dataset.resourceInput === "punchline") await setPunchline(event.currentTarget.value);
-      if (event.currentTarget.dataset.resourceInput === "skillPoints") await setSkillPoints(event.currentTarget.value);
-      this.refreshLiveValues();
-    });
-    html.find('[name="punchlineOverride"]').on("change", async event => {
-      await game.settings.set(MODULE_ID, "punchlineOverride", Boolean(event.currentTarget.checked));
-      refreshPunchlineHUD();
-      this.refreshLiveValues();
-    });
-    html.find("[data-actor-field]").on("change", async event => {
-      const input = event.currentTarget;
-      const actor = game.actors.get(input.dataset.actorId);
-      const field = input.dataset.actorField;
-      if (!actor || !["current", "max", "regenScore", "attackGain", "attackedGain", "punchlineGain", "talentPointsCurrent", "talentPointsMax", "mainParty", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate"].includes(field)) return;
-      if (["mainParty", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate"].includes(field)) {
-        await actor.update({[`flags.${MODULE_ID}.ultimate.${field}`]: input.checked});
-        return this.refreshLiveValues();
-      }
-      let value = Number(input.value);
-      if (!Number.isFinite(value)) value = 0;
-      value = Math.floor(value);
-      const config = getConfig(actor);
-      if (field === "max") {
-        value = Math.max(1, value);
-        await actor.update({[`flags.${MODULE_ID}.ultimate.max`]: value, [`flags.${MODULE_ID}.ultimate.current`]: clamp(config.current, 0, value)});
-      } else if (field === "current") {
-        const applied = await setEnergy(actor, value, {overrideLock: true});
-        input.value = applied ?? getConfig(actor).current;
-      }
-      else if (field === "regenScore") await actor.update({[`flags.${MODULE_ID}.ultimate.regenScore`]: clamp(value, 1, 30)});
-      else if (field === "talentPointsMax") {
-        value = Math.max(0, value);
-        const overcap = Math.max(value, Number(config.talentPointsOvercapMax) || value);
-        await actor.update({[`flags.${MODULE_ID}.ultimate.talentPointsMax`]: value, [`flags.${MODULE_ID}.ultimate.talentPointsOvercapMax`]:overcap, [`flags.${MODULE_ID}.ultimate.talentPointsCurrent`]: clamp(config.talentPointsCurrent, 0, overcap)});
-      } else if (field === "talentPointsCurrent") {
-        if (!talentCombatForActor(actor)) ui.notifications.warn("Talent Points can only be tracked during combat for characters with tokens on the battlefield.");
-        else await setTalentPoints(actor, value);
-      }
-      else await actor.update({[`flags.${MODULE_ID}.ultimate.${field}`]: Math.max(0, value)});
-      this.refreshLiveValues();
-    });
-    html.find("[data-action='action-advance']").on("click", async () => {
-      const id = html.find('[name="actionAdvanceCombatant"]').val();
-      if (!id) return ui.notifications.warn("Choose a combatant first.");
-      await insertActionAdvanceTurn(id);
-      this.render(false);
-    });
-    html.find("[data-action='show-phase-controls']").on("click", () => showBossPhaseControl());
-    html.find("[data-action='save-initiative-carousel']").on("click",async()=>{
-      const data={enabled:Boolean(html.find('[name="initiativeCarouselEnabled"]').prop("checked")),allowLengthResize:Boolean(html.find('[name="initiativeCarouselAllowLengthResize"]').prop("checked")),maximumWidth:clamp(html.find('[name="initiativeCarouselMaximumWidth"]').val(),190,420),maximumHeight:clamp(html.find('[name="initiativeCarouselMaximumHeight"]').val(),260,1200)};
-      await game.settings.set(MODULE_ID,"initiativeCarouselConfig",data);refreshInitiativeCarousel();ui.notifications.info("HSR initiative carousel settings saved.");this.render(false);
-    });
-    html.find('[name="showSceneNavigation"]').on("change",async event=>{await game.settings.set(MODULE_ID,"showSceneNavigation",Boolean(event.currentTarget.checked));applySceneNavigationVisibility();});
-    html.find("[data-action='place-action-button']").on("click", async () => {
-      const actor = game.actors.get(html.find('[name="actionButtonActor"]').val());
-      const action = html.find('[name="actionButtonType"]').val();
-      await placeGMActionButton(actor, action);
-    });
-    html.find("[data-action='reset-canvas-toughness']").on("click", resetCanvasToughness);
-    html.find("[data-action='save-temporary-weaknesses']").on("click", async event => {
-      const row = event.currentTarget.closest("[data-toughness-actor]");
-      const tokenDocument = row?.dataset.toughnessActor ? await fromUuid(row.dataset.toughnessActor).catch(() => null) : null;
-      const selected = [...(row?.querySelectorAll("input[data-temporary-element]:checked") ?? [])].map(input => input.value);
-      if (await setTemporaryToughnessWeaknesses(tokenDocument, selected)) {
-        ui.notifications.info(`Temporary weaknesses saved for ${tokenDocument?.name ?? "enemy"}.`);
-        this.render(false);
-      }
-    });
-    html.find("[data-action='reset-temporary-weaknesses']").on("click", async event => {
-      const tokenUuid = event.currentTarget.closest("[data-toughness-actor]")?.dataset.toughnessActor;
-      const tokenDocument = tokenUuid ? await fromUuid(tokenUuid).catch(() => null) : null;
-      const reset = await resetTemporaryToughnessWeaknesses(tokenDocument);
-      ui.notifications.info(reset ? `Weaknesses reset to ${tokenDocument?.name ?? "enemy"}'s main sheet selections.` : "No temporary weaknesses needed resetting.");
-      this.render(false);
-    });
-    html.find("[data-action='set-weakness-mode']").on("click", async event => {
-      const row = event.currentTarget.closest("[data-toughness-actor]");
-      const tokenDocument = row?.dataset.toughnessActor ? await fromUuid(row.dataset.toughnessActor).catch(() => null) : null;
-      const mode = event.currentTarget.dataset.mode;
-      if (await setToughnessWeaknessMode(tokenDocument, mode)) {
-        ui.notifications.info(`${tokenDocument?.name ?? "Enemy"} now has ${mode === "all" ? "all Toughness weaknesses" : "Toughness weakness disabled"}.`);
-        this.render(false);
-      }
-    });
-    html.find("[data-action='reset-all-temporary-weaknesses']").on("click", async () => {
-      const reset = await resetTemporaryToughnessWeaknesses();
-      ui.notifications.info(`Reset temporary weaknesses for ${reset} enem${reset === 1 ? "y" : "ies"}.`);
-      this.render(false);
-    });
-    html.find("[data-action='bulk-weakness-mode']").on("click", async event => {
-      const mode = event.currentTarget.dataset.mode;
-      const targets = (canvas?.tokens?.placeables ?? []).filter(token => token.actor?.type === "npc").map(token => token.document);
-      for (const target of targets) await setToughnessWeaknessMode(target, mode);
-      ui.notifications.info(`Updated Toughness weakness mode for ${targets.length} scene enem${targets.length === 1 ? "y" : "ies"}.`);
-      this.render(false);
-    });
-    html.find("[data-action='bulk-enable-toughness']").on("click", async () => {
-      const actors = [...new Map((canvas?.tokens?.placeables ?? []).filter(token => token.actor?.type === "npc").map(token => [token.actor.id, token.actor])).values()];
-      if (actors.length) await Actor.updateDocuments(actors.map(actor => ({_id: actor.id, [`flags.${MODULE_ID}.toughness.enabled`]: true})));
-      refreshToughnessBars();
-      ui.notifications.info(`Enabled Toughness for ${actors.length} scene enemy actor${actors.length === 1 ? "" : "s"}.`);
-      this.render(false);
-    });
-    html.find("[data-open-config]").on("click", event => {
-      const target = event.currentTarget.dataset.openConfig;
-      if (target === "aha") new AhaConfig().render(true);
-      if (target === "skills") new SkillPointConfig().render(true);
-      if (target === "elements") new ElementManager().render(true);
-      if (target === "paths") new PathManager().render(true);
-      if (target === "recipes") new RecipeManager().render(true);
-      if (target === "eidolons") new EidolonAppearanceConfig().render(true);
-    });
-  }
-  refreshLiveValues() {
-    const root = this.element?.jquery ? this.element : $(this.element);
-    if (!root?.length) return;
-    root.find('[data-resource-input="punchline"]').val(currentPunchline());
-    root.find('[name="punchlineOverride"]').prop("checked", punchlineOverrideEnabled());
-    root.find('[data-resource-input="skillPoints"]').val(currentSkillPoints());
-    for (const actor of game.actors.filter(entry => entry.type === "character")) {
-      const config = getConfig(actor);
-      root.find(`[data-actor-id="${actor.id}"][data-actor-field="current"]`).val(config.current);
-      root.find(`[data-actor-id="${actor.id}"][data-actor-field="max"]`).val(config.max);
-      root.find(`[data-actor-id="${actor.id}"][data-actor-field="talentPointsCurrent"]`).val(currentTalentPoints(actor)).prop("disabled", !talentCombatForActor(actor));
-      root.find(`[data-actor-id="${actor.id}"][data-actor-field="talentPointsMax"]`).val(config.talentPointsMax);
-      root.find(`[data-actor-id="${actor.id}"][data-actor-field="mainParty"]`).prop("checked", config.mainParty);
-      root.find(`[data-actor-id="${actor.id}"][data-actor-field="partyGMOverride"]`).prop("checked", config.partyGMOverride);
-      root.find(`[data-actor-id="${actor.id}"][data-actor-field="receivesRewards"]`).prop("checked", config.receivesRewards);
-      root.find(`[data-actor-id="${actor.id}"][data-actor-field="lockEnergyAfterUltimate"]`).prop("checked", config.lockEnergyAfterUltimate);
-      root.find(`[data-regen-modifier="${actor.id}"]`).text(signedNumber(regenModifier(config)));
-    }
-  }
-  refreshTargetHighlights() {
-    const root = this.element?.jquery ? this.element : $(this.element);
-    if (!root?.length) return;
-    const targeted = new Set([...(game.user?.targets ?? []), ...(canvas?.tokens?.controlled ?? [])].map(token => token.id));
-    root.find("[data-toughness-token]").each((_index, row) => {
-      const active = targeted.has(row.dataset.toughnessToken);
-      row.classList.toggle("targeted", active);
-      $(row).find(".tsru-targeted-badge").toggle(active);
-    });
-  }
-  async close(...args) {
-    if (state.gmPanel === this) state.gmPanel = null;
-    return super.close(...args);
-  }
-  async _updateObject() {}
-}
-
-function openStarRailGMPanel() {
-  if (!game.user.isGM) return ui.notifications.warn("Only a GM can open the Star Rail GM Panel.");
-  if (gmToolbarOpening) return;
-  gmToolbarOpening = true;
-  window.setTimeout(() => { gmToolbarOpening = false; }, 350);
-  try {
-    if (!state.gmPanel) state.gmPanel = new StarRailGMPanel();
-    state.gmPanel.render(true);
-  } catch (error) {
-    console.error(`${MODULE_ID} | Could not open Star Rail GM Panel`, error);
-    ui.notifications.error(`Could not open the Star Rail GM Panel: ${error.message}`);
-  }
-}
-
-function registerSettings() {
-  game.settings.register(MODULE_ID, "elements", {scope: "world", config: false, type: Array, default: []});
-  game.settings.register(MODULE_ID, "paths", {scope: "world", config: false, type: Array, default: DEFAULT_PATHS.map(path => ({...path}))});
-  game.settings.register(MODULE_ID,"craftingRecipes",{scope:"world",config:false,type:Array,default:[]});
-  game.settings.register(MODULE_ID, "elementsDraft", {scope: "client", config: false, type: Array, default: []});
-  game.settings.register(MODULE_ID, "orbLayouts", {scope: "client", config: false, type: Object, default: {}});
-  game.settings.register(MODULE_ID, "selectedMainCharacterId", {scope: "client", config: false, type: String, default: ""});
-  game.settings.register(MODULE_ID, "combatPartyHudLayout", {scope: "client", config: false, type: Object, default: {scale: 1, minimized: false, x: null, y: null}});
-  game.settings.register(MODULE_ID, "bossHudLayout", {scope: "client", config: false, type: Object, default: {x: null, y: 54}});
-  game.settings.register(MODULE_ID, "initiativeCarouselConfig", {scope:"world",config:false,type:Object,default:foundry.utils.deepClone(DEFAULT_INITIATIVE_CAROUSEL_CONFIG)});
-  game.settings.register(MODULE_ID, "initiativeFrameColors", {scope:"world",config:false,type:Array,default:foundry.utils.deepClone(DEFAULT_INITIATIVE_FRAME_COLORS)});
-  game.settings.register(MODULE_ID, "initiativeCarouselLayout", {scope:"client",config:false,type:Object,default:{x:0,y:86,width:null,height:520}});
-  game.settings.register(MODULE_ID, "showSceneNavigation", {scope:"world",config:false,type:Boolean,default:true,onChange:applySceneNavigationVisibility});
-  game.settings.register(MODULE_ID, "combatHudDesign", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_COMBAT_HUD_DESIGN)});
-  game.settings.register(MODULE_ID, "ahaConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_AHA_CONFIG)});
-  game.settings.register(MODULE_ID, "ahaLayout", {scope: "client", config: false, type: Object, default: {x: 220, y: 180, size: 128, visible: false}});
-  game.settings.register(MODULE_ID, "punchline", {scope: "world", config: false, type: Number, default: 0});
-  game.settings.register(MODULE_ID, "punchlineOverride", {scope: "world", config: false, type: Boolean, default: false});
-  game.settings.register(MODULE_ID, "punchlineLayout", {scope: "client", config: false, type: Object, default: {x: 580, y: 145, size: 54, visible: true}});
-  game.settings.register(MODULE_ID, "techniquePointConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_TECHNIQUE_POINT_CONFIG)});
-  game.settings.register(MODULE_ID, "techniquePoints", {scope: "world", config: false, type: Number, default: DEFAULT_TECHNIQUE_POINT_CONFIG.starting});
-  game.settings.register(MODULE_ID, "talentHudLayout", {scope: "client", config: false, type: Object, default: {x: 24, y: 180}});
-  game.settings.register(MODULE_ID, "talentPointConfig", {scope:"world", config:false, type:Object, default:foundry.utils.deepClone(DEFAULT_TALENT_POINT_CONFIG)});
-  game.settings.register(MODULE_ID, "talentButtonLayouts", {scope: "client", config: false, type: Object, default: {}});
-  game.settings.register(MODULE_ID, "techniqueButtonLayouts", {scope: "client", config: false, type: Object, default: {}});
-  game.settings.register(MODULE_ID, "techniqueHudLayout", {scope: "client", config: false, type: Object, default: {x: 24, y: 420}});
-  game.settings.register(MODULE_ID, "skillPointConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_SKILL_POINT_CONFIG)});
-  game.settings.register(MODULE_ID, "skillPoints", {scope: "world", config: false, type: Number, default: DEFAULT_SKILL_POINT_CONFIG.starting});
-  game.settings.register(MODULE_ID, "skillMeterLayout", {scope: "client", config: false, type: Object, default: {x: 420, y: 80, size: 42, visible: true}});
-  game.settings.register(MODULE_ID, "skillButtonLayouts", {scope: "client", config: false, type: Object, default: {}});
-  game.settings.register(MODULE_ID, "eidolonConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_EIDOLON_CONFIG)});
-  game.settings.register(MODULE_ID, "gmPanelCollapsedCards", {scope: "client", config: false, type: Object, default: {}});
-  game.settings.register(MODULE_ID, "ultimateSectionStates", {scope: "client", config: false, type: Object, default: {}});
-  game.settings.register(MODULE_ID, "breakFonts", {scope:"world",config:false,type:Object,default:{breakFontFile:"",superBreakFontFile:""}});
-  game.settings.registerMenu(MODULE_ID, "breakAppearance", {name:"Damage Display Appearance",label:"Configure Damage Display",hint:"Preview and configure regular damage, Break, and Super Break fonts, sizes, weights, and Element gradients.",icon:"fas fa-burst",type:BreakAppearanceConfig,restricted:true});
-  game.settings.registerMenu(MODULE_ID, "elementManager", {
-    name: "Manage Elements",
-    label: "Open Element Manager",
-    hint: "Create Element names, icons, and colors for assignment on character sheets.",
-    icon: "fas fa-sparkles",
-    type: ElementMenu,
-    restricted: true
-  });
-  game.settings.registerMenu(MODULE_ID,"initiativeFrameColorsMenu",{name:"Initiative Tracker Frame Colors",label:"Configure Frame Colors",hint:"Create reusable global frame colors, then select one from each character's Ultimate settings.",icon:"fas fa-palette",type:InitiativeFrameColorManager,restricted:true});
-  game.settings.registerMenu(MODULE_ID, "pathManager", {
-    name: "Manage Paths",
-    label: "Open Path Manager",
-    hint: "Create Path names and drag-and-drop or browse for their character-sheet icons.",
-    icon: "fas fa-route",
-    type: PathMenu,
-    restricted: true
-  });
-  game.settings.registerMenu(MODULE_ID,"recipeManager",{name:"Manage Crafting Recipes",label:"Open Recipe Manager",hint:"Create drag-and-drop recipes, outputs, and redeemable recipe cards.",icon:"fas fa-hammer",type:RecipeMenu,restricted:true});
-  game.settings.registerMenu(MODULE_ID, "ahaInstant", {
-    name: "Aha Instant Configuration",
-    label: "Configure Aha Instant",
-    hint: "Choose the GM-only floating button artwork, color, and WebM shown to connected players.",
-    icon: "fas fa-masks-theater",
-    type: AhaMenu,
-    restricted: true
-  });
-  game.settings.registerMenu(MODULE_ID, "techniquePointsMenu", {
-    name: "Technique Point Configuration",
-    label: "Configure Technique Points",
-    hint: "Configure the shared out-of-combat Technique Point pool.",
-    icon: "fas fa-bolt",
-    type: TechniquePointMenu,
-    restricted: true
-  });
-  game.settings.registerMenu(MODULE_ID, "skillPointsMenu", {
-    name: "Skill Point Configuration",
-    label: "Configure Skill Points",
-    hint: "Configure the shared party pool, starting points, layout, and filled/empty point artwork.",
-    icon: "fas fa-diamond",
-    type: SkillPointMenu,
-    restricted: true
-  });
-  game.settings.registerMenu(MODULE_ID, "talentPointsMenu", {
-    name:"Talent Point Configuration",
-    label:"Configure Talent Points",
-    hint:"Choose the universal number font used by Talent Points in the floating panel and combat party HUD.",
-    icon:"fas fa-star",
-    type:TalentPointMenu,
-    restricted:true
-  });
-  game.settings.registerMenu(MODULE_ID, "eidolonAppearance", {
-    name: "Eidolon Interface Configuration",
-    label: "Configure Eidolon Layers",
-    hint: "Choose the background, five-shard glass, E3 glass, reference artwork, and title font used by every character's Eidolon interface.",
-    icon: "fas fa-gem",
-    type: EidolonAppearanceMenu,
-    restricted: true
-  });
-}
-
-async function injectUltimateTab(app, html) {
-  const actor = app.actor ?? app.document;
-  if (!game.user.isGM || actor?.type !== "character") return;
-  const rootElement = resolveActorSheetRoot(app, html);
-  if (!rootElement) return;
-  const root = $(rootElement);
-  const existingControl = root.find('nav [data-tab="tsru-ultimate"]');
-  const existingTab = root.find('.tsru-sheet-tab[data-tab="tsru-ultimate"]');
-  if (existingControl.length && existingTab.length) return;
-  existingControl.remove();
-  existingTab.remove();
-  if (root.attr("data-tsru-ultimate-injecting") === "true") return;
-  root.attr("data-tsru-ultimate-injecting", "true");
-  const nav = root.find('nav.tabs[data-group="primary"], nav.sheet-tabs[data-group="primary"], .tabs-right nav.tabs').first();
-  let body = root.find('.tab-body').first();
-  if (!body.length) body = root.find('.sheet-body').first();
-  if (!body.length) body = root.find('[data-application-part="body"]').first();
-  if (!nav.length || !body.length) {
-    root.removeAttr("data-tsru-ultimate-injecting");
-    addSheetConfigFallback(app, root, actor);
-    return;
-  }
-  nav.append(`<a class="item control tsru-tab-control" data-action="tab" data-tab="tsru-ultimate" data-group="primary" data-tooltip="Ultimate Configuration" aria-label="Ultimate Configuration"><i class="fas fa-burst"></i><span class="tsru-tab-label">Ultimate</span></a>`);
-  const config = getConfig(actor);
-  const elements = getElements().map(entry => ({...entry, selected: entry.id === config.elementId}));
-  const paths = getPaths().map(entry => ({...entry, selected: entry.id === config.pathId}));
-  const content = await renderTemplate(`modules/${MODULE_ID}/templates/ultimate-tab.hbs`, {
-    actor, config, elements, paths, frameColors:initiativeFrameColorOptions(config),
-    elationEnabled: getAhaConfig().elationEnabled,
-    selectedElement: elements.find(entry => entry.selected),
-    selectedPath: paths.find(entry => entry.selected),
-    titleAlignLeft: config.titleAlign === "left",
-    titleAlignCenter: config.titleAlign === "center",
-    titleAlignRight: config.titleAlign === "right",
-    modifierSigned: signedNumber(regenModifier(config)),
-    breakModifierSigned: signedNumber(breakEffectModifier(config)),
-    ultimateButtonArtwork: config.ultimateButtonImage || config.orbImage || "",
-    breakDiceOptions: Array.from({length: 20}, (_value, index) => ({value: index + 1, selected: config.breakDamageDice === index + 1})),
-    breakDieOptions: [4, 6, 8, 10, 12, 20].map(value => ({value, selected: config.breakDamageDie === value})),
-    modeHit: config.attackedMode === "hit",
-    modeTargeted: config.attackedMode === "targeted",
-    bossPhase1: config.bossPhaseCount === 1,
-    bossPhase2: config.bossPhaseCount === 2,
-    bossPhase3: config.bossPhaseCount === 3
-  });
-  body.append(content);
-  const tab = body.find('.tsru-sheet-tab');
-  activateConfigListeners(actor, tab, app);
-  const ultimateControl = nav.find('[data-tab="tsru-ultimate"]');
-  ultimateControl.on("click.tsru", event => {
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    nav.find('[data-tab]').removeClass("active");
-    ultimateControl.addClass("active");
-    root.find('.tab[data-group="primary"]').removeClass("active");
-    tab.addClass("active");
-    root.addClass("tsru-tab-open");
-    if (app.tabGroups) app.tabGroups.primary = "tsru-ultimate";
-  });
-  nav.find('[data-tab]').not('[data-tab="tsru-ultimate"]').on("click.tsru-hide", () => {
-    tab.removeClass("active");
-    root.removeClass("tsru-tab-open");
-  });
-  root.removeAttr("data-tsru-ultimate-injecting");
-  if (app.tabGroups?.primary === "tsru-ultimate") ultimateControl.trigger("click");
-}
-
-function addSheetConfigFallback(app, root, actor) {
-  if (root.find(".tsru-config-fallback").length) return;
-  const header = root.closest(".window-app").find(".window-header").first().length
-    ? root.closest(".window-app").find(".window-header").first()
-    : root.find(".window-header").first();
-  if (!header.length) return console.warn(`${MODULE_ID} | Could not add Ultimate tab or fallback button to`, app);
-  const button = $(`<button type="button" class="header-control icon tsru-config-fallback" data-tooltip="Ultimate Configuration" aria-label="Ultimate Configuration"><i class="fas fa-burst"></i></button>`);
-  header.find(".window-controls").prepend(button);
-  button.on("click", () => openUltimateConfig(actor, app));
-}
-
-async function openUltimateConfig(actor, sheetApp = null) {
-  const config = getConfig(actor);
-  const elements = getElements().map(entry => ({...entry, selected: entry.id === config.elementId}));
-  const paths = getPaths().map(entry => ({...entry, selected: entry.id === config.pathId}));
-  const content = await renderTemplate(`modules/${MODULE_ID}/templates/ultimate-tab.hbs`, {
-    actor, config, elements, paths, frameColors:initiativeFrameColorOptions(config),
-    elationEnabled: getAhaConfig().elationEnabled,
-    selectedElement: elements.find(entry => entry.selected),
-    selectedPath: paths.find(entry => entry.selected),
-    titleAlignLeft: config.titleAlign === "left",
-    titleAlignCenter: config.titleAlign === "center",
-    titleAlignRight: config.titleAlign === "right",
-    modifierSigned: signedNumber(regenModifier(config)),
-    breakModifierSigned: signedNumber(breakEffectModifier(config)),
-    ultimateButtonArtwork: config.ultimateButtonImage || config.orbImage || "",
-    breakDiceOptions: Array.from({length: 20}, (_value, index) => ({value: index + 1, selected: config.breakDamageDice === index + 1})),
-    breakDieOptions: [4, 6, 8, 10, 12, 20].map(value => ({value, selected: config.breakDamageDie === value})),
-    modeHit: config.attackedMode === "hit",
-    modeTargeted: config.attackedMode === "targeted",
-    bossPhase1: config.bossPhaseCount === 1,
-    bossPhase2: config.bossPhaseCount === 2,
-    bossPhase3: config.bossPhaseCount === 3
-  });
-  const dialog = new Dialog({title: `${actor.name} â€” Ultimate Configuration`, content, buttons: {close: {label: "Close"}}}, {width: 620, height: 760, resizable: true, classes: ["tsru-config-dialog"]});
-  Hooks.once("renderDialog", rendered => {
-    if (rendered !== dialog) return;
-    const root = rendered.element.find(".tsru-sheet-tab").addClass("active");
-    activateConfigListeners(actor, root, sheetApp ?? rendered);
-  });
-  dialog.render(true);
-}
-
-function ultimateSectionStateKey(section, index) {
-  const title = section.querySelector(":scope > h3")?.textContent?.trim()?.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "section";
-  return `${index}-${title}`;
-}
-
-async function saveUltimateSectionStates(actorId, states) {
-  const allStates = foundry.utils.deepClone(game.settings.get(MODULE_ID, "ultimateSectionStates") ?? {});
-  allStates[actorId] = states;
-  await game.settings.set(MODULE_ID, "ultimateSectionStates", allStates);
-}
-
-function initializeCollapsibleUltimateSections(actor, tab) {
-  const root = tab?.jquery ? tab[0] : tab;
-  if (!(root instanceof HTMLElement)) return;
-  const allStates = game.settings.get(MODULE_ID, "ultimateSectionStates") ?? {};
-  const actorStates = foundry.utils.deepClone(allStates[actor.id] ?? {});
-  const sections = [...root.querySelectorAll(".tsru-config-section")];
-
-  let toolbar = root.querySelector(":scope > .tsru-config-reveal-toolbar");
-  if (!toolbar) {
-    toolbar = document.createElement("div");
-    toolbar.className = "tsru-config-reveal-toolbar";
-    toolbar.innerHTML = '<button type="button" data-action="reveal-all-config"><i class="fas fa-eye"></i> Reveal All</button>';
-    root.prepend(toolbar);
-  }
-
-  for (const [index, section] of sections.entries()) {
-    const heading = section.querySelector(":scope > h3");
-    if (!heading) continue;
-    const key = ultimateSectionStateKey(section, index);
-    section.dataset.tsruSectionKey = key;
-    let content = section.querySelector(":scope > .tsru-collapsible-content");
-    if (!content) {
-      content = document.createElement("div");
-      content.className = "tsru-collapsible-content";
-      for (const child of [...section.children]) if (child !== heading) content.appendChild(child);
-      section.appendChild(content);
-    }
-    let toggle = heading.querySelector(":scope > .tsru-section-toggle");
-    if (!toggle) {
-      toggle = document.createElement("button");
-      toggle.type = "button";
-      toggle.className = "tsru-section-toggle";
-      toggle.innerHTML = '<i class="fas fa-chevron-up" aria-hidden="true"></i>';
-      toggle.setAttribute("aria-label", "Collapse section");
-      heading.appendChild(toggle);
-    }
-    const applyState = collapsed => {
-      section.classList.toggle("is-collapsed", collapsed);
-      toggle.setAttribute("aria-expanded", String(!collapsed));
-      toggle.title = collapsed ? "Reveal this section" : "Minimize this section";
-      toggle.setAttribute("aria-label", collapsed ? "Reveal section" : "Minimize section");
-      toggle.querySelector("i").className = collapsed ? "fas fa-chevron-down" : "fas fa-chevron-up";
-    };
-    applyState(Boolean(actorStates[key]));
-    toggle.addEventListener("click", async event => {
-      event.preventDefault();
-      event.stopPropagation();
-      actorStates[key] = !section.classList.contains("is-collapsed");
-      applyState(actorStates[key]);
-      await saveUltimateSectionStates(actor.id, actorStates);
-    });
-  }
-
-  toolbar.querySelector("[data-action='reveal-all-config']").onclick = async event => {
-    event.preventDefault();
-    event.stopPropagation();
-    for (const section of sections) {
-      const key = section.dataset.tsruSectionKey;
-      if (key) actorStates[key] = false;
-      section.classList.remove("is-collapsed");
-      const toggle = section.querySelector(":scope > h3 > .tsru-section-toggle");
-      if (toggle) {
-        toggle.setAttribute("aria-expanded", "true");
-        toggle.title = "Minimize this section";
-        toggle.setAttribute("aria-label", "Minimize section");
-        toggle.querySelector("i").className = "fas fa-chevron-up";
-      }
-    }
-    await saveUltimateSectionStates(actor.id, actorStates);
-  };
-}
-
-async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp = false, app = null} = {}) {
-  const data = foundry.utils.deepClone(getConfig(actor));
-  tab.find("[name]").each((_index, field) => {
-    data[field.name] = field.type === "checkbox" ? field.checked : field.value;
-  });
-  for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "skillPointCost", "talentPointsCurrent", "talentPointsMax", "talentPointsOvercapMax", "punchlineGain", "splashDuration", "splashX", "splashY", "splashScale", "titleX", "titleY", "titleSize", "combatHudPortraitX", "combatHudPortraitY", "combatHudPortraitScale", "ultimateButtonX", "ultimateButtonY", "ultimateButtonScale", "bossPhaseCount", "bossPhase2TokenWidth", "bossPhase2TokenHeight", "bossPhase3TokenWidth", "bossPhase3TokenHeight", "bossHudPortraitX", "bossHudPortraitY", "bossHudPortraitScale", "bossHudWidth", "bossHudHealthHeight", "bossHudToughnessHeight"]) data[key] = Number(data[key]);
-  for (const key of ["enabled", "showPercent", "showHudPercent", "skillEnabled", "techniqueEnabled", "mainParty", "trialCharacter", "combatHudPortraitFlip", "ultimateButtonAdjustEnabled", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter", "isBoss", "bossInheritsMainPhaseCount", "carouselFrameColorOverride"]) data[key] = Boolean(data[key]);
-  data.max = Math.max(1, data.max || 100);
-  data.current = clamp(data.current, 0, data.max);
-  const savedConfig = getConfig(actor);
-  if (isEnergyLocked(actor) && data.current > savedConfig.current) {
-    data.current = savedConfig.current;
-    if (notify) ui.notifications.warn(`${actor.name} cannot regain Energy until the next round.`);
-  }
-  data.talentPointsMax = Math.max(0, Math.floor(data.talentPointsMax || 0));
-  data.talentPointsOvercapMax = Math.max(data.talentPointsMax, Math.floor(data.talentPointsOvercapMax || data.talentPointsMax));
-  data.talentPointsCurrent = talentCombatForActor(actor) ? clamp(Math.floor(data.talentPointsCurrent || 0), 0, data.talentPointsOvercapMax) : 0;
-  data.skillPointCost = Math.max(0, Math.floor(data.skillPointCost || 0));
-  data.bossPhaseCount = clamp(Math.floor(data.bossPhaseCount || 1), 1, 3);
-  for(const key of ["bossPhase2TokenWidth","bossPhase2TokenHeight","bossPhase3TokenWidth","bossPhase3TokenHeight"])data[key]=clamp(data[key],0,20);
-  data.bossHudPortraitX=clamp(data.bossHudPortraitX,0,100);data.bossHudPortraitY=clamp(data.bossHudPortraitY,0,100);data.bossHudPortraitScale=clamp(data.bossHudPortraitScale,50,400);data.bossHudWidth=clamp(data.bossHudWidth,420,1400);data.bossHudHealthHeight=clamp(data.bossHudHealthHeight,12,48);data.bossHudToughnessHeight=clamp(data.bossHudToughnessHeight,4,24);
-  data.carouselFrameColor=/^#[0-9a-f]{6}$/i.test(String(data.carouselFrameColor??""))?String(data.carouselFrameColor):"#58dfee";
-  data.carouselFrameColorPreset=String(data.carouselFrameColorPreset||"");
-  data.talentCombatId = talentCombatForActor(actor)?.id ?? "";
-  await actor.update({[`flags.${MODULE_ID}.ultimate`]: data}, {tsruAutosave: !notify, render: false});
-  refreshOrb(actor);
-  refreshSkillUI();
-  refreshResourceHuds();
-  refreshCombatPartyHud();
-  refreshBossHud();
-  refreshInitiativeCarousel();
-  dockSceneControlsBesideCarousel();
-  if (notify) ui.notifications.info(`${actor.name}'s Ultimate configuration saved.`);
-  if (renderApp && app?.render) app.render(false);
-  return data;
-}
-
-function activateConfigListeners(actor, tab, app) {
-  tab.find("input, select, textarea, button").prop("disabled", false);
-  initializeCollapsibleUltimateSections(actor, tab);
-  tab.find("input:not([readonly])").prop("readonly", false);
-  activateImageDrops(tab);
-  tab.find(".tsru-drop-actor").on("dragover.tsru-boss",event=>{event.preventDefault();$(event.currentTarget).addClass("is-dragover");});
-  tab.find(".tsru-drop-actor").on("dragleave.tsru-boss",event=>$(event.currentTarget).removeClass("is-dragover"));
-  tab.find(".tsru-drop-actor").on("drop.tsru-boss",event=>{
-    event.preventDefault();
-    const input=$(event.currentTarget).removeClass("is-dragover");
-    const data=TextEditor.getDragEventData(event.originalEvent??event);
-    const uuid=String(data?.uuid || (data?.type==="Actor" && data?.id ? `Actor.${data.id}` : ""));
-    if(!uuid)return ui.notifications.warn("Drop an Actor from the Actors directory into this field.");
-    fromUuid(uuid).then(document=>{if(document?.documentName!=="Actor" || document.pack)return ui.notifications.warn("Drop a world Actor from the Actors directory, not a compendium entry.");input.val(document.uuid).trigger("change");});
-  });
-  tab.find("[data-clear-boss-phase]").on("click.tsru-boss",event=>{event.preventDefault();tab.find(`[name="${event.currentTarget.dataset.clearBossPhase}"]`).val("").trigger("change");});
-  tab.find("[data-action='show-boss-phase-control']").on("click.tsru-boss",event=>{event.preventDefault();showBossPhaseControl(actor);});
-  tab.on("input.tsru change.tsru", "input, select, textarea", event => event.stopPropagation());
-  const refreshCombatPortraitPreview = () => {
-    const preview = tab.find("[data-tsru-combat-hud-preview]");
-    if (!preview.length) return;
-    const draft = {...getConfig(actor), combatHudPortrait:String(tab.find("[name='combatHudPortrait']").val() || ""), combatHudPortraitX:Number(tab.find("[name='combatHudPortraitX']").val()), combatHudPortraitY:Number(tab.find("[name='combatHudPortraitY']").val()), combatHudPortraitScale:Number(tab.find("[name='combatHudPortraitScale']").val()), combatHudPortraitFlip:Boolean(tab.find("[name='combatHudPortraitFlip']").prop("checked")), talentIcon:String(tab.find("[name='talentIcon']").val() || ""), ultimateButtonImage:String(tab.find("[name='ultimateButtonImage']").val() || ""), ultimateButtonAdjustEnabled:Boolean(tab.find("[name='ultimateButtonAdjustEnabled']").prop("checked")), ultimateButtonX:Number(tab.find("[name='ultimateButtonX']").val()), ultimateButtonY:Number(tab.find("[name='ultimateButtonY']").val()), ultimateButtonScale:Number(tab.find("[name='ultimateButtonScale']").val())};
-    preview.html(combatHudDesignerPreview(actor,draft));
-  };
-  const refreshUltimatePreview = () => {
-    const preview = tab.find("[data-tsru-ultimate-preview]");
-    if (!preview.length) return;
-    const enabled = Boolean(tab.find("[name='ultimateButtonAdjustEnabled']").prop("checked"));
-    const x = enabled ? clamp(Number(tab.find("[name='ultimateButtonX']").val()), 0, 100) : 50;
-    const y = enabled ? clamp(Number(tab.find("[name='ultimateButtonY']").val()), 0, 100) : 50;
-    const scale = enabled ? clamp(Number(tab.find("[name='ultimateButtonScale']").val()), 50, 400) : 100;
-    preview.toggleClass("is-disabled", !enabled).css({"--tsru-ultimate-x":`${x}%`,"--tsru-ultimate-y":`${y}%`,"--tsru-ultimate-scale":String(scale / 100)});
-    preview.find("img").attr("src", String(tab.find("[name='ultimateButtonImage']").val() || actor.img || "icons/svg/mystery-man.svg"));
-    tab.find(".tsru-ultimate-adjust-controls input").prop("disabled", !enabled);
-  };
-  tab.on("input.tsru-preview change.tsru-preview", "[name='combatHudPortrait'], [name='combatHudPortraitX'], [name='combatHudPortraitY'], [name='combatHudPortraitScale'], [name='combatHudPortraitFlip'], [name='talentIcon'], [name='ultimateButtonImage'], [name='ultimateButtonAdjustEnabled'], [name='ultimateButtonX'], [name='ultimateButtonY'], [name='ultimateButtonScale']", () => { refreshCombatPortraitPreview(); refreshUltimatePreview(); });
-  refreshCombatPortraitPreview();
-  refreshUltimatePreview();
-  const refreshBossPreview=async()=>{const preview=tab.find("[data-tsru-boss-preview]");if(!preview.length)return;const draft={...getConfig(actor)};for(const key of ["bossHudPortrait","bossHudPortraitX","bossHudPortraitY","bossHudPortraitScale","bossHudWidth","bossHudHealthHeight","bossHudToughnessHeight","bossPhase2TokenWidth","bossPhase2TokenHeight","bossPhase3TokenWidth","bossPhase3TokenHeight"]){const field=tab.find(`[name='${key}']`)[0];draft[key]=field?.type==="number"?Number(field.value):String(field?.value||"");}const phases=[actor];for(const name of ["bossPhase2ActorUuid","bossPhase3ActorUuid"]){const uuid=String(tab.find(`[name='${name}']`).val()||"");if(uuid){const phase=await bossActorFromUuid(uuid);if(phase)phases.push(phase);}}preview.html(phases.map((phase,index)=>{const phaseNumber=index+1,size=phaseNumber===1?"Original token size":`${Number(draft[`bossPhase${phaseNumber}TokenWidth`])||phase.prototypeToken?.width||1} Ã— ${Number(draft[`bossPhase${phaseNumber}TokenHeight`])||phase.prototypeToken?.height||1} grid units`;return `<div class="tsru-boss-phase-preview"><b>Phase ${phaseNumber}: ${escapeHTML(phase.name)} <small>(${size})</small></b>${bossDesignerPreview(phase,index===0?draft:{...getConfig(phase),bossHudWidth:draft.bossHudWidth,bossHudHealthHeight:draft.bossHudHealthHeight,bossHudToughnessHeight:draft.bossHudToughnessHeight})}</div>`;}).join(""));};
-  tab.on("input.tsru-boss-preview change.tsru-boss-preview","[name='bossHudPortrait'],[name='bossHudPortraitX'],[name='bossHudPortraitY'],[name='bossHudPortraitScale'],[name='bossHudWidth'],[name='bossHudHealthHeight'],[name='bossHudToughnessHeight'],[name='bossPhase2ActorUuid'],[name='bossPhase3ActorUuid'],[name='bossPhase2TokenWidth'],[name='bossPhase2TokenHeight'],[name='bossPhase3TokenWidth'],[name='bossPhase3TokenHeight']",refreshBossPreview);
-  refreshBossPreview();
-  const bossPreview=tab.find("[data-tsru-boss-preview]");let bossCropDrag=null;
-  bossPreview.on("dragover.tsru-boss-crop",event=>{event.preventDefault();bossPreview.addClass("is-dragover");}).on("dragleave.tsru-boss-crop",()=>bossPreview.removeClass("is-dragover")).on("drop.tsru-boss-crop",event=>{event.preventDefault();bossPreview.removeClass("is-dragover");const path=droppedAssetPath(event);if(path)tab.find("[name='bossHudPortrait']").val(path).trigger("change");});
-  bossPreview.on("pointerdown.tsru-boss-crop",".tsru-boss-portrait",event=>{if(event.button!==0)return;event.preventDefault();bossCropDrag={x:event.clientX,y:event.clientY,startX:Number(tab.find("[name='bossHudPortraitX']").val())||50,startY:Number(tab.find("[name='bossHudPortraitY']").val())||50};});
-  $(document).off(`.tsru-boss-crop-${actor.id}`).on(`pointermove.tsru-boss-crop-${actor.id}`,event=>{if(!bossCropDrag)return;const rect=bossPreview[0].getBoundingClientRect();bossCropDrag.nextX=clamp(bossCropDrag.startX+(event.clientX-bossCropDrag.x)/Math.max(1,rect.width)*100,0,100);bossCropDrag.nextY=clamp(bossCropDrag.startY+(event.clientY-bossCropDrag.y)/Math.max(1,rect.height)*100,0,100);tab.find("[name='bossHudPortraitX']").val(Math.round(bossCropDrag.nextX));tab.find("[name='bossHudPortraitY']").val(Math.round(bossCropDrag.nextY)).trigger("input");}).on(`pointerup.tsru-boss-crop-${actor.id} pointercancel.tsru-boss-crop-${actor.id}`,()=>{bossCropDrag=null;});
-  bossPreview.on("wheel.tsru-boss-crop",".tsru-boss-portrait",event=>{event.preventDefault();const input=tab.find("[name='bossHudPortraitScale']"),next=clamp((Number(input.val())||100)+(event.originalEvent.deltaY<0?5:-5),50,400);input.val(next).trigger("input");});
-  const cropPreview = tab.find("[data-tsru-combat-hud-preview]");
-  cropPreview.on("dragover.tsru-crop", event => { event.preventDefault(); cropPreview.addClass("is-dragover"); });
-  cropPreview.on("dragleave.tsru-crop", () => cropPreview.removeClass("is-dragover"));
-  cropPreview.on("drop.tsru-crop", event => {
-    event.preventDefault(); cropPreview.removeClass("is-dragover");
-    const path = droppedAssetPath(event);
-    if (path) tab.find("[name='combatHudPortrait']").val(path).trigger("change");
-  });
-  let cropDrag = null;
-  cropPreview.on("pointerdown.tsru-crop", ".tsru-combat-party-portrait", event => {
-    if (event.button !== 0) return;
-    event.preventDefault();
-    cropDrag = {x:event.clientX,y:event.clientY,startX:Number(tab.find("[name='combatHudPortraitX']").val())||50,startY:Number(tab.find("[name='combatHudPortraitY']").val())||50,image:$(event.currentTarget).find("img")};
-  });
-  $(document).off(`.tsru-crop-${actor.id}`).on(`pointermove.tsru-crop-${actor.id}`, event => {
-    if (!cropDrag) return;
-    const rect=cropPreview[0].getBoundingClientRect();
-    const x=clamp(cropDrag.startX+(event.clientX-cropDrag.x)/Math.max(1,rect.width)*100,0,100), y=clamp(cropDrag.startY+(event.clientY-cropDrag.y)/Math.max(1,rect.height)*100,0,100);
-    cropDrag.nextX=x; cropDrag.nextY=y; cropDrag.image.css({objectPosition:`${x}% ${y}%`,transformOrigin:`${x}% ${y}%`});
-  });
-  $(document).on(`pointerup.tsru-crop-${actor.id}`, () => {
-    if (!cropDrag) return;
-    tab.find("[name='combatHudPortraitX']").val(Math.round(cropDrag.nextX ?? cropDrag.startX));
-    tab.find("[name='combatHudPortraitY']").val(Math.round(cropDrag.nextY ?? cropDrag.startY)).trigger("change");
-    cropDrag=null;
-  });
-  cropPreview.on("wheel.tsru-crop", ".tsru-combat-party-portrait", event => {
-    event.preventDefault();
-    const input=tab.find("[name='combatHudPortraitScale']"), next=clamp((Number(input.val())||100)+(event.originalEvent.deltaY<0?5:-5),50,300);
-    input.val(next).trigger("input");
-  });
-  tab.find("[data-action='open-initiative-portrait-editor']").on("click.tsru-initiative-preview",event=>{event.preventDefault();openInitiativePortraitEditor(actor);});
-  const ultimatePreview = tab.find("[data-tsru-ultimate-preview]");
-  let ultimateDrag = null;
-  ultimatePreview.on("pointerdown.tsru-ultimate-crop", "button", event => {
-    if (event.button !== 0 || !tab.find("[name='ultimateButtonAdjustEnabled']").prop("checked")) return;
-    event.preventDefault();
-    ultimateDrag = {x:event.clientX,y:event.clientY,startX:Number(tab.find("[name='ultimateButtonX']").val())||50,startY:Number(tab.find("[name='ultimateButtonY']").val())||50};
-  });
-  $(document).off(`.tsru-ultimate-crop-${actor.id}`).on(`pointermove.tsru-ultimate-crop-${actor.id}`, event => {
-    if (!ultimateDrag) return;
-    const rect=ultimatePreview[0].getBoundingClientRect();
-    ultimateDrag.nextX=clamp(ultimateDrag.startX+(event.clientX-ultimateDrag.x)/Math.max(1,rect.width)*100,0,100);
-    ultimateDrag.nextY=clamp(ultimateDrag.startY+(event.clientY-ultimateDrag.y)/Math.max(1,rect.height)*100,0,100);
-    tab.find("[name='ultimateButtonX']").val(Math.round(ultimateDrag.nextX));
-    tab.find("[name='ultimateButtonY']").val(Math.round(ultimateDrag.nextY)).trigger("input");
-  }).on(`pointerup.tsru-ultimate-crop-${actor.id} pointercancel.tsru-ultimate-crop-${actor.id}`, () => { ultimateDrag=null; });
-  ultimatePreview.on("wheel.tsru-ultimate-crop", "button", event => {
-    if (!tab.find("[name='ultimateButtonAdjustEnabled']").prop("checked")) return;
-    event.preventDefault();
-    const input=tab.find("[name='ultimateButtonScale']"), next=clamp((Number(input.val())||100)+(event.originalEvent.deltaY<0?5:-5),50,400);
-    input.val(next).trigger("input");
-  });
-  const splashDesigner = tab.find("[data-tsru-splash-designer]");
-  let splashPreviewSequence = 0;
-  const refreshSplashDesigner = async () => {
-    if (!splashDesigner.length) return;
-    const sequence = ++splashPreviewSequence;
-    const image = String(tab.find("[name='splashImage']").val() || "");
-    const x = clamp(Number(tab.find("[name='splashX']").val()), 0, 100);
-    const y = clamp(Number(tab.find("[name='splashY']").val()), 0, 100);
-    const scale = clamp(Number(tab.find("[name='splashScale']").val()), 25, 500);
-    const titleX = clamp(Number(tab.find("[name='titleX']").val()), 0, 100);
-    const titleY = clamp(Number(tab.find("[name='titleY']").val()), 0, 100);
-    const titleSize = clamp(Number(tab.find("[name='titleSize']").val()), 16, 140);
-    const align = ["left","center","right"].includes(tab.find("[name='titleAlign']").val()) ? tab.find("[name='titleAlign']").val() : "left";
-    const element = getElements().find(entry => entry.id === tab.find("[name='elementId']").val());
-    splashDesigner.css({"--tsru-splash-x":`${x}%`,"--tsru-splash-y":`${y}%`,"--tsru-splash-scale":String(scale/100),"--tsru-title-x":`${titleX}%`,"--tsru-title-y":`${titleY}%`,"--tsru-title-size":`${titleSize}px`,"--tsru-accent":element?.chargeColor||DEFAULT_CONFIG.chargeColor});
-    const media = splashDesigner.find(".tsru-splash-designer-media");
-    const isVideo = /\.(webm|mp4|m4v)(\?.*)?$/i.test(image);
-    const current = media.children().first();
-    if (!image) media.empty();
-    else if (!current.length || current.attr("src") !== image || current.is("video") !== isVideo) media.html(isVideo ? `<video src="${escapeHTML(image)}" autoplay muted loop playsinline></video>` : `<img src="${escapeHTML(image)}" alt="${escapeHTML(actor.name)} Ultimate preview">`);
-    const card = splashDesigner.find(".tsru-title-card").removeClass("tsru-align-left tsru-align-center tsru-align-right").addClass(`tsru-align-${align}`);
-    card.find(".tsru-title-name").text(tab.find("[name='ultimateName']").val() || actor.name || "Ultimate");
-    card.find(".tsru-title-subtitle").text(tab.find("[name='ultimateSubtitle']").val() || "");
-    try {
-      const [font,subtitleFont] = await Promise.all([loadSplashFont(tab.find("[name='fontFile']").val()),loadSplashFont(tab.find("[name='subtitleFontFile']").val()||tab.find("[name='fontFile']").val())]);
-      if (sequence === splashPreviewSequence) splashDesigner.css({"--tsru-title-font":font,"--tsru-subtitle-font":subtitleFont});
-    } catch (error) { console.warn(`${MODULE_ID} | Could not load splash designer font`, error); }
-  };
-  tab.on("input.tsru-splash-preview change.tsru-splash-preview", "[name='splashImage'], [name='splashX'], [name='splashY'], [name='splashScale'], [name='ultimateName'], [name='ultimateSubtitle'], [name='titleX'], [name='titleY'], [name='titleSize'], [name='titleAlign'], [name='fontFile'], [name='subtitleFontFile'], [name='elementId']", refreshSplashDesigner);
-  refreshSplashDesigner();
-  splashDesigner.on("dragover.tsru-splash-drop", event => { event.preventDefault(); splashDesigner.addClass("is-dragover"); });
-  splashDesigner.on("dragleave.tsru-splash-drop", () => splashDesigner.removeClass("is-dragover"));
-  splashDesigner.on("drop.tsru-splash-drop", event => {
-    event.preventDefault(); splashDesigner.removeClass("is-dragover");
-    const path = droppedAssetPath(event);
-    if (path) tab.find("[name='splashImage']").val(path).trigger("change");
-  });
-  let splashDrag = null;
-  splashDesigner.on("pointerdown.tsru-splash-drag", event => {
-    if (event.button !== 0) return;
-    event.preventDefault();
-    splashDrag = {x:event.clientX,y:event.clientY,startX:Number(tab.find("[name='splashX']").val())||50,startY:Number(tab.find("[name='splashY']").val())||50};
-  });
-  $(document).off(`.tsru-splash-drag-${actor.id}`).on(`pointermove.tsru-splash-drag-${actor.id}`, event => {
-    if (!splashDrag) return;
-    const rect=splashDesigner[0].getBoundingClientRect();
-    splashDrag.nextX=clamp(splashDrag.startX+(event.clientX-splashDrag.x)/Math.max(1,rect.width)*100,0,100);
-    splashDrag.nextY=clamp(splashDrag.startY+(event.clientY-splashDrag.y)/Math.max(1,rect.height)*100,0,100);
-    tab.find("[name='splashX']").val(Math.round(splashDrag.nextX));
-    tab.find("[name='splashY']").val(Math.round(splashDrag.nextY)).trigger("input");
-  }).on(`pointerup.tsru-splash-drag-${actor.id} pointercancel.tsru-splash-drag-${actor.id}`, () => { splashDrag=null; });
-  splashDesigner.on("wheel.tsru-splash-zoom", event => {
-    event.preventDefault();
-    const input=tab.find("[name='splashScale']"), next=clamp((Number(input.val())||100)+(event.originalEvent.deltaY<0?5:-5),25,500);
-    input.val(next).trigger("input");
-  });
-  let autosaveTimer = null;
-  let autosaveRunning = false;
-  let autosaveQueued = false;
-  const runAutosave = async () => {
-    if (autosaveRunning) { autosaveQueued = true; return; }
-    autosaveRunning = true;
-    try {
-      await saveUltimateConfigFromTab(actor, tab);
-      tab.addClass("tsru-autosave-saved");
-      window.setTimeout(() => tab.removeClass("tsru-autosave-saved"), 500);
-    } catch (error) {
-      console.error(`${MODULE_ID} | Ultimate autosave failed`, error);
-      ui.notifications.error(`Could not autosave ${actor.name}'s Ultimate configuration.`);
-    } finally {
-      autosaveRunning = false;
-      if (autosaveQueued) { autosaveQueued = false; runAutosave(); }
-    }
-  };
-  const scheduleAutosave = immediate => {
-    window.clearTimeout(autosaveTimer);
-    autosaveTimer = window.setTimeout(runAutosave, immediate ? 0 : 550);
-  };
-  tab.on("input.tsru-autosave change.tsru-autosave", "[name]", event => {
-    if ($(event.target).closest(".tsru-energy-override").length) return;
-    scheduleAutosave(event.type === "change" && ["checkbox", "select-one", "radio"].includes(event.target.type));
-  });
-  tab.find("[data-action='save-config']").on("click", async event => {
-    event.preventDefault();
-    event.stopPropagation();
-    window.clearTimeout(autosaveTimer);
-    await saveUltimateConfigFromTab(actor, tab, {notify: true, renderApp: true, app});
-  });
-  tab.find(".file-picker").on("click", event => {
-    const button = event.currentTarget;
-    const target = button.dataset.target;
-    new FilePicker({type: button.dataset.type || "image", current: tab.find(`[name="${target}"]`).val(), callback: path => tab.find(`[name="${target}"]`).val(path).trigger("change")}).browse();
-  });
-  tab.find("input[data-color-for]").on("change", event => tab.find(`[name="${event.currentTarget.dataset.colorFor}"]`).val(event.currentTarget.value).trigger("change"));
-  tab.find("[data-action='preview-splash']").on("click", () => {
-    const element = getElements().find(entry => entry.id === tab.find("[name='elementId']").val());
-    showSplash({actorName: actor.name, image: tab.find("[name='splashImage']").val(), duration: Number(tab.find("[name='splashDuration']").val()) || 1, splashX:Number(tab.find("[name='splashX']").val()), splashY:Number(tab.find("[name='splashY']").val()), splashScale:Number(tab.find("[name='splashScale']").val()), ultimateName: tab.find("[name='ultimateName']").val(), ultimateSubtitle: tab.find("[name='ultimateSubtitle']").val(), titleX: Number(tab.find("[name='titleX']").val()), titleY: Number(tab.find("[name='titleY']").val()), titleSize: Number(tab.find("[name='titleSize']").val()), titleAlign: tab.find("[name='titleAlign']").val(), fontFile: tab.find("[name='fontFile']").val(), subtitleFontFile: tab.find("[name='subtitleFontFile']").val(), color: element?.chargeColor || DEFAULT_CONFIG.chargeColor});
-  });
-  tab.find("[data-action='set-energy']").on("click", async event => {
-    event.preventDefault();
-    event.stopPropagation();
-    const config = getConfig(actor);
-    const value = clamp(tab.find(".tsru-energy-override-value").val(), 0, config.max);
-    const applied = await setEnergy(actor, value, {overrideLock: true});
-    tab.find("[name='current']").val(applied);
-    tab.find(".tsru-energy-override-value").val(applied);
-    refreshOrb(actor);
-    ui.notifications.info(`${actor.name}'s Energy was set to ${applied}/${config.max}.`);
-  });
-  tab.find("[data-action='reset-energy']").on("click", async () => { await setEnergy(actor, 0, {overrideLock: true}); app.render(false); });
-  tab.find("[data-action='fill-energy']").on("click", async () => { await setEnergy(actor, getConfig(actor).max, {overrideLock: true}); app.render(false); });
-  tab.find("[data-action='show-orb']").on("click", () => showOrb(actor));
-  tab.find("[data-action='show-skill-button']").on("click", async () => { await saveSkillButtonLayout(actor.id, {visible: true}); refreshSkillUI(); });
-  tab.find("[name='regenScore']").on("input", event => tab.find(".tsru-modifier").text(`Modifier: ${signedNumber(Math.floor(((Number(event.currentTarget.value) || 10) - 10) / 2))}`));
-  tab.find("[name='breakEffectScore']").on("input", event => tab.find(".tsru-break-modifier").text(`Modifier: ${signedNumber(Math.floor(((Number(event.currentTarget.value) || 10) - 10) / 2))}`));
-}
-
-async function eidolonTabData(actor) {
-  const data = getEidolons(actor);
-  const interfaceConfig = getEidolonConfig();
-  const firstLocked = data.slots.find(slot => !slot.active)?.number ?? 7;
-  return {
-    interface: interfaceConfig,
-    currencyUuid: data.currencyUuid,
-    isGM: Boolean(game.user.isGM),
-    slots: data.slots.map(slot => ({
-      ...slot,
-      isE3: slot.number === 3,
-      mask: interfaceConfig[`mask${slot.number}`] ? "none" : EIDOLON_MASKS[slot.number],
-      maskImage: resolveAssetUrl(interfaceConfig[`mask${slot.number}`]),
-      displayArtwork: slot.artwork || "",
-      scalePercent: slot.scale / 100,
-      canActivate: slot.number === firstLocked && (game.user.isGM || actor.isOwner),
-      canConfigure: Boolean(game.user.isGM)
-    }))
-  };
-}
-
-async function findEidolonCurrency(actor, currencyUuid) {
-  if (!currencyUuid) return null;
-  const source = await fromUuid(currencyUuid).catch(() => null);
-  return actor.items?.find(item => item.uuid === currencyUuid || item.getFlag("core", "sourceId") === currencyUuid || (source && item.name === source.name && item.type === source.type)) ?? null;
-}
-
-async function activateEidolon(actor, number) {
-  if (!(game.user.isGM || actor.isOwner)) return ui.notifications.warn("You do not own this character.");
-  const data = getEidolons(actor);
-  const next = data.slots.find(slot => !slot.active)?.number;
-  if (number !== next) return ui.notifications.warn(`E${next ?? 6} must be activated next.`);
-  const currency = await findEidolonCurrency(actor, data.currencyUuid);
-  const quantity = Number(currency?.system?.quantity ?? 0);
-  if (!game.user.isGM && (!currency || quantity < 1)) return ui.notifications.warn("This character does not have the configured Eidolon currency.");
-  if (currency && quantity > 0) {
-    if (quantity === 1) await currency.delete();
-    else await currency.update({"system.quantity": quantity - 1});
-  } else if (!game.user.isGM) return;
-  data.slots[number - 1].active = true;
-  await actor.setFlag(MODULE_ID, "eidolons", data);
-  ui.notifications.info(`${actor.name} activated Eidolon ${number}.`);
-  for (const app of Object.values(ui.windows ?? {})) if ((app.actor ?? app.document)?.id === actor.id) app.render(false);
-}
-
-function refreshEidolonPreview(tab, number) {
-  const editor = tab.find(`[data-eidolon-editor="${number}"]`);
-  const art = tab.find(`[data-eidolon-preview-art="${number}"]`);
-  if (!editor.length || !art.length) return;
-  const artwork = editor.find(`[name="eidolon.${number}.artwork"]`).val();
-  const x = Number(editor.find(`[name="eidolon.${number}.offsetX"]`).val()) || 0;
-  const y = Number(editor.find(`[name="eidolon.${number}.offsetY"]`).val()) || 0;
-  const scale = Number(editor.find(`[name="eidolon.${number}.scale"]`).val()) || 100;
-  art.find("img").attr("src", artwork || "");
-  art.css("--art-x", `${x}%`).css("--art-y", `${y}%`).css("--art-scale", String(scale / 100));
-  editor.find(`[name="eidolon.${number}.offsetX"]`).next("output").text(`${x}%`);
-  editor.find(`[name="eidolon.${number}.offsetY"]`).next("output").text(`${y}%`);
-  editor.find(`[name="eidolon.${number}.scale"]`).next("output").text(`${scale}%`);
-}
-
-function refreshEidolonStageSlot(tab, number, slot) {
-  if (!tab?.length || !slot) return;
-  const art = tab.find(`[data-eidolon-art="${number}"]`);
-  art.attr("data-fallback-art", slot.artwork || "").toggleClass("locked", !slot.active);
-  art.find("img").attr("src", slot.artwork || "");
-  art.css("--art-x", `${slot.offsetX}%`).css("--art-y", `${slot.offsetY}%`).css("--art-scale", String(slot.scale / 100));
-  const title = tab.find(`[data-eidolon-title="${number}"]`);
-  title.toggleClass("locked", !slot.active).find("span").text(slot.title || `Eidolon ${number}`);
-}
-
-function refreshEidolonTabDisplay(actor, tab) {
-  const data = getEidolons(actor);
-  for (const slot of data.slots) refreshEidolonStageSlot(tab, slot.number, slot);
-}
-
-function refreshEidolonStageDraft(tab, editor, number) {
-  if (!editor?.length) return;
-  refreshEidolonStageSlot(tab, number, {
-    artwork: String(editor.find(`[name="eidolon.${number}.artwork"]`).val() || ""),
-    title: String(editor.find(`[name="eidolon.${number}.title"]`).val() || `Eidolon ${number}`),
-    offsetX: clamp(editor.find(`[name="eidolon.${number}.offsetX"]`).val(), -100, 100),
-    offsetY: clamp(editor.find(`[name="eidolon.${number}.offsetY"]`).val(), -100, 100),
-    scale: clamp(editor.find(`[name="eidolon.${number}.scale"]`).val(), 25, 400),
-    active: editor.find(`[name="eidolon.${number}.active"]`).prop("checked")
-  });
-}
-
-function populateEidolonEditor(actor, tab, number) {
-  const slot = getEidolons(actor).slots[number - 1];
-  const editor = tab.find(`[data-eidolon-editor="${number}"]`);
-  if (!slot || !editor.length) return;
-  editor.find(`[name="eidolon.${number}.title"]`).val(slot.title);
-  editor.find(`[name="eidolon.${number}.artwork"]`).val(slot.artwork);
-  editor.find(`[name="eidolon.${number}.offsetX"]`).val(slot.offsetX);
-  editor.find(`[name="eidolon.${number}.offsetY"]`).val(slot.offsetY);
-  editor.find(`[name="eidolon.${number}.scale"]`).val(slot.scale);
-  editor.find(`[name="eidolon.${number}.active"]`).prop("checked", slot.active);
-  refreshEidolonPreview(tab, number);
-}
-
-async function saveEidolonCurrencyFromTab(actor, tab, {notify = false} = {}) {
-  const data = getEidolons(actor);
-  data.currencyUuid = String(tab.find('[name="eidolonCurrencyUuid"]').val() || "").trim();
-  await actor.update({[`flags.${MODULE_ID}.eidolons`]: data}, {tsruAutosave: !notify, render: false});
-  if (notify) ui.notifications.info(`${actor.name}'s Eidolon activation currency was saved.`);
-}
-
-async function saveEidolonSlotFromEditor(actor, scope, number, {notify = false} = {}) {
-  const data = getEidolons(actor);
-  const slot = data.slots[number - 1];
-  const editor = scope.find(`[data-eidolon-editor="${number}"]`);
-  if (!slot || !editor.length) return;
-  slot.title = String(editor.find(`[name="eidolon.${number}.title"]`).val() || `Eidolon ${number}`);
-  slot.artwork = String(editor.find(`[name="eidolon.${number}.artwork"]`).val() || "");
-  slot.offsetX = clamp(editor.find(`[name="eidolon.${number}.offsetX"]`).val(), -100, 100);
-  slot.offsetY = clamp(editor.find(`[name="eidolon.${number}.offsetY"]`).val(), -100, 100);
-  slot.scale = clamp(editor.find(`[name="eidolon.${number}.scale"]`).val(), 25, 400);
-  slot.active = editor.find(`[name="eidolon.${number}.active"]`).prop("checked");
-  await actor.update({[`flags.${MODULE_ID}.eidolons`]: data}, {tsruAutosave: !notify, render: false});
-  if (notify) ui.notifications.info(`${actor.name}'s E${number} appearance was saved.`);
-}
-
-async function selectExistingEidolons(actor) {
-  if (!game.user.isGM) return ui.notifications.warn("Only a GM can import existing Eidolons.");
-  const sources = Array.from(game.actors ?? [])
-    .filter(source => source.type === "character" && source.id !== actor.id)
-    .sort((a, b) => String(a.name).localeCompare(String(b.name)));
-  if (!sources.length) return ui.notifications.warn("There are no other player-character sheets to import Eidolons from.");
-
-  const options = sources.map(source => `<option value="${escapeHTML(source.id)}">${escapeHTML(source.name)}</option>`).join("");
-  const content = `<form class="tsru-eidolon-import"><div class="form-group"><label>Select character</label><div class="form-fields"><select name="sourceActorId">${options}</select></div></div><p class="notes">Copies all six Eidolon titles, artwork, crop positions, scale, and activation state. The destination sheet's activation currency is preserved.</p></form>`;
-  new Dialog({
-    title: `Select Existing Eidolons â€” ${actor.name}`,
-    content,
-    buttons: {
-      ok: {
-        icon: '<i class="fas fa-check"></i>',
-        label: "OK",
-        callback: async html => {
-          const sourceId = String(html.find('[name="sourceActorId"]').val() || "");
-          const source = game.actors.get(sourceId);
-          if (!source) return ui.notifications.error("The selected character sheet could not be found.");
-          const sourceData = getEidolons(source);
-          const destinationData = getEidolons(actor);
-          destinationData.slots = sourceData.slots.map((slot, index) => ({
-            number: index + 1,
-            active: Boolean(slot.active),
-            title: String(slot.title || `Eidolon ${index + 1}`),
-            artwork: String(slot.artwork || ""),
-            offsetX: clamp(slot.offsetX, -100, 100),
-            offsetY: clamp(slot.offsetY, -100, 100),
-            scale: clamp(slot.scale, 25, 400)
-          }));
-          await actor.update({[`flags.${MODULE_ID}.eidolons`]: destinationData});
-          ui.notifications.info(`Imported Eidolons from ${source.name} to ${actor.name}.`);
-          for (const sheet of Object.values(ui.windows ?? {})) {
-            if ((sheet.actor ?? sheet.document)?.id === actor.id) sheet.render(false);
-          }
-        }
-      },
-      cancel: {icon: '<i class="fas fa-times"></i>', label: "Cancel"}
-    },
-    default: "ok"
-  }).render(true);
-}
-
-function activateEidolonListeners(actor, tab, app) {
-  tab.find("[data-action='activate-eidolon']").on("click", async event => activateEidolon(actor, Number(event.currentTarget.dataset.eidolon)));
-  if (!game.user.isGM) return;
-
-  tab.find("[data-action='select-existing-eidolons']").on("click", () => selectExistingEidolons(actor));
-
-  const slotTimers = new Map();
-  const slotRunning = new Set();
-  const slotQueued = new Set();
-  const runSlotAutosave = async (number, scope) => {
-    if (slotRunning.has(number)) { slotQueued.add(number); return; }
-    slotRunning.add(number);
-    try {
-      await saveEidolonSlotFromEditor(actor, scope, number);
-      scope.addClass("tsru-autosave-saved");
-      window.setTimeout(() => scope.removeClass("tsru-autosave-saved"), 500);
-    } catch (error) {
-      console.error(`${MODULE_ID} | Eidolon autosave failed`, error);
-      ui.notifications.error(`Could not autosave ${actor.name}'s E${number} configuration.`);
-    } finally {
-      slotRunning.delete(number);
-      if (slotQueued.delete(number)) runSlotAutosave(number, scope);
-    }
-  };
-  const scheduleSlotAutosave = (number, scope, immediate = false) => {
-    window.clearTimeout(slotTimers.get(number));
-    slotTimers.set(number, window.setTimeout(() => runSlotAutosave(number, scope), immediate ? 0 : 550));
-  };
-  let currencyTimer = null;
-  const scheduleCurrencyAutosave = immediate => {
-    window.clearTimeout(currencyTimer);
-    currencyTimer = window.setTimeout(() => saveEidolonCurrencyFromTab(actor, tab).catch(error => {
-      console.error(`${MODULE_ID} | Eidolon currency autosave failed`, error);
-      ui.notifications.error(`Could not autosave ${actor.name}'s Eidolon currency.`);
-    }), immediate ? 0 : 550);
-  };
-
-  tab.find("[data-action='configure-eidolon']").on("click", event => {
-    const number = Number(event.currentTarget.dataset.eidolon);
-    populateEidolonEditor(actor, tab, number);
-    const popout = tab.find(`[data-eidolon-popout="${number}"]`);
-    popout.data("tsru-return-parent", popout.parent()[0]);
-    popout.prop("hidden", false).addClass("open").appendTo(document.body);
-  });
-  tab.find("[data-action='close-eidolon-config']").on("click", event => {
-    const popout = $(event.currentTarget).closest("[data-eidolon-popout]");
-    const returnParent = popout.data("tsru-return-parent");
-    popout.prop("hidden", true).removeClass("open");
-    if (returnParent?.isConnected) popout.appendTo(returnParent);
-    else popout.remove();
-  });
-  tab.find(".file-picker").on("click", event => {
-    const target = event.currentTarget.dataset.target;
-    const scope = $(event.currentTarget).closest("[data-eidolon-popout]").length ? $(event.currentTarget).closest("[data-eidolon-popout]") : tab;
-    const popout = scope.is("[data-eidolon-popout]") ? scope : $();
-    let restored = false;
-    const restorePopout = () => {
-      if (restored || !popout.length) return;
-      restored = true;
-      popout.prop("hidden", false).addClass("open");
-    };
-    const picker = new FilePicker({
-      type: event.currentTarget.dataset.type || "image",
-      current: scope.find(`[name="${target}"]`).val(),
-      callback: path => {
-        scope.find(`[name="${target}"]`).val(path).trigger("input").trigger("change");
-        restorePopout();
-      }
-    });
-    const originalClose = picker.close.bind(picker);
-    picker.close = async (...args) => {
-      try { return await originalClose(...args); }
-      finally { restorePopout(); }
-    };
-    if (popout.length) popout.prop("hidden", true);
-    Promise.resolve(picker.browse()).catch(error => {
-      restorePopout();
-      console.error(`${MODULE_ID} | Could not open Eidolon artwork browser`, error);
-    });
-  });
-  tab.find("[data-eidolon-editor] input").on("input change", event => {
-    const editorElement = event.currentTarget.closest("[data-eidolon-editor]");
-    const number = Number(editorElement.dataset.eidolonEditor);
-    const popout = $(event.currentTarget).closest("[data-eidolon-popout]");
-    refreshEidolonPreview(popout, number);
-    refreshEidolonStageDraft(tab, $(editorElement), number);
-    scheduleSlotAutosave(number, popout, event.type === "change" && ["checkbox", "radio"].includes(event.currentTarget.type));
-  });
-  tab.find("[data-eidolon-preview-art]").on("pointerdown", event => {
-    const slot = Number(event.currentTarget.dataset.eidolonPreviewArt);
-    const popout = $(event.currentTarget).closest("[data-eidolon-popout]");
-    const editor = popout.find(`[data-eidolon-editor="${slot}"]`);
-    const xInput = editor.find(`[name="eidolon.${slot}.offsetX"]`);
-    const yInput = editor.find(`[name="eidolon.${slot}.offsetY"]`);
-    const startX = event.clientX;
-    const startY = event.clientY;
-    const initialX = Number(xInput.val()) || 0;
-    const initialY = Number(yInput.val()) || 0;
-    const preview = event.currentTarget.closest(".tsru-eidolon-popout-preview");
-    const rect = preview.getBoundingClientRect();
-    event.currentTarget.setPointerCapture(event.pointerId);
-    const move = moveEvent => {
-      xInput.val(clamp(initialX + ((moveEvent.clientX - startX) / rect.width) * 100, -100, 100));
-      yInput.val(clamp(initialY + ((moveEvent.clientY - startY) / rect.height) * 100, -100, 100));
-      refreshEidolonPreview(popout, slot);
-    };
-    const finish = () => {
-      event.currentTarget.removeEventListener("pointermove", move);
-      event.currentTarget.removeEventListener("pointerup", finish);
-      event.currentTarget.removeEventListener("pointercancel", finish);
-      scheduleSlotAutosave(slot, popout, true);
-    };
-    event.currentTarget.addEventListener("pointermove", move);
-    event.currentTarget.addEventListener("pointerup", finish);
-    event.currentTarget.addEventListener("pointercancel", finish);
-  });
-  tab.find('[name="eidolonCurrencyUuid"]').on("input change", event => scheduleCurrencyAutosave(event.type === "change"));
-  tab.find('[name="eidolonCurrencyUuid"]').on("drop", event => {
-    event.preventDefault();
-    try {
-      const dropped = JSON.parse(event.originalEvent?.dataTransfer?.getData("text/plain") || "{}");
-      if (dropped.type === "Item" && dropped.uuid) {
-        event.currentTarget.value = dropped.uuid;
-        $(event.currentTarget).trigger("change");
-      }
-    } catch (_error) {}
-  });
-  tab.find("[data-action='save-eidolon-currency']").on("click", async () => {
-    window.clearTimeout(currencyTimer);
-    await saveEidolonCurrencyFromTab(actor, tab, {notify: true});
-  });
-  tab.find("[data-action='save-eidolon']").on("click", async event => {
-    const number = Number(event.currentTarget.dataset.eidolon);
-    window.clearTimeout(slotTimers.get(number));
-    const popout = $(event.currentTarget).closest("[data-eidolon-popout]");
-    await saveEidolonSlotFromEditor(actor, popout, number, {notify: true});
-    const returnParent = popout.data("tsru-return-parent");
-    popout.prop("hidden", true).removeClass("open");
-    if (returnParent?.isConnected) popout.appendTo(returnParent);
-    else popout.remove();
-  });
-}
-
-async function injectEidolonTab(app, html) {
-  const actor = app.actor ?? app.document;
-  if (actor?.documentName !== "Actor" || actor.type !== "character") return;
-  const rootElement = resolveActorSheetRoot(app, html);
-  if (!rootElement) return;
-  const root = $(rootElement);
-  const existingControl = root.find('nav [data-tab="tsru-eidolons"]');
-  const existingTab = root.find('.tsru-eidolon-tab[data-tab="tsru-eidolons"]');
-  if (existingControl.length && existingTab.length) {
-    refreshEidolonTabDisplay(actor, existingTab);
-    return;
-  }
-  existingControl.remove();
-  existingTab.remove();
-  if (root.attr("data-tsru-eidolons-injecting") === "true") return;
-  root.attr("data-tsru-eidolons-injecting", "true");
-  const nav = root.find('nav.tabs[data-group="primary"], nav.sheet-tabs[data-group="primary"], .tabs-right nav.tabs').first();
-  let body = root.find('.tab-body').first();
-  if (!body.length) body = root.find('.sheet-body').first();
-  if (!body.length) body = root.find('[data-application-part="body"]').first();
-  if (!nav.length || !body.length) { root.removeAttr("data-tsru-eidolons-injecting"); return; }
-  nav.append(`<a class="item control tsru-tab-control" data-action="tab" data-tab="tsru-eidolons" data-group="primary" data-tooltip="Eidolon Resonance" aria-label="Eidolon Resonance"><i class="fas fa-gem"></i><span class="tsru-tab-label">Eidolons</span></a>`);
-  body.append(await renderTemplate(`modules/${MODULE_ID}/templates/eidolon-tab.hbs`, await eidolonTabData(actor)));
-  const tab = body.find('.tsru-eidolon-tab');
-  const control = nav.find('[data-tab="tsru-eidolons"]');
-  const fontFile = getEidolonConfig().titleFontFile;
-  if (fontFile) loadSplashFont(fontFile).then(font => tab.css("--tsru-eidolon-font", font)).catch(error => console.warn(`${MODULE_ID} | Could not load Eidolon title font`, error));
-  activateEidolonListeners(actor, tab, app);
-  control.on("click.tsru", event => {
-    event.preventDefault(); event.stopImmediatePropagation();
-    nav.find('[data-tab]').removeClass("active"); control.addClass("active");
-    root.find('.tab[data-group="primary"]').removeClass("active"); tab.addClass("active");
-    root.addClass("tsru-eidolon-tab-open");
-    if (app.tabGroups) app.tabGroups.primary = "tsru-eidolons";
-  });
-  nav.find('[data-tab]').not('[data-tab="tsru-eidolons"]').on("click.tsru-eidolon-hide", () => {
-    tab.removeClass("active");
-    root.removeClass("tsru-eidolon-tab-open");
-  });
-  root.removeAttr("data-tsru-eidolons-injecting");
-  if (app.tabGroups?.primary === "tsru-eidolons") control.trigger("click");
-}
-
-function observeCharacterSheetTabs(app) {
-  const actor = app.actor ?? app.document;
-  if (actor?.documentName !== "Actor" || actor.type !== "character") return;
-  const rawElement = app.element;
-  const root = rawElement?.jquery ? rawElement[0] : rawElement?.[0] instanceof HTMLElement ? rawElement[0] : rawElement;
-  if (!(root instanceof HTMLElement)) return;
-  const previous = state.sheetObservers.get(app);
-  if (previous?.root === root) return;
-  previous?.observer?.disconnect();
-  if (previous?.timer) clearTimeout(previous.timer);
-  const entry = {root, observer: null, timer: null};
-  const ensureTabs = () => {
-    if (!root.isConnected) return;
-    injectUltimateTab(app, root);
-    injectEidolonTab(app, root);
-  };
-  const observer = new MutationObserver(() => {
-    clearTimeout(entry.timer);
-    entry.timer = setTimeout(ensureTabs, 40);
-  });
-  entry.observer = observer;
-  observer.observe(root, {childList: true, subtree: true});
-  state.sheetObservers.set(app, entry);
-  setTimeout(ensureTabs, 0);
-  setTimeout(ensureTabs, 100);
-  setTimeout(ensureTabs, 300);
-}
-
-function openToughnessConfig(actor) {
-  const config = getToughness(actor);
-  const carousel = getConfig(actor);
-  const elements = getElements();
-  const weaknessRows = elements.map(element => `<label class="tsru-weakness-choice"><input type="checkbox" name="weakness" value="${escapeHTML(element.id)}" ${config.weaknesses.includes(element.id) ? "checked" : ""}><img src="${escapeHTML(element.icon || "icons/svg/aura.svg")}"><span>${escapeHTML(element.name)}</span></label>`).join("");
-  const content = `<form class="tsru-toughness-form">
-    <p>Configure this actor's Star Rail Toughness and elemental weaknesses. These controls are GM-only.</p>
-    <label class="tsru-toughness-toggle"><span><strong>Enable Toughness</strong><small>Show and automatically process Toughness while this actor is in combat.</small></span><input type="checkbox" name="enabled" ${config.enabled ? "checked" : ""}></label>
-    <div class="tsru-toughness-numbers"><label><strong>Current</strong><input type="number" name="current" min="0" value="${config.current}"></label><label><strong>Maximum</strong><input type="number" name="max" min="1" value="${config.max}"></label></div>
-    <fieldset><legend>Elemental Weaknesses</legend><div class="tsru-weakness-grid">${weaknessRows || "<em>Create Elements in Module Settings first.</em>"}</div></fieldset>
-    ${actor.type==="npc"?`<fieldset class="tsru-carousel-art-config"><legend>Initiative Carousel Artwork</legend><label><strong>NPC carousel art</strong><small>Used by the HSR initiative carousel instead of the token portrait.</small><div class="tsru-file-control"><input type="text" name="carouselImage" value="${escapeHTML(carousel.carouselImage)}" placeholder="Use combatant or actor image"><button type="button" data-carousel-picker title="Browse Files"><i class="fas fa-file-import"></i></button></div></label><div class="tsru-toughness-numbers"><label><strong>Art X</strong><input type="number" name="carouselImageX" min="0" max="100" value="${carousel.carouselImageX}"></label><label><strong>Art Y</strong><input type="number" name="carouselImageY" min="0" max="100" value="${carousel.carouselImageY}"></label><label><strong>Zoom %</strong><input type="number" name="carouselImageScale" min="50" max="400" value="${carousel.carouselImageScale}"></label></div></fieldset>`:""}
-  </form>`;
-  const dialog = new Dialog({title: `${actor.name} â€” Toughness`, content, buttons: {
-    save: {icon: '<i class="fas fa-save"></i>', label: "Save", callback: async html => {
-      const max = Math.max(1, Number(html.find('[name="max"]').val()) || 100);
-      const data = {enabled: html.find('[name="enabled"]').prop("checked"), max, current: clamp(html.find('[name="current"]').val(), 0, max), weaknesses: html.find('[name="weakness"]:checked').map((_i, field) => field.value).get(), temporaryWeaknesses: config.temporaryWeaknesses, discoveredWeaknesses: config.discoveredWeaknesses};
-      await actor.setFlag(MODULE_ID, "toughness", data);
-      if(actor.type==="npc")await actor.update({[`flags.${MODULE_ID}.ultimate.carouselImage`]:String(html.find('[name="carouselImage"]').val()||""),[`flags.${MODULE_ID}.ultimate.carouselImageX`]:clamp(html.find('[name="carouselImageX"]').val(),0,100),[`flags.${MODULE_ID}.ultimate.carouselImageY`]:clamp(html.find('[name="carouselImageY"]').val(),0,100),[`flags.${MODULE_ID}.ultimate.carouselImageScale`]:clamp(html.find('[name="carouselImageScale"]').val(),50,400)});
-      refreshToughnessBars();
-      refreshInitiativeCarousel();
-    }},
-    refill: {icon: '<i class="fas fa-shield"></i>', label: "Refill", callback: async html => {
-      const max = Math.max(1, Number(html.find('[name="max"]').val()) || config.max);
-      await actor.setFlag(MODULE_ID, "toughness", {...config, current: max, max});
-      refreshToughnessBars();
-    }},
-    hideWeaknesses: {icon: '<i class="fas fa-eye-slash"></i>', label: "Reset Discoveries", callback: async () => {
-      await actor.update({[`flags.${MODULE_ID}.toughness.discoveredWeaknesses`]: []});
-      refreshToughnessBars();
-    }}
-  }, default: "save"}, {width: 540, classes: ["tsru-toughness-dialog"]});
-  Hooks.once("renderDialog",rendered=>{if(rendered!==dialog)return;rendered.element.find("[data-carousel-picker]").on("click",event=>{event.preventDefault();const input=rendered.element.find('[name="carouselImage"]');new FilePicker({type:"image",current:input.val(),callback:path=>input.val(path).trigger("change")}).browse();});});
-  dialog.render(true);
-}
-
-function drawToughnessRect(graphics, x, y, width, height, color, alpha = 1, radius = 0) {
-  if (typeof graphics.roundRect === "function" && typeof graphics.fill === "function") {
-    graphics.roundRect(x, y, width, height, radius).fill({color, alpha});
-  } else {
-    graphics.beginFill(color, alpha);
-    radius ? graphics.drawRoundedRect(x, y, width, height, radius) : graphics.drawRect(x, y, width, height);
-    graphics.endFill();
-  }
-}
-
-function renderToughnessBar(token) {
-  token?.children?.filter?.(child => child.name === "tsru-toughness-bar").forEach(child => child.destroy({children: true}));
-  if (!token?.actor || !["npc","character"].includes(token.actor.type) || !game.combat?.combatants?.some(c => c.tokenId === token.document.id)) return;
-  const config = getToughness(token.actor);
-  if (!config.enabled) return;
-  const PIXIRef = globalThis.PIXI;
-  if (!PIXIRef?.Container || !PIXIRef?.Graphics) return;
-  const container = new PIXIRef.Container();
-  container.name = "tsru-toughness-bar";
-  container.eventMode = "none";
-  const graphics = new PIXIRef.Graphics();
-  const width = Math.max(54, token.w * .82);
-  const height = Math.max(7, Math.min(12, token.h * .055));
-  const x = (token.w - width) / 2;
-  const y = token.h - height - 15;
-  drawToughnessRect(graphics, x - 2, y - 2, width + 4, height + 4, 0x111318, .92, 3);
-  drawToughnessRect(graphics, x, y, width, height, 0x3c4149, 1, 2);
-  const fill = width * clamp(config.current / config.max, 0, 1);
-  if (fill > 0) drawToughnessRect(graphics, x, y, fill, height, 0xaeb4bd, 1, 2);
-  container.addChild(graphics);
-  const effectiveWeaknesses = effectiveToughnessWeaknesses(token);
-  const weaknessMode = toughnessWeaknessMode(token);
-  const visibleWeaknesses = weaknessMode === "none" ? [] : weaknessMode === "all" ? effectiveWeaknesses : game.user?.isGM
-    ? effectiveWeaknesses
-    : [...new Set([...config.discoveredWeaknesses.filter(id => effectiveWeaknesses.includes(id)), ...temporaryToughnessWeaknesses(token)])];
-  const weaknesses = getElements().filter(element => visibleWeaknesses.includes(element.id));
-  const dotSize = Math.max(7, Math.min(11, token.w * .055));
-  weaknesses.forEach((element, index) => {
-    const dot = new PIXIRef.Graphics();
-    const hex = Number.parseInt(String(element.readyColor || element.color || "#ffffff").replace("#", ""), 16) || 0xffffff;
-    const dx = x + index * (dotSize + 3);
-    if (typeof dot.circle === "function" && typeof dot.fill === "function") dot.circle(dx + dotSize / 2, y - dotSize / 2 - 4, dotSize / 2).fill({color: hex});
-    else { dot.beginFill(hex); dot.drawCircle(dx + dotSize / 2, y - dotSize / 2 - 4, dotSize / 2); dot.endFill(); }
-    container.addChild(dot);
-  });
-  token.addChild(container);
-}
-
-function refreshToughnessBars() {
-  for (const token of canvas?.tokens?.placeables ?? []) renderToughnessBar(token);
-}
-
-function injectToughnessHeaderButton(app, html) {
-  const actor = app.actor ?? app.document;
-  if (!game.user?.isGM || actor?.documentName !== "Actor" || !["npc","character"].includes(actor.type)) return;
-  const appElement = app.element?.jquery ? app.element : $(app.element ?? html);
-  const renderedElement = html?.jquery ? html : $(html);
-  const root = appElement.length ? appElement : renderedElement;
-  if (!root.length) return;
-  const header = root.find(".window-header").first();
-  if (!header.length) return;
-  const controls = header.find(".window-controls").first();
-  const addButton=(button,callback)=>{if(controls.length)controls.prepend(button);else header.find("button.close, [data-action='close']").first().before(button);button.on("click.tsru",event=>{event.preventDefault();event.stopPropagation();callback();});};
-  if(!root.find(".tsru-open-toughness").length)addButton($(`<button type="button" class="header-control icon tsru-open-toughness" data-tooltip="Configure Toughness" aria-label="Configure Toughness"><i class="fas fa-shield-halved"></i></button>`),()=>openToughnessConfig(actor));
-  if(!root.find(".tsru-open-boss-config").length)addButton($(`<button type="button" class="header-control icon tsru-open-boss-config" data-tooltip="Configure Boss Encounter" aria-label="Configure Boss Encounter"><i class="fas fa-skull"></i></button>`),()=>openUltimateConfig(actor,app));
-}
-
-function addActorHeaderButton(app, buttons) {
-  if (!game.user.isGM) return;
-  if (app.actor?.type === "npc") {
-    buttons.unshift({label: "Toughness", class: "tsru-open-toughness", icon: "fas fa-shield-halved", onclick: () => openToughnessConfig(app.actor)});
-    buttons.unshift({label: "Boss", class: "tsru-open-boss-config", icon: "fas fa-skull", onclick: () => openUltimateConfig(app.actor,app)});
-    return;
-  }
-  if (app.actor?.type !== "character") return;
-  buttons.unshift({label: "Toughness", class: "tsru-open-toughness", icon: "fas fa-shield-halved", onclick: () => openToughnessConfig(app.actor)});
-  buttons.unshift({
-    label: "Ultimate",
-    class: "tsru-open-config",
-    icon: "fas fa-burst",
-    onclick: () => {
-      const tabLink = app.element.find?.('[data-tab="tsru-ultimate"]');
-      if (tabLink?.length) tabLink.trigger("click");
-      else ui.notifications.warn("Open the full character sheet to access the Ultimate tab.");
-    }
-  });
-}
-
-function addHudTool(controls) {
-  const token = controls.find?.(control => control.name === "token") ?? controls.tokens ?? controls.token;
-  if (!token) return;
-  const tool = {
-    name: "tsru-orbs",
-    title: "Show Combat Party HUD",
-    icon: "fas fa-users",
-    order: 90,
-    button: true,
-    visible: game.user.isGM,
-    onClick: () => showCombatPartyHud(),
-    onChange: () => showCombatPartyHud()
-  };
-  if (Array.isArray(token.tools)) token.tools.push(tool);
-  else token.tools.tsruOrbs = tool;
-  const skillTool = {
-    name: "tsru-skills",
-    title: "Show Skill Points & Skills",
-    icon: "fas fa-hand-sparkles",
-    order: 91,
-    button: true,
-    visible: true,
-    onClick: showSkillUI,
-    onChange: showSkillUI
-  };
-  if (Array.isArray(token.tools)) token.tools.push(skillTool);
-  else token.tools.tsruSkills = skillTool;
-  const ahaTool = {
-    name: "tsru-aha-instant",
-    title: "Aha Instant",
-    icon: "fas fa-masks-theater",
-    order: 92,
-    button: true,
-    visible: game.user.isGM,
-    onClick: openAhaInstantControls,
-    onChange: openAhaInstantControls
-  };
-  if (Array.isArray(token.tools)) token.tools.push(ahaTool);
-  else token.tools.tsruAhaInstant = ahaTool;
-  const gmTool = {
-    name: "tsru-gm-panel",
-    title: "Star Rail GM Panel",
-    icon: "fas fa-sliders",
-    order: 93,
-    button: true,
-    visible: game.user.isGM,
-    onClick: openStarRailGMPanel,
-    onChange: openStarRailGMPanel
-  };
-  if (Array.isArray(token.tools)) token.tools.push(gmTool);
-  else token.tools.tsruGmPanel = gmTool;
-  const craftingTool={name:"tsru-crafting",title:"Party Crafting",icon:"fas fa-hammer",order:94,button:true,visible:true,onClick:openCrafting,onChange:openCrafting};
-  if(Array.isArray(token.tools))token.tools.push(craftingTool);else token.tools.tsruCrafting=craftingTool;
-}
-
-function registerApi() {
-  game.modules.get(MODULE_ID).api = {
-    getConfig,
-    setEnergy,
-    addEnergy: async (actor, amount, reason = "api") => {
-      if (!game.user.isGM) throw new Error("Only a GM can change Energy through the API.");
-      return addEnergy(actor, amount, reason);
-    },
-    requestUltimate,
-    requestSkill,
-    requestTechnique,
-    showTalentPopup,
-    getTechniquePoints: currentTechniquePoints,
-    setTechniquePoints,
-    getSkillPoints: currentSkillPoints,
-    setSkillPoints,
-    getTalentPoints: currentTalentPoints,
-    setTalentPoints,
-    resetCanvasToughness,
-    setTemporaryToughnessWeaknesses,
-    addTemporaryToughnessWeakness,
-    resetTemporaryToughnessWeaknesses,
-    insertActionAdvanceTurn,
-    openGMPanel: openStarRailGMPanel,
-    openAhaConfig: () => new AhaConfig().render(true),
-    openSkillPointConfig: () => new SkillPointConfig().render(true),
-    openTalentPointConfig: () => new TalentPointConfig().render(true),
-    openTechniquePointConfig: () => new TechniquePointConfig().render(true),
-    openEidolonConfig: () => new EidolonAppearanceConfig().render(true),
-    openLightConeGenerator,
-    openCrafting,
-    openRecipeManager:()=>new RecipeManager().render(true),
-    openCombatHudDesigner,
-    triggerSpecialAha,
-    showSkillUI,
-    showTalentUI,
-    showAllAbilityBubbles,
-    setLocalMainCharacter,
-    refreshResourceHuds,
-    getPunchline: currentPunchline,
-    setPunchline,
-    addPunchline,
-    spendPunchline,
-    showSplash,
-    refreshOrbs: refreshAllOrbs,
-    showOrb,
-    showCombatPartyHud,
-    showAhaButton,
-    triggerAhaInstant,
-    openElementManager: () => new ElementManager().render(true),
-    openPathManager: () => new PathManager().render(true),
-    toggleAhaOrb: async () => {
-      const layout = ahaLayout();
-      await saveAhaLayout({visible: !layout.visible});
-      refreshAhaButton();
-      return !layout.visible;
-    },
-    showUltimateUI: () => showCombatPartyHud({notify: false})
-  };
-}
-
-Hooks.once("init", () => {
-  registerSettings();
-  Handlebars.registerHelper("add", (a, b) => Number(a) + Number(b));
-  console.log(`${MODULE_ID} | Initialized`);
-});
-
-Hooks.once("ready", async () => {
-  await ensureDefaultPaths();
-  game.socket.on(SOCKET, onSocket);
-  registerApi();
-  applySceneNavigationVisibility();
-  let controlsDockQueued=false;
-  new MutationObserver(()=>{if(controlsDockQueued)return;controlsDockQueued=true;requestAnimationFrame(()=>{controlsDockQueued=false;dockSceneControlsBesideCarousel();applySceneNavigationVisibility();});}).observe(document.body,{childList:true,subtree:true});
-  window.addEventListener("resize",()=>requestAnimationFrame(()=>dockSceneControlsBesideCarousel()));
-  refreshAllOrbs();
-  refreshAhaButton();
-  refreshPunchlineHUD();
-  refreshTechniqueButtons();
-  refreshSkillUI();
-  refreshResourceHuds();
-  refreshTechniqueButtons();
-  refreshBossHud();
-  refreshInitiativeCarousel();
-  if(isAuthority())ensureBossEncounters(game.combat).catch(error=>console.error(`${MODULE_ID} | Boss encounter initialization failed`,error));
-  refreshTalentPointFont();
-  preloadAhaVideo();
-  registerAhaToolbarFallback();
-  if (game.modules.get("midi-qol")?.active) Hooks.on("midi-qol.RollComplete", processMidiWorkflow);
-  if (game.modules.get("midi-qol")?.active) Hooks.on("midi-qol.damageRollComplete", processMidiWorkflow);
-  Hooks.on("dnd5e.rollDamageV2", processDnd5eDamageRolls);
-  Hooks.on("dnd5e.applyDamage", (...args) => processDnd5eAppliedDamage(...args));
-  installDamageScrollingTextOverride();
-  repairSelectedLightConeAttunements().catch(error => console.error(`${MODULE_ID} | Failed to repair Light Cone attunement`, error));
-  refreshCombatPartyHud();
-});
-
-Hooks.on("dnd5e.prepareSheetContext", prepareLightConeAttunementContext);
-
-Hooks.on("canvasReady", installDamageScrollingTextOverride);
-
-Hooks.on("preCreateActor", actor => {
-  if (actor.type !== "character" || foundry.utils.hasProperty(actor._source, `flags.${MODULE_ID}.eidolons`)) return;
-  actor.updateSource({[`flags.${MODULE_ID}.eidolons`]: eidolonDataDefaults()});
-});
-
-Hooks.on("renderActorSheet", injectUltimateTab);
-Hooks.on("renderCharacterActorSheet", injectUltimateTab);
-Hooks.on("renderActorSheet", injectEidolonTab);
-Hooks.on("renderCharacterActorSheet", injectEidolonTab);
-Hooks.on("renderActorSheet", observeCharacterSheetTabs);
-Hooks.on("renderCharacterActorSheet", observeCharacterSheetTabs);
-Hooks.on("renderActorSheet", injectToughnessHeaderButton);
-Hooks.on("renderApplicationV2", (app, html) => {
-  const actor = app.actor ?? app.document;
-  if (actor?.documentName === "Actor" && actor.type === "character") {
-    injectUltimateTab(app, html);
-    injectEidolonTab(app, html);
-    injectEnergyAbility(app, html);
-    injectCharacterBadges(app, html);
-    injectLightConeSheetPanel(app, html);
-    activateLightConeInventoryContext(app, html);
-    observeCharacterSheetTabs(app);
-    requestAnimationFrame(() => {
-      const root = app.element?.jquery ? app.element : $(app.element);
-      injectUltimateTab(app, root);
-      injectEidolonTab(app, root);
-      injectEnergyAbility(app, root);
-      injectCharacterBadges(app, root);
-      injectLightConeSheetPanel(app, root);
-      activateLightConeInventoryContext(app, root);
-    });
-  }
-  if (actor?.documentName === "Actor" && ["npc","character"].includes(actor.type)) injectToughnessHeaderButton(app, html);
-});
-Hooks.on("renderActorSheet", injectEnergyAbility);
-Hooks.on("renderCharacterActorSheet", injectEnergyAbility);
-Hooks.on("renderActorSheet", injectCharacterBadges);
-Hooks.on("renderCharacterActorSheet", injectCharacterBadges);
-Hooks.on("renderActorSheet", injectLightConeSheetPanel);
-Hooks.on("renderCharacterActorSheet", injectLightConeSheetPanel);
-Hooks.on("renderActorSheet", activateLightConeInventoryContext);
-Hooks.on("renderCharacterActorSheet", activateLightConeInventoryContext);
-Hooks.on("getActorSheetHeaderButtons", addActorHeaderButton);
-Hooks.on("getSceneControlButtons", addHudTool);
-Hooks.on("renderSceneControls", () => requestAnimationFrame(dockSceneControlsBesideCarousel));
-Hooks.on("renderSceneControlsV2", () => requestAnimationFrame(dockSceneControlsBesideCarousel));
-Hooks.on("hotbarDrop", (_bar, data, slot) => {
-  if (data?.type !== "TSRUAction") return true;
-  createStarRailActionMacro(data, slot).catch(error => { console.error(`${MODULE_ID} | Could not create action macro`, error); ui.notifications.error(`Could not create Star Rail macro: ${error.message}`); });
-  return false;
-});
-Hooks.on("renderHotbar", () => requestAnimationFrame(refreshUltimateHotbarMacros));
-Hooks.on("createMacro", () => requestAnimationFrame(refreshUltimateHotbarMacros));
-Hooks.on("updateMacro", () => requestAnimationFrame(refreshUltimateHotbarMacros));
-Hooks.on("deleteMacro", () => requestAnimationFrame(refreshUltimateHotbarMacros));
-Hooks.on("createChatMessage", processCoreAttackMessage);
-
-function renderManualDamageControl(controlElement, message, suppliedApplications = null, suppliedDone = null) {
-  if (!controlElement || !message) return;
-  const control = $(controlElement);
-  const amount = manualChatDamageAmount(message);
-  const breakDamageRoll = Boolean(message.getFlag(MODULE_ID, "breakDamageRoll"));
-  const superBreakDamageRoll = Boolean(message.getFlag(MODULE_ID, "superBreakDamageRoll"));
-  const applyDamageLabel = breakDamageRoll ? `Apply ${amount} ${superBreakDamageRoll ? "Super Break" : "Break"} as HP Damage` : `Apply ${amount} as damage`;
-  const applications = Array.isArray(suppliedApplications) ? suppliedApplications : manualDamageApplications(message);
-  const done = suppliedDone ?? Boolean(message.getFlag(MODULE_ID, "manualDamageDone"));
-  control.empty();
-  for (const application of applications) {
-    control.append(`<button type="button" class="tsru-chat-damage-applied" disabled><i class="fas fa-check"></i><span>Applied ${application.total ?? amount} to ${escapeHTML(application.targetName ?? "target")}</span></button>`);
-  }
-  if (done) {
-    control.append('<div class="tsru-chat-damage-finished"><i class="fas fa-flag-checkered"></i><span>Done applying damage</span></div>');
-    return;
-  }
-  const applyButton = $(`<button type="button" class="tsru-chat-damage-apply"><i class="fas fa-crosshairs"></i><span>${applyDamageLabel}</span></button>`);
-  const doneButton = $('<button type="button" class="tsru-chat-damage-done"><i class="fas fa-flag-checkered"></i><span>Done applying damage</span></button>');
-  control.append(applyButton, doneButton);
-  applyButton.on("click.tsru", async event => {
-    const button = event.currentTarget;
-    const targets = [...(game.user.targets ?? [])];
-    if (targets.length !== 1) return ui.notifications.warn("Target exactly one creature before applying this roll as damage.");
-    const target = targets[0];
-    const targetUuid = target.document?.uuid ?? target.actor?.uuid;
-    if (!targetUuid) return ui.notifications.error("The targeted creature could not be resolved.");
-    const applicationId = foundry.utils.randomID();
-    button.disabled = true;
-    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Applying damageâ€¦</span>';
-    if (isAuthority()) {
-      const result = await applyChatRollAsDamage(message, target.document ?? target, game.user, applicationId);
-      const notify = result.ok ? ui.notifications.info : ui.notifications.error;
-      notify.call(ui.notifications, result.message);
-      renderManualDamageControl(controlElement, message, result.applications, result.done);
-    } else {
-      game.socket.emit(SOCKET, {type: "applyManualChatDamage", sourceUserId: game.user.id, messageId: message.id, targetUuid, applicationId});
-      window.setTimeout(() => {
-        if (button.isConnected && button.disabled) {
-          button.disabled = false;
-          button.innerHTML = `<i class="fas fa-crosshairs"></i><span>${applyDamageLabel}</span>`;
-        }
-      }, 5000);
-    }
-  });
-  doneButton.on("click.tsru", async event => {
-    event.currentTarget.disabled = true;
-    if (isAuthority()) {
-      const result = await finishManualChatDamage(message, game.user);
-      const notify = result.ok ? ui.notifications.info : ui.notifications.error;
-      notify.call(ui.notifications, result.message);
-      renderManualDamageControl(controlElement, message, result.applications, result.done);
-    } else game.socket.emit(SOCKET, {type: "finishManualChatDamage", sourceUserId: game.user.id, messageId: message.id});
-  });
-}
-
-Hooks.on("renderChatMessage", (message, html) => {
-  const root = html?.jquery ? html : $(html);
-  const lightConeActor = actorFromChatMessage(message);
-  const lightCone = Array.isArray(message.rolls) && message.rolls.length && lightConeActor ? equippedLightCone(lightConeActor) : null;
-  if (lightCone && !root.find("[data-tsru-light-cone-info]").length) {
-    const info = $(`<details class="tsru-light-cone-roll-info" data-tsru-light-cone-info><summary><i class="fas fa-id-card"></i> Light Cone Info</summary><button type="button"><img src="${escapeHTML(getLightConeData(lightCone).image)}"><span>Post ${escapeHTML(lightCone.name)} to chat</span></button></details>`);
-    const destination = root.find(".message-content").last();
-    (destination.length ? destination : root).append(info);
-    info.find("button").on("click.tsru", () => postLightConeToChat(lightCone, lightConeActor));
-  }
-  const roller = actorFromChatMessage(message);
-  if (manualChatDamageAmount(message) > 0 && roller && (game.user.isGM || roller.isOwner) && !root.find("[data-tsru-temp-hp-message]").length) {
-    const tempHpControl = $('<div class="tsru-chat-temp-hp-control"></div>');
-    const tempHpButton = $(`<button type="button" data-tsru-temp-hp-message="${escapeHTML(message.id)}"><i class="fas fa-shield-halved"></i><span>Add as TempHP</span></button>`);
-    tempHpControl.append(tempHpButton);
-    const destination = root.find(".message-content").last();
-    (destination.length ? destination : root).append(tempHpControl);
-    tempHpButton.on("click.tsru", async event => {
-      const button = event.currentTarget;
-      const targets = [...(game.user.targets ?? [])];
-      if (targets.length !== 1) return ui.notifications.warn("Target exactly one creature before adding this roll as temporary HP.");
-      const target = targets[0];
-      const targetUuid = target.document?.uuid ?? target.actor?.uuid;
-      if (!targetUuid) return ui.notifications.error("The targeted creature could not be resolved.");
-      button.disabled = true;
-      button.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Adding Temp HPâ€¦</span>';
-      if (isAuthority()) {
-        const result = await applyChatRollAsTempHp(message, target.document ?? target, game.user);
-        const notify = result.ok ? ui.notifications.info : ui.notifications.error;
-        notify.call(ui.notifications, result.message);
-        button.disabled = false;
-        button.innerHTML = '<i class="fas fa-shield-halved"></i><span>Add as TempHP</span>';
-      } else if (activeGM()) {
-        game.socket.emit(SOCKET, {type: "applyChatTempHp", sourceUserId: game.user.id, messageId: message.id, targetUuid});
-        window.setTimeout(() => {
-          if (button.isConnected && button.disabled) {
-            button.disabled = false;
-            button.innerHTML = '<i class="fas fa-shield-halved"></i><span>Add as TempHP</span>';
-          }
-        }, 5000);
-      } else {
-        ui.notifications.error("A GM must be connected to add temporary HP.");
-        button.disabled = false;
-        button.innerHTML = '<i class="fas fa-shield-halved"></i><span>Add as TempHP</span>';
-      }
-    });
-  }
-  if (isManualChatDamageEligible(message) && (game.user.isGM || roller?.isOwner)) {
-    const control = $(`<div class="tsru-chat-damage-control" data-tsru-chat-damage-control="${escapeHTML(message.id)}"></div>`);
-    const destination = root.find(".message-content").last();
-    (destination.length ? destination : root).append(control);
-    renderManualDamageControl(control[0], message);
-  }
-  root.find("[data-tsru-complete-ultimate]").each((_index, element) => {
-    const actor = game.actors.get(element.dataset.tsruCompleteUltimate);
-    if (!game.user.isGM && !actor?.isOwner) element.remove();
-  });
-  root.find("[data-tsru-complete-ultimate]").on("click.tsru", async event => {
-    const button = event.currentTarget;
-    const actorId = button.dataset.tsruCompleteUltimate;
-    button.disabled = true;
-    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Completing Ultimateâ€¦';
-    if (isAuthority()) await completeUltimate(actorId);
-    else game.socket.emit(SOCKET, {type: "ultimateComplete", actorId, userId: game.user.id});
-  });
-  root.find("[data-tsru-complete-elation]").on("click.tsru", async event => {
-    const button = event.currentTarget;
-    const combatantId = button.dataset.tsruCompleteElation;
-    button.disabled = true;
-    if (isAuthority()) await completeElationAction(combatantId, game.user.id);
-    else game.socket.emit(SOCKET, {type: "elationActionComplete", combatantId, userId: game.user.id});
-  });
-});
-Hooks.on("tsruEnergyChanged", (actor, before, after, reason) => dispatchTalentEvent("energyChanged", {sourceActor: actor, before, after, amount: after - before, reason}));
-Hooks.on("tsruPunchlineChanged", value => { state.gmPanel?.refreshLiveValues(); dispatchTalentEvent("punchlineChanged", {value}); });
-Hooks.on("tsruSkillPointsChanged", value => { state.gmPanel?.refreshLiveValues(); dispatchTalentEvent("skillPointsChanged", {value}); });
-Hooks.on("tsruTalentPointsChanged", (actor, before, after) => { refreshTalentCounter(actor); dispatchTalentEvent("talentPointsChanged", {sourceActor: actor, before, after, amount: after - before}); });
-Hooks.on("updateActor", (actor, changes, options) => {
-  refreshOrb(actor);
-  refreshSkillUI();
-  refreshTalentCounter(actor);
-  refreshResourceHuds();
-  refreshToughnessBars();
-  state.gmPanel?.refreshLiveValues();
-  refreshCombatPartyHud();
-  refreshUltimateHotbarMacros();
-  refreshPunchlineHUD();
-  refreshBossHud();
-  refreshInitiativeCarousel();
-  if(isAuthority())handleBossPhaseDefeat(actor).catch(error=>console.error(`${MODULE_ID} | Boss phase check failed`,error));
-  const talentChanges = foundry.utils.getProperty(changes, `flags.${MODULE_ID}.ultimate`);
-  if (isAuthority() && actor.type === "character" && talentChanges && (
-    Object.hasOwn(talentChanges, "talentPointsCurrent") ||
-    Object.hasOwn(talentChanges, "talentPointsMax") ||
-    Object.hasOwn(talentChanges, "talentPointsOvercapMax") ||
-    Object.hasOwn(talentChanges, "talentCombatId")
-  )) {
-    const combat = talentCombatForActor(actor);
-    if (combat) {
-      const config = getConfig(actor);
-      if (config.talentCombatId !== combat.id) {
-        actor.update({[`flags.${MODULE_ID}.ultimate.talentCombatId`]: combat.id}).catch(error =>
-          console.error(`${MODULE_ID} | Could not bind ${actor.name}'s Talent points to combat`, error)
-        );
-      } else if (talentPointLimits(actor).trigger > 0 && currentTalentPoints(actor) >= talentPointLimits(actor).trigger) {
-        queueTalentTurn(actor, combat);
-        window.setTimeout(() => processTalentTurnQueue(combat).catch(error => {
-          console.error(`${MODULE_ID} | Could not reconcile ${actor.name}'s ready Talent turn`, error);
-          ui.notifications.error(`Could not insert ${actor.name}'s Talent turn: ${error.message}`);
-        }), 0);
-      }
-    }
-  }
-  if (isAuthority() && actor.type === "character" && game.combat) maybeEnsureAhaCombatant(game.combat);
-  if (!options?.tsruAutosave && foundry.utils.hasProperty(changes, `flags.${MODULE_ID}.eidolons`)) {
-    for (const app of Object.values(ui.windows ?? {})) if ((app.actor ?? app.document)?.id === actor.id) app.render(false);
-  }
-  if (actor.type === "character" && Number(getConfig(actor).current) >= Number(getConfig(actor).max) && state.ultimateLocks.has(actor.id)) {
-    reconcileUltimateLock(actor.id);
-  }
-});
-Hooks.on("updateToken", token => { refreshToughnessBars(); refreshResourceHuds(); refreshBossHud(); refreshInitiativeCarousel(); if(isAuthority()&&token.actor)handleBossPhaseDefeat(token.actor).catch(error=>console.error(`${MODULE_ID} | Boss token phase check failed`,error)); state.gmPanel?.render(false); });
-Hooks.on("targetToken", user => { if (user.id === game.user.id) state.gmPanel?.refreshTargetHighlights(); });
-Hooks.on("controlToken", () => state.gmPanel?.refreshTargetHighlights());
-Hooks.on("deleteActor", actor => { state.orbs.get(actor.id)?.destroy(); state.skillButtons.get(actor.id)?.destroy(); state.talentButtons.get(actor.id)?.destroy(); state.techniqueButtons.get(actor.id)?.destroy(); refreshResourceHuds(); });
-for(const hook of ["createItem","updateItem","deleteItem"])Hooks.on(hook,()=>state.craftingApp?.render(false));
-Hooks.on("updateUser", user => { if (user.id === game.user.id) { refreshAllOrbs(); refreshSkillUI(); refreshResourceHuds(); refreshCombatPartyHud(); refreshInitiativeCarousel(); } });
-Hooks.on("updateSetting", setting => {
-  if (setting?.key?.startsWith(`${MODULE_ID}.skillPoint`)) refreshSkillUI();
-  if (setting?.key === `${MODULE_ID}.talentPointConfig`) {
-    refreshTalentPointFont();
-    refreshResourceHuds();
-    refreshCombatPartyHud();
-  }
-  if (setting?.key?.startsWith(`${MODULE_ID}.techniquePoint`)) refreshResourceHuds();
-  if (setting?.key === `${MODULE_ID}.elements`) {
-    refreshAllOrbs();
-    refreshCombatPartyHud();
-    refreshUltimateHotbarMacros();
-  }
-  if (setting?.key === `${MODULE_ID}.paths`) refreshCombatPartyHud();
-  if(setting?.key===`${MODULE_ID}.craftingRecipes`)state.craftingApp?.render(false);
-  if (setting?.key === `${MODULE_ID}.partySelections`) { refreshCombatPartyHud(); refreshTalentButtons(); }
-  if (setting?.key === `${MODULE_ID}.combatHudDesign`) {
-    refreshCombatPartyHud();
-    for (const app of Object.values(ui.windows ?? {})) if ((app.actor ?? app.document)?.type === "character") app.render(false);
-  }
-  if (setting?.key === `${MODULE_ID}.ahaConfig` || setting?.key === `${MODULE_ID}.punchline`) {
-    if (!getAhaConfig().elationEnabled) document.querySelectorAll(".tsru-aha-overlay").forEach(element => element.remove());
-    refreshAhaButton();
-    refreshPunchlineHUD();
-    if (setting?.key === `${MODULE_ID}.ahaConfig`) preloadAhaVideo();
-  }
-  if (setting?.key === `${MODULE_ID}.punchlineOverride`) refreshPunchlineHUD();
-  if(setting?.key===`${MODULE_ID}.initiativeCarouselConfig`)refreshInitiativeCarousel();
-  if(setting?.key===`${MODULE_ID}.initiativeFrameColors`){refreshInitiativeCarousel();for(const app of Object.values(ui.windows??{}))if((app.actor??app.document)?.type==="character")app.render(false);}
-});
-Hooks.on("canvasReady", () => { refreshAllOrbs(); refreshSkillUI(); refreshTalentButtons(); refreshTechniqueButtons(); refreshPunchlineHUD(); refreshToughnessBars(); refreshCombatPartyHud(); refreshBossHud(); refreshInitiativeCarousel(); });
-Hooks.on("canvasReady", refreshAhaButton);
-
-Hooks.on("deleteCombat", async combat => {
-  refreshResourceHuds();
-  state.partyCombatHud?.destroy();
-  state.bossHud?.destroy();
-  state.bossPhaseControl?.destroy();
-  state.initiativeCarousel?.destroy();
-  state.bossTransitionLocks.clear();
-  state.punchlineMeter?.destroy();
-  state.skillMeter?.destroy();
-  await dispatchTalentEvent("combatEnd", {combat}, combat.id);
-  state.lastTalentTurns.delete(combat.id);
-  state.lastCombatTurns.delete(combat.id);
-  state.talentTurnQueues.delete(combat.id);
-  state.talentTurnQueueLocks.delete(combat.id);
-  if (state.specialAha?.combatId === combat.id) state.specialAha = null;
-  state.actionAdvances.delete(combat.id);
-  state.ultimateLocks.clear();
-  for (const pending of state.splashBroadcasts.values()) if (pending?.timer) window.clearTimeout(pending.timer);
-  state.splashBroadcasts.clear();
-  state.receivedSplashIds.clear();
-  const ultimateQueue = state.ultimateQueues.get(combat.id);
-  if (ultimateQueue?.startTimer) window.clearTimeout(ultimateQueue.startTimer);
-  state.ultimateQueues.delete(combat.id);
-  for (const pending of state.pendingUltimates.values()) if (pending?.timer) window.clearTimeout(pending.timer);
-  state.pendingUltimates.clear();
-  state.skillLocks.clear();
-  for (const pending of state.pendingSkills.values()) if (pending?.timer) window.clearTimeout(pending.timer);
-  state.pendingSkills.clear();
-  for (const pending of state.pendingElationActions.values()) if (pending?.timer) window.clearTimeout(pending.timer);
-  state.pendingElationActions.clear();
-  state.activeElationActions.clear();
-  state.lastElationSequenceKey = "";
-  for (const combatant of combat.combatants ?? []) {
-    if (combatant.getFlag(MODULE_ID, "temporaryUltimate")) state.ultimateLocks.delete(combatant.actorId);
-  }
-  refreshAllOrbs();
-  for (const actor of game.actors.filter(entry => entry.type === "character")) refreshTalentCounter(actor);
-  state.gmPanel?.render(false);
-});
-
-Hooks.on("updateCombat", async combat => {
-  refreshToughnessBars();
-  refreshResourceHuds();
-  refreshCombatPartyHud();
-  refreshPunchlineHUD();
-  refreshSkillUI();
-  refreshBossHud();
-  refreshInitiativeCarousel();
-  for (const actor of game.actors.filter(entry => entry.type === "character")) refreshTalentCounter(actor);
-  state.gmPanel?.render(false);
-  if (!isAuthority()) return;
-  await clearExpiredEnergyLocks(combat);
-  const previousTurn = state.lastCombatTurns.get(combat.id);
-  const currentTurn = combatTurnSnapshot(combat);
-  state.lastCombatTurns.set(combat.id, currentTurn);
-  if (state.suppressCombatHook) return;
-  if (previousTurn?.id && (previousTurn.id !== currentTurn?.id || previousTurn.round !== combat.round)) {
-    await restoreBrokenCombatant(combat.combatants.get(previousTurn.id));
-    if (await cleanupDepartedTemporaryTurn(combat, previousTurn)) {
-      await removeOrphanedTemporaryTurns(combat);
-      state.lastCombatTurns.set(combat.id, combatTurnSnapshot(combat));
-      state.gmPanel?.render(false);
-      return;
-    }
-  }
-  await removeOrphanedTemporaryTurns(combat);
-  if (previousTurn?.id && (previousTurn.id !== currentTurn?.id || previousTurn.round !== combat.round) && await processTalentTurnQueue(combat)) return;
-  if (await skipBrokenCombatantTurn(combat, combat.combatant)) return;
-  const ultimateQueue = state.ultimateQueues.get(combat.id);
-  if (ultimateQueue?.waitTurnId && combat.combatant?.id !== ultimateQueue.waitTurnId) {
-    ultimateQueue.resumeCombatantId = combat.combatant?.id ?? null;
-    ultimateQueue.resumeRound = combat.round;
-    ultimateQueue.waitTurnId = null;
-    await processUltimateQueue(combat.id);
-    return;
-  }
-  const advance = state.actionAdvances.get(combat.id);
-  if (advance && combat.combatant?.id !== advance.combatantId) {
-    if (!(advance.aha && isElationActionCombatant(combat.combatant))) {
-      await finishActionAdvance(combat, advance);
-      state.gmPanel?.render(false);
-      return;
-    }
-  }
-  if (!combat.combatants.find(isAhaCombatant)) await maybeEnsureAhaCombatant(combat);
-  const current = combat.combatant;
-
-  if (combat.started && current) {
-    const turnKey = `${combat.id}:${combat.round}:${current.id}`;
-    const previous = state.lastTalentTurns.get(combat.id);
-    if (previous?.key !== turnKey) {
-      if (previous) await dispatchTalentEvent("turnEnd", {combat, combatant: combat.combatants.get(previous.combatantId) ?? null, sourceActor: game.actors.get(previous.actorId) ?? null}, previous.key);
-      state.lastTalentTurns.set(combat.id, {key: turnKey, combatantId: current.id, actorId: current.actor?.id ?? null});
-      await dispatchTalentEvent("turnStart", {combat, combatant: current, sourceActor: current.actor ?? null}, turnKey);
-    }
-  }
-  if (combat.started && isAhaCombatant(current)) {
-    const turnKey = `${combat.id}:${combat.round}:${current.id}`;
-    if (state.lastAhaTurnKey !== turnKey) {
-      state.lastAhaTurnKey = turnKey;
-      triggerAhaInstant();
-    }
-    await createElationActionTurns(combat);
-    return;
-  }
-  if (isElationActionCombatant(current)) {
-    await executeElationAction(current);
-    return;
-  }
-  if (isTalentTurnCombatant(current)) {
-    await beginTalentTurn(current);
-    return;
-  }
-  const temporary = current;
-  if (!temporary?.getFlag(MODULE_ID, "temporaryUltimate")) return;
-  const actor = temporary.actor;
-  if (!actor || state.ultimateLocks.has(actor.id)) return;
-  await removeUltimateTurn(temporary);
-});
-
-Hooks.on("updateCombatant", async (combatant, changed) => {
-  refreshBossHud();
-  refreshInitiativeCarousel();
-  state.bossPhaseControl?.render();
-  if(isAuthority())await ensureBossEncounter(combatant);
-  if (!isAuthority() || isAhaCombatant(combatant) || isElationActionCombatant(combatant) || isTalentTurnCombatant(combatant) || !("initiative" in changed)) return;
-  await maybeEnsureAhaCombatant(combatant.parent);
-});
-
-Hooks.on("createCombatant", combatant => {
-  state.gmPanel?.render(false);
-  window.setTimeout(refreshToughnessBars, 150);
-  window.setTimeout(refreshCombatPartyHud, 150);
-  window.setTimeout(refreshInitiativeCarousel,150);
-  window.setTimeout(()=>ensureBossEncounter(combatant).catch(error=>console.error(`${MODULE_ID} | Boss combatant initialization failed`,error)),100);
-  if (isAhaCombatant(combatant) || isElationActionCombatant(combatant) || isTalentTurnCombatant(combatant)) return;
-  window.setTimeout(() => maybeEnsureAhaCombatant(combatant.parent), 100);
-});
-
-Hooks.on("combatStart", async combat => {
-  refreshCombatPartyHud();
-  refreshPunchlineHUD();
-  refreshSkillUI();
-  refreshBossHud();
-  refreshInitiativeCarousel();
-  state.lastCombatTurns.set(combat.id, combatTurnSnapshot(combat));
-  if (isAuthority()) {
-    await ensureBossEncounters(combat);
-    await setSkillPoints(getSkillPointConfig().starting);
-    for (const actor of game.actors.filter(entry => talentCombatForActor(entry))) await setTalentPoints(actor, 0);
-    await dispatchTalentEvent("combatStart", {combat}, combat.id);
-  }
-  for (const actor of game.actors.filter(entry => entry.type === "character")) refreshTalentCounter(actor);
-  await maybeEnsureAhaCombatant(combat, {force: true});
-  // Foundry can emit combatStart before every client has observed the updated
-  // `started` state. Refresh again on the next task so combat-only HUDs do not
-  // remain hidden after being destroyed between encounters.
-  window.setTimeout(() => {
-    refreshResourceHuds();
-    refreshCombatPartyHud();
-    refreshPunchlineHUD();
-    refreshSkillUI();
-    refreshInitiativeCarousel();
-  }, 100);
-});
-Hooks.on("deleteCombatant", combatant => {
-  refreshBossHud();
-  refreshInitiativeCarousel();
-  state.bossPhaseControl?.render();
-  const tracked = state.lastCombatTurns.get(combatant.parent?.id);
-  if (tracked?.id === combatant.id) state.lastCombatTurns.set(combatant.parent.id, combatTurnSnapshot(combatant.parent));
-  state.gmPanel?.render(false);
-  const advance = state.actionAdvances.get(combatant.parent?.id);
-  if (advance?.combatantId === combatant.id) state.actionAdvances.delete(combatant.parent.id);
-  if (isElationActionCombatant(combatant)) {
-    const pending = state.pendingElationActions.get(combatant.id);
-    if (pending?.timer) window.clearTimeout(pending.timer);
-    state.pendingElationActions.delete(combatant.id);
-    state.activeElationActions.delete(combatant.id);
-  }
-  window.setTimeout(refreshToughnessBars, 100);
-  window.setTimeout(refreshCombatPartyHud, 100);
-  window.setTimeout(() => {
-    refreshPunchlineHUD();
-    if (isAuthority() && combatant.parent) maybeEnsureAhaCombatant(combatant.parent);
-  }, 100);
-});
-
-for (const hook of ["createToken", "deleteToken"]) Hooks.on(hook, token => {
-  const actor = token.actor ?? game.actors.get(token.actorId);
-  if (actor?.type === "character") refreshTalentCounter(actor);
-  state.gmPanel?.render(false);
-});
+YªçŠx-®éÜj×¢ëiºÚ+Š§j[h‘éÜ¢éí×·ß¤èµ©hºÚn¶X§zÍXÛÛœÝSÑSWÒQH[\Ë\Ý\‹\˜Z[][[X]\ÈŽÂ˜ÛÛœÝÓÐÒÑUH[Ù[K‰ÓSÑSWÒQXÂ‚˜ÛÛœÝQUSÔUÈHØš™XÝ™œ™Y^™JÂˆÚYˆ˜X[™[˜ÙH‹˜[YNˆX[™[˜ÙH‹XÛÛŽ˜[Ù[\ËÉÓSÑSWÒQKØ\ÜÙ]ËÜ]ËÔ]ÐX[™[˜ÙKœ™ØÛÛÜŽˆˆÙMXÎÎŸKˆÚYˆ˜™X]]H‹˜[YNˆ™X]]H‹XÛÛŽ˜[Ù[\ËÉÓSÑSWÒQKØ\ÜÙ]ËÜ]ËÔ]Ð™X]]Kœ™ØÛÛÜŽˆˆÙMXÎÎŸKˆÚYˆ™[šYÛX]H‹˜[YNˆ‘[šYÛX]H‹XÛÛŽ˜[Ù[\ËÉÓSÑSWÒQKØ\ÜÙ]ËÜ]ËÔ]Ñ[šYÛX]Kœ™ØÛÛÜŽˆˆÙMXÎÎŸKˆÚYˆ™\]Z[Xœš][H‹˜[YNˆ‘\]Z[Xœš][H‹XÛÛŽ˜[Ù[\ËÉÓSÑSWÒQKØ\ÜÙ]ËÜ]ËÔ]Ñ\]Z[Xœš][Kœ™ØÛÛÜŽˆˆÙMXÎÎŸKˆÚYˆ™š[˜[]H‹˜[YNˆ‘š[˜[]H‹XÛÛŽ˜[Ù[\ËÉÓSÑSWÒQKØ\ÜÙ]ËÜ]ËÔ]Ñš[˜[]Kœ™ØÛÛÜŽˆˆÙMXÎÎŸKˆÚYˆ™œ˜XÝ\™H‹˜[YNˆ‘œ˜XÝ\™H‹XÛÛŽ˜[Ù[\ËÉÓSÑSWÒQKØ\ÜÙ]ËÜ]ËÔ]Ñœ˜XÝ\™Kœ™ØÛÛÜŽˆˆÙMXÎÎŸKˆÚYˆš\›[ÛžH‹˜[YNˆ’\›[ÛžH‹XÛÛŽ˜[Ù[\ËÉÓSÑSWÒQKØ\ÜÙ]ËÜ]ËÔ]Ò\›[ÛžKœ™ØÛÛÜŽˆˆÙMXÎÎŸKˆÚYˆ›šZ[]H‹˜[YNˆ“šZ[]H‹XÛÛŽ˜[Ù[\ËÉÓSÑSWÒQKØ\ÜÙ]ËÜ]ËÔ]ÓšZ[]Kœ™ØÛÛÜŽˆˆÙMXÎÎŸKˆÚYˆ›Ü™\ˆ‹˜[YNˆ“Ü™\ˆ‹XÛÛŽ˜[Ù[\ËÉÓSÑSWÒQKØ\ÜÙ]ËÜ]ËÔ]ÓÜ™\‹œ™ØÛÛÜŽˆˆÙMXÎÎŸKˆÚYˆœ\›X[™[˜ÙH‹˜[YNˆ”\›X[™[˜ÙH‹XÛÛŽ˜[Ù[\ËÉÓSÑSWÒQKØ\ÜÙ]ËÜ]ËÔ]Ô\›X[™[˜ÙKœ™ØÛÛÜŽˆˆÙMXÎÎŸKˆÚYˆœ›ÜYØ][Ûˆ‹˜[YNˆ”›ÜYØ][Ûˆ‹XÛÛŽ˜[Ù[\ËÉÓSÑSWÒQKØ\ÜÙ]ËÜ]ËÔ]Ô›ÜYØ][Û‹œ™ØÛÛÜŽˆˆÙMXÎÎŸKˆÚYˆœ™[Y[Xœ˜[˜ÙH‹˜[YNˆ”™[Y[Xœ˜[˜ÙH‹XÛÛŽ˜[Ù[\ËÉÓSÑSWÒQKØ\ÜÙ]ËÜ]ËÔ]Ô™[Y[Xœ˜[˜ÙKœ™ØÛÛÜŽˆˆÙMXÎÎŸKˆÚYˆ˜Z[›^™H‹˜[YNˆ•˜Z[›^™H‹XÛÛŽ˜[Ù[\ËÉÓSÑSWÒQKØ\ÜÙ]ËÜ]ËÔ]Õ˜Z[›^™Kœ™ØÛÛÜŽˆˆÙMXÎÎŸKˆÚYˆ›Ü˜XÚ]H‹˜[YNˆ•›Ü˜XÚ]H‹XÛÛŽ˜[Ù[\ËÉÓSÑSWÒQKØ\ÜÙ]ËÜ]ËÔ]Õ›Ü˜XÚ]Kœ™ØÛÛÜŽˆˆÙMXÎÎŸB—JNÂ‚˜ÛÛœÝQUSÐÓÓ‘’QÈHØš™XÝ™œ™Y^™JÂˆ[˜X›Yˆ˜[ÙKˆÝ\œ™[ˆˆX^ˆLˆ™YÙ[”ØÛÜ™NˆLˆ]XÚÑØZ[ŽˆLˆ]XÚÙYØZ[ŽˆKˆ]XÚÙY[ÙNˆš]‹ˆXZ[”\Nˆ˜[ÙKˆ\QÓSÝ™\œšYNˆ˜[ÙKˆ™XÙZ]™\Ô™]Ø\™Îˆ˜[ÙKˆØÚÑ[™\™ÞPY\•[[X]NˆYKˆ[™\™ÞSØÚÐÛÛX˜]Yˆˆ‹ˆ[™\™ÞSØÚÔ›Ý[™ˆ[ˆœ™XZÐÚ\˜XÝ\Žˆ˜[ÙKˆÝ\\œ™XZÐÚ\˜XÝ\Žˆ˜[ÙKˆœ™XZÑY™™XÝØÛÜ™NˆLˆœ™XZÑ[XYÙQXÙNˆKˆœ™XZÑ[XYÙQYNˆ‹ˆ\Ð›ÜÜÎˆ˜[ÙKˆ›ÜÜÔ\ÙPÛÝ[ˆKˆ›ÜÜÔ\ÙLXÝÜ•]ZYˆˆ‹ˆ›ÜÜÔ\ÙLÐXÝÜ•]ZYˆˆ‹ˆ›ÜÜÔ\ÙL•ÚÙ[•ÚYˆˆ›ÜÜÔ\ÙL•ÚÙ[’ZYÚˆˆ›ÜÜÔ\ÙLÕÚÙ[•ÚYˆˆ›ÜÜÔ\ÙLÕÚÙ[’ZYÚˆˆ›ÜÜÒ[š\š]ÓXZ[”\ÙPÛÝ[ˆ˜[ÙKˆ›ÜÜÒYÜ˜Z]ˆˆ‹ˆ›ÜÜÒYÜ˜Z]ˆLˆ›ÜÜÒYÜ˜Z]NˆLˆ›ÜÜÒYÜ˜Z]ØØ[NˆLˆ›ÜÜÒYÚYˆLŒˆ›ÜÜÒYX[ZYÚˆŒˆ›ÜÜÒYÝYÚ™\ÜÒZYÚˆKˆÚÚ[[˜X›YˆYKˆÚÚ[ØÜš\ˆˆ‹ˆÚÚ[^ˆˆ‹ˆÚÚ[Ú[ÛÜÝˆKˆÚÚ[]Û’[XYÙNˆˆ‹ˆXÚš\]YQ[˜X›Yˆ˜[ÙKˆXÚš\]YU^ˆˆ‹ˆXÚš\]YP]Û’[XYÙNˆˆ‹ˆ[[Ú[ÐÝ\œ™[ˆˆ[[Ú[ÓX^ˆˆ[[Ú[ÓÝ™\˜Ø\X^ˆˆ[[ÛÛX˜]Yˆˆ‹ˆ[[ØÜš\ˆˆ‹ˆ[[^ˆˆ‹ˆ[[XÛÛŽˆˆ‹ˆšX[Ú\˜XÝ\Žˆ˜[ÙKˆÛÛX˜]YÜ˜Z]ˆˆ‹ˆÛÛX˜]YÜ˜Z]ˆLˆÛÛX˜]YÜ˜Z]NˆLˆÛÛX˜]YÜ˜Z]ØØ[NˆLˆÛÛX˜]YÜ˜Z]›\ˆ˜[ÙKˆØ\›Ý\Ù[[XYÙNˆˆ‹ˆØ\›Ý\Ù[[XYÙVˆLˆØ\›Ý\Ù[[XYÙVNˆLˆØ\›Ý\Ù[[XYÙTØØ[NˆLˆØ\›Ý\Ù[[XYÙQ›\ˆ˜[ÙKˆØ\›Ý\Ù[œ˜[YPÛÛÜ“Ý™\œšYNˆ˜[ÙKˆØ\›Ý\Ù[œ˜[YPÛÛÜ”™\Ù]ˆ˜[KX›YH‹ˆØ\›Ý\Ù[œ˜[YPÛÛÜŽˆˆÍN™YH‹ˆ[˜Ú[™QØZ[ŽˆKˆ[][ÛXÝ[Û”ØÜš\ˆˆ‹ˆ[][ÛXÝ[Û•^ˆˆ‹ˆ[[X]TØÜš\ˆˆ‹ˆ[[X]U^ˆˆ‹ˆÜ\Ú[XYÙNˆˆ‹ˆÜ\Ú\˜][ÛŽˆKˆÜ\ÚˆLˆÜ\ÚNˆLˆÜ\ÚØØ[NˆLˆ[[X]S˜[YNˆ•[[X]H‹ˆ[[X]TÝX]Nˆˆ‹ˆ]VˆMËˆ]VNˆÎˆ]TÚ^™Nˆˆ]P[YÛŽˆ›Y‹ˆ›Ûš[Nˆˆ‹ˆÝX]Q›Ûš[Nˆˆ‹ˆ[[X]P]Û’[XYÙNˆˆ‹ˆ[[X]P]ÛY\Ý[˜X›Yˆ˜[ÙKˆ[[X]P]Û–ˆLˆ[[X]P]Û–NˆLˆ[[X]P]Û”ØØ[NˆLˆÜ˜’[XYÙNˆˆ‹ˆÚ\™ÙPÛÛÜŽˆˆÍNMŒMÌH‹ˆ™XYPÛÛÜŽˆˆÌŒM™™ˆ‹ˆÚÝÔ\˜Ù[ˆYKˆÚÝÒY\˜Ù[ˆYKˆ[[Y[Yˆˆ‹ˆ]Yˆˆ‚ŸJNÂ‚˜ÛÛœÝÝ]HHÂˆÜ˜œÎˆ™]ÈX\
+
+KˆÚÚ[]ÛœÎˆ™]ÈX\
+
+Kˆ[[]ÛœÎˆ™]ÈX\
+
+KˆXÚš\]YP]ÛœÎˆ™]ÈX\
+
+KˆÚÚ[Y]\Žˆ[ˆÚÚ[ØÚÜÎˆ™]ÈÙ]
+
+Kˆ[™[™ÔÚÚ[Îˆ™]ÈX\
+
+KˆÚÚ[Ü[™ØÚÎˆ˜[ÙKˆ[[Ú[Yˆ[ˆ[[\›”]Y]Y\Îˆ™]ÈX\
+
+Kˆ[[\›”]Y]YSØÚÜÎˆ™]ÈÙ]
+
+KˆXÚš\]YRYˆ[ˆXÚš\]YTÜ[™ØÚÎˆ˜[ÙKˆZP]ÛŽˆ[ˆZPÛÛX˜][›ÛZ\Ù\Îˆ™]ÈX\
+
+Kˆ[˜Ú[™SY]\Žˆ[ˆ[™[™Ñ[][ÛXÝ[ÛœÎˆ™]ÈX\
+
+KˆXÝ]™Q[][ÛXÝ[ÛœÎˆ™]ÈÙ]
+
+Kˆ\Ý[][Û”Ù\]Y[˜ÙRÙ^Nˆˆ‹ˆ›ØÙ\ÜÙYY\ÜØYÙ\Îˆ™]ÈÙ]
+
+Kˆ[[X]SØÚÜÎˆ™]ÈÙ]
+
+Kˆ[™[™Õ[[X]\Îˆ™]ÈX\
+
+Kˆ[[X]T]Y]Y\Îˆ™]ÈX\
+
+KˆÜ\Úœ›ØYØ\ÝÎˆ™]ÈX\
+
+Kˆ™XÙZ]™YÜ\ÚYÎˆ™]ÈÙ]
+
+Kˆ\Ý\™Ù]ÐžPXÝÜŽˆ™]ÈX\
+
+Kˆ™XÙ[ÝYÚ™\ÜÎˆ™]ÈX\
+
+Kˆ\Ý[XYÙQ\Ü^Nˆ[ˆXÝ]™U[[Îˆ™]ÈÙ]
+
+Kˆ[[]™[Îˆ™]ÈÙ]
+
+Kˆ\Ý[[\›œÎˆ™]ÈX\
+
+Kˆ\ÝÛÛX˜]\›œÎˆ™]ÈX\
+
+KˆÜXÚX[ZNˆ[ˆÛT[™[ˆ[ˆXÝ[ÛY˜[˜Ù\Îˆ™]ÈX\
+
+KˆÚY]ØœÙ\™\œÎˆ™]ÈÙXZÓX\
+
+KˆÝ\™\ÜÐÛÛX˜]ÛÚÎˆ˜[ÙKˆ\ÝZU\›’Ù^Nˆˆ‹ˆZUšY[ÐØXÚNˆÜÛÝ\˜ÙNˆˆ‹Øš™XÝ\›ˆˆ‹›ÛZ\ÙNˆ[Kˆ\PÛÛX˜]Yˆ[ˆ›ÜÜÒYˆ[ˆ›ÜÜÔ\ÙPÛÛ›Ûˆ[ˆ[š]X]]™TÜ˜Z]Y]ÜœÎˆ™]ÈX\
+
+Kˆ›ÜÜÕ˜[œÚ][Û“ØÚÜÎˆ™]ÈÙ]
+
+BŸNÂœÝ]K˜Ü˜Y[™Ð\H[ÂœÝ]K˜Ü˜Y[™ÓØÚÜÈH™]ÈÙ]
+
+NÂœÝ]Kš[š]X]]™PØ\›Ý\Ù[H[ÂœÝ]K˜›ÜÜÕ˜[œÚ][Û•š\ÝX[ÈHÂœÝ]K˜›ÜÜÕ˜[œÚ][Û•š\ÝX[Õ[[HÂ‚›]ZUÛÛ˜\“Ü[š[™ÈH˜[ÙNÂ›]ÛUÛÛ˜\“Ü[š[™ÈH˜[ÙNÂ‚˜ÛÛœÝQUSÐRWÐÓÓ‘’QÈHØš™XÝ™œ™Y^™JÂˆ[][Û‘[˜X›Yˆ˜[ÙKˆ[][Û”]Yˆˆ‹ˆ[˜Ú[™RXÛÛŽˆšXÛÛœËÜÝ™ËÛX\ÚËœÝ™È‹ˆ[˜Ú[™Q›Ûš[Nˆˆ‹ˆ[˜Ú[™Q›ÛÚ^™NˆÎKˆ[˜Ú[™RXÛÛ“Ù™œÙ]ˆˆ[˜Ú[™RXÛÛ“Ù™œÙ]NˆˆšY[Îˆˆ‹ˆ]Û’[XYÙNˆšXÛÛœËÜÝ™ËÙ^ÜÚ[Û‹œÝ™È‹ˆÛÛÜŽˆˆÙ™™‹ˆ[š]X]]™Q[˜X›Yˆ˜[ÙKˆÛÛX˜][[XYÙNˆšXÛÛœËÜÝ™ËÛ^\Ý\žK[X[‹œÝ™È‚ŸJNÂ‚˜ÛÛœÝQUSÕPÒ’TUQWÔÒS•ÐÓÓ‘’QÈHØš™XÝ™œ™Y^™JÂˆX^[][NˆKˆÝ\[™ÎˆÂŸJNÂ‚˜ÛÛœÝQUSÔÒÒSÔÒS•ÐÓÓ‘’QÈHØš™XÝ™œ™Y^™JÂˆX^[][NˆKˆÝ\[™ÎˆËˆÚ[Ô\”›ÝÎˆKˆÚ[ÜXÚ[™ÎˆKˆ[[Z[˜]YXÛÛŽˆšXÛÛœËÜÝ™ËÜÝ[‹œÝ™È‹ˆ[\RXÛÛŽˆšXÛÛœËÜÝ™ËØÚ\˜ÛKœÝ™È‹ˆ[X™\‘›Ûš[Nˆˆ‚ŸJNÂ‚˜ÛÛœÝQUSÕSS•ÔÒS•ÐÓÓ‘’QÈHØš™XÝ™œ™Y^™JÂˆ[X™\‘›Ûš[Nˆˆ‚ŸJNÂ‚˜ÛÛœÝQUSÐÓÓPUÒQÑTÒQÓˆHØš™XÝ™œ™Y^™JÂˆY[X™\•ÚYˆNY[X™\’ZYÚˆMLˆÜ˜Z]YˆÜ˜Z]šYÚˆKÜ˜Z]ÜˆÜ˜Z]›ÝÛNˆMËˆYˆŒ‹šYÚˆ›ÝÛNˆŒZYÚˆKˆÜ˜”šYÚˆËÜ˜›ÝÛNˆÍÜ˜”Ú^™NˆMˆ[[YˆK[[›ÝÛNˆŒ[[Ú^™NˆÌ‹ˆ˜[YSYˆ˜[YP›ÝÛNˆ˜[YUÚYˆLŽŸJNÂ‚˜ÛÛœÝQUSÒS’UPUU‘WÐÐT“ÕTÑSÐÓÓ‘’QÈHØš™XÝ™œ™Y^™JÂˆ[˜X›YˆYKˆ[ÝÓ[™Ý™\Ú^™NˆYKˆX^[][UÚYˆŒŒˆX^[][RZYÚˆLŸJNÂ˜ÛÛœÝQUSÒS’UPUU‘WÑ”SQWÐÓÓÔ”ÏSØš™XÝ™œ™Y^™JÂˆÚYˆ˜[KX›YH‹˜[YNˆ[H›YH‹ÛÛÜŽˆˆÍN™YHŸKˆÚYˆ™[™[^K\™Y‹˜[YNˆ‘[™[^H™Y‹ÛÛÜŽˆˆÙMMMHŸKˆÚYˆ™[][Û‹\[šÈ‹˜[YNˆ‘[][Ûˆ[šÈ‹ÛÛÜŽˆˆÙ™ÍÙˆŸKˆÚYˆ™ÛÛ‹˜[YNˆ‘ÛÛ‹ÛÛÜŽˆˆÙMXÎÎŸB—JNÂ‚˜ÛÛœÝQUSÕÕQÒ‘TÔÈHØš™XÝ™œ™Y^™JÙ[˜X›YˆYKÝ\œ™[ˆLX^ˆLÙXZÛ™\ÜÙ\Îˆ×K[\Ü˜\žUÙXZÛ™\ÜÙ\Îˆ×K\ØÛÝ™\™YÙXZÛ™\ÜÙ\Îˆ×_JNÂ‚˜ÛÛœÝQUSÑRQÓÓ—ÐÓÓ‘’QÈHØš™XÝ™œ™Y^™JÂˆ˜XÚÙÜ›Ý[™[XYÙNˆˆ‹ˆš]™TÚ\™Ý™\›^Nˆˆ‹ˆLÓÝ™\›^Nˆˆ‹ˆ™Y™\™[˜ÙR[XYÙNˆˆ‹ˆ]Q›Ûš[Nˆˆ‹ˆX\ÚÌNˆˆ‹ˆX\ÚÌŽˆˆ‹ˆX\ÚÌÎˆˆ‹ˆX\ÚÍˆˆ‹ˆX\ÚÍNˆˆ‹ˆX\ÚÍŽˆˆ‚ŸJNÂ‚˜ÛÛœÝRQÓÓ—ÓPTÒÔÈHØš™XÝ™œ™Y^™JÂˆNˆœÛYÛÛŠŽKŒIH	KIH	K‰HŒ‹ÉKLIHÌ‹IKËŒ‰HÌËŒ	K‹Œ	HŽŒ	KÍ‹Ž	HKŒ‰KÌ‹ŒÉHMËŒÉJH‹ˆŽˆœÛYÛÛŠLËŒ‰H	KÌËŽ	H	KÌËŒ‰HŽÉKÌÉHKÉKË‰HL‹Œ	KŒIHMKIKL‹IH‹Œ	KLKŽ	HŒ	JH‹ˆÎˆœÛYÛÛŠÌËIH	KL	H	KL	H‹Œ	KLKŽ	HŽ	KËŒÉHËÉK	H‹Ž	KKŽ	HÌKŽ	KÌ‹‰HKŒ	JH‹ˆˆœÛYÛÛŠÌËŒ	HLKŒ‰KLKŽ	HK‰KLÉHËŽ	K‹Ž	HÍKŒ	K‰HLŒ	KÎŒ	HLËIKÍŒ‰HL	KŽ	HNŒ	KŒ	HKIKŒËŽ	HÌËIJH‹ˆNˆœÛYÛÛŠIHËŒ	KM‹Œ	HMËŒ	KŒËŒ	HKŒ	KŒ‹Œ‰HŒ	KŒ‹Œ‰HL	KMIHL	KËIHLËŒ	K‹ÉHIKÎÉHŒ	KKŽ	HÌŒ	KŒ	HM‹Œ	JH‹ˆŽˆœÛYÛÛŠÍŒ‰HÌËŽ	KL‹Œ	HÍKŒÉKËÉHMŒ	KKŒ	HŽŒÉKÍKŒ‰HÍKŒ	KŽÉHIKŒ‹Œ	HÎK	KN	HÌ‹Œ	KMIHŒKŒ	KMKŽ	HLŒ‰KŽ	H‹IJH‚ŸJNÂ‚™[˜Ý[ÛˆY˜][ZYÛÛ”ÛÝÊ
+HÂˆ™]\›ˆ\œ˜^K™œ›ÛJÛ[™ÝˆŸK
+Ù[žK[™^
+HOˆ
+Âˆ[X™\Žˆ[™^
+ÈKˆXÝ]™Nˆ˜[ÙKˆ]NˆZYÛÛˆ	Ú[™^
+È_Xˆ\ÛÜšÎˆˆ‹ˆÙ™œÙ]ˆˆÙ™œÙ]NˆˆØØ[NˆLˆJJNÂŸB‚™[˜Ý[ÛˆÙ]ZYÛÛÛÛ™šYÊ
+HÂˆ™]\›ˆ›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+›Ý[™žK][Ë™Y\ÛÛ™JQUSÑRQÓÓ—ÐÓÓ‘’QÊKØ[YKœÙ][™ÜË™Ù]
+SÑSWÒQ™ZYÛÛÛÛ™šYÈŠHÏÈßKÚ[œXÙNˆ˜[ÙK[œÙ\Ù^\ÎˆYKÝ™\Üš]NˆY_JNÂŸB‚™[˜Ý[ÛˆÙ]ZYÛÛœÊXÝÜŠHÂˆÛÛœÝÝÜ™YHXÝÜË™Ù]›YÊSÑSWÒQ™ZYÛÛœÈŠHÏÈßNÂˆÛÛœÝÛÝÈHY˜][ZYÛÛ”ÛÝÊ
+K›X\
+
+˜[˜XÚË[™^
+HOˆÂˆÛÛœÝ˜[YHH\œ˜^Kš\Ð\œ˜^JÝÜ™YœÛÝÊHÈÝÜ™YœÛÝÖÚ[™^HÏÈßHˆßNÂˆ™]\›ˆË‹‹™˜[˜XÚË‹‹˜[YK[X™\Žˆ[™^
+ÈKXÝ]™Nˆ›ÛÛX[Š˜[YK˜XÝ]™JKÙ™œÙ]ˆÛ[\
+˜[YK›Ù™œÙ]LLL
+KÙ™œÙ]NˆÛ[\
+˜[YK›Ù™œÙ]KLLL
+KØØ[NˆÛ[\
+˜[YKœØØ[HLK
+_NÂˆJNÂˆ™]\›ˆØÝ\œ™[˜ÞU]ZYˆÝš[™ÊÝÜ™Y˜Ý\œ™[˜ÞU]ZYÏÈˆŠKÛÝßNÂŸB‚™[˜Ý[ÛˆZYÛÛ‘]QY˜][Ê
+HÂˆ™]\›ˆØÝ\œ™[˜ÞU]ZYˆˆ‹ÛÝÎˆY˜][ZYÛÛ”ÛÝÊ
+_NÂŸB‚™[˜Ý[ÛˆXÝ]™QÓJ
+HÂˆ™]\›ˆØ[YK\Ù\œÏË™š[™
+\Ù\ˆOˆ\Ù\‹˜XÝ]™H	‰ˆ\Ù\‹š\ÑÓJNÂŸB‚™[˜Ý[Ûˆ\Ð]]Üš]J
+HÂˆ™]\›ˆØ[YK\Ù\Ëš\ÑÓH	‰ˆXÝ]™QÓJ
+OËšYOOHØ[YK\Ù\‹šYÂŸB‚™[˜Ý[ÛˆÛ[\
+˜[YKZ[‹X^
+HÂˆ™]\›ˆX]›Z[ŠX^X]›X^
+Z[‹[X™\Š˜[YJH
+JNÂŸB‚™[˜Ý[ÛˆÚYÛ™Y[X™\Š˜[YJHÂˆÛÛœÝ[X™\ˆH[X™\Š˜[YJHÂˆ™]\›ˆ[X™\ˆHÈ
+ÉÛ[X™\ŸXˆÝš[™Ê[X™\ŠNÂŸB‚™[˜Ý[Ûˆ\ØØ\RS
+˜[YJHÂˆÛÛœÝ]ˆHØÝ[Y[˜Ü™X]Q[[Y[
+™]ˆŠNÂˆ]‹^ÛÛ[HÝš[™Ê˜[YHÏÈˆŠNÂˆ™]\›ˆ]‹š[›™\’SÂŸB‚™[˜Ý[Ûˆ™\ÛÛ™P\ÜÙ]\›
+]
+HÂˆÛÛœÝ˜[YHHÝš[™Ê]ˆŠKš[J
+NÂˆYˆ
+]˜[YJH™]\›ˆˆŽÂˆžHÂˆ™]\›ˆ™]ÈT“
+˜[YKØÝ[Y[˜˜\ÙUT’JKš™YŽÂˆHØ]Ú
+Ù\œ›ÜŠHÂˆ™]\›ˆ˜[YNÂˆBŸB‚™[˜Ý[Ûˆ™\ÛÛ™PXÝÜ”ÚY]›ÛÝ
+\[
+HÂˆÛÛœÝ\[[Y[H\Ë™[[Y[Ëšœ]Y\žHÈ\™[[Y[ÌHˆ\Ë™[[Y[ÂˆÛÛœÝ[[[Y[H[Ëšœ]Y\žHÈ[ÌHˆ[[œÝ[˜Ù[ÙˆS[[Y[È[ˆ[ÂˆÛÛœÝ[˜ÛÜÚ[™Ñ[[Y[H[[[Y[Ë˜ÛÜÙ\ÝËŠ‹˜\XØ][Û‹Ú[™ÝËX\Ù]KX\YHŠNÂˆÛÛœÝØ[™Y]\ÈHÚ[[[Y[[˜ÛÜÚ[™Ñ[[Y[\[[Y[K™š[\Š
+[[Y[[™^\Ý
+HOˆ[[Y[[œÝ[˜Ù[ÙˆS[[Y[	‰ˆ\Ýš[™^ÙŠ[[Y[
+HOOH[™^
+NÂˆÛÛœÝ˜]šYØ][ÛˆH	Û˜]‹XœÖÙ]KYÜ›Ý\Hœš[X\žH—K˜]‹œÚY]]XœÖÙ]KYÜ›Ý\Hœš[X\žH—KXœË\šYÚ˜]‹XœÉÎÂˆÛÛœÝÛÛ[H	ËX‹X›ÙKœÚY]X›ÙKÙ]KX\XØ][Û‹\\H˜›ÙH—IÎÂˆ™]\›ˆØ[™Y]\Ë™š[™
+[[Y[OˆÂˆÛÛœÝ›ÛÝH	
+[[Y[
+NÂˆ™]\›ˆ›ÛÝ™š[™
+˜]šYØ][ÛŠK›[™Ý	‰ˆ›ÛÝ™š[™
+ÛÛ[
+K›[™ÝÂˆJHÏÈ[˜ÛÜÚ[™Ñ[[Y[ÏÈ\[[Y[ÏÈ[[[Y[ÂŸB‚™[˜Ý[ÛˆÙ]ÛÛ™šYÊXÝÜŠHÂˆÛÛœÝÝÜ™YHXÝÜË™Ù]›YÊSÑSWÒQ[[X]HŠHÏÈßNÂˆÛÛœÝÛÛ™šYÈH›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+›Ý[™žK][Ë™Y\ÛÛ™JQUSÐÓÓ‘’QÊKÝÜ™YÂˆ[œXÙNˆ˜[ÙKˆ[œÙ\Ù^\ÎˆYKˆÝ™\Üš]NˆYBˆJNÂˆÛÛ™šYË›X^HX]›X^
+K[X™\ŠÛÛ™šYË›X^
+HL
+NÂˆÛÛ™šYË˜Ý\œ™[HÛ[\
+ÛÛ™šYË˜Ý\œ™[ÛÛ™šYË›X^
+NÂˆÛÛ™šYËœÚÚ[Ú[ÛÜÝHX]›X^
+X]™›ÛÜŠ[X™\ŠÛÛ™šYËœÚÚ[Ú[ÛÜÝ
+H
+JNÂˆÛÛ™šYË[[Ú[ÓX^HX]›X^
+X]™›ÛÜŠ[X™\ŠÛÛ™šYË[[Ú[ÓX^
+H
+JNÂˆÛÛ™šYË[[Ú[ÓÝ™\˜Ø\X^HX]›X^
+ÛÛ™šYË[[Ú[ÓX^X]™›ÛÜŠ[X™\ŠÛÛ™šYË[[Ú[ÓÝ™\˜Ø\X^
+HÛÛ™šYË[[Ú[ÓX^
+JNÂˆÛÛ™šYË˜›ÜÜÔ\ÙPÛÝ[HÛ[\
+X]™›ÛÜŠ[X™\ŠÛÛ™šYË˜›ÜÜÔ\ÙPÛÝ[
+HJKKÊNÂˆ›ÜŠÛÛœÝÙ^HÙˆÈ˜›ÜÜÔ\ÙL•ÚÙ[•ÚY‹˜›ÜÜÔ\ÙL•ÚÙ[’ZYÚ‹˜›ÜÜÔ\ÙLÕÚÙ[•ÚY‹˜›ÜÜÔ\ÙLÕÚÙ[’ZYÚ—JXÛÛ™šYÖÚÙ^WOXÛ[\
+ÛÛ™šYÖÚÙ^WKŒ
+NÂˆÛÛ™šYË˜›ÜÜÒYÜ˜Z]HÛ[\
+ÛÛ™šYË˜›ÜÜÒYÜ˜Z]L
+NÂˆÛÛ™šYË˜›ÜÜÒYÜ˜Z]HHÛ[\
+ÛÛ™šYË˜›ÜÜÒYÜ˜Z]KL
+NÂˆÛÛ™šYË˜›ÜÜÒYÜ˜Z]ØØ[HHÛ[\
+ÛÛ™šYË˜›ÜÜÒYÜ˜Z]ØØ[KL
+NÂˆÛÛ™šYË˜›ÜÜÒYÚYHÛ[\
+ÛÛ™šYË˜›ÜÜÒYÚYŒM
+NÂˆÛÛ™šYË˜›ÜÜÒYX[ZYÚHÛ[\
+ÛÛ™šYË˜›ÜÜÒYX[ZYÚL‹
+NÂˆÛÛ™šYË˜›ÜÜÒYÝYÚ™\ÜÒZYÚHÛ[\
+ÛÛ™šYË˜›ÜÜÒYÝYÚ™\ÜÒZYÚ
+NÂˆÛÛ™šYË˜Ø\›Ý\Ù[[XYÙVHÛ[\
+ÛÛ™šYË˜Ø\›Ý\Ù[[XYÙVL
+NÂˆÛÛ™šYË˜Ø\›Ý\Ù[[XYÙVHHÛ[\
+ÛÛ™šYË˜Ø\›Ý\Ù[[XYÙVKL
+NÂˆÛÛ™šYË˜Ø\›Ý\Ù[[XYÙTØØ[HHÛ[\
+ÛÛ™šYË˜Ø\›Ý\Ù[[XYÙTØØ[KL
+NÂˆÛÛ™šYË˜Ø\›Ý\Ù[[XYÙQ›\H›ÛÛX[ŠÛÛ™šYË˜Ø\›Ý\Ù[[XYÙQ›\
+NÂˆÛÛ™šYË˜Ø\›Ý\Ù[œ˜[YPÛÛÜ“Ý™\œšYHH›ÛÛX[ŠÛÛ™šYË˜Ø\›Ý\Ù[œ˜[YPÛÛÜ“Ý™\œšYJNÂˆYŠK×ˆÖÌNXKY—^ÍŸIÚK\Ý
+Ýš[™ÊÛÛ™šYË˜Ø\›Ý\Ù[œ˜[YPÛÛÜÏÈˆŠJJXÛÛ™šYË˜Ø\›Ý\Ù[œ˜[YPÛÛÜHˆÍN™YHŽÂˆ™]\›ˆÛÛ™šYÎÂŸB‚™[˜Ý[ÛˆÙ][š]X]]™PØ\›Ý\Ù[ÛÛ™šYÊ
+HÂˆÛÛœÝÝÜ™YHØ[YKœÙ][™ÜË™Ù]
+SÑSWÒQš[š]X]]™PØ\›Ý\Ù[ÛÛ™šYÈŠHÏÈßNÂˆÛÛœÝÛÛ™šYÈH›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+›Ý[™žK][Ë™Y\ÛÛ™JQUSÒS’UPUU‘WÐÐT“ÕTÑSÐÓÓ‘’QÊKÝÜ™YÚ[œXÙN™˜[ÙK[œÙ\Ù^\ÎYKÝ™\Üš]NY_JNÂˆÛÛ™šYË™[˜X›YH›ÛÛX[ŠÛÛ™šYË™[˜X›Y
+NÂˆÛÛ™šYË˜[ÝÓ[™Ý™\Ú^™HHÛÛ™šYË˜[ÝÓ[™Ý™\Ú^™HOOH˜[ÙNÂˆÛÛ™šYË›X^[][UÚYHÛ[\
+ÛÛ™šYË›X^[][UÚYNLŒ
+NÂˆÛÛ™šYË›X^[][RZYÚHÛ[\
+ÛÛ™šYË›X^[][RZYÚŒLŒ
+NÂˆ™]\›ˆÛÛ™šYÎÂŸB‚™[˜Ý[ÛˆÙ][š]X]]™Qœ˜[YPÛÛÜœÊ
+^ØÛÛœÝÝÜ™YYØ[YKœÙ][™ÜË™Ù]
+SÑSWÒQš[š]X]]™Qœ˜[YPÛÛÜœÈŠNÜ™]\›ˆ
+\œ˜^Kš\Ð\œ˜^JÝÜ™Y
+I‰œÝÜ™Y›[™ÝÜÝÜ™Y‘QUSÒS’UPUU‘WÑ”SQWÐÓÓÔ”ÊK›X\
+[žOOŠÚY”Ýš[™Ê[žKšY›Ý[™žK][Ëœ˜[™ÛRQ
+
+JK˜[YN”Ýš[™Ê[žK›˜[Y_‘œ˜[YHÛÛÜˆŠKÛÛÜŽ‹×ˆÖÌNXKY—^ÍŸIÚK\Ý
+Ýš[™Ê[žK˜ÛÛÜŸˆŠJOÔÝš[™Ê[žK˜ÛÛÜŠNˆˆÍN™YHŸJJNßB™[˜Ý[Ûˆ™\ÛÛ™Y[š]X]]™Qœ˜[YPÛÛÜŠÛÛ™šYÊ^Ü™]\›ˆÙ][š]X]]™Qœ˜[YPÛÛÜœÊ
+K™š[™
+[žOO™[žKšYOOXÛÛ™šYË˜Ø\›Ý\Ù[œ˜[YPÛÛÜ”™\Ù]
+OË˜ÛÛÜŸÛÛ™šYË˜Ø\›Ý\Ù[œ˜[YPÛÛÜŸˆÍN™YHŽßB™[˜Ý[Ûˆ[š]X]]™Qœ˜[YPÛÛÜ“Ü[ÛœÊÛÛ™šYÊ^ØÛÛœÝÙ[XÝYTÝš[™ÊÛÛ™šYË˜Ø\›Ý\Ù[œ˜[YPÛÛÜ”™\Ù]ˆŠNÜ™]\›ˆÙ][š]X]]™Qœ˜[YPÛÛÜœÊ
+K›X\
+[žOOŠË‹‹™[žKÙ[XÝY™[žKšYOO\Ù[XÝYJJNßB‚™[˜Ý[ÛˆÙ]ÝYÚ™\ÜÊXÝÜŠHÂˆÛÛœÝÝÜ™YHXÝÜË™Ù]›YÊSÑSWÒQÝYÚ™\ÜÈŠHÏÈßNÂˆÛÛœÝÛÛ™šYÈH›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+›Ý[™žK][Ë™Y\ÛÛ™JQUSÕÕQÒ‘TÔÊKÝÜ™YÚ[œXÙNˆ˜[ÙK[œÙ\Ù^\ÎˆYKÝ™\Üš]NˆY_JNÂˆÛÛ™šYË™[˜X›YHØš™XÝš\ÓÝÛŠÝÜ™Y™[˜X›YŠHÈ›ÛÛX[ŠÝÜ™Y™[˜X›Y
+HˆXÝÜË\HOOH›œÈŽÂˆÛÛ™šYË›X^HX]›X^
+K[X™\ŠÛÛ™šYË›X^
+HL
+NÂˆÛÛ™šYË˜Ý\œ™[HÛ[\
+ÛÛ™šYË˜Ý\œ™[ÛÛ™šYË›X^
+NÂˆÛÛ™šYËÙXZÛ™\ÜÙ\ÈH\œ˜^Kš\Ð\œ˜^JÛÛ™šYËÙXZÛ™\ÜÙ\ÊHÈÛÛ™šYËÙXZÛ™\ÜÙ\Èˆ×NÂˆÛÛ™šYË[\Ü˜\žUÙXZÛ™\ÜÙ\ÈH\œ˜^Kš\Ð\œ˜^JÛÛ™šYË[\Ü˜\žUÙXZÛ™\ÜÙ\ÊHÈÛÛ™šYË[\Ü˜\žUÙXZÛ™\ÜÙ\Èˆ×NÂˆÛÛ™šYË™\ØÛÝ™\™YÙXZÛ™\ÜÙ\ÈH\œ˜^Kš\Ð\œ˜^JÛÛ™šYË™\ØÛÝ™\™YÙXZÛ™\ÜÙ\ÊHÈÛÛ™šYË™\ØÛÝ™\™YÙXZÛ™\ÜÙ\Èˆ×NÂˆ™]\›ˆÛÛ™šYÎÂŸB‚™[˜Ý[ÛˆÝYÚ™\ÜÕ\™Ù]\Ê\™Ù]
+HÂˆÛÛœÝÚÙ[‘ØÝ[Y[H\™Ù]Ë™ØÝ[Y[˜[YHOOH•ÚÙ[ˆˆÈ\™Ù]ˆˆ\™Ù]Ë™ØÝ[Y[Ë™ØÝ[Y[˜[YHOOH•ÚÙ[ˆˆÈ\™Ù]™ØÝ[Y[ˆˆ\™Ù]Ë™ØÝ[Y[˜[YHOOHXÝÜˆˆ	‰ˆ\™Ù]Ëœ\™[Ë™ØÝ[Y[˜[YHOOH•ÚÙ[ˆˆÈ\™Ù]œ\™[ˆˆ[ÂˆÛÛœÝXÝÜˆHÚÙ[‘ØÝ[Y[Ë˜XÝÜˆÏÈ\™Ù]Ë˜XÝÜˆÏÈ\™Ù]Âˆ™]\›ˆØXÝÜ‹ÚÙ[‘ØÝ[Y[NÂŸB‚™[˜Ý[Ûˆ[\Ü˜\žUÝYÚ™\ÜÕÙXZÛ™\ÜÙ\Ê\™Ù]
+HÂˆÛÛœÝØXÝÜ‹ÚÙ[‘ØÝ[Y[HHÝYÚ™\ÜÕ\™Ù]\Ê\™Ù]
+NÂˆÛÛœÝÚÙ[•˜[Y\ÈHÚÙ[‘ØÝ[Y[Ë™Ù]›YÊSÑSWÒQ[\Ü˜\žUÙXZÛ™\ÜÙ\ÈŠNÂˆ™]\›ˆ\œ˜^Kš\Ð\œ˜^JÚÙ[•˜[Y\ÊHÈÚÙ[•˜[Y\ÈˆÙ]ÝYÚ™\ÜÊXÝÜŠK[\Ü˜\žUÙXZÛ™\ÜÙ\ÎÂŸB‚™[˜Ý[ÛˆÝYÚ™\ÜÕÙXZÛ™\ÜÓ[ÙJ\™Ù]
+HÂˆÛÛœÝØXÝÜ‹ÚÙ[‘ØÝ[Y[HHÝYÚ™\ÜÕ\™Ù]\Ê\™Ù]
+NÂˆ™]\›ˆÝš[™ÊÚÙ[‘ØÝ[Y[Ë™Ù]›YÊSÑSWÒQÙXZÛ™\ÜÓ[ÙHŠHÏÈXÝÜË™Ù]›YÊSÑSWÒQÙXZÛ™\ÜÓ[ÙHŠHÏÈˆŠNÂŸB‚™[˜Ý[ÛˆY™™XÝ]™UÝYÚ™\ÜÕÙXZÛ™\ÜÙ\Ê\™Ù]
+HÂˆÛÛœÝ[ÙHHÝYÚ™\ÜÕÙXZÛ™\ÜÓ[ÙJ\™Ù]
+NÂˆYˆ
+[ÙHOOH››Û™HŠH™]\›ˆ×NÂˆYˆ
+[ÙHOOH˜[ŠH™]\›ˆÙ][[Y[Ê
+K›X\
+[[Y[Oˆ[[Y[šY
+NÂˆÛÛœÝØXÝÜŸHHÝYÚ™\ÜÕ\™Ù]\Ê\™Ù]
+NÂˆÛÛœÝÛÛ™šYÈHÙ]ÝYÚ™\ÜÊXÝÜŠNÂˆ™]\›ˆË‹‹›™]ÈÙ]
+Ë‹‹˜ÛÛ™šYËÙXZÛ™\ÜÙ\Ë‹‹[\Ü˜\žUÝYÚ™\ÜÕÙXZÛ™\ÜÙ\Ê\™Ù]
+WJWNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆÙ]ÝYÚ™\ÜÕÙXZÛ™\ÜÓ[ÙJ\™Ù][ÙHHˆŠHÂˆYˆ
+YØ[YK\Ù\‹š\ÑÓHVÈˆ‹˜[‹››Û™H—Kš[˜ÛY\Ê[ÙJJH™]\›ˆ˜[ÙNÂˆÛÛœÝØXÝÜ‹ÚÙ[‘ØÝ[Y[HHÝYÚ™\ÜÕ\™Ù]\Ê\™Ù]
+NÂˆYˆ
+XXÝÜˆVÈ›œÈ‹˜Ú\˜XÝ\ˆ—Kš[˜ÛY\ÊXÝÜ‹\JJH™]\›ˆ˜[ÙNÂˆYˆ
+ÚÙ[‘ØÝ[Y[
+H]ØZ]ÚÙ[‘ØÝ[Y[œÙ]›YÊSÑSWÒQÙXZÛ™\ÜÓ[ÙH‹[ÙJNÂˆ[ÙH]ØZ]XÝÜ‹œÙ]›YÊSÑSWÒQÙXZÛ™\ÜÓ[ÙH‹[ÙJNÂˆ™Yœ™\ÚÝYÚ™\ÜÐ˜\œÊ
+NÂˆ™]\›ˆYNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆÙ][\Ü˜\žUÝYÚ™\ÜÕÙXZÛ™\ÜÙ\Ê\™Ù][[Y[YÊHÂˆÛÛœÝØXÝÜ‹ÚÙ[‘ØÝ[Y[HHÝYÚ™\ÜÕ\™Ù]\Ê\™Ù]
+NÂˆYˆ
+YØ[YK\Ù\‹š\ÑÓHXXÝÜˆVÈ›œÈ‹˜Ú\˜XÝ\ˆ—Kš[˜ÛY\ÊXÝÜ‹\JJH™]\›ˆ˜[ÙNÂˆÛÛœÝÛÛ™šYÈHÙ]ÝYÚ™\ÜÊXÝÜŠNÂˆÛÛœÝ˜[YH™]ÈÙ]
+Ù][[Y[Ê
+K›X\
+[[Y[Oˆ[[Y[šY
+JNÂˆÛÛœÝ[\Ü˜\žUÙXZÛ™\ÜÙ\ÈHË‹‹›™]ÈÙ]
+[[Y[YÈÏÈ×JWK™š[\ŠYOˆ˜[Yš\ÊY
+H	‰ˆXÛÛ™šYËÙXZÛ™\ÜÙ\Ëš[˜ÛY\ÊY
+JNÂˆYˆ
+ÚÙ[‘ØÝ[Y[
+H]ØZ]ÚÙ[‘ØÝ[Y[œÙ]›YÊSÑSWÒQ[\Ü˜\žUÙXZÛ™\ÜÙ\È‹[\Ü˜\žUÙXZÛ™\ÜÙ\ÊNÂˆ[ÙH]ØZ]XÝÜ‹\]JÖØ›YÜË‰ÓSÑSWÒQKÝYÚ™\ÜË[\Ü˜\žUÙXZÛ™\ÜÙ\ØNˆ[\Ü˜\žUÙXZÛ™\ÜÙ\ßJNÂˆ]ØZ]Ù]ÝYÚ™\ÜÕÙXZÛ™\ÜÓ[ÙJ\™Ù]ˆŠNÂˆ™Yœ™\ÚÝYÚ™\ÜÐ˜\œÊ
+NÂˆ™]\›ˆYNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆY[\Ü˜\žUÝYÚ™\ÜÕÙXZÛ™\ÜÊ\™Ù][[Y[Y
+HÂˆ™]\›ˆÙ][\Ü˜\žUÝYÚ™\ÜÕÙXZÛ™\ÜÙ\Ê\™Ù]Ë‹‹[\Ü˜\žUÝYÚ™\ÜÕÙXZÛ™\ÜÙ\Ê\™Ù]
+K[[Y[YJNÂŸB‚˜\Þ[˜È[˜Ý[Ûˆ™\Ù][\Ü˜\žUÝYÚ™\ÜÕÙXZÛ™\ÜÙ\Ê\™Ù]H[
+HÂˆYˆ
+YØ[YK\Ù\‹š\ÑÓJH™]\›ˆÂˆÛÛœÝ\™Ù]ÈH\™Ù]ÈÝ\™Ù]Hˆ
+Ø[˜\ËÚÙ[œÏËœXÙXX›\ÈÏÈ×JK™š[\ŠÚÙ[ˆOˆÈ›œÈ‹˜Ú\˜XÝ\ˆ—Kš[˜ÛY\ÊÚÙ[‹˜XÝÜË\JJK›X\
+ÚÙ[ˆOˆÚÙ[‹™ØÝ[Y[
+NÂˆ]™\Ù]HÂˆ›Üˆ
+ÛÛœÝ[žHÙˆ\™Ù]ÊHÂˆÛÛœÝØXÝÜ‹ÚÙ[‘ØÝ[Y[HHÝYÚ™\ÜÕ\™Ù]\Ê[žJNÂˆÛÛœÝÛÛ™šYÈHÙ]ÝYÚ™\ÜÊXÝÜŠNÂˆYˆ
+][\Ü˜\žUÝYÚ™\ÜÕÙXZÛ™\ÜÙ\Ê[žJK›[™Ý	‰ˆ]ÝYÚ™\ÜÕÙXZÛ™\ÜÓ[ÙJ[žJJHÛÛ[YNÂˆYˆ
+ÚÙ[‘ØÝ[Y[
+H]ØZ]ÚÙ[‘ØÝ[Y[œÙ]›YÊSÑSWÒQ[\Ü˜\žUÙXZÛ™\ÜÙ\È‹×JNÂˆ[ÙH]ØZ]XÝÜ‹\]JÖØ›YÜË‰ÓSÑSWÒQKÝYÚ™\ÜË[\Ü˜\žUÙXZÛ™\ÜÙ\ØNˆ×_JNÂˆYˆ
+ÚÙ[‘ØÝ[Y[
+H]ØZ]ÚÙ[‘ØÝ[Y[[œÙ]›YÊSÑSWÒQÙXZÛ™\ÜÓ[ÙHŠNÂˆ[ÙH]ØZ]XÝÜ‹[œÙ]›YÊSÑSWÒQÙXZÛ™\ÜÓ[ÙHŠNÂˆ]ØZ]XÝÜ‹\]JÖØ›YÜË‰ÓSÑSWÒQKÝYÚ™\ÜË™\ØÛÝ™\™YÙXZÛ™\ÜÙ\ØNˆÛÛ™šYË™\ØÛÝ™\™YÙXZÛ™\ÜÙ\Ë™š[\ŠYOˆÛÛ™šYËÙXZÛ™\ÜÙ\Ëš[˜ÛY\ÊY
+J_JNÂˆ™\Ù]
+ÊÎÂˆBˆ™Yœ™\ÚÝYÚ™\ÜÐ˜\œÊ
+NÂˆ™]\›ˆ™\Ù]ÂŸB‚˜\Þ[˜È[˜Ý[ÛˆÙ]ÝYÚ™\ÜÊXÝÜ‹˜[YJHÂˆYˆ
+XXÝÜˆYØ[YK\Ù\‹š\ÑÓJH™]\›ŽÂˆÛÛœÝÛÛ™šYÈHÙ]ÝYÚ™\ÜÊXÝÜŠNÂˆ]ØZ]XÝÜ‹\]JÖØ›YÜË‰ÓSÑSWÒQKÝYÚ™\ÜË˜Ý\œ™[NˆÛ[\
+˜[YKÛÛ™šYË›X^
+_JNÂŸB‚˜\Þ[˜È[˜Ý[Ûˆ™\Ù]Ø[˜\ÕÝYÚ™\ÜÊ
+HÂˆYˆ
+YØ[YK\Ù\‹š\ÑÓJH™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š“Û›HHÓHØ[ˆ™\Ù]ÝYÚ™\ÜËˆŠNÂˆYˆ
+XØ[˜\ÏËœ™XYJH™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š“Ü[ˆHØÙ[™H™Y›Ü™H™\Ù][™ÈÝYÚ™\ÜËˆŠNÂˆÛÛœÝXÝÜœÈH™]ÈX\
+
+NÂˆ›Üˆ
+ÛÛœÝÚÙ[ˆÙˆØ[˜\ËÚÙ[œÏËœXÙXX›\ÈÏÈ×JHÂˆÛÛœÝXÝÜˆHÚÙ[‹˜XÝÜŽÂˆYˆ
+XXÝÜˆVÈ›œÈ‹˜Ú\˜XÝ\ˆ—Kš[˜ÛY\ÊXÝÜ‹\JJHÛÛ[YNÂˆÛÛœÝÝÜ™YHXÝÜ‹™Ù]›YÊSÑSWÒQÝYÚ™\ÜÈŠNÂˆYˆ
+\ÝÜ™YYÙ]ÝYÚ™\ÜÊXÝÜŠK™[˜X›Y
+HÛÛ[YNÂˆXÝÜœËœÙ]
+XÝÜ‹]ZYXÝÜŠNÂˆBˆYˆ
+XXÝÜœËœÚ^™JH™]\›ˆZK››ÝYšXØ][ÛœËš[™›Ê“›ÈÝYÚ™\ÜËY[˜X›YXÝÜœÈ\™H™\Ù[Ûˆ\ÈØÙ[™KˆŠNÂˆÛÛœÝÛÛ™š\›YYH]ØZ]X[ÙË˜ÛÛ™š\›JÂˆ]Nˆ”™\Ù][ÝYÚ™\ÜÈ‹ˆÛÛ[ˆ”™\ÝÜ™HHÝ\œ™[ÝYÚ™\ÜÈÙˆÝ›Û™Ï‰ØXÝÜœËœÚ^™_OÜÝ›Û™ÏˆXÝÜ‰ØXÝÜœËœÚ^™HOOHHÈˆˆˆœÈŸHÛˆ\ÈØÙ[™HÈXXÚXÝÜ‰ÜÈÛÛ™šYÝ\™YX^[][OÏÜ•ÙXZÛ™\ÜÙ\È[™X^[][H˜[Y\ÈÚ[›Ý™HÚ[™ÙYÜ˜ˆY\Îˆ
+
+HOˆYKˆ›Îˆ
+
+HOˆ˜[ÙKˆY˜][Y\Îˆ˜[ÙBˆJNÂˆYˆ
+XÛÛ™š\›YY
+H™]\›ŽÂˆ]™\Ù]HÂˆ›Üˆ
+ÛÛœÝXÝÜˆÙˆXÝÜœË˜[Y\Ê
+JHÂˆÛÛœÝÝYÚ™\ÜÈHÙ]ÝYÚ™\ÜÊXÝÜŠNÂˆYˆ
+ÝYÚ™\ÜË˜Ý\œ™[OOHÝYÚ™\ÜË›X^
+HÛÛ[YNÂˆ]ØZ]XÝÜ‹\]JÖØ›YÜË‰ÓSÑSWÒQKÝYÚ™\ÜË˜Ý\œ™[NˆÝYÚ™\ÜË›X^JNÂˆ™\Ù]
+ÊÎÂˆBˆ™Yœ™\ÚÝYÚ™\ÜÐ˜\œÊ
+NÂˆZK››ÝYšXØ][ÛœËš[™›Ê™\Ù]ÝYÚ™\ÜÈ›Üˆ	Ü™\Ù]HXÝÜ‰Ü™\Ù]OOHHÈˆˆˆœÈŸK˜
+NÂŸB‚™[˜Ý[Ûˆ™YÙ[“[ÙYšY\ŠÛÛ™šYÊHÂˆÛÛœÝ\œÙYH[X™\ŠÛÛ™šYËœ™YÙ[”ØÛÜ™JNÂˆÛÛœÝØÛÜ™HH[X™\‹š\Ñš[š]J\œÙY
+HÈÛ[\
+\œÙYKÌ
+HˆLÂˆ™]\›ˆX]™›ÛÜŠ
+ØÛÜ™HHL
+HÈŠNÂŸB‚™[˜Ý[Ûˆœ™XZÑY™™XÝ[ÙYšY\ŠÛÛ™šYÊHÂˆÛÛœÝ\œÙYH[X™\ŠÛÛ™šYË˜œ™XZÑY™™XÝØÛÜ™JNÂˆÛÛœÝØÛÜ™HH[X™\‹š\Ñš[š]J\œÙY
+HÈÛ[\
+\œÙYKÌ
+HˆLÂˆ™]\›ˆX]™›ÛÜŠ
+ØÛÜ™HHL
+HÈŠNÂŸB‚™[˜Ý[Ûˆ[™\™ÞPXš[]SX\šÝ\
+XÝÜ‹YÓ˜[YHH™]ˆŠHÂˆÛÛœÝÛÛ™šYÈHÙ]ÛÛ™šYÊXÝÜŠNÂˆÛÛœÝY]X›HHØ[YK\Ù\‹š\ÑÓHXÝÜ‹š\ÓÝÛ™\ŽÂˆ™]\›ˆ	ÝYÓ˜[Y_HÛ\ÜÏHÜKY[™\™ÞKXXš[]HXš[]K\ØÛÜ™Hˆ]K]ÜKY[™\™ÞKXXš[]H]KXXÝÜ‹ZYH‰ØXÝÜ‹šYHˆ]OH‘[™\™ÞHØZ[™YH˜\ÙHØZ[ˆ
+È[™\™ÞH™YÙ[ˆ[ÙYšY\ˆ‚ˆ]ˆÛ\ÜÏHÜKY[™\™ÞKXXš[]K[X™[‘S‘T‘ÖH‘QÑSÙ]‚ˆ]ˆÛ\ÜÏHÜKY[™\™ÞKXXš[]K[[ÙYšY\ˆ‰ÜÚYÛ™Y[X™\Š™YÙ[“[ÙYšY\ŠÛÛ™šYÊJ_OÙ]‚ˆ[œ]Û\ÜÏHÜKY[™\™ÞKXXš[]K\ØÛÜ™Hˆ\OH›[X™\ˆˆZ[HŒHˆX^HŒÌˆÝ\HŒHˆ˜[YOH‰Ó[X™\‹š\Ñš[š]J[X™\ŠÛÛ™šYËœ™YÙ[”ØÛÜ™JJHÈÛ[\
+ÛÛ™šYËœ™YÙ[”ØÛÜ™KKÌ
+HˆLHˆ\šXK[X™[H‘[™\™ÞH™YÙ[ˆXš[]HØÛÜ™Hˆ	ÙY]X›HÈˆˆˆ™\ØX›YŸO‚ˆÉÝYÓ˜[Y_O˜ÂŸB‚™[˜Ý[Ûˆœ™XZÐXš[]SX\šÝ\
+XÝÜ‹YÓ˜[YHH™]ˆŠHÂˆÛÛœÝÛÛ™šYÈHÙ]ÛÛ™šYÊXÝÜŠNÂˆÛÛœÝY]X›HHØ[YK\Ù\‹š\ÑÓHXÝÜ‹š\ÓÝÛ™\ŽÂˆ™]\›ˆ	ÝYÓ˜[Y_HÛ\ÜÏHÜKY[™\™ÞKXXš[]HÜKXœ™XZËXXš[]HXš[]K\ØÛÜ™Hˆ]K]ÜKXœ™XZËXXš[]H]KXXÝÜ‹ZYH‰ØXÝÜ‹šYHˆ]OHœ™XZÈ[XYÙH][\Y\ˆ\Ù\ÈHœ™XZÈY™™XÝ[ÙYšY\ˆ‚ˆ]ˆÛ\ÜÏHÜKY[™\™ÞKXXš[]K[X™[”‘PRÈQ‘‘PÕÙ]‚ˆ]ˆÛ\ÜÏHÜKY[™\™ÞKXXš[]K[[ÙYšY\ˆ‰ÜÚYÛ™Y[X™\Šœ™XZÑY™™XÝ[ÙYšY\ŠÛÛ™šYÊJ_OÙ]‚ˆ[œ]Û\ÜÏHÜKY[™\™ÞKXXš[]K\ØÛÜ™Hˆ\OH›[X™\ˆˆZ[HŒHˆX^HŒÌˆÝ\HŒHˆ˜[YOH‰Ó[X™\‹š\Ñš[š]J[X™\ŠÛÛ™šYË˜œ™XZÑY™™XÝØÛÜ™JJHÈÛ[\
+ÛÛ™šYË˜œ™XZÑY™™XÝØÛÜ™KKÌ
+HˆLHˆ\šXK[X™[Hœ™XZÈY™™XÝXš[]HØÛÜ™Hˆ	ÙY]X›HÈˆˆˆ™\ØX›YŸO‚ˆÉÝYÓ˜[Y_O˜ÂŸB‚˜\Þ[˜È[˜Ý[Ûˆ[š™XÝ[™\™ÞPXš[]J\[][\H
+HÂˆÛÛœÝXÝÜˆH\˜XÝÜˆÏÈ\™ØÝ[Y[ÂˆYˆ
+XÝÜË™ØÝ[Y[˜[YHOOHXÝÜˆˆXÝÜ‹\HOOH˜Ú\˜XÝ\ˆŠH™]\›ŽÂˆÛÛœÝ\[[Y[H\™[[Y[Ëšœ]Y\žHÈ\™[[Y[ÌHˆ\™[[Y[ÂˆÛÛœÝÛÚÑ[[Y[H[Ëšœ]Y\žHÈ[ÌHˆ[[œÝ[˜Ù[ÙˆS[[Y[È[ˆ[ÂˆÛÛœÝ›ÛÝ[[Y[H\[[Y[Ëš\ÐÛÛ›™XÝYÈ\[[Y[ˆÛÚÑ[[Y[ÂˆYˆ
+\›ÛÝ[[Y[
+HÂˆYˆ
+][\ŠHÚ[™ÝËœÙ][Y[Ý]
+
+
+HOˆ[š™XÝ[™\™ÞPXš[]J\[][\
+ÈJKÍJNÂˆ™]\›ŽÂˆBˆÛÛœÝ›ÛÝH	
+›ÛÝ[[Y[
+NÂˆYˆ
+›ÛÝ™š[™
+–Ù]K]ÜKY[™\™ÞKXXš[]WHŠK›[™Ý
+H™]\›ŽÂˆÛÛœÝ^XÚ]ÚHH›ÛÝ™š[™
+	ÖÙ]KXXš[]OH˜ÚH—KÙ]KXXš[]KZYH˜ÚH—KÙ]KZÙ^OH˜ÚH—IÊK™š[\Š
+Ú[™^[[Y[
+HOˆÂˆÛÛœÝ™XÝH[[Y[™Ù]›Ý[™[™ÐÛY[™XÝ
+
+NÂˆ™]\›ˆ™XÝÚYHH	‰ˆ™XÝÚYHMŒ	‰ˆ™XÝšZYÚH	‰ˆ™XÝšZYÚHML	‰ˆ×ÒW‹ÚK\Ý
+[[Y[^ÛÛ[
+NÂˆJK™š\œÝ
+
+NÂˆ]ÚPØ\™H^XÚ]ÚNÂˆYˆ
+XÚPØ\™›[™Ý
+HÂˆÚPØ\™H›ÛÝ™š[™
+›K]ˆŠK™š[\Š
+Ú[™^[[Y[
+HOˆÂˆÛÛœÝ™XÝH[[Y[™Ù]›Ý[™[™ÐÛY[™XÝ
+
+NÂˆÛÛœÝ^H[[Y[^ÛÛ[Ëœ™\XÙJ×ÊËÙËˆŠKš[J
+HÏÈˆŽÂˆ™]\›ˆ™XÝÚYHH	‰ˆ™XÝÚYHMŒ	‰ˆ™XÝšZYÚHH	‰ˆ™XÝšZYÚHLÌ	‰ˆ×ÒW‹ÚK\Ý
+^
+H	‰ˆÖÊËWWË\Ý
+^
+NÂˆJK™š\œÝ
+
+NÂˆBˆYˆ
+XÚPØ\™›[™Ý
+HÂˆYˆ
+][\ŠHÚ[™ÝËœÙ][Y[Ý]
+
+
+HOˆ[š™XÝ[™\™ÞPXš[]J\[][\
+ÈJKÍJNÂˆ[ÙHÛÛœÛÛK™XYÊ	ÓSÑSWÒQHÒHXš[]HØ\™›Ý›Ý[™›Ü˜XÝÜ‹›˜[YJNÂˆ™]\›ŽÂˆBˆÛÛœÝYÓ˜[YHHÚPØ\™œ›Ü
+YÓ˜[YHŠOËÓÝÙ\Ø\ÙJ
+H™]ˆŽÂˆÚPØ\™˜Y\Š	Ù[™\™ÞPXš[]SX\šÝ\
+XÝÜ‹YÓ˜[YJ_IØœ™XZÐXš[]SX\šÝ\
+XÝÜ‹YÓ˜[YJ_X
+NÂˆÛÛœÝØ\™HÚPØ\™›™^
+–Ù]K]ÜKY[™\™ÞKXXš[]WHŠNÂˆØ\™œ\™[
+
+K˜YÛ\ÜÊÜK\Ù]™[‹XXš[]K\›ÝÈŠNÂˆÛÛœÝØÛÜ™HHØ\™™š[™
+‹ÜKY[™\™ÞKXXš[]K\ØÛÜ™HŠNÂˆØÛÜ™K›ÛŠš[œ]ÜH‹]™[OˆÂˆ]™[œÝÜ›ÜYØ][ÛŠ
+NÂˆÛÛœÝ˜[YHHÛ[\
+]™[˜Ý\œ™[\™Ù]˜[YKKÌ
+NÂˆØ\™™š[™
+‹ÜKY[™\™ÞKXXš[]K[[ÙYšY\ˆŠK^
+ÚYÛ™Y[X™\ŠX]™›ÛÜŠ
+˜[YHHL
+HÈŠJJNÂˆJNÂˆØÛÜ™K›ÛŠ˜Ú[™ÙKÜH‹\Þ[˜È]™[OˆÂˆ]™[œ™]™[Y˜][
+
+NÂˆ]™[œÝÜ›ÜYØ][ÛŠ
+NÂˆYˆ
+JØ[YK\Ù\‹š\ÑÓHXÝÜ‹š\ÓÝÛ™\ŠJH™]\›ŽÂˆÛÛœÝ˜[YHHÛ[\
+]™[˜Ý\œ™[\™Ù]˜[YKKÌ
+NÂˆ]™[˜Ý\œ™[\™Ù]˜[YHH˜[YNÂˆÛÛœÝ\]YÛÛ™šYÈH›Ý[™žK][Ë™Y\ÛÛ™JÙ]ÛÛ™šYÊXÝÜŠJNÂˆ\]YÛÛ™šYËœ™YÙ[”ØÛÜ™HH˜[YNÂˆ]ØZ]XÝÜ‹œÙ]›YÊSÑSWÒQ[[X]H‹\]YÛÛ™šYÊNÂˆØ\™™š[™
+‹ÜKY[™\™ÞKXXš[]K[[ÙYšY\ˆŠK^
+ÚYÛ™Y[X™\ŠX]™›ÛÜŠ
+˜[YHHL
+HÈŠJJNÂˆZK››ÝYšXØ][ÛœËš[™›Ê	ØXÝÜ‹›˜[Y_IÜÈ[™\™ÞH™YÙ[ˆ\È›ÝÈ	Ý˜[Y_H
+	ÜÚYÛ™Y[X™\ŠX]™›ÛÜŠ
+˜[YHHL
+HÈŠJ_JK˜
+NÂˆJNÂˆÛÛœÝœ™XZÐØ\™HØ\™›™^
+–Ù]K]ÜKXœ™XZËXXš[]WHŠNÂˆÛÛœÝœ™XZÔØÛÜ™HHœ™XZÐØ\™™š[™
+‹ÜKY[™\™ÞKXXš[]K\ØÛÜ™HŠNÂˆœ™XZÔØÛÜ™K›ÛŠš[œ]ÜH‹]™[OˆÂˆ]™[œÝÜ›ÜYØ][ÛŠ
+NÂˆÛÛœÝ˜[YHHÛ[\
+]™[˜Ý\œ™[\™Ù]˜[YKKÌ
+NÂˆœ™XZÐØ\™™š[™
+‹ÜKY[™\™ÞKXXš[]K[[ÙYšY\ˆŠK^
+ÚYÛ™Y[X™\ŠX]™›ÛÜŠ
+˜[YHHL
+HÈŠJJNÂˆJNÂˆœ™XZÔØÛÜ™K›ÛŠ˜Ú[™ÙKÜH‹\Þ[˜È]™[OˆÂˆ]™[œ™]™[Y˜][
+
+NÂˆ]™[œÝÜ›ÜYØ][ÛŠ
+NÂˆYˆ
+JØ[YK\Ù\‹š\ÑÓHXÝÜ‹š\ÓÝÛ™\ŠJH™]\›ŽÂˆÛÛœÝ˜[YHHÛ[\
+]™[˜Ý\œ™[\™Ù]˜[YKKÌ
+NÂˆ]™[˜Ý\œ™[\™Ù]˜[YHH˜[YNÂˆ]ØZ]XÝÜ‹\]JÖØ›YÜË‰ÓSÑSWÒQK[[X]K˜œ™XZÑY™™XÝØÛÜ™XNˆ˜[Y_JNÂˆœ™XZÐØ\™™š[™
+‹ÜKY[™\™ÞKXXš[]K[[ÙYšY\ˆŠK^
+ÚYÛ™Y[X™\ŠX]™›ÛÜŠ
+˜[YHHL
+HÈŠJJNÂˆZK››ÝYšXØ][ÛœËš[™›Ê	ØXÝÜ‹›˜[Y_IÜÈœ™XZÈY™™XÝ\È›ÝÈ	Ý˜[Y_H
+	ÜÚYÛ™Y[X™\ŠX]™›ÛÜŠ
+˜[YHHL
+HÈŠJ_JK˜
+NÂˆJNÂŸB‚™[˜Ý[Ûˆ[™\™ÞQØZ[ŠÛÛ™šYËÚ[™
+HÂˆÛÛœÝ˜\ÙHHÚ[™OOH˜]XÚÈˆÈÛÛ™šYË˜]XÚÑØZ[ˆˆÛÛ™šYË˜]XÚÙYØZ[ŽÂˆÛÛœÝ]Ý[Ð›Û\ÈHØ[YK˜XÝÜœÏËœÛÛYJXÝÜˆOˆXÝÜ‹\HOOH˜Ú\˜XÝ\ˆˆ	‰ˆ›Ý[™žK][Ë™Ù]›Ü\JXÝÜ‹™Ù]›YÊSÑSWÒQœØÜš\Ý]HŠHÏÈßK]Ý[ËX[PY™‹˜XÝ]™HŠJHÈHˆÂˆ™]\›ˆX]›X^
+
+[X™\Š˜\ÙJH
+H
+È™YÙ[“[ÙYšY\ŠÛÛ™šYÊH
+È]Ý[Ð›Û\ÊNÂŸB‚™[˜Ý[Ûˆ\Ñ[™\™ÞSØÚÙY
+XÝÜŠHÂˆYˆ
+XXÝÜŠH™]\›ˆ˜[ÙNÂˆÛÛœÝÛÛ™šYÈHÙ]ÛÛ™šYÊXÝÜŠNÂˆYˆ
+XÛÛ™šYË›ØÚÑ[™\™ÞPY\•[[X]HXÛÛ™šYË™[™\™ÞSØÚÐÛÛX˜]YÛÛ™šYË™[™\™ÞSØÚÔ›Ý[™OOH[
+H™]\›ˆ˜[ÙNÂˆÛÛœÝÛÛX˜]HØ[YK˜ÛÛX˜]Ë™Ù]
+ÛÛ™šYË™[™\™ÞSØÚÐÛÛX˜]Y
+NÂˆ™]\›ˆ›ÛÛX[ŠÛÛX˜]ËœÝ\Y	‰ˆ[X™\ŠÛÛX˜]œ›Ý[™
+HH[X™\ŠÛÛ™šYË™[™\™ÞSØÚÔ›Ý[™
+JNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆØÚÑ[™\™ÞU[[™^›Ý[™
+XÝÜ‹ÛÛX˜]
+HÂˆYˆ
+XXÝÜˆXÛÛX˜]ËœÝ\YYÙ]ÛÛ™šYÊXÝÜŠK›ØÚÑ[™\™ÞPY\•[[X]JH™]\›ŽÂˆ]ØZ]XÝÜ‹\]JÂˆØ›YÜË‰ÓSÑSWÒQK[[X]K™[™\™ÞSØÚÐÛÛX˜]YNˆÛÛX˜]šYˆØ›YÜË‰ÓSÑSWÒQK[[X]K™[™\™ÞSØÚÔ›Ý[™Nˆ[X™\ŠÛÛX˜]œ›Ý[™
+BˆJNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆÛX\‘^\™Y[™\™ÞSØÚÜÊÛÛX˜]
+HÂˆYˆ
+XÛÛX˜]ËœÝ\Y
+H™]\›ŽÂˆÛÛœÝ\]\ÈHØ[YK˜XÝÜœÂˆ™š[\ŠXÝÜˆOˆÂˆÛÛœÝÛÛ™šYÈHÙ]ÛÛ™šYÊXÝÜŠNÂˆ™]\›ˆÛÛ™šYË™[™\™ÞSØÚÐÛÛX˜]YOOHÛÛX˜]šY	‰ˆÛÛ™šYË™[™\™ÞSØÚÔ›Ý[™OOH[	‰ˆ[X™\ŠÛÛX˜]œ›Ý[™
+Hˆ[X™\ŠÛÛ™šYË™[™\™ÞSØÚÔ›Ý[™
+NÂˆJBˆ›X\
+XÝÜˆOˆ
+×ÚYˆXÝÜ‹šYØ›YÜË‰ÓSÑSWÒQK[[X]K™[™\™ÞSØÚÐÛÛX˜]YNˆˆ‹Ø›YÜË‰ÓSÑSWÒQK[[X]K™[™\™ÞSØÚÔ›Ý[™Nˆ[JJNÂˆYˆ
+\]\Ë›[™Ý
+H]ØZ]XÝÜ‹\]QØÝ[Y[Ê\]\ÊNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆÙ][™\™ÞJXÝÜ‹˜[YKÛÝ™\œšYSØÚÈH˜[Ù_HHßJHÂˆYˆ
+XXÝÜŠH™]\›ŽÂˆÛÛœÝÛÛ™šYÈHÙ]ÛÛ™šYÊXÝÜŠNÂˆÛÛœÝÝ\œ™[HÛ[\
+˜[YKÛÛ™šYË›X^
+NÂˆYˆ
+Ý\œ™[ˆÛÛ™šYË˜Ý\œ™[	‰ˆ\Ñ[™\™ÞSØÚÙY
+XÝÜŠH	‰ˆ[Ý™\œšYSØÚÊH™]\›ˆÛÛ™šYË˜Ý\œ™[Âˆ]ØZ]XÝÜ‹\]JÖØ›YÜË‰ÓSÑSWÒQK[[X]K˜Ý\œ™[NˆÝ\œ™[JNÂˆ™]\›ˆÝ\œ™[ÂŸB‚˜\Þ[˜È[˜Ý[ÛˆY[™\™ÞJXÝÜ‹[[Ý[™X\ÛÛˆHˆŠHÂˆYˆ
+XXÝÜˆZ\Ð]]Üš]J
+JH™]\›ŽÂˆÛÛœÝÛÛ™šYÈHÙ]ÛÛ™šYÊXÝÜŠNÂˆYˆ
+XÛÛ™šYË™[˜X›YX[[Ý[
+H™]\›ŽÂˆYˆ
+[X™\Š[[Ý[
+Hˆ	‰ˆ\Ñ[™\™ÞSØÚÙY
+XÝÜŠJH™]\›ŽÂˆÛÛœÝ™Y›Ü™HHÛÛ™šYË˜Ý\œ™[ÂˆÛÛœÝY\ˆHÛ[\
+™Y›Ü™H
+È[X™\Š[[Ý[
+KÛÛ™šYË›X^
+NÂˆYˆ
+Y\ˆOOH™Y›Ü™JH™]\›ŽÂˆ]ØZ]Ù][™\™ÞJXÝÜ‹Y\ŠNÂˆÛÚÜË˜Ø[[
+ÜQ[™\™ÞPÚ[™ÙY‹XÝÜ‹™Y›Ü™KY\‹™X\ÛÛŠNÂŸB‚™[˜Ý[ÛˆØ[“ØœÙ\™PXÝÜŠXÝÜŠHÂˆYˆ
+XXÝÜŠH™]\›ˆ˜[ÙNÂˆ™]\›ˆØ[YK\Ù\‹š\ÑÓHXÝÜ‹š\ÓÝÛ™\ŽÂŸB‚™[˜Ý[ÛˆXÝÜ‘œ›ÛU]ZY\Ú
+˜[YJHÂˆYˆ
+]˜[YJH™]\›ˆ[ÂˆYˆ
+˜[YH[œÝ[˜Ù[ÙˆXÝÜŠH™]\›ˆ˜[YNÂˆYˆ
+˜[YK˜XÝÜˆ[œÝ[˜Ù[ÙˆXÝÜŠH™]\›ˆ˜[YK˜XÝÜŽÂˆYˆ
+˜[YK™ØÝ[Y[Ë˜XÝÜˆ[œÝ[˜Ù[ÙˆXÝÜŠH™]\›ˆ˜[YK™ØÝ[Y[˜XÝÜŽÂˆYˆ
+˜[YK˜XÝÜ’Y
+H™]\›ˆØ[YK˜XÝÜœË™Ù]
+˜[YK˜XÝÜ’Y
+HÏÈ[ÂˆÛÛœÝYHÝš[™Ê˜[YJKœÜ]
+‹ˆŠK˜]
+LJNÂˆ™]\›ˆØ[YK˜XÝÜœË™Ù]
+Y
+HÏÈØ[˜\ÏËÚÙ[œÏË™Ù]
+Y
+OË˜XÝÜˆÏÈ[ÂŸB‚˜\Þ[˜È[˜Ý[ÛˆXÝÜ‘œ›ÛU]ZY
+˜[YJHÂˆYˆ
+]˜[YJH™]\›ˆ[ÂˆžHÂˆÛÛœÝØÈH]ØZ]œ›ÛU]ZY
+˜[YJNÂˆ™]\›ˆØÏË˜XÝÜˆÏÈ
+ØÈ[œÝ[˜Ù[ÙˆXÝÜˆÈØÈˆ[
+NÂˆHØ]Ú
+Ù\œ›ÜŠHÂˆ™]\›ˆXÝÜ‘œ›ÛU]ZY\Ú
+˜[YJNÂˆBŸB‚™[˜Ý[Ûˆ\Ù\“^[Ý]
+XÝÜ’Y
+HÂˆÛÛœÝ[HØ[YKœÙ][™ÜË™Ù]
+SÑSWÒQ›Ü˜“^[Ý]ÈŠHÏÈßNÂˆ™]\›ˆ›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+ÞˆNˆNÚ^™NˆLŽš\ÚX›Nˆ˜[Ù_K[ØXÝÜ’YHÏÈßKÚ[œXÙNˆ˜[Ù_JNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆØ]™S^[Ý]
+XÝÜ’YÚ[™Ù\ÊHÂˆÛÛœÝ^[Ý]ÈH›Ý[™žK][Ë™Y\ÛÛ™JØ[YKœÙ][™ÜË™Ù]
+SÑSWÒQ›Ü˜“^[Ý]ÈŠHÏÈßJNÂˆ^[Ý]ÖØXÝÜ’YHH›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+^[Ý]ÖØXÝÜ’YHÏÈßKÚ[™Ù\ËÚ[œXÙNˆ˜[Ù_JNÂˆ]ØZ]Ø[YKœÙ][™ÜËœÙ]
+SÑSWÒQ›Ü˜“^[Ý]È‹^[Ý]ÊNÂŸB‚™[˜Ý[ÛˆÙ]ZPÛÛ™šYÊ
+HÂˆ™]\›ˆ›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+›Ý[™žK][Ë™Y\ÛÛ™JQUSÐRWÐÓÓ‘’QÊKØ[YKœÙ][™ÜË™Ù]
+SÑSWÒQ˜ZPÛÛ™šYÈŠHÏÈßKÚ[œXÙNˆ˜[Ù_JNÂŸB‚™[˜Ý[ÛˆÝ\œ™[[˜Ú[™J
+HÂˆ™]\›ˆX]›X^
+X]™›ÛÜŠ[X™\ŠØ[YKœÙ][™ÜË™Ù]
+SÑSWÒQœ[˜Ú[™HŠJH
+JNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆÙ][˜Ú[™J˜[YKØœ›ØYØ\ÝHY_HHßJHÂˆYˆ
+Z\Ð]]Üš]J
+JH™]\›ˆÝ\œ™[[˜Ú[™J
+NÂˆÛÛœÝ™^HX]›X^
+X]™›ÛÜŠ[X™\Š˜[YJH
+JNÂˆ]ØZ]Ø[YKœÙ][™ÜËœÙ]
+SÑSWÒQœ[˜Ú[™H‹™^
+NÂˆYˆ
+œ›ØYØ\Ý
+HØ[YKœÛØÚÙ]™[Z]
+ÓÐÒÑUÝ\Nˆœ[˜Ú[™PÚ[™ÙY‹˜[YNˆ™^ÛÝ\˜ÙU\Ù\’YˆØ[YK\Ù\‹šYJNÂˆ™Yœ™\Ú[˜Ú[™RQ
+
+NÂˆÛÚÜË˜Ø[[
+ÜT[˜Ú[™PÚ[™ÙY‹™^
+NÂˆ™]\›ˆ™^ÂŸB‚˜\Þ[˜È[˜Ý[ÛˆY[˜Ú[™J[[Ý[HJHÂˆYˆ
+Z\Ð]]Üš]J
+JH›ÝÈ™]È\œ›ÜŠ“Û›HHXÝ]™HÓHØ[ˆÚ[™ÙH[˜Ú[™H\™XÝKˆŠNÂˆYˆ
+YÙ]ZPÛÛ™šYÊ
+K™[][Û‘[˜X›Y
+H™]\›ˆÝ\œ™[[˜Ú[™J
+NÂˆ™]\›ˆÙ][˜Ú[™JÝ\œ™[[˜Ú[™J
+H
+È
+[X™\Š[[Ý[
+H
+JNÂŸB‚˜\Þ[˜È[˜Ý[Ûˆ]Ø\™[˜Ú[™Q›Ü]XÚÊXÝÜ‹]™[Ù^HHˆŠHÂˆYˆ
+Z\Ð]]Üš]J
+HXÝÜË\HOOH˜Ú\˜XÝ\ˆˆYÙ]ZPÛÛ™šYÊ
+K™[][Û‘[˜X›Y
+H™]\›ŽÂˆÛÛœÝÙ^HH[˜Ú[™KX]XÚÎ‰Ù]™[Ù^HXÝÜ‹]ZYXÂˆYˆ
+Ý]Kœ›ØÙ\ÜÙYY\ÜØYÙ\Ëš\ÊÙ^JJH™]\›ŽÂˆÝ]Kœ›ØÙ\ÜÙYY\ÜØYÙ\Ë˜Y
+Ù^JNÂˆÚ[™ÝËœÙ][Y[Ý]
+
+
+HOˆÝ]Kœ›ØÙ\ÜÙYY\ÜØYÙ\Ë™[]JÙ^JKLŒ
+NÂˆÛÛœÝZPÛÛ™šYÈHÙ]ZPÛÛ™šYÊ
+NÂˆÛÛœÝXÝÜÛÛ™šYÈHÙ]ÛÛ™šYÊXÝÜŠNÂˆÛÛœÝ\Ñ[][ÛˆH›ÛÛX[ŠZPÛÛ™šYË™[][Û”]Y
+H	‰ˆXÝÜÛÛ™šYËœ]YOOHZPÛÛ™šYË™[][Û”]YÂˆ]][\Y\ˆHNÂˆÛÛœÝØÜš\Ý]HHXÝÜ‹™Ù]›YÊSÑSWÒQœØÜš\Ý]HŠHÏÈßNÂˆÛÛœÝ\šÕ\›ˆH›Ý[™žK][Ë™Ù]›Ü\JØÜš\Ý]K›\šËœÚÚ[\›ˆŠNÂˆYˆ
+\šÕ\›ˆ	‰ˆ\šÕ\›‹œ›Ý[™OOHØ[YK˜ÛÛX˜]Ëœ›Ý[™	‰ˆ\šÕ\›‹\›ˆOOHØ[YK˜ÛÛX˜]Ë\›ŠH][\Y\ˆ
+HŽÂˆYˆ
+Ø[YK˜XÝÜœËœÛÛYJ[žHOˆ[žK\HOOH˜Ú\˜XÝ\ˆˆ	‰ˆ›Ý[™žK][Ë™Ù]›Ü\J[žK™Ù]›YÊSÑSWÒQœØÜš\Ý]HŠHÏÈßK]Ý[ËX[PY™‹˜XÝ]™HŠJJH][\Y\ˆ
+HŽÂˆÛÛœÝØZ[ˆH
+\Ñ[][ÛˆÈX]›X^
+X]™›ÛÜŠ[X™\ŠXÝÜÛÛ™šYËœ[˜Ú[™QØZ[ŠH
+JHˆJH
+ˆ][\Y\ŽÂˆYˆ
+ØZ[ˆˆ
+H]ØZ]Y[˜Ú[™JØZ[ŠNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆÜ[™[˜Ú[™J[[Ý[HJHÂˆYˆ
+Z\Ð]]Üš]J
+JH›ÝÈ™]È\œ›ÜŠ“Û›HHXÝ]™HÓHØ[ˆÚ[™ÙH[˜Ú[™H\™XÝKˆŠNÂˆÛÛœÝÛÜÝHX]›X^
+X]™›ÛÜŠ[X™\Š[[Ý[
+H
+JNÂˆYˆ
+Ý\œ™[[˜Ú[™J
+HÛÜÝ
+H™]\›ˆ˜[ÙNÂˆ]ØZ]Ù][˜Ú[™JÝ\œ™[[˜Ú[™J
+HHÛÜÝ
+NÂˆ™]\›ˆYNÂŸB‚™[˜Ý[Ûˆ[˜Ú[™TØÜš\[\œÊXÝÜŠHÂˆÛÛœÝ™\]Y\ÝH
+Ü\˜][Û‹[[Ý[
+HOˆÂˆYˆ
+\Ð]]Üš]J
+JHÂˆYˆ
+Ü\˜][ÛˆOOH˜YŠH™]\›ˆY[˜Ú[™J[[Ý[
+NÂˆYˆ
+Ü\˜][ÛˆOOHœÜ[™ŠH™]\›ˆÜ[™[˜Ú[™J[[Ý[
+NÂˆYˆ
+Ü\˜][ÛˆOOHœÙ]ŠH™]\›ˆÙ][˜Ú[™J[[Ý[
+NÂˆBˆØ[YKœÛØÚÙ]™[Z]
+ÓÐÒÑUÝ\Nˆ˜Ú[™ÙT[˜Ú[™H‹Ü\˜][Û‹[[Ý[ˆ[X™\Š[[Ý[
+HXÝÜ•]ZYˆXÝÜË]ZYÛÝ\˜ÙU\Ù\’YˆØ[YK\Ù\‹šYJNÂˆ™]\›ˆ›ÛZ\ÙKœ™\ÛÛ™JYJNÂˆNÂˆ™]\›ˆØš™XÝ™œ™Y^™JÂˆÙ]ˆÝ\œ™[[˜Ú[™KˆYˆ[[Ý[Oˆ™\]Y\Ý
+˜Y‹[[Ý[
+KˆÜ[™ˆ[[Ý[Oˆ™\]Y\Ý
+œÜ[™‹[[Ý[
+KˆÙ]ˆ[[Ý[Oˆ™\]Y\Ý
+œÙ]‹[[Ý[
+BˆJNÂŸB‚™[˜Ý[Ûˆ[[ÛÛX˜]›ÜXÝÜŠXÝÜŠHÂˆÛÛœÝÛÛX˜]HØ[YK˜ÛÛX˜]ÂˆYˆ
+XÛÛX˜]ËœÝ\YXÝÜË\HOOH˜Ú\˜XÝ\ˆŠH™]\›ˆ[ÂˆËÈ\ÙHH[š]X]]™H›ÜÝ\ˆ]Ù[ˆ\ÈHÛÝ\˜ÙHÙˆ]ˆ\È[ÛÈÝ\ÜÂˆËÈY[ˆÛÛX˜][È[™Þ[]XËÝ[›[šÙYÚÙ[ˆXÝÜœË‚ˆ™]\›ˆ\œ˜^K™œ›ÛJÛÛX˜]˜ÛÛX˜][ÈÏÈ×JKœÛÛYJÛÛX˜][O‚ˆÛÛX˜][˜XÝÜ’YOOHXÝÜ‹šYÛÛX˜][˜XÝÜËšYOOHXÝÜ‹šYˆ
+HÈÛÛX˜]ˆ[ÂŸB‚™[˜Ý[ÛˆÝ\œ™[[[Ú[ÊXÝÜŠHÂˆÛÛœÝÛÛX˜]H[[ÛÛX˜]›ÜXÝÜŠXÝÜŠNÂˆYˆ
+XÛÛX˜]
+H™]\›ˆÂˆÛÛœÝÛÛ™šYÈHÙ]ÛÛ™šYÊXÝÜŠNÂˆYˆ
+ÛÛ™šYË[[ÛÛX˜]YOOHÛÛX˜]šY
+H™]\›ˆÂˆÛÛœÝšYÙÙ\ˆHX]›X^
+X]™›ÛÜŠ[X™\ŠÛÛ™šYË[[Ú[ÓX^
+H
+JNÂˆÛÛœÝÝ™\˜Ø\HX]›X^
+šYÙÙ\‹X]™›ÛÜŠ[X™\ŠÛÛ™šYË[[Ú[ÓÝ™\˜Ø\X^
+HšYÙÙ\ŠJNÂˆ™]\›ˆÛ[\
+X]™›ÛÜŠ[X™\ŠÛÛ™šYË[[Ú[ÐÝ\œ™[
+H
+KÝ™\˜Ø\
+NÂŸB‚™[˜Ý[Ûˆ[[Ú[[Z]ÊXÝÜŠHÂˆÛÛœÝÛÛ™šYÈHÙ]ÛÛ™šYÊXÝÜŠNÂˆÛÛœÝšYÙÙ\ˆHX]›X^
+X]™›ÛÜŠ[X™\ŠÛÛ™šYË[[Ú[ÓX^
+H
+JNÂˆ™]\›ˆÝšYÙÙ\‹Ý™\˜Ø\ˆX]›X^
+šYÙÙ\‹X]™›ÛÜŠ[X™\ŠÛÛ™šYË[[Ú[ÓÝ™\˜Ø\X^
+HšYÙÙ\ŠJ_NÂŸB‚™[˜Ý[Ûˆ\Õ[[\›ÛÛX˜][
+ÛÛX˜][
+HÂˆ™]\›ˆ›ÛÛX[ŠÛÛX˜][Ë™Ù]›YÊSÑSWÒQ[[\›ÛÛX˜][ŠJNÂŸB‚™[˜Ý[Ûˆ]Y]YU[[\›ŠXÝÜ‹ÛÛX˜]H[[ÛÛX˜]›ÜXÝÜŠXÝÜŠJHÂˆYˆ
+Z\Ð]]Üš]J
+HXÛÛX˜]ËœÝ\YXXÝÜˆ[[Ú[[Z]ÊXÝÜŠKšYÙÙ\ˆJH™]\›ˆ˜[ÙNÂˆYˆ
+ÛÛX˜]˜ÛÛX˜][ËœÛÛYJ[žHOˆ\Õ[[\›ÛÛX˜][
+[žJH	‰ˆ[žK˜XÝÜ’YOOHXÝÜ‹šY
+JH™]\›ˆ˜[ÙNÂˆÛÛœÝ]Y]YHHÝ]K[[\›”]Y]Y\Ë™Ù]
+ÛÛX˜]šY
+HÏÈ×NÂˆYˆ
+]Y]YKš[˜ÛY\ÊXÝÜ‹šY
+JH™]\›ˆ˜[ÙNÂˆ]Y]YKœ\Ú
+XÝÜ‹šY
+NÂˆÝ]K[[\›”]Y]Y\ËœÙ]
+ÛÛX˜]šY]Y]YJNÂˆ™]\›ˆYNÂŸB‚™[˜Ý[Ûˆ]Y]YT™XYU[[\›œÊÛÛX˜]
+HÂˆYˆ
+Z\Ð]]Üš]J
+HXÛÛX˜]ËœÝ\Y
+H™]\›ŽÂˆÛÛœÝÙY[ˆH™]ÈÙ]
+
+NÂˆ›Üˆ
+ÛÛœÝÛÛX˜][ÙˆÛÛX˜]˜ÛÛX˜][ÈÏÈ×JHÂˆYˆ
+\Õ[[\›ÛÛX˜][
+ÛÛX˜][
+JHÛÛ[YNÂˆÛÛœÝXÝÜˆHØ[YK˜XÝÜœË™Ù]
+ÛÛX˜][˜XÝÜ’Y
+HÏÈÛÛX˜][˜XÝÜŽÂˆYˆ
+XXÝÜˆXÝÜ‹\HOOH˜Ú\˜XÝ\ˆˆÙY[‹š\ÊXÝÜ‹šY
+JHÛÛ[YNÂˆÙY[‹˜Y
+XÝÜ‹šY
+NÂˆÛÛœÝÝšYÙÙ\ŸHH[[Ú[[Z]ÊXÝÜŠNÂˆYˆ
+šYÙÙ\ˆˆ	‰ˆÝ\œ™[[[Ú[ÊXÝÜŠHHšYÙÙ\ŠH]Y]YU[[\›ŠXÝÜ‹ÛÛX˜]
+NÂˆBŸB‚˜\Þ[˜È[˜Ý[ÛˆÙ][[Ú[ÊXÝÜ‹˜[YJHÂˆÛÛœÝÛÛX˜]H[[ÛÛX˜]›ÜXÝÜŠXÝÜŠNÂˆYˆ
+Z\Ð]]Üš]J
+HXÛÛX˜]
+H™]\›ˆÝ\œ™[[[Ú[ÊXÝÜŠNÂˆÛÛœÝÛÛ™šYÈHÙ]ÛÛ™šYÊXÝÜŠNÂˆÛÛœÝÝšYÙÙ\‹Ý™\˜Ø\HH[[Ú[[Z]ÊXÝÜŠNÂˆÛÛœÝ™^HÛ[\
+X]™›ÛÜŠ[X™\Š˜[YJH
+KÝ™\˜Ø\
+NÂˆÛÛœÝ™Y›Ü™HHÝ\œ™[[[Ú[ÊXÝÜŠNÂˆYˆ
+™^OOH™Y›Ü™HÛÛ™šYË[[ÛÛX˜]YOOHÛÛX˜]šY
+H]ØZ]XÝÜ‹\]JÖØ›YÜË‰ÓSÑSWÒQK[[X]K[[Ú[ÐÝ\œ™[Nˆ™^Ø›YÜË‰ÓSÑSWÒQK[[X]K[[ÛÛX˜]YNˆÛÛX˜]šYJNÂˆYˆ
+™^OOH™Y›Ü™JHÛÚÜË˜Ø[[
+ÜU[[Ú[ÐÚ[™ÙY‹XÝÜ‹™Y›Ü™K™^
+NÂˆYˆ
+šYÙÙ\ˆˆ	‰ˆ™^HšYÙÙ\ˆ	‰ˆ]Y]YU[[\›ŠXÝÜ‹ÛÛX˜]
+JHÂˆÚ[™ÝËœÙ][Y[Ý]
+
+
+HOˆ›ØÙ\ÜÕ[[\›”]Y]YJÛÛX˜]
+K˜Ø]Ú
+\œ›ÜˆOˆÂˆÛÛœÛÛK™\œ›ÜŠ	ÓSÑSWÒQHÛÝ[›Ý›ØÙ\ÜÈ	ØXÝÜ‹›˜[Y_IÜÈ™XYH[[\›˜\œ›ÜŠNÂˆZK››ÝYšXØ][ÛœË™\œ›ÜŠÛÝ[›Ý[œÙ\	ØXÝÜ‹›˜[Y_IÜÈ[[\›Žˆ	Ù\œ›Ü‹›Y\ÜØYÙ_X
+NÂˆJK
+NÂˆBˆ™]\›ˆ™^ÂŸB‚™[˜Ý[Ûˆ[[ØÜš\[\œÊXÝÜŠHÂˆ™]\›ˆØš™XÝ™œ™Y^™JÂˆÙ]ˆ
+
+HOˆÝ\œ™[[[Ú[ÊXÝÜŠKˆX^ˆ
+
+HOˆX]›X^
+X]™›ÛÜŠ[X™\ŠÙ]ÛÛ™šYÊXÝÜŠK[[Ú[ÓX^
+H
+JKˆÙ]ˆ˜[YHOˆÙ][[Ú[ÊXÝÜ‹˜[YJKˆYˆ[[Ý[OˆÙ][[Ú[ÊXÝÜ‹Ý\œ™[[[Ú[ÊXÝÜŠH
+È
+[X™\Š[[Ý[
+H
+JKˆÜ[™ˆ\Þ[˜È[[Ý[OˆÂˆÛÛœÝÛÜÝHX]›X^
+X]™›ÛÜŠ[X™\Š[[Ý[
+H
+JNÂˆYˆ
+Ý\œ™[[[Ú[ÊXÝÜŠHÛÜÝ
+H™]\›ˆ˜[ÙNÂˆ]ØZ]Ù][[Ú[ÊXÝÜ‹Ý\œ™[[[Ú[ÊXÝÜŠHHÛÜÝ
+NÂˆ™]\›ˆYNÂˆBˆJNÂŸB‚™[˜Ý[ÛˆÚÚ[Ú[ØÜš\[\œÊXÝÜŠHÂˆÛÛœÝ™\]Y\ÝH
+Ü\˜][Û‹[[Ý[
+HOˆÂˆYˆ
+\Ð]]Üš]J
+JHÂˆYˆ
+Ü\˜][ÛˆOOHœÙ]ŠH™]\›ˆÙ]ÚÚ[Ú[Ê[[Ý[
+NÂˆYˆ
+Ü\˜][ÛˆOOH˜YŠH™]\›ˆÙ]ÚÚ[Ú[ÊÝ\œ™[ÚÚ[Ú[Ê
+H
+È
+[X™\Š[[Ý[
+H
+JNÂˆYˆ
+Ü\˜][ÛˆOOHœÜ[™ŠHÂˆÛÛœÝÛÜÝHX]›X^
+X]™›ÛÜŠ[X™\Š[[Ý[
+H
+JNÂˆYˆ
+Ý\œ™[ÚÚ[Ú[Ê
+HÛÜÝ
+H™]\›ˆ›ÛZ\ÙKœ™\ÛÛ™J˜[ÙJNÂˆ™]\›ˆÙ]ÚÚ[Ú[ÊÝ\œ™[ÚÚ[Ú[Ê
+HHÛÜÝ
+K[Š
+
+HOˆYJNÂˆBˆBˆØ[YKœÛØÚÙ]™[Z]
+ÓÐÒÑUÝ\Nˆ˜Ú[™ÙTÚÚ[Ú[È‹Ü\˜][Û‹[[Ý[ˆ[X™\Š[[Ý[
+HXÝÜ•]ZYˆXÝÜË]ZYÛÝ\˜ÙU\Ù\’YˆØ[YK\Ù\‹šYJNÂˆ™]\›ˆ›ÛZ\ÙKœ™\ÛÛ™JYJNÂˆNÂˆ™]\›ˆØš™XÝ™œ™Y^™JÂˆÙ]ˆÝ\œ™[ÚÚ[Ú[ËˆX^ˆ
+
+HOˆÙ]ÚÚ[Ú[ÛÛ™šYÊ
+K›X^[][KˆÙ]ˆ˜[YHOˆ™\]Y\Ý
+œÙ]‹˜[YJKˆYˆ[[Ý[Oˆ™\]Y\Ý
+˜Y‹[[Ý[
+KˆÜ[™ˆ[[Ý[Oˆ™\]Y\Ý
+œÜ[™‹[[Ý[
+BˆJNÂŸB‚™[˜Ý[ÛˆØÜš\[[YR[\œÊXÝÜŠHÂˆÛÛœÝØÛÜHHœØÜš\Ý]HŽÂˆ™]\›ˆØš™XÝ™œ™Y^™JÂˆÜXÚX[ZNˆš^Y[˜Ú[™HOˆšYÙÙ\”ÜXÚX[ZJXÝÜ‹š^Y[˜Ú[™JKˆ[Ù[RYˆSÑSWÒQˆÝ]NˆØš™XÝ™œ™Y^™JÂˆÙ]ˆ
+Ù^K˜[˜XÚÈH[
+HOˆ›Ý[™žK][Ë™Ù]›Ü\JXÝÜ‹™Ù]›YÊSÑSWÒQØÛÜJHÏÈßKÙ^JHÏÈ˜[˜XÚËˆÙ]ˆ\Þ[˜È
+Ù^K˜[YJHOˆÂˆÛÛœÝÝÜ™YH›Ý[™žK][Ë™Y\ÛÛ™JXÝÜ‹™Ù]›YÊSÑSWÒQØÛÜJHÏÈßJNÂˆ›Ý[™žK][ËœÙ]›Ü\JÝÜ™YÙ^K˜[YJNÂˆ]ØZ]XÝÜ‹œÙ]›YÊSÑSWÒQØÛÜKÝÜ™Y
+NÂˆ™]\›ˆ˜[YNÂˆKˆ[œÙ]ˆ\Þ[˜ÈÙ^HOˆÂˆÛÛœÝÝÜ™YH›Ý[™žK][Ë™Y\ÛÛ™JXÝÜ‹™Ù]›YÊSÑSWÒQØÛÜJHÏÈßJNÂˆÛÛœÝ™[[Ý™YH›Ý[™žK][Ë[œÙ]›Ü\JÝÜ™YÙ^JNÂˆYˆ
+™[[Ý™Y
+H]ØZ]XÝÜ‹œÙ]›YÊSÑSWÒQØÛÜKÝÜ™Y
+NÂˆ™]\›ˆ™[[Ý™YÂˆBˆJBˆJNÂŸB‚˜\Þ[˜È[˜Ý[Ûˆ[•[[ØÜš\
+XÝÜ‹]™[
+HÂˆÛÛœÝØÜš\HÙ]ÛÛ™šYÊXÝÜŠK[[ØÜš\Ëš[J
+NÂˆYˆ
+\ØÜš\][[ÛÛX˜]›ÜXÝÜŠXÝÜŠHÝ]K˜XÝ]™U[[Ëš\ÊXÝÜ‹šY
+JH™]\›ŽÂˆÝ]K˜XÝ]™U[[Ë˜Y
+XÝÜ‹šY
+NÂˆžHÂˆÛÛœÝÚÙ[ˆHXÝÜ‹™Ù]XÝ]™UÚÙ[œÊYKYJOË–ÌHÏÈ[ÂˆÛÛœÝ\Þ[˜Ñ[˜Ý[ÛˆHØš™XÝ™Ù]›ÝÝ\SÙŠ\Þ[˜È[˜Ý[ÛŠ
+^ßJK˜ÛÛœÝXÝÜŽÂˆÛÛœÝ^XÝ]HH™]È\Þ[˜Ñ[˜Ý[ÛŠ˜XÝÜˆ‹ÚÙ[ˆ‹™]™[‹™Ø[YH‹˜Ø[˜\È‹ZH‹™›Ý[™žH‹’ÛÚÜÈ‹œ[˜Ú[™H‹[[‹œÚÚ[Ú[È‹ÜH‹\ÙHÝšXÝŽ×‰ÜØÜš\X
+NÂˆ]ØZ]^XÝ]JXÝÜ‹ÚÙ[‹]™[Ø[YKØ[˜\ËZK›Ý[™žKÛÚÜË[˜Ú[™TØÜš\[\œÊXÝÜŠK[[ØÜš\[\œÊXÝÜŠKÚÚ[Ú[ØÜš\[\œÊXÝÜŠKØÜš\[[YR[\œÊXÝÜŠJNÂˆHØ]Ú
+\œ›ÜŠHÂˆÛÛœÛÛK™\œ›ÜŠ	ÓSÑSWÒQH	ØXÝÜ‹›˜[Y_H[[˜Z[Y\š[™È	Ù]™[\_X\œ›ÜŠNÂˆZK››ÝYšXØ][ÛœË™\œ›ÜŠ	ØXÝÜ‹›˜[Y_IÜÈ[[˜Z[Yˆ	Ù\œ›Ü‹›Y\ÜØYÙ_X
+NÂˆHš[˜[HÈÝ]K˜XÝ]™U[[Ë™[]JXÝÜ‹šY
+NÈBŸB‚˜\Þ[˜È[˜Ý[Ûˆ\Ü]Ú[[]™[
+\K]Z[HßK]™[Ù^HHˆŠHÂˆËÈ[[È\™H\ØÜš\]™H^XÝ[ÛœÈ›ÝËˆYØXÞHØÜš\È\™H™]Z[™Y[ˆÝÜ™YˆËÈ]H›Üˆ›Û˜XÚÈÛÛ\]Xš[]K]\™H[[[Û˜[H™]™\ˆ^XÝ]Y‚ˆ™]\›ŽÂŸB‚™[˜Ý[Ûˆ[˜Ú[™S^[Ý]
+
+HÂˆ™]\›ˆ›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+ÞˆNNˆMKÚ^™NˆMš\ÚX›NˆY_KØ[YKœÙ][™ÜË™Ù]
+SÑSWÒQœ[˜Ú[™S^[Ý]ŠHÏÈßKÚ[œXÙNˆ˜[Ù_JNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆØ]™T[˜Ú[™S^[Ý]
+Ú[™Ù\ÊHÂˆÛÛœÝ^[Ý]H›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+[˜Ú[™S^[Ý]
+
+KÚ[™Ù\ËÚ[œXÙNˆ˜[Ù_JNÂˆ]ØZ]Ø[YKœÙ][™ÜËœÙ]
+SÑSWÒQœ[˜Ú[™S^[Ý]‹^[Ý]
+NÂˆ™]\›ˆ^[Ý]ÂŸB‚˜Û\ÜÈ[˜Ú[™SY]\ˆÂˆÛÛœÝXÝÜŠ
+HÈ\Ë™[[Y[H[È\Ë™˜YÈH[È\Ëœ™\Ú^™HH[ÈBˆ™[™\Š
+HÂˆÛÛœÝÛÛ™šYÈHÙ]ZPÛÛ™šYÊ
+NÂˆÛÛœÝ^[Ý]H[˜Ú[™S^[Ý]
+
+NÂˆYˆ
+XÛÛX˜]\Ò[š]X]]™J
+HXÛÛ™šYË™[][Û‘[˜X›Y
+\[˜Ú[™SÝ™\œšYQ[˜X›Y
+
+H	‰ˆXÛÛX˜]\Ó]š[™Ñ[][ÛŠ
+JH[^[Ý]š\ÚX›JH™]\›ˆ\Ë™\Ý›ÞJ
+NÂˆYˆ
+]\Ë™[[Y[
+HÂˆ\Ë™[[Y[HØÝ[Y[˜Ü™X]Q[[Y[
+™]ˆŠNÂˆ\Ë™[[Y[˜Û\ÜÓ˜[YHHÜK\[˜Ú[™K[Y]\ˆŽÂˆ\Ë™[[Y[š[›™\’SH]ˆÛ\ÜÏHÜK\[˜Ú[™KY˜YÈˆ]OH“[Ý™H[˜Ú[™HÛÝ[\ˆHÛ\ÜÏH™˜\È˜KYÜš\[[™\ÈÚOÙ][YÈÛ\ÜÏHÜK\[˜Ú[™KZXÛÛˆ]ˆÛ\ÜÏHÜK\[˜Ú[™K[[X™\ˆÙ]]Ûˆ\OH˜]ÛˆˆÛ\ÜÏHÜK\[˜Ú[™KXÛÜÙHˆ]OH’YH[˜Ú[™HÛÝ[\ˆHÛ\ÜÏH™˜\È˜K^X\šÈÚOØ]Û]ˆÛ\ÜÏHÜK\[˜Ú[™K\™\Ú^™Hˆ]OH”™\Ú^™HÙ]˜ÂˆØÝ[Y[˜›ÙK˜\[™Ú[
+\Ë™[[Y[
+NÂˆ\Ë˜XÝ]˜]S\Ý[™\œÊ
+NÂˆBˆ\Ë™[[Y[œÝ[K›YH	ØÛ[\
+^[Ý]žÚ[™ÝËš[›™\•ÚYH
+_\Âˆ\Ë™[[Y[œÝ[KÜH	ØÛ[\
+^[Ý]žKÚ[™ÝËš[›™\’ZYÚH
+_\Âˆ\Ë™[[Y[œÝ[KœÙ]›Ü\J‹K]ÜK\[˜Ú[™K\Ú^™H‹	ØÛ[\
+^[Ý]œÚ^™KÌMŒ
+_\
+NÂˆ\Ë™[[Y[œÝ[KœÙ]›Ü\J‹K]ÜK\[˜Ú[™KY›Û\ØØ[H‹Ýš[™ÊÛ[\
+ÛÛ™šYËœ[˜Ú[™Q›ÛÚ^™KL‹MŒ
+HÈM
+JNÂˆ\Ë™[[Y[œÝ[KœÙ]›Ü\J‹K]ÜK\[˜Ú[™KZXÛÛ‹^‹	ØÛ[\
+ÛÛ™šYËœ[˜Ú[™RXÛÛ“Ù™œÙ]LLL
+_\
+NÂˆ\Ë™[[Y[œÝ[KœÙ]›Ü\J‹K]ÜK\[˜Ú[™KZXÛÛ‹^H‹	ØÛ[\
+ÛÛ™šYËœ[˜Ú[™RXÛÛ“Ù™œÙ]KLLL
+_\
+NÂˆ\Ë™[[Y[œÝ[KœÙ]›Ü\J‹K]ÜK\[˜Ú[™KXÛÛÜˆ‹ÛÛ™šYË˜ÛÛÜˆQUSÐRWÐÓÓ‘’QË˜ÛÛÜŠNÂˆÛÛœÝXÛÛˆH\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK\[˜Ú[™KZXÛÛˆŠNÂˆXÛÛ‹œÜ˜ÈHÛÛ™šYËœ[˜Ú[™RXÛÛˆQUSÐRWÐÓÓ‘’QËœ[˜Ú[™RXÛÛŽÂˆXÛÛ‹œÝ[K˜[œÙ›Ü›HH˜[œÛ]J	ØÛ[\
+ÛÛ™šYËœ[˜Ú[™RXÛÛ“Ù™œÙ]LLL
+_\	ØÛ[\
+ÛÛ™šYËœ[˜Ú[™RXÛÛ“Ù™œÙ]KLLL
+_\
+XÂˆ\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK\[˜Ú[™K[[X™\ˆŠK^ÛÛ[HÝš[™ÊÝ\œ™[[˜Ú[™J
+JNÂˆØYÜ\Ú›Û
+ÛÛ™šYËœ[˜Ú[™Q›Ûš[JK[Š›ÛOˆ\Ë™[[Y[ËœÝ[KœÙ]›Ü\J‹K]ÜK\[˜Ú[™KY›Û‹›Û
+JK˜Ø]Ú
+\œ›ÜˆOˆÛÛœÛÛKØ\›Š	ÓSÑSWÒQHÛÝ[›ÝØY[˜Ú[™H›Û\œ›ÜŠJNÂˆ™]\›ˆ\ÎÂˆBˆXÝ]˜]S\Ý[™\œÊ
+HÂˆÛÛœÝ˜YÈH\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK\[˜Ú[™KY˜YÈŠNÈÛÛœÝ™\Ú^™HH\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK\[˜Ú[™K\™\Ú^™HŠNÂˆ˜YË˜Y]™[\Ý[™\ŠœÚ[\™ÝÛˆ‹]™[OˆÈ]™[œ™]™[Y˜][
+
+NÈÛÛœÝ™XÝH\Ë™[[Y[™Ù]›Ý[™[™ÐÛY[™XÝ
+
+NÈ\Ë™˜YÈHÙˆ]™[˜ÛY[H™XÝ›YNˆ]™[˜ÛY[HH™XÝÜNÈ˜YËœÙ]Ú[\Ø\\™J]™[œÚ[\’Y
+NÈJNÂˆ˜YË˜Y]™[\Ý[™\ŠœÚ[\›[Ý™H‹]™[OˆÈYˆ
+]\Ë™˜YÊH™]\›ŽÈ\Ë™[[Y[œÝ[K›YH	ØÛ[\
+]™[˜ÛY[H\Ë™˜YË™Ú[™ÝËš[›™\•ÚYH
+_\È\Ë™[[Y[œÝ[KÜH	ØÛ[\
+]™[˜ÛY[HH\Ë™˜YË™KÚ[™ÝËš[›™\’ZYÚH
+_\ÈJNÂˆ˜YË˜Y]™[\Ý[™\ŠœÚ[\\‹\Þ[˜È]™[OˆÈYˆ
+]\Ë™˜YÊH™]\›ŽÈ\Ë™˜YÈH[È˜YËœ™[X\ÙTÚ[\Ø\\™J]™[œÚ[\’Y
+NÈÛÛœÝ™XÝH\Ë™[[Y[™Ù]›Ý[™[™ÐÛY[™XÝ
+
+NÈ]ØZ]Ø]™T[˜Ú[™S^[Ý]
+ÞˆX]œ›Ý[™
+™XÝ›Y
+KNˆX]œ›Ý[™
+™XÝÜ
+_JNÈJNÂˆ™\Ú^™K˜Y]™[\Ý[™\ŠœÚ[\™ÝÛˆ‹]™[OˆÈ]™[œ™]™[Y˜][
+
+NÈ\Ëœ™\Ú^™HHÜÝ\ˆ]™[˜ÛY[Ý\Ú^™Nˆ[˜Ú[™S^[Ý]
+
+KœÚ^™_NÈ™\Ú^™KœÙ]Ú[\Ø\\™J]™[œÚ[\’Y
+NÈJNÂˆ™\Ú^™K˜Y]™[\Ý[™\ŠœÚ[\›[Ý™H‹]™[OˆÈYˆ
+]\Ëœ™\Ú^™JH™]\›ŽÈ\Ë™[[Y[œÝ[KœÙ]›Ü\J‹K]ÜK\[˜Ú[™K\Ú^™H‹	ØÛ[\
+\Ëœ™\Ú^™KœÝ\Ú^™H
+È]™[˜ÛY[H\Ëœ™\Ú^™KœÝ\ÌMŒ
+_\
+NÈJNÂˆ™\Ú^™K˜Y]™[\Ý[™\ŠœÚ[\\‹\Þ[˜È]™[OˆÈYˆ
+]\Ëœ™\Ú^™JH™]\›ŽÈÛÛœÝÚ^™HHÛ[\
+\Ëœ™\Ú^™KœÝ\Ú^™H
+È]™[˜ÛY[H\Ëœ™\Ú^™KœÝ\ÌMŒ
+NÈ\Ëœ™\Ú^™HH[È™\Ú^™Kœ™[X\ÙTÚ[\Ø\\™J]™[œÚ[\’Y
+NÈ]ØZ]Ø]™T[˜Ú[™S^[Ý]
+ÜÚ^™NˆX]œ›Ý[™
+Ú^™J_JNÈ\Ëœ™[™\Š
+NÈJNÂˆ\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK\[˜Ú[™KXÛÜÙHŠK˜Y]™[\Ý[™\Š˜ÛXÚÈ‹\Þ[˜È
+
+HOˆÈ]ØZ]Ø]™T[˜Ú[™S^[Ý]
+Ýš\ÚX›Nˆ˜[Ù_JNÈ\Ë™\Ý›ÞJ
+NÈJNÂˆBˆ\Ý›ÞJ
+HÈ\Ë™[[Y[Ëœ™[[Ý™J
+NÈ\Ë™[[Y[H[ÈYˆ
+Ý]Kœ[˜Ú[™SY]\ˆOOH\ÊHÝ]Kœ[˜Ú[™SY]\ˆH[ÈBŸB‚™[˜Ý[Ûˆ™Yœ™\Ú[˜Ú[™RQ
+
+HÂˆYˆ
+XÛÛX˜]\Ò[š]X]]™J
+HYÙ]ZPÛÛ™šYÊ
+K™[][Û‘[˜X›Y
+\[˜Ú[™SÝ™\œšYQ[˜X›Y
+
+H	‰ˆXÛÛX˜]\Ó]š[™Ñ[][ÛŠ
+JH\[˜Ú[™S^[Ý]
+
+Kš\ÚX›JHÈÝ]Kœ[˜Ú[™SY]\Ë™\Ý›ÞJ
+NÈ™]\›ŽÈBˆYˆ
+\Ý]Kœ[˜Ú[™SY]\ŠHÝ]Kœ[˜Ú[™SY]\ˆH™]È[˜Ú[™SY]\Š
+NÂˆÝ]Kœ[˜Ú[™SY]\‹œ™[™\Š
+NÂŸB‚™[˜Ý[Ûˆ\[™ÐØ[˜\Ó^Y\Š[[Y[
+HÂˆÛÛœÝ›Ø\™HØÝ[Y[œ]Y\žTÙ[XÝÜŠˆØ›Ø\™ŠNÂˆÛÛœÝØ[˜\Ó^Y\ˆHØÝ[Y[œ]Y\žTÙ[XÝÜŠˆØØ[˜\ÈŠNÂˆYˆ
+›Ø\™[œÝ[˜Ù[ÙˆSØ[˜\Ñ[[Y[
+H›Ø\™š[œÙ\Y˜XÙ[[[Y[
+˜Y\™[™‹[[Y[
+NÂˆ[ÙH
+›Ø\™ÏÈØ[˜\Ó^Y\ˆÏÈØÝ[Y[˜›ÙJK˜\[™Ú[
+[[Y[
+NÂŸB‚™[˜Ý[ÛˆZS^[Ý]
+
+HÂˆ™]\›ˆ›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+ÞˆŒŒNˆNÚ^™NˆLŽš\ÚX›Nˆ˜[Ù_KØ[YKœÙ][™ÜË™Ù]
+SÑSWÒQ˜ZS^[Ý]ŠHÏÈßKÚ[œXÙNˆ˜[Ù_JNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆØ]™PZS^[Ý]
+Ú[™Ù\ÊHÂˆÛÛœÝ^[Ý]H›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+ZS^[Ý]
+
+KÚ[™Ù\ËÚ[œXÙNˆ˜[Ù_JNÂˆ]ØZ]Ø[YKœÙ][™ÜËœÙ]
+SÑSWÒQ˜ZS^[Ý]‹^[Ý]
+NÂˆ™]\›ˆ^[Ý]ÂŸB‚˜\Þ[˜È[˜Ý[Ûˆ™[ØYZUšY[ÊšY[ÈHÙ]ZPÛÛ™šYÊ
+KšY[ÊHÂˆÛÛœÝÛÝ\˜ÙHHÝš[™ÊšY[ÈˆŠNÂˆÛÛœÝØXÚHHÝ]K˜ZUšY[ÐØXÚNÂˆYˆ
+\ÛÝ\˜ÙJHÂˆYˆ
+ØXÚK›Øš™XÝ\›
+HT“œ™]›ÚÙSØš™XÝT“
+ØXÚK›Øš™XÝ\›
+NÂˆÝ]K˜ZUšY[ÐØXÚHHÜÛÝ\˜ÙNˆˆ‹Øš™XÝ\›ˆˆ‹›ÛZ\ÙNˆ[NÂˆ™]\›ˆˆŽÂˆBˆYˆ
+ØXÚKœÛÝ\˜ÙHOOHÛÝ\˜ÙH	‰ˆØXÚK›Øš™XÝ\›
+H™]\›ˆØXÚK›Øš™XÝ\›ÂˆYˆ
+ØXÚKœÛÝ\˜ÙHOOHÛÝ\˜ÙH	‰ˆØXÚKœ›ÛZ\ÙJH™]\›ˆØXÚKœ›ÛZ\ÙNÂˆYˆ
+ØXÚK›Øš™XÝ\›
+HT“œ™]›ÚÙSØš™XÝT“
+ØXÚK›Øš™XÝ\›
+NÂˆÛÛœÝ[™[™ÈH™]Ú
+™\ÛÛ™P\ÜÙ]\›
+ÛÝ\˜ÙJKØØXÚNˆ™›Ü˜ÙKXØXÚHŸJBˆ[Š™\ÜÛœÙHOˆÂˆYˆ
+\™\ÜÛœÙK›ÚÊH›ÝÈ™]È\œ›ÜŠ	Ü™\ÜÛœÙKœÝ]\ßX
+NÂˆ™]\›ˆ™\ÜÛœÙK˜›ØŠ
+NÂˆJBˆ[Š›ØˆOˆÂˆYˆ
+Ý]K˜ZUšY[ÐØXÚKœÛÝ\˜ÙHOOHÛÝ\˜ÙJH™]\›ˆÛÝ\˜ÙNÂˆÛÛœÝØš™XÝ\›HT“˜Ü™X]SØš™XÝT“
+›ØŠNÂˆÝ]K˜ZUšY[ÐØXÚHHÜÛÝ\˜ÙKØš™XÝ\››ÛZ\ÙNˆ[NÂˆÛÛœÛÛK›ÙÊ	ÓSÑSWÒQH™[ØYYZH[œÝ[šY[È
+	ÓX]œ›Ý[™
+›Ø‹œÚ^™HÈL
+_HÐŠX
+NÂˆ™]\›ˆØš™XÝ\›ÂˆJBˆ˜Ø]Ú
+\œ›ÜˆOˆÂˆYˆ
+Ý]K˜ZUšY[ÐØXÚKœÛÝ\˜ÙHOOHÛÝ\˜ÙJHÝ]K˜ZUšY[ÐØXÚHHÜÛÝ\˜ÙKØš™XÝ\›ˆˆ‹›ÛZ\ÙNˆ[NÂˆÛÛœÛÛKØ\›Š	ÓSÑSWÒQHÛÝ[›Ý™[ØYZH[œÝ[šY[ÎÈ^X˜XÚÈÚ[\ÙHHÜšYÚ[˜[\ÜÙ]\œ›ÜŠNÂˆ™]\›ˆÛÝ\˜ÙNÂˆJNÂˆÝ]K˜ZUšY[ÐØXÚHHÜÛÝ\˜ÙKØš™XÝ\›ˆˆ‹›ÛZ\ÙNˆ[™[™ßNÂˆ™]\›ˆ[™[™ÎÂŸB‚˜\Þ[˜È[˜Ý[Ûˆ^PZUšY[ÊÝšY[ßJHÂˆYˆ
+]šY[ÊH™]\›ŽÂˆÛÛœÝ^X˜XÚÔÛÝ\˜ÙHH]ØZ]™[ØYZUšY[ÊšY[ÊNÂˆØÝ[Y[œ]Y\žTÙ[XÝÜ[
+‹ÜKXZK[Ý™\›^HŠK™›Ü‘XXÚ
+[[Y[Oˆ[[Y[œ™[[Ý™J
+JNÂˆÛÛœÝÝ™\›^HHØÝ[Y[˜Ü™X]Q[[Y[
+™]ˆŠNÂˆÝ™\›^K˜Û\ÜÓ˜[YHHÜKXZK[Ý™\›^HŽÂˆÝ™\›^Kš[›™\’SHšY[ÈÜ˜ÏH‰Ù\ØØ\RS
+^X˜XÚÔÛÝ\˜ÙHšY[Ê_Hˆ]]Ü^H^\Ú[›[™H™[ØYH˜]]ÈÝšY[Ï˜Âˆ\[™ÐØ[˜\Ó^Y\ŠÝ™\›^JNÂˆÛÛœÝ^Y\ˆHÝ™\›^Kœ]Y\žTÙ[XÝÜŠšY[ÈŠNÂˆ]™[[Ý™YH˜[ÙNÂˆÛÛœÝ˜Z[ØY™HHÚ[™ÝËœÙ][Y[Ý]
+™[[Ý™KL
+NÂˆ[˜Ý[Ûˆ™[[Ý™J
+HÂˆYˆ
+™[[Ý™Y
+H™]\›ŽÂˆ™[[Ý™YHYNÂˆÚ[™ÝË˜ÛX\•[Y[Ý]
+˜Z[ØY™JNÂˆžHÈ^Y\‹œ]\ÙJ
+NÈHØ]Ú
+Ù\œ›ÜŠHßBˆ^Y\‹œ™[[Ý™P]šX]JœÜ˜ÈŠNÂˆ^Y\‹›ØY
+
+NÂˆÝ™\›^Kœ™[[Ý™J
+NÂˆBˆ^Y\‹˜Y]™[\Ý[™\Š™[™Y‹™[[Ý™KÛÛ˜ÙNˆY_JNÂˆ^Y\‹˜Y]™[\Ý[™\Š™\œ›Üˆ‹™[[Ý™KÛÛ˜ÙNˆY_JNÂˆÛÛœÝ^X˜XÚÈH^Y\‹œ^J
+NÂˆYˆ
+^X˜XÚÏË˜Ø]Ú
+H^X˜XÚË˜Ø]Ú
+
+
+HOˆÂˆ^Y\‹›]]YHYNÂˆ^Y\‹œ^J
+K˜Ø]Ú
+\œ›ÜˆOˆÂˆÛÛœÛÛKØ\›Š	ÓSÑSWÒQHZH[œÝ[šY[ÈÛÝ[›Ý]]Ü^HÛˆ\ÈÛY[\œ›ÜŠNÂˆ™[[Ý™J
+NÂˆJNÂˆJNÂŸB‚™[˜Ý[ÛˆšYÙÙ\ZR[œÝ[
+
+HÂˆYˆ
+YØ[YK\Ù\‹š\ÑÓJH™]\›ŽÂˆÛÛœÝÛÛ™šYÈHÙ]ZPÛÛ™šYÊ
+NÂˆYˆ
+XÛÛ™šYË™[][Û‘[˜X›Y
+H™]\›ˆZK››ÝYšXØ][ÛœËØ\›ŠZH[œÝ[\È\ØX›Y™XØ]\ÙH[][Ûˆ\È›ÝÛˆHX[KˆŠNÂˆYˆ
+XÛÛ™šYËšY[ÊH™]\›ˆZK››ÝYšXØ][ÛœËØ\›ŠÛÛ™šYÝ\™H[ˆZH[œÝ[ÙX“Hš\œÝˆŠNÂˆ^PZUšY[ÊÛÛ™šYÊNÂˆØ[YKœÛØÚÙ]™[Z]
+ÓÐÒÑUÝ\NˆœÚÝÐZUšY[È‹ÛÝ\˜ÙU\Ù\’YˆØ[YK\Ù\‹šY^X˜XÚÒYˆ›Ý[™žK][Ëœ˜[™ÛRQ
+
+KšY[ÎˆÛÛ™šYËšY[ßJNÂŸB‚™[˜Ý[Ûˆ\ÐZPÛÛX˜][
+ÛÛX˜][
+HÂˆ™]\›ˆ›ÛÛX[ŠÛÛX˜][Ë™Ù]›YÊSÑSWÒQ˜ZR[œÝ[ÛÛX˜][ŠJNÂŸB‚™[˜Ý[Ûˆ\Ñ[][ÛXÝ[ÛÛÛX˜][
+ÛÛX˜][
+HÂˆ™]\›ˆ›ÛÛX[ŠÛÛX˜][Ë™Ù]›YÊSÑSWÒQ™[][ÛXÝ[ÛÛÛX˜][ŠJNÂŸB‚™[˜Ý[Ûˆ\Ó]š[™Ñ[][ÛÛÛX˜][
+ÛÛX˜][
+HÂˆYˆ
+XÛÛX˜][\ÐZPÛÛX˜][
+ÛÛX˜][
+H\Ñ[][ÛXÝ[ÛÛÛX˜][
+ÛÛX˜][
+H\Õ[[\›ÛÛX˜][
+ÛÛX˜][
+JH™]\›ˆ˜[ÙNÂˆÛÛœÝXÝÜˆHÛÛX˜][˜XÝÜˆÏÈØ[YK˜XÝÜœË™Ù]
+ÛÛX˜][˜XÝÜ’Y
+NÂˆYˆ
+XÝÜË\HOOH˜Ú\˜XÝ\ˆˆYÙ]ZPÛÛ™šYÊ
+K™[][Û”]YÙ]ÛÛ™šYÊXÝÜŠKœ]YOOHÙ]ZPÛÛ™šYÊ
+K™[][Û”]Y
+H™]\›ˆ˜[ÙNÂˆ™]\›ˆ[X™\Š›Ý[™žK][Ë™Ù]›Ü\JXÝÜ‹œÞ\Ý[K˜]šX]\Ëš˜[YHŠHÏÈ
+HˆÂŸB‚™[˜Ý[ÛˆÛÛX˜]\Ó]š[™Ñ[][ÛŠÛÛX˜]HØ[YK˜ÛÛX˜]
+HÂˆ™]\›ˆ›ÛÛX[ŠÛÛX˜]Ë˜ÛÛX˜][ÏËœÛÛYJ\Ó]š[™Ñ[][ÛÛÛX˜][
+JNÂŸB‚™[˜Ý[Ûˆ[˜Ú[™SÝ™\œšYQ[˜X›Y
+
+HÂˆ™]\›ˆ›ÛÛX[ŠØ[YKœÙ][™ÜË™Ù]
+SÑSWÒQœ[˜Ú[™SÝ™\œšYHŠJNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆÜÝ[[^
+XÝÜŠHÂˆ™]\›ˆÜÝXš[]U^
+XÝÜ‹[[‹Ù]ÛÛ™šYÊXÝÜŠK[[^
+NÂŸB‚˜\Þ[˜È[˜Ý[Ûˆ™YÚ[•[[\›ŠÛÛX˜][
+HÂˆYˆ
+Z\Ð]]Üš]J
+HZ\Õ[[\›ÛÛX˜][
+ÛÛX˜][
+HÛÛX˜][™Ù]›YÊSÑSWÒQ[[XÝ]˜]YŠJH™]\›ŽÂˆÛÛœÝXÝÜˆHØ[YK˜XÝÜœË™Ù]
+ÛÛX˜][™Ù]›YÊSÑSWÒQ[[XÝÜ’YŠJHÏÈÛÛX˜][˜XÝÜŽÂˆYˆ
+XXÝÜŠH™]\›ŽÂˆ]ØZ]ÜÝ[[^
+XÝÜŠNÂˆ]ØZ]ÛÛX˜][œÙ]›YÊSÑSWÒQ[[XÝ]˜]Y‹YJNÂŸB‚˜\Þ[˜È[˜Ý[Ûˆ›ØÙ\ÜÕ[[\›”]Y]YJÛÛX˜]
+HÂˆYˆ
+Z\Ð]]Üš]J
+HXÛÛX˜]ËœÝ\YÝ]K[[\›”]Y]YSØÚÜËš\ÊÛÛX˜]šY
+HÛÛX˜]˜ÛÛX˜][ËœÛÛYJ\Õ[[\›ÛÛX˜][
+JH™]\›ˆ˜[ÙNÂˆÝ]K[[\›”]Y]YSØÚÜË˜Y
+ÛÛX˜]šY
+NÂˆžHÂˆ]Y]YT™XYU[[\›œÊÛÛX˜]
+NÂˆÛÛœÝ]Y]YHHÝ]K[[\›”]Y]Y\Ë™Ù]
+ÛÛX˜]šY
+HÏÈ×NÂˆÚ[H
+]Y]YK›[™Ý
+HÂˆÛÛœÝXÝÜ’YH]Y]YVÌNÂˆÛÛœÝXÝÜˆHØ[YK˜XÝÜœË™Ù]
+XÝÜ’Y
+NÂˆYˆ
+XXÝÜˆ][[ÛÛX˜]›ÜXÝÜŠXÝÜŠHÝ\œ™[[[Ú[ÊXÝÜŠH[[Ú[[Z]ÊXÝÜŠKšYÙÙ\ŠHÂˆ]Y]YKœÚY
+
+NÂˆÝ]K[[\›”]Y]Y\ËœÙ]
+ÛÛX˜]šY]Y]YJNÂˆÛÛ[YNÂˆBˆÛÛœÝ™\Ý[YHHÛÛX˜]˜ÛÛX˜][ÂˆÛÛœÝÝ\œ™[[š]H[X™\Š™\Ý[YOËš[š]X]]™HÏÈ
+NÂˆÛÛœÝ™^HÛÛX˜]\›œÖÓ[X™\ŠÛÛX˜]\›ˆÏÈ
+H
+ÈWNÂˆ][š]X]]™HH™^È
+Ý\œ™[[š]
+È[X™\Š™^š[š]X]]™HÏÈÝ\œ™[[š]HJJHÈˆˆÝ\œ™[[š]HŒNÂˆYˆ
+S[X™\‹š\Ñš[š]J[š]X]]™JJH[š]X]]™HHÝ\œ™[[š]HŒNÂˆ][\Ü˜\žHH[ÂˆžHÂˆÝ[\Ü˜\žWHH]ØZ]ÛÛX˜]˜Ü™X]Q[X™YYØÝ[Y[ÊÛÛX˜][‹ÞÂˆ˜[YN˜SS•H	ØXÝÜ‹›˜[Y_XˆXÝÜ’Y˜XÝÜ‹šYˆÚÙ[’Y›[ˆØÙ[™RY›[ˆ[š]X]]™Kˆ[YÎ™Ù]ÛÛ™šYÊXÝÜŠK[[XÛÛˆXÝÜ‹š[YËˆ›YÜÎžÖÓSÑSWÒQNžÝ[[\›ÛÛX˜][YK[[XÝÜ’Y˜XÝÜ‹šY™\Ý[YPÛÛX˜][Yœ™\Ý[YOËšYÏÈ[™\Ý[YT›Ý[™˜ÛÛX˜]œ›Ý[™_BˆWJNÂˆHØ]Ú
+\œ›ÜŠHÂˆÛÛœÛÛK™\œ›ÜŠ	ÓSÑSWÒQHÛÝ[›Ý[œÙ\	ØXÝÜ‹›˜[Y_IÜÈ[[\›˜\œ›ÜŠNÂˆZK››ÝYšXØ][ÛœË™\œ›ÜŠÛÝ[›Ý[œÙ\	ØXÝÜ‹›˜[Y_IÜÈ[[\›Žˆ	Ù\œ›Ü‹›Y\ÜØYÙ_X
+NÂˆ™]\›ˆ˜[ÙNÂˆBˆYˆ
+][\Ü˜\žJH™]\›ˆ˜[ÙNÂˆ]Y]YKœÚY
+
+NÂˆÝ]K[[\›”]Y]Y\ËœÙ]
+ÛÛX˜]šY]Y]YJNÂˆÛÛœÝ[™^HÛÛX˜]\›œË™š[™[™^
+[žHOˆ[žKšYOOH[\Ü˜\žKšY
+NÂˆYˆ
+[™^H
+HÂˆÝ]KœÝ\™\ÜÐÛÛX˜]ÛÚÈHYNÂˆžHÈ]ØZ]ÛÛX˜]\]JÝ\›Žš[™^JNÈHš[˜[HÈÝ]KœÝ\™\ÜÐÛÛX˜]ÛÚÈH˜[ÙNÈBˆBˆ]ØZ]™YÚ[•[[\›Š[\Ü˜\žJNÂˆ™]\›ˆYNÂˆBˆÝ]K[[\›”]Y]Y\Ë™[]JÛÛX˜]šY
+NÂˆ™]\›ˆ˜[ÙNÂˆHš[˜[HÂˆÝ]K[[\›”]Y]YSØÚÜË™[]JÛÛX˜]šY
+NÂˆBŸB‚˜\Þ[˜È[˜Ý[Ûˆš[š\Ú[[\›ŠÛÛX˜][\Ü˜\žJHÂˆÛÛœÝXÝÜˆHØ[YK˜XÝÜœË™Ù]
+[\Ü˜\žOË™Ù]›YÊSÑSWÒQ[[XÝÜ’YŠJHÏÈ[\Ü˜\žOË˜XÝÜŽÂˆÛÛœÝ™\Ý[YRYH[\Ü˜\žOË™Ù]›YÊSÑSWÒQœ™\Ý[YPÛÛX˜][YŠNÂˆÛÛœÝ™\Ý[YT›Ý[™H[\Ü˜\žOË™Ù]›YÊSÑSWÒQœ™\Ý[YT›Ý[™ŠNÂˆÛÛœÝšYÙÙ\ˆHXÝÜˆÈ[[Ú[[Z]ÊXÝÜŠKšYÙÙ\ˆˆÂˆYˆ
+XÝÜˆ	‰ˆšYÙÙ\ˆˆ
+H]ØZ]Ù][[Ú[ÊXÝÜ‹Ý\œ™[[[Ú[ÊXÝÜŠHHšYÙÙ\ŠNÂˆÝ]KœÝ\™\ÜÐÛÛX˜]ÛÚÈHYNÂˆžHÂˆYˆ
+[\Ü˜\žH	‰ˆÛÛX˜]˜ÛÛX˜][Ëš\Ê[\Ü˜\žKšY
+JH]ØZ]ÛÛX˜]™[]Q[X™YYØÝ[Y[ÊÛÛX˜][‹Ý[\Ü˜\žKšYJNÂˆÛÛœÝ™\Ý[YR[™^HÛÛX˜]\›œË™š[™[™^
+[žHOˆ[žKšYOOH™\Ý[YRY
+NÂˆYˆ
+™\Ý[YR[™^H
+H]ØZ]ÛÛX˜]\]JÝ\›Žœ™\Ý[YR[™^›Ý[™œ™\Ý[YT›Ý[™ÏÈÛÛX˜]œ›Ý[™JNÂˆHš[˜[HÈÝ]KœÝ\™\ÜÐÛÛX˜]ÛÚÈH˜[ÙNÈBˆYˆ
+XÝÜˆ	‰ˆšYÙÙ\ˆˆ	‰ˆÝ\œ™[[[Ú[ÊXÝÜŠHHšYÙÙ\ŠH]Y]YU[[\›ŠXÝÜ‹ÛÛX˜]
+NÂˆ]ØZ]›ØÙ\ÜÕ[[\›”]Y]YJÛÛX˜]
+NÂŸB‚™[˜Ý[ÛˆÛÛX˜]\›”Û˜\ÚÝ
+ÛÛX˜]
+HÂˆÛÛœÝÛÛX˜][HÛÛX˜]Ë˜ÛÛX˜][Âˆ™]\›ˆÛÛX˜][ÈÂˆYˆÛÛX˜][šYˆXÝÜ’YˆÛÛX˜][˜XÝÜ’YÏÈÛÛX˜][˜XÝÜËšYÏÈ[ˆ›Ý[™ˆÛÛX˜]œ›Ý[™ˆ[[X]Nˆ›ÛÛX[ŠÛÛX˜][™Ù]›YÊSÑSWÒQ[\Ü˜\žU[[X]HŠJKˆ[][ÛŽˆ\Ñ[][ÛXÝ[ÛÛÛX˜][
+ÛÛX˜][
+Kˆ[[ˆ\Õ[[\›ÛÛX˜][
+ÛÛX˜][
+KˆXÝ[ÛY˜[˜ÙNˆ›ÛÛX[ŠÛÛX˜][™Ù]›YÊSÑSWÒQ˜XÝ[ÛY˜[˜ÙHŠJBˆHˆ[ÂŸB‚˜\Þ[˜È[˜Ý[ÛˆÛX[\\\Y[\Ü˜\žU\›ŠÛÛX˜]™]š[Ý\Õ\›ŠHÂˆYˆ
+Z\Ð]]Üš]J
+HXÛÛX˜]\™]š[Ý\Õ\›ËšY
+H™]\›ˆ˜[ÙNÂˆÛÛœÝ[\Ü˜\žHHÛÛX˜]˜ÛÛX˜][Ë™Ù]
+™]š[Ý\Õ\›‹šY
+NÂˆÛÛœÝÚ[™H™]š[Ý\Õ\›‹[[\Õ[[\›ÛÛX˜][
+[\Ü˜\žJHÈ[[‚ˆˆ™]š[Ý\Õ\›‹˜XÝ[ÛY˜[˜ÙH[\Ü˜\žOË™Ù]›YÊSÑSWÒQ˜XÝ[ÛY˜[˜ÙHŠHÈ˜XÝ[ÛY˜[˜ÙH‚ˆˆ™]š[Ý\Õ\›‹™[][Ûˆ\Ñ[][ÛXÝ[ÛÛÛX˜][
+[\Ü˜\žJHÈ™[][Ûˆ‚ˆˆ™]š[Ý\Õ\›‹[[X]H[\Ü˜\žOË™Ù]›YÊSÑSWÒQ[\Ü˜\žU[[X]HŠHÈ[[X]H‚ˆˆˆŽÂˆYˆ
+ZÚ[™
+H™]\›ˆ˜[ÙNÂ‚ˆžHÂˆYˆ
+Ú[™OOH[[ŠHÂˆ]ØZ]š[š\Ú[[\›ŠÛÛX˜][\Ü˜\žJNÂˆH[ÙHYˆ
+Ú[™OOH˜XÝ[ÛY˜[˜ÙHŠHÂˆÛÛœÝ˜XÚÙYHÝ]K˜XÝ[ÛY˜[˜Ù\Ë™Ù]
+ÛÛX˜]šY
+NÂˆÛÛœÝY˜[˜ÙO]˜XÚÙYË˜ÛÛX˜][YOO\™]š[Ý\Õ\›‹šYÝ˜XÚÙYŠ[\Ü˜\žOÞØÛÛX˜][Y[\Ü˜\žKšY™\Ý[YPÛÛX˜][Y[\Ü˜\žK™Ù]›YÊSÑSWÒQœ™\Ý[YPÛÛX˜][YŠOÏÛ[™\Ý[YT›Ý[™[\Ü˜\žK™Ù]›YÊSÑSWÒQœ™\Ý[YT›Ý[™ŠOÏØÛÛX˜]œ›Ý[™ZN™˜[ÙK™]\ÙTÛÝ\˜ÙN™˜[Ù_N›[
+NÂˆYŠY˜[˜ÙJX]ØZ]š[š\ÚXÝ[ÛY˜[˜ÙJÛÛX˜]Y˜[˜ÙJNÂˆH[ÙHYˆ
+Ú[™OOH™[][ÛˆŠHÂˆ]ØZ]ÛÛ\]Q[][ÛXÝ[ÛŠ™]š[Ý\Õ\›‹šY
+NÂˆH[ÙHYˆ
+Ú[™OOH[[X]Hˆ	‰ˆ™]š[Ý\Õ\›‹˜XÝÜ’Y
+HÂˆ]ØZ]ÛÛ\]U[[X]J™]š[Ý\Õ\›‹˜XÝÜ’Y
+NÂˆBˆHØ]Ú
+\œ›ÜŠHÂˆÛÛœÛÛK™\œ›ÜŠ	ÓSÑSWÒQH	ÚÚ[™H\\\™HÛX[\˜Z[YÈ›Ü˜Ú[™È[\Ü˜\žH\›ˆ™[[Ý˜[\œ›ÜŠNÂˆHš[˜[HÂˆYˆ
+ÛÛX˜]˜ÛÛX˜][Ëš\Ê™]š[Ý\Õ\›‹šY
+JHÂˆÝ]KœÝ\™\ÜÐÛÛX˜]ÛÚÈHYNÂˆžHÈ]ØZ]ÛÛX˜]™[]Q[X™YYØÝ[Y[ÊÛÛX˜][‹Ü™]š[Ý\Õ\›‹šYJNÈBˆš[˜[HÈÝ]KœÝ\™\ÜÐÛÛX˜]ÛÚÈH˜[ÙNÈBˆBˆYˆ
+Ú[™OOH˜XÝ[ÛY˜[˜ÙHŠHÝ]K˜XÝ[ÛY˜[˜Ù\Ë™[]JÛÛX˜]šY
+NÂˆYˆ
+Ú[™OOH™[][ÛˆŠHÂˆÛÛœÝ[™[™ÈHÝ]Kœ[™[™Ñ[][ÛXÝ[ÛœË™Ù]
+™]š[Ý\Õ\›‹šY
+NÂˆYˆ
+[™[™ÏË[Y\ŠHÚ[™ÝË˜ÛX\•[Y[Ý]
+[™[™Ë[Y\ŠNÂˆÝ]Kœ[™[™Ñ[][ÛXÝ[ÛœË™[]J™]š[Ý\Õ\›‹šY
+NÂˆÝ]K˜XÝ]™Q[][ÛXÝ[ÛœË™[]J™]š[Ý\Õ\›‹šY
+NÂˆBˆBˆ™]\›ˆYNÂŸB‚˜\Þ[˜È[˜Ý[Ûˆ™[[Ý™SÜœ[™Y[\Ü˜\žU\›œÊÛÛX˜]
+HÂˆYˆ
+Z\Ð]]Üš]J
+HXÛÛX˜]
+H™]\›ŽÂˆÛÛœÝÝ[PY˜[˜Ù\ÏXÛÛX˜]˜ÛÛX˜][Ë™š[\Š[žOO™[žK™Ù]›YÊSÑSWÒQ˜XÝ[ÛY˜[˜ÙHŠI‰™[žKšYOOXÛÛX˜]˜ÛÛX˜][ËšY
+NÂˆ›ÜŠÛÛœÝ[\Ü˜\žHÙˆÝ[PY˜[˜Ù\Ê^ÂˆÛÛœÝ˜XÚÙY\Ý]K˜XÝ[ÛY˜[˜Ù\Ë™Ù]
+ÛÛX˜]šY
+NÂˆÛÛœÝY˜[˜ÙO]˜XÚÙYË˜ÛÛX˜][YOO][\Ü˜\žKšYÝ˜XÚÙYžØÛÛX˜][Y[\Ü˜\žKšY™\Ý[YPÛÛX˜][Y[\Ü˜\žK™Ù]›YÊSÑSWÒQœ™\Ý[YPÛÛX˜][YŠOÏÛ[™\Ý[YT›Ý[™[\Ü˜\žK™Ù]›YÊSÑSWÒQœ™\Ý[YT›Ý[™ŠOÏØÛÛX˜]œ›Ý[™ZN™˜[ÙK™]\ÙTÛÝ\˜ÙN™˜[Ù_NÂˆ]ØZ]š[š\ÚXÝ[ÛY˜[˜ÙJÛÛX˜]Y˜[˜ÙJNÂˆBˆÛÛœÝ]Y]YHHÝ]K[[X]T]Y]Y\Ë™Ù]
+ÛÛX˜]šY
+NÂˆÛÛœÝÜœ[™Y[[X]\ÈHÛÛX˜]˜ÛÛX˜][Ë™š[\Š[žHOˆÂˆYˆ
+Y[žK™Ù]›YÊSÑSWÒQ[\Ü˜\žU[[X]HŠJH™]\›ˆ˜[ÙNÂˆÛÛœÝ[™[™ÈHÝ]Kœ[™[™Õ[[X]\Ë™Ù]
+[žK˜XÝÜ’Y
+NÂˆ™]\›ˆ[™[™ÏË˜ÛÛX˜][YOOH[žKšY	‰ˆ]Y]YOË˜XÝ]™PXÝÜ’YOOH[žK˜XÝÜ’YÂˆJNÂˆÛÛœÝÛÛ\]Y[][ÛˆHÛÛX˜]˜ÛÛX˜][Ë™š[\Š[žHOˆ\Ñ[][ÛXÝ[ÛÛÛX˜][
+[žJH	‰ˆ[žK™Ù]›YÊSÑSWÒQ˜ÛÛ\]YŠJNÂˆÛÛœÝYÈHË‹‹›™]ÈÙ]
+Ë‹‹›Üœ[™Y[[X]\Ë‹‹˜ÛÛ\]Y[][Û—K›X\
+[žHOˆ[žKšY
+JWNÂˆYˆ
+ZYË›[™Ý
+H™]\›ŽÂˆÝ]KœÝ\™\ÜÐÛÛX˜]ÛÚÈHYNÂˆžHÈ]ØZ]ÛÛX˜]™[]Q[X™YYØÝ[Y[ÊÛÛX˜][‹YÊNÈBˆš[˜[HÈÝ]KœÝ\™\ÜÐÛÛX˜]ÛÚÈH˜[ÙNÈBŸB‚˜\Þ[˜È[˜Ý[Ûˆ[œÝ\™PZPÛÛX˜][[›ØÚÙY
+ÛÛX˜]
+HÂˆYˆ
+Z\Ð]]Üš]J
+HXÛÛX˜]
+H™]\›ˆ[ÂˆÛÛœÝÛÛ™šYÈHÙ]ZPÛÛ™šYÊ
+NÂˆÛÛœÝ^\Ý[™ÐZHHÛÛX˜]˜ÛÛX˜][Ë™š[\Š\ÐZPÛÛX˜][
+NÂˆÛÛœÝ^\Ý[™ÈH^\Ý[™ÐZVÌHÏÈ[ÂˆYˆ
+XÛÛ™šYË™[][Û‘[˜X›YXÛÛ™šYËš[š]X]]™Q[˜X›YXÛÛX˜]\Ó]š[™Ñ[][ÛŠÛÛX˜]
+JHÂˆYˆ
+ÛÛX˜]˜ÛÛX˜][ËœÛÛYJ\Ñ[][ÛXÝ[ÛÛÛX˜][
+JH]ØZ]ÛX\‘[][ÛXÝ[Û•\›œÊÛÛX˜]
+NÂˆYˆ
+^\Ý[™ÐZK›[™Ý
+H]ØZ]ÛÛX˜]™[]Q[X™YYØÝ[Y[ÊÛÛX˜][‹^\Ý[™ÐZK›X\
+[žHOˆ[žKšY
+JNÂˆ™]\›ˆ[ÂˆBˆËÈÛ\ˆ™\œÚ[ÛœÈÛÝ[˜XÙHÙ]™\˜[[š]X]]™K]\]HÛÚÜÈ[™Ü™X]HÛ™BˆËÈZHÛÛX˜][\ˆ›Ûˆ™\Z\ˆÜÙH[˜ÛÝ[\œÈÚ[H™]Z[š[™ÈÛ™H[žK‚ˆYˆ
+^\Ý[™ÐZK›[™ÝˆJHÂˆ]ØZ]ÛÛX˜]™[]Q[X™YYØÝ[Y[ÊÛÛX˜][‹^\Ý[™ÐZKœÛXÙJJK›X\
+[žHOˆ[žKšY
+JNÂˆBˆÛÛœÝ›ÛY[š]X]]™\ÈHÛÛX˜]˜ÛÛX˜][Âˆ™š[\ŠÛÛX˜][OˆZ\ÐZPÛÛX˜][
+ÛÛX˜][
+H	‰ˆZ\Ñ[][ÛXÝ[ÛÛÛX˜][
+ÛÛX˜][
+H	‰ˆÛÛX˜][š[š]X]]™HOOH[	‰ˆ[X™\‹š\Ñš[š]J[X™\ŠÛÛX˜][š[š]X]]™JJJBˆ›X\
+ÛÛX˜][Oˆ[X™\ŠÛÛX˜][š[š]X]]™JJNÂˆYˆ
+\›ÛY[š]X]]™\Ë›[™Ý
+H™]\›ˆ^\Ý[™ÈÏÈ[ÂˆÛÛœÝ]HHÂˆ˜[YNˆZH[œÝ[‹ˆ[š]X]]™NˆX]›Z[Š‹‹œ›ÛY[š]X]]™\ÊHHKˆ[YÎˆÛÛ™šYË˜ÛÛX˜][[XYÙHÛÛ™šYË˜]Û’[XYÙHQUSÐRWÐÓÓ‘’QË˜ÛÛX˜][[XYÙBˆNÂˆYˆ
+^\Ý[™ÊHÂˆ]ØZ]^\Ý[™Ë\]J]JNÂˆ™]\›ˆ^\Ý[™ÎÂˆBˆÛÛœÝØÜ™X]YHH]ØZ]ÛÛX˜]˜Ü™X]Q[X™YYØÝ[Y[ÊÛÛX˜][‹ÞÂˆ‹‹™]Kˆ›YÜÎˆÖÓSÑSWÒQNˆØZR[œÝ[ÛÛX˜][ˆY__BˆWJNÂˆ™]\›ˆÜ™X]YÏÈ[ÂŸB‚˜\Þ[˜È[˜Ý[Ûˆ[œÝ\™PZPÛÛX˜][
+ÛÛX˜]
+HÂˆYˆ
+Z\Ð]]Üš]J
+HXÛÛX˜]
+H™]\›ˆ[ÂˆÛÛœÝ[™[™ÈHÝ]K˜ZPÛÛX˜][›ÛZ\Ù\Ë™Ù]
+ÛÛX˜]šY
+NÂˆYˆ
+[™[™ÊH™]\›ˆ[™[™ÎÂˆÛÛœÝ\ÚÈH[œÝ\™PZPÛÛX˜][[›ØÚÙY
+ÛÛX˜]
+NÂˆÝ]K˜ZPÛÛX˜][›ÛZ\Ù\ËœÙ]
+ÛÛX˜]šY\ÚÊNÂˆžHÈ™]\›ˆ]ØZ]\ÚÎÈBˆš[˜[HÂˆYˆ
+Ý]K˜ZPÛÛX˜][›ÛZ\Ù\Ë™Ù]
+ÛÛX˜]šY
+HOOH\ÚÊHÝ]K˜ZPÛÛX˜][›ÛZ\Ù\Ë™[]JÛÛX˜]šY
+NÂˆBŸB‚˜\Þ[˜È[˜Ý[ÛˆÛX\‘[][ÛXÝ[Û•\›œÊÛÛX˜]Ü™\Ù][˜Ú[™HH˜[ÙK™\Ý[YHH˜[ÙK™\Ý[YT›Ý[™H[HHßJHÂˆYˆ
+Z\Ð]]Üš]J
+HXÛÛX˜]
+H™]\›ŽÂˆÛÛœÝ[\Ü˜\žHHÛÛX˜]˜ÛÛX˜][Ë™š[\Š\Ñ[][ÛXÝ[ÛÛÛX˜][
+NÂˆÝ]KœÝ\™\ÜÐÛÛX˜]ÛÚÈHYNÂˆžHÂˆYˆ
+[\Ü˜\žK›[™Ý
+H]ØZ]ÛÛX˜]™[]Q[X™YYØÝ[Y[ÊÛÛX˜][‹[\Ü˜\žK›X\
+[žHOˆ[žKšY
+JNÂˆYˆ
+™\Ù][˜Ú[™JH]ØZ]Ù][˜Ú[™J
+NÂˆYˆ
+™\Ý[YH	‰ˆÛÛX˜]œÝ\Y
+H]ØZ]ÛÛX˜]\]JÜ›Ý[™ˆ[X™\Š™\Ý[YT›Ý[™ÏÈÛÛX˜]œ›Ý[™
+H
+ÈK\›ŽˆJNÂˆHš[˜[HÈÝ]KœÝ\™\ÜÐÛÛX˜]ÛÚÈH˜[ÙNÈBˆ›Üˆ
+ÛÛœÝ[žHÙˆ[\Ü˜\žJHÂˆÛÛœÝ[™[™ÈHÝ]Kœ[™[™Ñ[][ÛXÝ[ÛœË™Ù]
+[žKšY
+NÂˆYˆ
+[™[™ÏË[Y\ŠHÚ[™ÝË˜ÛX\•[Y[Ý]
+[™[™Ë[Y\ŠNÂˆÝ]Kœ[™[™Ñ[][ÛXÝ[ÛœË™[]J[žKšY
+NÂˆÝ]K˜XÝ]™Q[][ÛXÝ[ÛœË™[]J[žKšY
+NÂˆBŸB‚˜\Þ[˜È[˜Ý[ÛˆšYÙÙ\”ÜXÚX[ZJXÝÜ‹š^Y[˜Ú[™HHŒ
+HÂˆYˆ
+Z\Ð]]Üš]J
+JHÂˆØ[YKœÛØÚÙ]™[Z]
+ÓÐÒÑUÝ\NˆšYÙÙ\”ÜXÚX[ZH‹XÝÜ•]ZYˆXÝÜË]ZYš^Y[˜Ú[™KÛÝ\˜ÙU\Ù\’YˆØ[YK\Ù\‹šYJNÂˆ™]\›ˆYNÂˆBˆÛÛœÝÛÛX˜]HØ[YK˜ÛÛX˜]ÂˆÛÛœÝZHHÛÛX˜]Ë˜ÛÛX˜][ÏË™š[™
+\ÐZPÛÛX˜][
+NÂˆYˆ
+XÛÛX˜]ËœÝ\YXZHYÙ]ZPÛÛ™šYÊ
+K™[][Û‘[˜X›Y
+H™]\›ˆ˜[ÙNÂˆYˆ
+Ý]KœÜXÚX[ZJH™]\›ˆ˜[ÙNÂˆÛÛœÝ[\œ\YHÛÛX˜]˜ÛÛX˜][ÂˆÝ]KœÜXÚX[ZHHÂˆYˆ›Ý[™žK][Ëœ˜[™ÛRQ
+
+KˆÛÛX˜]YˆÛÛX˜]šYˆ™\Ý[YT›Ý[™ˆÛÛX˜]œ›Ý[™ˆ™\Ý[YPÛÛX˜][Yˆ[\œ\YËšYÏÈ[ˆØ]™Y[˜Ú[™NˆÝ\œ™[[˜Ú[™J
+BˆNÂˆÝ]K›\Ý[][Û”Ù\]Y[˜ÙRÙ^HHˆŽÂˆ]ØZ]Ù][˜Ú[™JX]›X^
+X]™›ÛÜŠ[X™\Šš^Y[˜Ú[™JHŒ
+JJNÂˆÛÛœÝZR[™^HÛÛX˜]\›œË™š[™[™^
+[žHOˆ[žKšYOOHZKšY
+NÂˆYˆ
+ZR[™^
+HÈÝ]KœÜXÚX[ZHH[È™]\›ˆ˜[ÙNÈBˆ]ØZ]ÛÛX˜]\]JÝ\›ŽˆZR[™^JNÂˆ™]\›ˆYNÂŸB‚˜\Þ[˜È[˜Ý[Ûˆš[š\ÚÜXÚX[ZJÛÛX˜]
+HÂˆÛÛœÝÜXÚX[HÝ]KœÜXÚX[ZOË˜ÛÛX˜]YOOHÛÛX˜]ËšYÈÝ]KœÜXÚX[ZHˆ[ÂˆYˆ
+\ÜXÚX[
+H™]\›ˆ˜[ÙNÂˆÝ]KœÜXÚX[ZHH[Âˆ]ØZ]ÛX\‘[][ÛXÝ[Û•\›œÊÛÛX˜]
+NÂˆ]ØZ]Ù][˜Ú[™JÜXÚX[œØ]™Y[˜Ú[™JNÂˆÛÛœÝ™\Ý[YR[™^HÛÛX˜]\›œË™š[™[™^
+[žHOˆ[žKšYOOHÜXÚX[œ™\Ý[YPÛÛX˜][Y
+NÂˆYˆ
+™\Ý[YR[™^H
+H]ØZ]ÛÛX˜]\]JÜ›Ý[™ˆÜXÚX[œ™\Ý[YT›Ý[™\›Žˆ™\Ý[YR[™^JNÂˆ™]\›ˆYNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆÜ™X]Q[][ÛXÝ[Û•\›œÊÛÛX˜]
+HÂˆYˆ
+Z\Ð]]Üš]J
+HXÛÛX˜]ËœÝ\YYÙ]ZPÛÛ™šYÊ
+K™[][Û‘[˜X›Y
+H™]\›ˆ×NÂˆÛÛœÝZHHÛÛX˜]˜ÛÛX˜][ÂˆYˆ
+Z\ÐZPÛÛX˜][
+ZJJH™]\›ˆ×NÂˆÛÛœÝÙ\]Y[˜ÙRÙ^HH	ØÛÛX˜]šYN‰ØÛÛX˜]œ›Ý[™N‰ØZKšYN‰ÜÝ]KœÜXÚX[ZOËšYÏÈ››Ü›X[ŸXÂˆYˆ
+Ý]K›\Ý[][Û”Ù\]Y[˜ÙRÙ^HOOHÙ\]Y[˜ÙRÙ^JH™]\›ˆÛÛX˜]˜ÛÛX˜][Ë™š[\Š\Ñ[][ÛXÝ[ÛÛÛX˜][
+NÂˆÝ]K›\Ý[][Û”Ù\]Y[˜ÙRÙ^HHÙ\]Y[˜ÙRÙ^NÂˆ]ØZ]ÛX\‘[][ÛXÝ[Û•\›œÊÛÛX˜]
+NÂˆÛÛœÝ]YHÙ]ZPÛÛ™šYÊ
+K™[][Û”]YÂˆYˆ
+\]Y
+HÈYˆ
+X]ØZ]š[š\ÚÜXÚX[ZJÛÛX˜]
+JH]ØZ]Ù][˜Ú[™J
+NÈ™]\›ˆ×NÈB‚ˆÛÛœÝÙY[XÝÜœÈH™]ÈÙ]
+
+NÂˆÛÛœÝ[YÚX›HHÛÛX˜]˜ÛÛX˜][Ë™š[\ŠÛÛX˜][OˆÂˆÛÛœÝXÝÜˆHÛÛX˜][˜XÝÜŽÂˆYˆ
+\ÐZPÛÛX˜][
+ÛÛX˜][
+H\Ñ[][ÛXÝ[ÛÛÛX˜][
+ÛÛX˜][
+HÛÛX˜][™Ù]›YÊSÑSWÒQ[\Ü˜\žU[[X]HŠHXÝÜË\HOOH˜Ú\˜XÝ\ˆˆÛÛX˜][š[š]X]]™HOOH[
+H™]\›ˆ˜[ÙNÂˆYˆ
+ÙY[XÝÜœËš\ÊXÝÜ‹šY
+HÙ]ÛÛ™šYÊXÝÜŠKœ]YOOH]Y
+H™]\›ˆ˜[ÙNÂˆÙY[XÝÜœË˜Y
+XÝÜ‹šY
+NÂˆ™]\›ˆYNÂˆJKœÛÜ
+
+YšYÚ
+HOˆ[X™\ŠšYÚš[š]X]]™JHH[X™\ŠYš[š]X]]™JHÝš[™ÊY˜XÝÜË›˜[YHÏÈˆŠK›ØØ[PÛÛ\\™JÝš[™ÊšYÚ˜XÝÜË›˜[YHÏÈˆŠJHYšY›ØØ[PÛÛ\\™JšYÚšY
+JNÂ‚ˆYˆ
+Y[YÚX›K›[™Ý
+HÈYˆ
+X]ØZ]š[š\ÚÜXÚX[ZJÛÛX˜]
+JH]ØZ]Ù][˜Ú[™J
+NÈ™]\›ˆ×NÈBˆÛÛœÝZR[š]X]]™HH[X™\ŠZKš[š]X]]™HÏÈNNNJNÂˆÛÛœÝ\›X[™[\›œÏXÛÛX˜]\›œË™š[\Š[žOOˆZ\Ñ[][ÛXÝ[ÛÛÛX˜][
+[žJI‰ˆZ\Õ[[\›ÛÛX˜][
+[žJI‰ˆY[žK™Ù]›YÊSÑSWÒQ[\Ü˜\žU[[X]HŠI‰ˆY[žK™Ù]›YÊSÑSWÒQ˜XÝ[ÛY˜[˜ÙHŠJKZR[™^\\›X[™[\›œË™š[™[™^
+[žOO™[žKšYOOXZKšY
+K™^˜]\˜[XZR[™^LÊ\›X[™[\›œÖØZR[™^
+ÌWOÏÜ\›X[™[\›œÖÌOÏÛ[
+Nœ\›X[™[\›œÖÌOÏÛ[™^›Ý[™XZR[™^L	‰˜ZR[™^
+ÌO\›X[™[\›œË›[™ÝØÛÛX˜]œ›Ý[™“[X™\ŠÛÛX˜]œ›Ý[™
+JÌNÂˆ™]\›ˆÛÛX˜]˜Ü™X]Q[X™YYØÝ[Y[ÊÛÛX˜][‹[YÚX›K›X\
+
+ÛÝ\˜ÙK[™^
+HOˆ
+Âˆ˜[YNˆSUSÓˆPÕSÓˆ8 %	ÜÛÝ\˜ÙK˜XÝÜ‹›˜[Y_XˆXÝÜ’YˆÛÝ\˜ÙK˜XÝÜ‹šYˆËÈXÝÜ‹X˜XÚÙY˜]\ˆ[ˆÚÙ[‹X˜XÚÙYÛÈH[\Ü˜\žH\›ˆØ[››ÝÛÛYBˆËÈÚ]HÚ\˜XÝ\‰ÜÈ^\Ý[™ÈÚÙ[ˆÛÛX˜][‚ˆÚÙ[’Yˆ[ˆØÙ[™RYˆ[ˆ[š]X]]™NˆZR[š]X]]™HH
+
+[™^
+ÈJHÈL
+Kˆ[YÎˆÛÝ\˜ÙK˜XÝÜ‹š[YÈšXÛÛœËÜÝ™ËÛ^\Ý\žK[X[‹œÝ™È‹ˆ›YÜÎˆÖÓSÑSWÒQNˆÙ[][ÛXÝ[ÛÛÛX˜][ˆYKÙ\]Y[˜ÙRÙ^KÙ\]Y[˜ÙSÜ™\Žˆ[™^ÛÝ\˜ÙPÛÛX˜][YˆÛÝ\˜ÙKšY™\Ý[YPÛÛX˜][Y›™^˜]\˜[ËšYÏÛ[™\Ý[YT›Ý[™›™^›Ý[™ÛÛ\]Yˆ˜[Ù__BˆJJJNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆÞ[˜ÐZPÛÛX˜][Ê
+HÂˆYˆ
+Z\Ð]]Üš]J
+JH™]\›ŽÂˆ›Üˆ
+ÛÛœÝÛÛX˜]ÙˆØ[YK˜ÛÛX˜]ÈÏÈ×JH]ØZ][œÝ\™PZPÛÛX˜][
+ÛÛX˜]
+NÂŸB‚˜\Þ[˜È[˜Ý[ÛˆX^X™Q[œÝ\™PZPÛÛX˜][
+ÛÛX˜]Ù›Ü˜ÙHH˜[Ù_HHßJHÂˆYˆ
+Z\Ð]]Üš]J
+HXÛÛX˜]YÙ]ZPÛÛ™šYÊ
+K™[][Û‘[˜X›YYÙ]ZPÛÛ™šYÊ
+Kš[š]X]]™Q[˜X›Y
+H™]\›ˆ[ÂˆÛÛœÝ\Ô›ÛY[š]X]]™HHÛÛX˜]˜ÛÛX˜][ËœÛÛYJÛÛX˜][OˆZ\ÐZPÛÛX˜][
+ÛÛX˜][
+H	‰ˆÛÛX˜][š[š]X]]™HOOH[
+NÂˆYˆ
+Y›Ü˜ÙH	‰ˆZ\Ô›ÛY[š]X]]™JH™]\›ˆ[ÂˆžHÈ™]\›ˆ]ØZ][œÝ\™PZPÛÛX˜][
+ÛÛX˜]
+NÈBˆØ]Ú
+\œ›ÜŠHÂˆÛÛœÛÛK™\œ›ÜŠ	ÓSÑSWÒQHÛÝ[›ÝYZH[œÝ[ÈÛÛX˜]\œ›ÜŠNÂˆZK››ÝYšXØ][ÛœË™\œ›ÜŠÛÝ[›ÝYZH[œÝ[È[š]X]]™Nˆ	Ù\œ›Ü‹›Y\ÜØYÙ_X
+NÂˆ™]\›ˆ[ÂˆBŸB‚˜Û\ÜÈZP]ÛˆÂˆÛÛœÝXÝÜŠ
+HÈ\Ë™[[Y[H[È\Ë™˜YÈH[È\Ëœ™\Ú^™HH[ÈBˆ™[™\Š
+HÂˆYˆ
+YØ[YK\Ù\‹š\ÑÓHYÙ]ZPÛÛ™šYÊ
+K™[][Û‘[˜X›Y
+H™]\›ˆ\Ë™\Ý›ÞJ
+NÂˆÛÛœÝ^[Ý]HZS^[Ý]
+
+NÂˆYˆ
+[^[Ý]š\ÚX›JH™]\›ˆ\Ë™\Ý›ÞJ
+NÂˆÛÛœÝÛÛ™šYÈHÙ]ZPÛÛ™šYÊ
+NÂˆYˆ
+]\Ë™[[Y[
+HÂˆ\Ë™[[Y[HØÝ[Y[˜Ü™X]Q[[Y[
+™]ˆŠNÂˆ\Ë™[[Y[˜Û\ÜÓ˜[YHHÜKXZK]ÚYÙ]ŽÂˆ\Ë™[[Y[š[›™\’SH]ˆÛ\ÜÏHÜKXZKY˜YÈˆ]OH‘˜YÈZH[œÝ[HÛ\ÜÏH™˜\È˜KYÜš\[[™\ÈÚOÙ]]Ûˆ\OH˜]ÛˆˆÛ\ÜÏHÜKXZKX]Ûˆˆ]OH”^HZH[œÝ[›Üˆ]™\ž[Û™H[YÏØ]Û]ˆÛ\ÜÏHÜKXZK[X™[ZH[œÝ[Ù]]Ûˆ\OH˜]ÛˆˆÛ\ÜÏHÜKXZKXÛÜÙHˆ]OH’YHZH[œÝ[HÛ\ÜÏH™˜\È˜K^X\šÈÚOØ]Û]ˆÛ\ÜÏHÜKXZK\™\Ú^™Hˆ]OH”™\Ú^™HÙ]˜ÂˆØÝ[Y[˜›ÙK˜\[™Ú[
+\Ë™[[Y[
+NÂˆ\Ë˜XÝ]˜]S\Ý[™\œÊ
+NÂˆBˆ\Ë™[[Y[œÝ[K›YH	ØÛ[\
+^[Ý]žÚ[™ÝËš[›™\•ÚYH
+_\Âˆ\Ë™[[Y[œÝ[KÜH	ØÛ[\
+^[Ý]žKÚ[™ÝËš[›™\’ZYÚH
+_\Âˆ\Ë™[[Y[œÝ[KœÙ]›Ü\J‹K]ÜKXZK\Ú^™H‹	ØÛ[\
+^[Ý]œÚ^™KÌ‹ÍŒ
+_\
+NÂˆ\Ë™[[Y[œÝ[KœÙ]›Ü\J‹K]ÜKXZKXÛÛÜˆ‹ÛÛ™šYË˜ÛÛÜˆQUSÐRWÐÓÓ‘’QË˜ÛÛÜŠNÂˆ\Ë™[[Y[œ]Y\žTÙ[XÝÜŠš[YÈŠKœÜ˜ÈHÛÛ™šYË˜]Û’[XYÙHQUSÐRWÐÓÓ‘’QË˜]Û’[XYÙNÂˆ™]\›ˆ\ÎÂˆBˆXÝ]˜]S\Ý[™\œÊ
+HÂˆÛÛœÝ˜YÈH\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜKXZKY˜YÈŠNÂˆÛÛœÝ™\Ú^™HH\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜKXZK\™\Ú^™HŠNÂˆ˜YË˜Y]™[\Ý[™\ŠœÚ[\™ÝÛˆ‹]™[OˆÂˆ]™[œ™]™[Y˜][
+
+NÈÛÛœÝ™XÝH\Ë™[[Y[™Ù]›Ý[™[™ÐÛY[™XÝ
+
+NÂˆ\Ë™˜YÈHÙˆ]™[˜ÛY[H™XÝ›YNˆ]™[˜ÛY[HH™XÝÜNÈ˜YËœÙ]Ú[\Ø\\™J]™[œÚ[\’Y
+NÂˆJNÂˆ˜YË˜Y]™[\Ý[™\ŠœÚ[\›[Ý™H‹]™[OˆÂˆYˆ
+]\Ë™˜YÊH™]\›ŽÂˆ\Ë™[[Y[œÝ[K›YH	ØÛ[\
+]™[˜ÛY[H\Ë™˜YË™Ú[™ÝËš[›™\•ÚYH
+_\Âˆ\Ë™[[Y[œÝ[KÜH	ØÛ[\
+]™[˜ÛY[HH\Ë™˜YË™KÚ[™ÝËš[›™\’ZYÚH
+_\ÂˆJNÂˆ˜YË˜Y]™[\Ý[™\ŠœÚ[\\‹\Þ[˜È]™[OˆÂˆYˆ
+]\Ë™˜YÊH™]\›ŽÈ\Ë™˜YÈH[È˜YËœ™[X\ÙTÚ[\Ø\\™J]™[œÚ[\’Y
+NÂˆÛÛœÝ™XÝH\Ë™[[Y[™Ù]›Ý[™[™ÐÛY[™XÝ
+
+NÈ]ØZ]Ø]™PZS^[Ý]
+ÞˆX]œ›Ý[™
+™XÝ›Y
+KNˆX]œ›Ý[™
+™XÝÜ
+_JNÂˆJNÂˆ™\Ú^™K˜Y]™[\Ý[™\ŠœÚ[\™ÝÛˆ‹]™[OˆÂˆ]™[œ™]™[Y˜][
+
+NÈÛÛœÝ™XÝH\Ë™[[Y[™Ù]›Ý[™[™ÐÛY[™XÝ
+
+NÂˆ\Ëœ™\Ú^™HHÜÝ\ˆ]™[˜ÛY[Ý\Ú^™Nˆ™XÝÚYNÈ™\Ú^™KœÙ]Ú[\Ø\\™J]™[œÚ[\’Y
+NÂˆJNÂˆ™\Ú^™K˜Y]™[\Ý[™\ŠœÚ[\›[Ý™H‹]™[OˆÂˆYˆ
+]\Ëœ™\Ú^™JH™]\›ŽÂˆ\Ë™[[Y[œÝ[KœÙ]›Ü\J‹K]ÜKXZK\Ú^™H‹	ØÛ[\
+\Ëœ™\Ú^™KœÝ\Ú^™H
+È]™[˜ÛY[H\Ëœ™\Ú^™KœÝ\Ì‹ÍŒ
+_\
+NÂˆJNÂˆ™\Ú^™K˜Y]™[\Ý[™\ŠœÚ[\\‹\Þ[˜È]™[OˆÂˆYˆ
+]\Ëœ™\Ú^™JH™]\›ŽÈÛÛœÝÚ^™HHÛ[\
+\Ëœ™\Ú^™KœÝ\Ú^™H
+È]™[˜ÛY[H\Ëœ™\Ú^™KœÝ\Ì‹ÍŒ
+NÂˆ\Ëœ™\Ú^™HH[È™\Ú^™Kœ™[X\ÙTÚ[\Ø\\™J]™[œÚ[\’Y
+NÈ]ØZ]Ø]™PZS^[Ý]
+ÜÚ^™NˆX]œ›Ý[™
+Ú^™J_JNÂˆJNÂˆ\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜKXZKXÛÜÙHŠK˜Y]™[\Ý[™\Š˜ÛXÚÈ‹\Þ[˜È
+
+HOˆÈ]ØZ]Ø]™PZS^[Ý]
+Ýš\ÚX›Nˆ˜[Ù_JNÈ\Ë™\Ý›ÞJ
+NÈJNÂˆ\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜKXZKX]ÛˆŠK˜Y]™[\Ý[™\Š˜ÛXÚÈ‹šYÙÙ\ZR[œÝ[
+NÂˆBˆ\Ý›ÞJ
+HÈ\Ë™[[Y[Ëœ™[[Ý™J
+NÈ\Ë™[[Y[H[ÈYˆ
+Ý]K˜ZP]ÛˆOOH\ÊHÝ]K˜ZP]ÛˆH[ÈBŸB‚™[˜Ý[Ûˆ™Yœ™\ÚZP]ÛŠ
+HÂˆYˆ
+YØ[YK\Ù\‹š\ÑÓHYÙ]ZPÛÛ™šYÊ
+K™[][Û‘[˜X›YXZS^[Ý]
+
+Kš\ÚX›JHÈÝ]K˜ZP]ÛË™\Ý›ÞJ
+NÈ™]\›ŽÈBˆYˆ
+\Ý]K˜ZP]ÛŠHÝ]K˜ZP]ÛˆH™]ÈZP]ÛŠ
+NÂˆÝ]K˜ZP]Û‹œ™[™\Š
+NÂŸB‚˜\Þ[˜È[˜Ý[ÛˆÚÝÐZP]ÛŠ
+HÂˆYˆ
+YÙ]ZPÛÛ™šYÊ
+K™[][Û‘[˜X›Y
+H™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š‘[˜X›H8 &[][ÛˆÛˆX[Oø &H™Y›Ü™HÚÝÚ[™ÈZH[œÝ[ˆŠNÂˆ]ØZ]Ø]™PZS^[Ý]
+Ýš\ÚX›NˆY_JNÈ™Yœ™\ÚZP]ÛŠ
+NÂŸB‚™[˜Ý[ÛˆÜ[ZR[œÝ[ÛÛ›ÛÊ
+HÂˆYˆ
+YØ[YK\Ù\‹š\ÑÓHZUÛÛ˜\“Ü[š[™ÊH™]\›ŽÂˆZUÛÛ˜\“Ü[š[™ÈHYNÂˆÚ[™ÝËœÙ][Y[Ý]
+
+
+HOˆÈZUÛÛ˜\“Ü[š[™ÈH˜[ÙNÈKÍL
+NÂˆžHÈ™]ÈZPÛÛ™šYÊ
+Kœ™[™\ŠYJNÈBˆØ]Ú
+\œ›ÜŠHÂˆÛÛœÛÛK™\œ›ÜŠ	ÓSÑSWÒQHÛÝ[›ÝÜ[ˆZH[œÝ[ÛÛ™šYÝ\˜][Û˜\œ›ÜŠNÂˆZK››ÝYšXØ][ÛœË™\œ›ÜŠÛÝ[›ÝÜ[ˆZH[œÝ[ÛÛ™šYÝ\˜][ÛŽˆ	Ù\œ›Ü‹›Y\ÜØYÙ_X
+NÂˆBŸB‚™[˜Ý[Ûˆ™YÚ\Ý\ZUÛÛ˜\‘˜[˜XÚÊ
+HÂˆYˆ
+ØÝ[Y[™ØÝ[Y[[[Y[™]\Ù]ÜPZUÛÛ˜\“\Ý[™\ŠH™]\›ŽÂˆØÝ[Y[™ØÝ[Y[[[Y[™]\Ù]ÜPZUÛÛ˜\“\Ý[™\ˆHYHŽÂˆØÝ[Y[˜Y]™[\Ý[™\Š˜ÛXÚÈ‹]™[OˆÂˆÛÛœÝZPÛÛ›ÛH]™[\™Ù]˜ÛÜÙ\ÝËŠ	ÖÙ]K]ÛÛHÜKXZKZ[œÝ[—KÙ]KXÛÛ›ÛHÜKXZKZ[œÝ[—KÙ]KXXÝ[ÛHÜKXZKZ[œÝ[—IÊNÂˆYˆ
+ZPÛÛ›Û
+H™]\›ˆÜ[ZR[œÝ[ÛÛ›ÛÊ
+NÂˆÛÛœÝÛPÛÛ›ÛH]™[\™Ù]˜ÛÜÙ\ÝËŠ	ÖÙ]K]ÛÛHÜKYÛK\[™[—KÙ]KXÛÛ›ÛHÜKYÛK\[™[—KÙ]KXXÝ[ÛHÜKYÛK\[™[—IÊNÂˆYˆ
+ÛPÛÛ›Û
+HÜ[”Ý\”˜Z[ÓT[™[
+
+NÂˆKYJNÂŸB‚‚™[˜Ý[ÛˆÙ]XÚš\]YTÚ[ÛÛ™šYÊ
+HÂˆÛÛœÝÝÜ™YHØ[YKœÙ][™ÜË™Ù]
+SÑSWÒQXÚš\]YTÚ[ÛÛ™šYÈŠHÏÈßNÂˆÛÛœÝÛÛ™šYÈH›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+›Ý[™žK][Ë™Y\ÛÛ™JQUSÕPÒ’TUQWÔÒS•ÐÓÓ‘’QÊKÝÜ™YÚ[œXÙNˆ˜[Ù_JNÂˆÛÛ™šYË›X^[][HHX]›X^
+KX]™›ÛÜŠ[X™\ŠÛÛ™šYË›X^[][JHQUSÕPÒ’TUQWÔÒS•ÐÓÓ‘’QË›X^[][JJNÂˆÛÛ™šYËœÝ\[™ÈHÛ[\
+X]™›ÛÜŠ[X™\ŠÛÛ™šYËœÝ\[™ÊJKÛÛ™šYË›X^[][JNÂˆ™]\›ˆÛÛ™šYÎÂŸB‚™[˜Ý[ÛˆÝ\œ™[XÚš\]YTÚ[Ê
+HÂˆ™]\›ˆÛ[\
+X]™›ÛÜŠ[X™\ŠØ[YKœÙ][™ÜË™Ù]
+SÑSWÒQXÚš\]YTÚ[ÈŠJJKÙ]XÚš\]YTÚ[ÛÛ™šYÊ
+K›X^[][JNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆÙ]XÚš\]YTÚ[Ê˜[YKØœ›ØYØ\ÝHY_HHßJHÂˆYˆ
+Z\Ð]]Üš]J
+JH™]\›ˆÝ\œ™[XÚš\]YTÚ[Ê
+NÂˆÛÛœÝ™^HÛ[\
+X]™›ÛÜŠ[X™\Š˜[YJJKÙ]XÚš\]YTÚ[ÛÛ™šYÊ
+K›X^[][JNÂˆ]ØZ]Ø[YKœÙ][™ÜËœÙ]
+SÑSWÒQXÚš\]YTÚ[È‹™^
+NÂˆYˆ
+œ›ØYØ\Ý
+HØ[YKœÛØÚÙ]™[Z]
+ÓÐÒÑUÝ\NˆXÚš\]YTÚ[ÐÚ[™ÙY‹˜[YNˆ™^ÛÝ\˜ÙU\Ù\’YˆØ[YK\Ù\‹šYJNÂˆ™Yœ™\Ú™\ÛÝ\˜ÙRYÊ
+NÂˆ™Yœ™\ÚXÚš\]YP]ÛœÊ
+NÂˆÛÚÜË˜Ø[[
+ÜUXÚš\]YTÚ[ÐÚ[™ÙY‹™^
+NÂˆ™]\›ˆ™^ÂŸB‚™[˜Ý[ÛˆÛÛX˜]\Ò[š]X]]™J
+HÂˆ™]\›ˆ›ÛÛX[ŠØ[YK˜ÛÛX˜]ËœÝ\Y
+NÂŸB‚™[˜Ý[Ûˆš\ÚX›U[[XÝÜœÊ
+HÂˆYˆ
+XÛÛX˜]\Ò[š]X]]™J
+JH™]\›ˆ×NÂˆ™]\›ˆØ[YK˜XÝÜœË™š[\ŠXÝÜˆOˆXÝÜ‹\HOOH˜Ú\˜XÝ\ˆˆ	‰ˆ[[ÛÛX˜]›ÜXÝÜŠXÝÜŠH	‰ˆ
+Ø[YK\Ù\‹š\ÑÓHXÝÜ‹š\ÓÝÛ™\ŠH	‰ˆ[X™\ŠÙ]ÛÛ™šYÊXÝÜŠK[[Ú[ÓX^
+Hˆ
+NÂŸB‚™[˜Ý[Ûˆš\ÚX›UXÚš\]YPXÝÜœÊ
+HÂˆYˆ
+ÛÛX˜]\Ò[š]X]]™J
+JH™]\›ˆ×NÂˆ™]\›ˆØ[YK˜XÝÜœË™š[\ŠXÝÜˆOˆXÝÜ‹\HOOH˜Ú\˜XÝ\ˆˆ	‰ˆÙ]ÛÛ™šYÊXÝÜŠKXÚš\]YQ[˜X›Y	‰ˆ
+Ø[YK\Ù\‹š\ÑÓHXÝÜ‹š\ÓÝÛ™\ŠJNÂŸB‚™[˜Ý[Ûˆ™\ÛÝ\˜ÙRY^[Ý]
+Ù^K˜[˜XÚÊHÂˆ™]\›ˆ›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+˜[˜XÚËØ[YKœÙ][™ÜË™Ù]
+SÑSWÒQÙ^JHÏÈßKÚ[œXÙNˆ˜[Ù_JNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆØ]™T™\ÛÝ\˜ÙRY^[Ý]
+Ù^KÚ[™Ù\Ë˜[˜XÚÊHÂˆ]ØZ]Ø[YKœÙ][™ÜËœÙ]
+SÑSWÒQÙ^K›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+™\ÛÝ\˜ÙRY^[Ý]
+Ù^K˜[˜XÚÊKÚ[™Ù\ËÚ[œXÙNˆ˜[Ù_JJNÂŸB‚™[˜Ý[ÛˆXÝ]˜]T™\ÛÝ\˜ÙRY˜YÊ[[Y[[™KÙ][™ÒÙ^K˜[˜XÚÊHÂˆ]˜YÈH[Âˆ[™K˜Y]™[\Ý[™\ŠœÚ[\™ÝÛˆ‹]™[OˆÂˆ]™[œ™]™[Y˜][
+
+NÂˆÛÛœÝ™XÝH[[Y[™Ù]›Ý[™[™ÐÛY[™XÝ
+
+NÂˆ˜YÈHÙˆ]™[˜ÛY[H™XÝ›YNˆ]™[˜ÛY[HH™XÝÜNÂˆ[™KœÙ]Ú[\Ø\\™J]™[œÚ[\’Y
+NÂˆJNÂˆ[™K˜Y]™[\Ý[™\ŠœÚ[\›[Ý™H‹]™[OˆÂˆYˆ
+Y˜YÊH™]\›ŽÂˆ[[Y[œÝ[K›YH	ØÛ[\
+]™[˜ÛY[H˜YË™Ú[™ÝËš[›™\•ÚYHŒ
+_\Âˆ[[Y[œÝ[KÜH	ØÛ[\
+]™[˜ÛY[HH˜YË™KÚ[™ÝËš[›™\’ZYÚH
+_\ÂˆJNÂˆ[™K˜Y]™[\Ý[™\ŠœÚ[\\‹\Þ[˜È]™[OˆÂˆYˆ
+Y˜YÊH™]\›ŽÂˆ˜YÈH[Âˆ[™Kœ™[X\ÙTÚ[\Ø\\™J]™[œÚ[\’Y
+NÂˆÛÛœÝ™XÝH[[Y[™Ù]›Ý[™[™ÐÛY[™XÝ
+
+NÂˆ]ØZ]Ø]™T™\ÛÝ\˜ÙRY^[Ý]
+Ù][™ÒÙ^KÞˆX]œ›Ý[™
+™XÝ›Y
+KNˆX]œ›Ý[™
+™XÝÜ
+_K˜[˜XÚÊNÂˆJNÂŸB‚™[˜Ý[Ûˆ™\]Y\Ý[[Y\ÝY[
+XÝÜ‹[JHÂˆYˆ
+XXÝÜˆ][[ÛÛX˜]›ÜXÝÜŠXÝÜŠJH™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š•[[Ú[ÈØ[ˆÛ›H™HY\ÝY›ÜˆHÚÙ[ˆ[ˆHXÝ]™HÛÛX˜]ˆŠNÂˆYˆ
+YØ[YK\Ù\‹š\ÑÓH	‰ˆXXÝÜ‹š\ÓÝÛ™\ŠH™]\›ˆZK››ÝYšXØ][ÛœË™\œ›ÜŠ–[ÝHÈ›ÝÝÛˆ\ÈÚ\˜XÝ\‹ˆŠNÂˆYˆ
+\Ð]]Üš]J
+JH™]\›ˆÙ][[Ú[ÊXÝÜ‹Ý\œ™[[[Ú[ÊXÝÜŠH
+È[JK[Š™Yœ™\Ú™\ÛÝ\˜ÙRYÊNÂˆÛÛœÝÛHHXÝ]™QÓJ
+NÂˆYˆ
+YÛJH™]\›ˆZK››ÝYšXØ][ÛœË™\œ›ÜŠHÓH]\Ý™HÛÛ›™XÝYÈY\Ý[[Ú[ËˆŠNÂˆØ[YKœÛØÚÙ]™[Z]
+ÓÐÒÑUÝ\Nˆ˜Ú[™ÙU[[Ú[È‹XÝÜ’YˆXÝÜ‹šY[KÛÝ\˜ÙU\Ù\’YˆØ[YK\Ù\‹šYJNÂŸB‚˜Û\ÜÈ[[Ú[YÂˆÛÛœÝXÝÜŠ
+HÈ\Ë™[[Y[H[ÈBˆ™[™\Š
+HÂˆÛÛœÝXÝÜœÈHš\ÚX›U[[XÝÜœÊ
+NÂˆYˆ
+XXÝÜœË›[™Ý
+H™]\›ˆ\Ë™\Ý›ÞJ
+NÂˆÛÛœÝ˜[˜XÚÈHÞˆNˆNZ[š[Z^™Yˆ˜[Ù_NÂˆÛÛœÝ^[Ý]H™\ÛÝ\˜ÙRY^[Ý]
+[[Y^[Ý]‹˜[˜XÚÊNÂˆYˆ
+]\Ë™[[Y[
+HÂˆ\Ë™[[Y[HØÝ[Y[˜Ü™X]Q[[Y[
+œÙXÝ[ÛˆŠNÂˆ\Ë™[[Y[˜Û\ÜÓ˜[YHHÜK\™\ÛÝ\˜ÙKZYÜK][[ZYŽÂˆ\Ë™[[Y[š[›™\’SH	ÏXY\Ü[HÛ\ÜÏH™˜\È˜K\Ý\ˆÚOˆ[[Ú[ÏÜÜ[Ü[ˆÛ\ÜÏHÜK\™\ÛÝ\˜ÙKZXY\‹XXÝ[ÛœÈHÛ\ÜÏH™˜\È˜KYÜš\[[™\ÈÜK\™\ÛÝ\˜ÙKY˜YÈˆ]OH“[Ý™H[[Ú[ÈÚO]Ûˆ\OH˜]Ûˆˆ]K][[ZY]ÙÙÛH]OH“Z[š[Z^™H[[Ú[ÈHÛ\ÜÏH™˜\È˜K]Ú[™ÝË[Z[š[Z^™HÚOØ]ÛÜÜ[ÚXY\]ˆÛ\ÜÏHÜK\™\ÛÝ\˜ÙK[\ÝÙ]‰ÎÂˆØÝ[Y[˜›ÙK˜\[™Ú[
+\Ë™[[Y[
+NÂˆXÝ]˜]T™\ÛÝ\˜ÙRY˜YÊ\Ë™[[Y[\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK\™\ÛÝ\˜ÙKY˜YÈŠK[[Y^[Ý]‹˜[˜XÚÊNÂˆ\Ë™[[Y[˜Y]™[\Ý[™\Š˜ÛXÚÈ‹]™[OˆÂˆÛÛœÝÙÙÛHH]™[\™Ù]˜ÛÜÙ\Ý
+–Ù]K][[ZY]ÙÙÛWHŠNÂˆYˆ
+ÙÙÛJHÂˆØ]™T™\ÛÝ\˜ÙRY^[Ý]
+[[Y^[Ý]‹ÛZ[š[Z^™Yˆ\™\ÛÝ\˜ÙRY^[Ý]
+[[Y^[Ý]‹˜[˜XÚÊK›Z[š[Z^™YK˜[˜XÚÊK[Š™Yœ™\Ú™\ÛÝ\˜ÙRYÊNÂˆ™]\›ŽÂˆBˆÛÛœÝ]ÛˆH]™[\™Ù]˜ÛÜÙ\Ý
+–Ù]K][[Y[WHŠNÂˆYˆ
+X]ÛŠH™]\›ŽÂˆ™\]Y\Ý[[Y\ÝY[
+Ø[YK˜XÝÜœË™Ù]
+]Û‹™]\Ù]˜XÝÜ’Y
+K[X™\Š]Û‹™]\Ù][[[JJNÂˆJNÂˆBˆ\Ë™[[Y[œÝ[K›YH	ØÛ[\
+^[Ý]žÚ[™ÝËš[›™\•ÚYHŒ
+_\Âˆ\Ë™[[Y[œÝ[KÜH	ØÛ[\
+^[Ý]žKÚ[™ÝËš[›™\’ZYÚH
+_\Âˆ\Ë™[[Y[˜Û\ÜÓ\ÝÙÙÛJš\Ë[Z[š[Z^™Y‹›ÛÛX[Š^[Ý]›Z[š[Z^™Y
+JNÂˆÛÛœÝÙÙÛRXÛÛˆH\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ–Ù]K][[ZY]ÙÙÛWHHŠNÂˆYˆ
+ÙÙÛRXÛÛŠHÙÙÛRXÛÛ‹˜Û\ÜÓ˜[YHH^[Ý]›Z[š[Z^™YÈ™˜\È˜K]Ú[™ÝË[X^[Z^™Hˆˆ™˜\È˜K]Ú[™ÝË[Z[š[Z^™HŽÂˆÛÛœÝÙÙÛHH\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ–Ù]K][[ZY]ÙÙÛWHŠNÂˆYˆ
+ÙÙÛJHÙÙÛK]HH^[Ý]›Z[š[Z^™YÈ‘^[™[[Ú[Èˆˆ“Z[š[Z^™H[[Ú[ÈŽÂˆ\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK\™\ÛÝ\˜ÙK[\ÝŠKš[›™\’SHXÝÜœË›X\
+XÝÜˆOˆÂˆÛÛœÝÛÛ™šYÈHÙ]ÛÛ™šYÊXÝÜŠNÂˆ™]\›ˆ]ˆÛ\ÜÏHÜK\™\ÛÝ\˜ÙK\›ÝÈ[YÈÜ˜ÏH‰Ù\ØØ\RS
+ÛÛ™šYË[[XÛÛˆXÝÜ‹š[YÈšXÛÛœËÜÝ™ËÜÝ\‹œÝ™ÈŠ_Hˆ[HˆÜ[ˆÛ\ÜÏHÜK\™\ÛÝ\˜ÙK[˜[YH‰Ù\ØØ\RS
+XÝÜ‹›˜[YJ_OÜÜ[]Ûˆ\OH˜]Ûˆˆ]KXXÝÜ‹ZYH‰ØXÝÜ‹šYHˆ]K][[Y[OH‹LHˆ]OH”™[[Ý™HH[[Ú[HÛ\ÜÏH™˜\È˜K[Z[\ÈÚOØ]ÛÝ›Û™Ï‰ØÝ\œ™[[[Ú[ÊXÝÜŠ_KÉÓX]›X^
+[X™\ŠÛÛ™šYË[[Ú[ÓX^
+H
+_OÜÝ›Û™Ï]Ûˆ\OH˜]Ûˆˆ]KXXÝÜ‹ZYH‰ØXÝÜ‹šYHˆ]K][[Y[OHŒHˆ]OHYH[[Ú[HÛ\ÜÏH™˜\È˜K\\ÈÚOØ]ÛÙ]˜ÂˆJKš›Ú[ŠˆŠNÂˆ™]\›ˆ\ÎÂˆBˆ\Ý›ÞJ
+HÈ\Ë™[[Y[Ëœ™[[Ý™J
+NÈ\Ë™[[Y[H[ÈYˆ
+Ý]K[[Ú[YOOH\ÊHÝ]K[[Ú[YH[ÈBŸB‚˜\Þ[˜È[˜Ý[Ûˆ™\]Y\ÝXÚš\]YJXÝÜŠHÂˆYˆ
+ÛÛX˜]\Ò[š]X]]™J
+JH™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š•XÚš\]Y\ÈØ[››Ý™H\ÙYÚ[H[š]X]]™H\ÈXÝ]™KˆŠNÂˆYˆ
+XXÝÜˆ
+YØ[YK\Ù\‹š\ÑÓH	‰ˆXXÝÜ‹š\ÓÝÛ™\ŠJH™]\›ˆZK››ÝYšXØ][ÛœË™\œ›ÜŠ–[ÝHÈ›ÝÝÛˆ\ÈÚ\˜XÝ\‹ˆŠNÂˆYˆ
+YÙ]ÛÛ™šYÊXÝÜŠKXÚš\]YQ[˜X›Y
+H™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š•\ÈÚ\˜XÝ\‰ÜÈXÚš\]YH\È\ØX›YˆŠNÂˆYˆ
+Ý\œ™[XÚš\]YTÚ[Ê
+HJH™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š•H\H\È›ÈXÚš\]YHÚ[È™[XZ[š[™ËˆŠNÂˆYˆ
+\Ð]]Üš]J
+JH™]\›ˆ^XÝ]UXÚš\]YJXÝÜ‹šYØ[YK\Ù\‹šY
+NÂˆYˆ
+XXÝ]™QÓJ
+JH™]\›ˆZK››ÝYšXØ][ÛœË™\œ›ÜŠHÓH]\Ý™HÛÛ›™XÝYÈÜ[™HÚ\™YXÚš\]YHÚ[ˆŠNÂˆØ[YKœÛØÚÙ]™[Z]
+ÓÐÒÑUÝ\Nˆ˜XÝ]˜]UXÚš\]YH‹XÝÜ’YˆXÝÜ‹šY™\]Y\Ý[™Õ\Ù\’YˆØ[YK\Ù\‹šYJNÂŸB‚˜\Þ[˜È[˜Ý[Ûˆ^XÝ]UXÚš\]YJXÝÜ’Y™\]Y\Ý[™Õ\Ù\’Y
+HÂˆYˆ
+Z\Ð]]Üš]J
+HÝ]KXÚš\]YTÜ[™ØÚÈÛÛX˜]\Ò[š]X]]™J
+JH™]\›ŽÂˆÛÛœÝXÝÜˆHØ[YK˜XÝÜœË™Ù]
+XÝÜ’Y
+NÂˆÛÛœÝ™\]Y\Ý\ˆHØ[YK\Ù\œË™Ù]
+™\]Y\Ý[™Õ\Ù\’Y
+NÂˆYˆ
+XXÝÜˆXÝÜ‹\HOOH˜Ú\˜XÝ\ˆˆ
+\™\]Y\Ý\Ëš\ÑÓH	‰ˆXXÝÜ‹\Ý\Ù\”\›Z\ÜÚ[ÛŠ™\]Y\Ý\‹“ÕÓ‘TˆŠJJH™]\›ŽÂˆÛÛœÝÛÛ™šYÈHÙ]ÛÛ™šYÊXÝÜŠNÂˆYˆ
+XÛÛ™šYËXÚš\]YQ[˜X›YÝ\œ™[XÚš\]YTÚ[Ê
+HJH™]\›ŽÂˆÝ]KXÚš\]YTÜ[™ØÚÈHYNÂˆžHÂˆ]ØZ]Ù]XÚš\]YTÚ[ÊÝ\œ™[XÚš\]YTÚ[Ê
+HHJNÂˆÛÛœÝ›ÙHH]ØZ]^Y]Ü‹™[œšXÚS
+ÛÛ™šYËXÚš\]YU^[O“›ÈXÚš\]YH\ØÜš\[Ûˆ\È™Y[ˆ[\™YÙ[Oˆ‹Ø\Þ[˜ÎˆYKÙXÜ™]ÎˆXÝÜ‹š\ÓÝÛ™\ŸJNÂˆ]ØZ]Ú]Y\ÜØYÙK˜Ü™X]JÂˆÜXZÙ\ŽˆÚ]Y\ÜØYÙK™Ù]ÜXZÙ\ŠØXÝÜŸJKˆÛÛ[ˆ\XÛHÛ\ÜÏHÜK]XÚš\]YKXÚ]Ï[YÈÜ˜ÏH‰Ù\ØØ\RS
+ÛÛ™šYËXÚš\]YP]Û’[XYÙHXÝÜ‹š[YÈšXÛÛœËÜÝ™ËÛYÚš[™ËœÝ™ÈŠ_Hˆ[Hˆ‰Ù\ØØ\RS
+XÝÜ‹›˜[YJ_H8 %XÚš\]YOÚÏ]‰Ø›Ù_OÙ]Ø\XÛO˜ˆJNÂˆZK››ÝYšXØ][ÛœËš[™›Ê	ØXÝÜ‹›˜[Y_H\ÙYZ\ˆXÚš\]YKˆ	ØÝ\œ™[XÚš\]YTÚ[Ê
+_HXÚš\]YHÚ[
+ÊH™[XZ[‹˜
+NÂˆHš[˜[HÂˆÝ]KXÚš\]YTÜ[™ØÚÈH˜[ÙNÂˆ™Yœ™\Ú™\ÛÝ\˜ÙRYÊ
+NÂˆBŸB‚™[˜Ý[ÛˆXÝ]˜]TÝ\”˜Z[XÝ[Û‘˜YÊ[[Y[XÝÜ‹XÝ[ÛŠHÂˆYˆ
+Y[[Y[XXÝÜŠH™]\›ŽÂˆ[[Y[™˜YÙØX›HHYNÂˆ[[Y[˜Û\ÜÓ\Ý˜Y
+ÜK[XXÜ›ËY˜YÙØX›HŠNÂˆ[[Y[˜Y]™[\Ý[™\Š™˜YÜÝ\‹]™[OˆÂˆÛÛœÝÛÛ™šYÈHÙ]ÛÛ™šYÊXÝÜŠNÂˆÛÛœÝXÝ[Û‘]Z[ÈHÂˆÚÚ[ˆÛX™[ˆ”ÚÚ[‹[YÎˆÛÛ™šYËœÚÚ[]Û’[XYÙHXÝÜ‹š[YßKˆXÚš\]YNˆÛX™[ˆ•XÚš\]YH‹[YÎˆÛÛ™šYËXÚš\]YP]Û’[XYÙHXÝÜ‹š[YßKˆ[[X]NˆÛX™[ˆÛÛ™šYË[[X]S˜[YH•[[X]H‹[YÎˆÛÛ™šYË[[X]P]Û’[XYÙHÛÛ™šYË›Ü˜’[XYÙHXÝÜ‹š[YßKˆ[[ˆÛX™[ˆ•[[‹[YÎˆÛÛ™šYË[[XÛÛˆXÝÜ‹š[YßBˆVØXÝ[Û—NÂˆYˆ
+XXÝ[Û‘]Z[ÊH™]\›ŽÂˆ]™[™]U˜[œÙ™\‹œÙ]]J^ÜZ[ˆ‹”ÓÓ‹œÝš[™ÚYžJÝ\Nˆ•Ô•PXÝ[Ûˆ‹XÝ[Û‹XÝÜ’Y˜XÝÜ‹šYXÝÜ•]ZY˜XÝÜ‹]ZY˜[YN˜	ØXÝÜ‹›˜[Y_H8 %	ØXÝ[Û‘]Z[Ë›X™[X[YÎ˜XÝ[Û‘]Z[Ëš[YÈšXÛÛœËÜÝ™ËÙŒœÝ™ÈŸJJNÂˆ]™[™]U˜[œÙ™\‹™Y™™XÝ[ÝÙYH˜ÛÜHŽÂˆJNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆÜ™X]TÝ\”˜Z[XÝ[Û“XXÜ›Ê]KÛÝ
+HÂˆYˆ
+]OË\HOOH•Ô•PXÝ[ÛˆˆVÈœÚÚ[‹XÚš\]YH‹[[X]H‹[[—Kš[˜ÛY\Ê]K˜XÝ[ÛŠJH™]\›ˆYNÂˆÛÛœÝXÝÜˆHØ[YK˜XÝÜœË™Ù]
+]K˜XÝÜ’Y
+HÏÈ]ØZ]œ›ÛU]ZY
+]K˜XÝÜ•]ZY
+K˜Ø]Ú
+
+
+HOˆ[
+NÂˆYˆ
+XXÝÜˆXÝÜ‹\HOOH˜Ú\˜XÝ\ˆŠHÈZK››ÝYšXØ][ÛœË™\œ›ÜŠ•HÚ\˜XÝ\ˆ›Üˆ\ÈÝ\ˆ˜Z[XÝ[Ûˆ›ÈÛ™Ù\ˆ^\ÝËˆŠNÈ™]\›ˆ˜[ÙNÈBˆYˆ
+YØ[YK\Ù\‹š\ÑÓH	‰ˆXXÝÜ‹š\ÓÝÛ™\ŠHÈZK››ÝYšXØ][ÛœË™\œ›ÜŠ–[ÝHØ[ˆÛ›HÜ™X]HXÝ[ÛˆXXÜ›ÜÈ›ÜˆÚ\˜XÝ\œÈ[ÝHÝÛ‹ˆŠNÈ™]\›ˆ˜[ÙNÈBˆ]XXÜ›ÈHØ[YK›XXÜ›ÜË™š[™
+[žHOˆ[žK™Ù]›YÊSÑSWÒQ˜XÝ[ÛˆŠHOOH]K˜XÝ[Ûˆ	‰ˆ[žK™Ù]›YÊSÑSWÒQ˜XÝÜ’YŠHOOHXÝÜ‹šY	‰ˆ[žKš\ÓÝÛ™\ŠNÂˆYˆ
+[XXÜ›ÊHÂˆÛÛœÝY]ÙHÜÚÚ[ˆœ™\]Y\ÝÚÚ[‹XÚš\]YNˆœ™\]Y\ÝXÚš\]YH‹[[X]Nˆœ™\]Y\Ý[[X]H‹[[ˆœÚÝÕ[[Ü\ŸVÙ]K˜XÝ[Û—NÂˆXXÜ›ÈH]ØZ]XXÜ›Ë˜Ü™X]JÛ˜[YN™]K›˜[YK\NˆœØÜš\‹[YÎ™]Kš[YÈXÝÜ‹š[YÈšXÛÛœËÜÝ™ËÙŒœÝ™È‹ÛÛ[X[™˜ÛÛœÝXÝÜˆHØ[YK˜XÝÜœË™Ù]
+‰ØXÝÜ‹šYHŠN×šYˆ
+XXÝÜŠH™]\›ˆZK››ÝYšXØ][ÛœË™\œ›ÜŠÚ\˜XÝ\ˆ›Ý›Ý[™ˆŠN×œ™]\›ˆØ[YK›[Ù[\Ë™Ù]
+‰ÓSÑSWÒQHŠOË˜\OË‰ÛY]ÙJXÝÜŠNØ›YÜÎžÖÓSÑSWÒQNžØXÝ[ÛŽ™]K˜XÝ[Û‹XÝÜ’Y˜XÝÜ‹šY__JNÂˆBˆ]ØZ]Ø[YK\Ù\‹˜\ÜÚYÛ’Ý˜\“XXÜ›ÊXXÜ›ËÛÝ
+NÂˆ™\]Y\Ý[š[X][Û‘œ˜[YJ™Yœ™\Ú[[X]RÝ˜\“XXÜ›ÜÊNÂˆ™]\›ˆ˜[ÙNÂŸB‚™[˜Ý[Ûˆ[[X]SXXÜ›Ñ\Ü^JXÝÜŠHÂˆÛÛœÝÛÛ™šYÈHÙ]ÛÛ™šYÊXÝÜŠNÂˆÛÛœÝX^[][HHX]›X^
+K[X™\ŠÛÛ™šYË›X^
+HJNÂˆÛÛœÝ\˜Ù[HÛ[\
+
+[X™\ŠÛÛ™šYË˜Ý\œ™[
+HÈX^[][JH
+ˆLL
+NÂˆÛÛœÝ™XYHH›ÛÛX[ŠÛÛ™šYË™[˜X›Y
+H	‰ˆ\˜Ù[HLÂˆÛÛœÝ[[Y[HÙ][[Y[Ê
+K™š[™
+[žHOˆ[žKšYOOHÛÛ™šYË™[[Y[Y
+NÂˆÛÛœÝÛÛÜˆH™XYBˆÈ
+[[Y[Ëœ™XYPÛÛÜˆÛÛ™šYËœ™XYPÛÛÜˆQUSÐÓÓ‘’QËœ™XYPÛÛÜŠBˆˆ
+[[Y[Ë˜Ú\™ÙPÛÛÜˆÛÛ™šYË˜Ú\™ÙPÛÛÜˆQUSÐÓÓ‘’QË˜Ú\™ÙPÛÛÜŠNÂˆ™]\›ˆÜ\˜Ù[™XYKÛÛÜŸNÂŸB‚™[˜Ý[Ûˆ™Yœ™\Ú[[X]RÝ˜\“XXÜ›ÜÊ
+HÂˆYˆ
+YØ[YOË\Ù\ŠH™]\›ŽÂˆÛÛœÝÛÝÈH™]ÈÙ]
+ØÝ[Y[œ]Y\žTÙ[XÝÜ[
+ˆÚÝ˜\ˆÙ]K\ÛÝKØXÝ[Û‹X˜\ˆÙ]K\ÛÝKšÝ˜\ˆÙ]K\ÛÝKÚÝ˜\ˆÙ]K[XXÜ›ËZYKØXÝ[Û‹X˜\ˆÙ]K[XXÜ›ËZYKšÝ˜\ˆÙ]K[XXÜ›ËZYHŠJNÂˆ›Üˆ
+ÛÛœÝÛÝÙˆÛÝÊHÂˆÛÛœÝÛÝ[X™\ˆHÝš[™ÊÛÝ™]\Ù]œÛÝÏÈˆŠNÂˆÛÛœÝÝÜ™YXXÜ›ÈHÛÝ[X™\ˆÈØ[YK\Ù\‹šÝ˜\Ë–ÜÛÝ[X™\—Hˆ[ÂˆÛÛœÝÝÜ™YXXÜ›ÒYH\[ÙˆÝÜ™YXXÜ›ÈOOHœÝš[™ÈˆÈÝÜ™YXXÜ›ÈˆÝÜ™YXXÜ›ÏËšYÂˆÛÛœÝXXÜ›ÒYHÛÝ™]\Ù]›XXÜ›ÒYÏÈÛÝœ]Y\žTÙ[XÝÜËŠ–Ù]K[XXÜ›ËZYHŠOË™]\Ù]›XXÜ›ÒYÏÈÝÜ™YXXÜ›ÒYÂˆÛÛœÝXXÜ›ÈHØ[YK›XXÜ›ÜË™Ù]
+XXÜ›ÒY
+NÂˆÛÛœÝXÝ[ÛˆHXXÜ›ÏË™Ù]›YÊSÑSWÒQ˜XÝ[ÛˆŠNÂˆÛÛœÝ\Õ[[X]HHXÝ[ÛˆOOH[[X]HŽÂˆÛÛœÝ\ÔÚÚ[HXÝ[ÛˆOOHœÚÚ[ŽÂˆÛÛœÝ\Õ[[HXÝ[ÛˆOOH[[ŽÂˆÛÝ˜Û\ÜÓ\ÝÙÙÛJÜK][[X]K[XXÜ›È‹\Õ[[X]JNÂˆÛÝ˜Û\ÜÓ\ÝÙÙÛJÜK\ÚÚ[[XXÜ›È‹\ÔÚÚ[
+NÂˆÛÝ˜Û\ÜÓ\ÝÙÙÛJÜK][[[XXÜ›È‹\Õ[[
+NÂˆÛÝœ]Y\žTÙ[XÝÜ[
+ŽœØÛÜHˆÜKZÝ˜\‹Y[™\™ÞKYš[œØÛÜHˆÜKZÝ˜\‹Y[™\™ÞK[X™[œØÛÜHˆÜKZÝ˜\‹XXÝ[Û‹[X™[ŠK™›Ü‘XXÚ
+›ÙHOˆ›ÙKœ™[[Ý™J
+JNÂˆYˆ
+\ÔÚÚ[\Õ[[
+HÂˆÛÝ˜Û\ÜÓ\Ýœ™[[Ý™Jš\ËY[™\™ÞH‹š\Ë\™XYHŠNÂˆÛÛœÝXÝÜˆHØ[YK˜XÝÜœË™Ù]
+XXÜ›Ë™Ù]›YÊSÑSWÒQ˜XÝÜ’YŠJNÂˆÛÛœÝX™[HØÝ[Y[˜Ü™X]Q[[Y[
+œÜ[ˆŠNÂˆX™[˜Û\ÜÓ˜[YHHÜKZÝ˜\‹XXÝ[Û‹[X™[ŽÂˆX™[^ÛÛ[H\Õ[[È•SS•ˆˆ”ÒÒSŽÂˆX™[œÙ]]šX]J˜\šXKZY[ˆ‹YHŠNÂˆÛÝ˜\[™
+X™[
+NÂˆYˆ
+\Õ[[	‰ˆXÝÜŠHÛÝ]HHZ[Xš[]U^
+Ù]ÛÛ™šYÊXÝÜŠK[[^
+H	ØXÝÜ‹›˜[Y_H[[ÂˆÛÛ[YNÂˆBˆYˆ
+Z\Õ[[X]JHÈÛÝ˜Û\ÜÓ\Ýœ™[[Ý™Jš\ËY[™\™ÞH‹š\Ë\™XYHŠNÈÛÛ[YNÈBˆÛÛœÝXÝÜˆHØ[YK˜XÝÜœË™Ù]
+XXÜ›Ë™Ù]›YÊSÑSWÒQ˜XÝÜ’YŠJNÂˆYˆ
+XXÝÜŠHÛÛ[YNÂˆÛÛœÝ\Ü^HH[[X]SXXÜ›Ñ\Ü^JXÝÜŠNÂˆÛÝœÝ[KœÙ]›Ü\J‹K]ÜKZÝ˜\‹Y[™\™ÞH‹	Ù\Ü^Kœ\˜Ù[IX
+NÂˆÛÝœÝ[KœÙ]›Ü\J‹K]ÜKZÝ˜\‹Y[™\™ÞK\˜][È‹Ýš[™Ê\Ü^Kœ\˜Ù[ÈL
+JNÂˆÛÝœÝ[KœÙ]›Ü\J‹K]ÜKZÝ˜\‹YÛÝÈ‹	Ìˆ
+È
+Lˆ
+ˆ\Ü^Kœ\˜Ù[ÈL
+_\
+NÂˆÛÝœÝ[KœÙ]›Ü\J‹K]ÜKZÝ˜\‹Y[™\™ÞKXÛÛÜˆ‹\Ü^K˜ÛÛÜŠNÂˆÛÝ˜Û\ÜÓ\ÝÙÙÛJš\ËY[™\™ÞH‹\Ü^Kœ\˜Ù[ˆ
+NÂˆÛÝ˜Û\ÜÓ\ÝÙÙÛJš\Ë\™XYH‹\Ü^Kœ™XYJNÂˆÛÛœÝš[HØÝ[Y[˜Ü™X]Q[[Y[
+œÜ[ˆŠNÂˆš[˜Û\ÜÓ˜[YHHÜKZÝ˜\‹Y[™\™ÞKYš[ŽÂˆš[œÙ]]šX]J˜\šXKZY[ˆ‹YHŠNÂˆÛÛœÝX™[HØÝ[Y[˜Ü™X]Q[[Y[
+œÜ[ˆŠNÂˆX™[˜Û\ÜÓ˜[YHHÜKZÝ˜\‹Y[™\™ÞK[X™[ŽÂˆX™[^ÛÛ[H	ÓX]œ›Ý[™
+\Ü^Kœ\˜Ù[
+_IXÂˆX™[œÙ]]šX]J˜\šXK[X™[‹	ØXÝÜ‹›˜[Y_H[[X]H[™\™ÞNˆ	ÓX]œ›Ý[™
+\Ü^Kœ\˜Ù[
+_IX
+NÂˆÛÝ˜\[™
+š[X™[
+NÂˆBŸB‚˜Û\ÜÈXÚš\]YRYÂˆÛÛœÝXÝÜŠ
+HÈ\Ë™[[Y[H[ÈBˆ™[™\Š
+HÂˆÛÛœÝXÝÜœÈHš\ÚX›UXÚš\]YPXÝÜœÊ
+NÂˆYˆ
+XXÝÜœË›[™Ý
+H™]\›ˆ\Ë™\Ý›ÞJ
+NÂˆÛÛœÝ˜[˜XÚÈHÞˆNˆŒNÂˆÛÛœÝ^[Ý]H™\ÛÝ\˜ÙRY^[Ý]
+XÚš\]YRY^[Ý]‹˜[˜XÚÊNÂˆYˆ
+]\Ë™[[Y[
+HÂˆ\Ë™[[Y[HØÝ[Y[˜Ü™X]Q[[Y[
+œÙXÝ[ÛˆŠNÂˆ\Ë™[[Y[˜Û\ÜÓ˜[YHHÜK\™\ÛÝ\˜ÙKZYÜK]XÚš\]YKZYŽÂˆ\Ë™[[Y[š[›™\’SH	ÏXY\Ü[HÛ\ÜÏH™˜\È˜KX›ÛÚOˆXÚš\]YHÚ[ÎˆÝ›Û™ÈÛ\ÜÏHÜK]XÚš\]YKXÛÝ[ÜÝ›Û™ÏÜÜ[HÛ\ÜÏH™˜\È˜KYÜš\[[™\ÈÜK\™\ÛÝ\˜ÙKY˜YÈÚOÚXY\]ˆÛ\ÜÏHÜK]XÚš\]YKX]ÛœÈÙ]‰ÎÂˆØÝ[Y[˜›ÙK˜\[™Ú[
+\Ë™[[Y[
+NÂˆXÝ]˜]T™\ÛÝ\˜ÙRY˜YÊ\Ë™[[Y[\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK\™\ÛÝ\˜ÙKY˜YÈŠKXÚš\]YRY^[Ý]‹˜[˜XÚÊNÂˆ\Ë™[[Y[˜Y]™[\Ý[™\Š˜ÛXÚÈ‹]™[OˆÂˆÛÛœÝ]ÛˆH]™[\™Ù]˜ÛÜÙ\Ý
+–Ù]K]XÚš\]YKXXÝÜ—HŠNÂˆYˆ
+]ÛŠH™\]Y\ÝXÚš\]YJØ[YK˜XÝÜœË™Ù]
+]Û‹™]\Ù]XÚš\]YPXÝÜŠJNÂˆJNÂˆBˆ\Ë™[[Y[œÝ[K›YH	ØÛ[\
+^[Ý]žÚ[™ÝËš[›™\•ÚYHŒ
+_\Âˆ\Ë™[[Y[œÝ[KÜH	ØÛ[\
+^[Ý]žKÚ[™ÝËš[›™\’ZYÚH
+_\Âˆ\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK]XÚš\]YKXÛÝ[ŠK^ÛÛ[H	ØÝ\œ™[XÚš\]YTÚ[Ê
+_KÉÙÙ]XÚš\]YTÚ[ÛÛ™šYÊ
+K›X^[][_XÂˆ\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK]XÚš\]YKX]ÛœÈŠKš[›™\’SHXÝÜœË›X\
+XÝÜˆOˆÂˆÛÛœÝÛÛ™šYÈHÙ]ÛÛ™šYÊXÝÜŠNÂˆÛÛœÝ[˜]˜Z[X›HHÝ\œ™[XÚš\]YTÚ[Ê
+HNÂˆ™]\›ˆ]Ûˆ\OH˜]ÛˆˆÛ\ÜÏHÜK]XÚš\]YKX]Ûˆ	Ý[˜]˜Z[X›HÈš\Ë][˜]˜Z[X›HˆˆˆŸHˆ]K]XÚš\]YKXXÝÜH‰ØXÝÜ‹šYHˆ\šXKY\ØX›YH‰Ý[˜]˜Z[X›_Hˆ]OH•\ÙH	Ù\ØØ\RS
+XÝÜ‹›˜[YJ_IÜÈXÚš\]YH
+ÛÜÝÈHXÚš\]YHÚ[
+H[YÈÜ˜ÏH‰Ù\ØØ\RS
+ÛÛ™šYËXÚš\]YP]Û’[XYÙHXÝÜ‹š[YÈšXÛÛœËÜÝ™ËÛYÚš[™ËœÝ™ÈŠ_Hˆ[HˆÜ[‰Ù\ØØ\RS
+XÝÜ‹›˜[YJ_OÜÜ[Ø]Û˜ÂˆJKš›Ú[ŠˆŠNÂˆ›Üˆ
+ÛÛœÝ]ÛˆÙˆ\Ë™[[Y[œ]Y\žTÙ[XÝÜ[
+–Ù]K]XÚš\]YKXXÝÜ—HŠJHXÝ]˜]TÝ\”˜Z[XÝ[Û‘˜YÊ]Û‹Ø[YK˜XÝÜœË™Ù]
+]Û‹™]\Ù]XÚš\]YPXÝÜŠKXÚš\]YHŠNÂˆ™]\›ˆ\ÎÂˆBˆ\Ý›ÞJ
+HÈ\Ë™[[Y[Ëœ™[[Ý™J
+NÈ\Ë™[[Y[H[ÈYˆ
+Ý]KXÚš\]YRYOOH\ÊHÝ]KXÚš\]YRYH[ÈBŸB‚™[˜Ý[Ûˆ™Yœ™\Ú™\ÛÝ\˜ÙRYÊ
+HÂˆÛÛœÝ[[XÝÜœÈHš\ÚX›U[[XÝÜœÊ
+NÂˆYˆ
+Ø[YK\Ù\‹š\ÑÓH	‰ˆ[[XÝÜœË›[™Ý
+HÂˆYˆ
+\Ý]K[[Ú[Y
+HÝ]K[[Ú[YH™]È[[Ú[Y
+
+NÂˆÝ]K[[Ú[Yœ™[™\Š
+NÂˆH[ÙHÝ]K[[Ú[YË™\Ý›ÞJ
+NÂˆ™Yœ™\Ú[[]ÛœÊ
+NÂˆÛÛœÝXÚš\]YPXÝÜœÈHš\ÚX›UXÚš\]YPXÝÜœÊ
+NÂˆYˆ
+XÚš\]YPXÝÜœË›[™Ý
+HÂˆYˆ
+\Ý]KXÚš\]YRY
+HÝ]KXÚš\]YRYH™]ÈXÚš\]YRY
+
+NÂˆÝ]KXÚš\]YRYœ™[™\Š
+NÂˆH[ÙHÝ]KXÚš\]YRYË™\Ý›ÞJ
+NÂŸB‚™[˜Ý[ÛˆÙ]ÚÚ[Ú[ÛÛ™šYÊ
+HÂˆÛÛœÝÝÜ™YHØ[YKœÙ][™ÜË™Ù]
+SÑSWÒQœÚÚ[Ú[ÛÛ™šYÈŠHÏÈßNÂˆÛÛœÝÛÛ™šYÈH›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+›Ý[™žK][Ë™Y\ÛÛ™JQUSÔÒÒSÔÒS•ÐÓÓ‘’QÊKÝÜ™YÚ[œXÙNˆ˜[Ù_JNÂˆÛÛ™šYË›X^[][HHX]›X^
+KX]™›ÛÜŠ[X™\ŠÛÛ™šYË›X^[][JHQUSÔÒÒSÔÒS•ÐÓÓ‘’QË›X^[][JJNÂˆÛÛ™šYËœÝ\[™ÈHÛ[\
+X]™›ÛÜŠ[X™\ŠÛÛ™šYËœÝ\[™ÊJKÛÛ™šYË›X^[][JNÂˆÛÛ™šYËœÚ[Ô\”›ÝÈHÛ[\
+X]™›ÛÜŠ[X™\ŠÛÛ™šYËœÚ[Ô\”›ÝÊJKKÛÛ™šYË›X^[][JNÂˆÛÛ™šYËœÚ[ÜXÚ[™ÈHÛ[\
+[X™\ŠÛÛ™šYËœÚ[ÜXÚ[™ÊKMLL
+NÂˆ™]\›ˆÛÛ™šYÎÂŸB‚™[˜Ý[ÛˆÙ][[Ú[ÛÛ™šYÊ
+HÂˆ™]\›ˆ›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+›Ý[™žK][Ë™Y\ÛÛ™JQUSÕSS•ÔÒS•ÐÓÓ‘’QÊKØ[YKœÙ][™ÜË™Ù]
+SÑSWÒQ[[Ú[ÛÛ™šYÈŠHÏÈßKÚ[œXÙN™˜[Ù_JNÂŸB‚˜\Þ[˜È[˜Ý[Ûˆ™Yœ™\Ú[[Ú[›Û
+
+HÂˆžHÂˆÛÛœÝ›ÛH]ØZ]ØYÜ\Ú›Û
+Ù][[Ú[ÛÛ™šYÊ
+K›[X™\‘›Ûš[JNÂˆØÝ[Y[™ØÝ[Y[[[Y[œÝ[KœÙ]›Ü\J‹K]ÜK][[[[X™\‹Y›Û‹›Û
+NÂˆHØ]Ú
+\œ›ÜŠHÂˆÛÛœÛÛKØ\›Š	ÓSÑSWÒQHÛÝ[›ÝØY[[Ú[›Û\œ›ÜŠNÂˆØÝ[Y[™ØÝ[Y[[[Y[œÝ[Kœ™[[Ý™T›Ü\J‹K]ÜK][[[[X™\‹Y›ÛŠNÂˆBŸB‚™[˜Ý[ÛˆÝ\œ™[ÚÚ[Ú[Ê
+HÂˆ™]\›ˆÛ[\
+X]™›ÛÜŠ[X™\ŠØ[YKœÙ][™ÜË™Ù]
+SÑSWÒQœÚÚ[Ú[ÈŠJJKÙ]ÚÚ[Ú[ÛÛ™šYÊ
+K›X^[][JNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆÙ]ÚÚ[Ú[Ê˜[YKØœ›ØYØ\ÝHY_HHßJHÂˆYˆ
+Z\Ð]]Üš]J
+JH™]\›ˆÝ\œ™[ÚÚ[Ú[Ê
+NÂˆÛÛœÝ™^HÛ[\
+X]™›ÛÜŠ[X™\Š˜[YJJKÙ]ÚÚ[Ú[ÛÛ™šYÊ
+K›X^[][JNÂˆ]ØZ]Ø[YKœÙ][™ÜËœÙ]
+SÑSWÒQœÚÚ[Ú[È‹™^
+NÂˆYˆ
+œ›ØYØ\Ý
+HØ[YKœÛØÚÙ]™[Z]
+ÓÐÒÑUÝ\NˆœÚÚ[Ú[ÐÚ[™ÙY‹˜[YNˆ™^ÛÝ\˜ÙU\Ù\’YˆØ[YK\Ù\‹šYJNÂˆ™Yœ™\ÚÚÚ[RJ
+NÂˆÛÚÜË˜Ø[[
+ÜTÚÚ[Ú[ÐÚ[™ÙY‹™^
+NÂˆ™]\›ˆ™^ÂŸB‚™[˜Ý[ÛˆÚÚ[Y]\“^[Ý]
+
+HÂˆ™]\›ˆ›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+ÞˆŒNˆÚ^™Nˆ‹š\ÚX›NˆY_KØ[YKœÙ][™ÜË™Ù]
+SÑSWÒQœÚÚ[Y]\“^[Ý]ŠHÏÈßKÚ[œXÙNˆ˜[Ù_JNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆØ]™TÚÚ[Y]\“^[Ý]
+Ú[™Ù\ÊHÂˆÛÛœÝ^[Ý]H›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+ÚÚ[Y]\“^[Ý]
+
+KÚ[™Ù\ËÚ[œXÙNˆ˜[Ù_JNÂˆ]ØZ]Ø[YKœÙ][™ÜËœÙ]
+SÑSWÒQœÚÚ[Y]\“^[Ý]‹^[Ý]
+NÂˆ™]\›ˆ^[Ý]ÂŸB‚™[˜Ý[ÛˆÚÚ[]Û“^[Ý]
+XÝÜ’Y
+HÂˆÛÛœÝ^[Ý]ÈHØ[YKœÙ][™ÜË™Ù]
+SÑSWÒQœÚÚ[]Û“^[Ý]ÈŠHÏÈßNÂˆÛÛœÝ[™^HX]›X^
+Ø[YK˜XÝÜœË™š[\ŠXÝÜˆOˆXÝÜ‹\HOOH˜Ú\˜XÝ\ˆŠK™š[™[™^
+XÝÜˆOˆXÝÜ‹šYOOHXÝÜ’Y
+JNÂˆ™]\›ˆ›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+ÞˆNˆÌÌ
+È[™^
+ˆLNÚ^™NˆM‹š\ÚX›Nˆ˜[Ù_K^[Ý]ÖØXÝÜ’YHÏÈßKÚ[œXÙNˆ˜[Ù_JNÂŸB‚™[˜Ý[ÛˆZ[Xš[]U^
+˜[YJHÂˆÛÛœÝ]ˆHØÝ[Y[˜Ü™X]Q[[Y[
+™]ˆŠNÂˆ]‹š[›™\’SHÝš[™Ê˜[YHÏÈˆŠNÂˆ™]\›ˆ
+]‹^ÛÛ[ˆŠKš[J
+NÂŸB‚™[˜Ý[ÛˆÙ[XÝYXZ[Ú\˜XÝ\Š
+HÂˆÛÛœÝØØ[YHØ[YKœÙ][™ÜË™Ù]
+SÑSWÒQœÙ[XÝYXZ[Ú\˜XÝ\’YŠNÂˆÛÛœÝÛÜ›YH
+Ø[YKœÙ][™ÜË™Ù]
+SÑSWÒQœ\TÙ[XÝ[ÛœÈŠHÏÈßJVÙØ[YK\Ù\‹šYNÂˆÛÛœÝØ[™Y]\ÏVÛØØ[YÛÜ›YØ[YK\Ù\‹˜Ú\˜XÝ\ËšYØ[˜\ÏËÚÙ[œÏË˜ÛÛ›ÛYË™š[™
+ÚÙ[OÚÙ[‹˜XÝÜË\OOOH˜Ú\˜XÝ\ˆˆ	‰ˆÚÙ[‹˜XÝÜ‹š\ÓÝÛ™\ŠOË˜XÝÜËšYNÂˆ›ÜŠÛÛœÝXÝÜ’YÙˆØ[™Y]\Ê^ØÛÛœÝXÝÜYØ[YK˜XÝÜœË™Ù]
+XÝÜ’Y
+NÚYŠXÝÜË\OOOH˜Ú\˜XÝ\ˆˆ	‰ˆ
+Ø[YK\Ù\‹š\ÑÓHXÝÜ‹š\ÓÝÛ™\ŠJ\™]\›ˆXÝÜŽßBˆÛÛœÝÝÛ™YYØ[YK˜XÝÜœË™š[\ŠXÝÜO˜XÝÜ‹\OOOH˜Ú\˜XÝ\ˆˆ	‰ˆXÝÜ‹š\ÓÝÛ™\ŠNÂˆ™]\›ˆÝÛ™Y›[™ÝOOLHÈÝÛ™YÌHˆ[ÂŸB‚˜\Þ[˜È[˜Ý[ÛˆÙ]ØØ[XZ[Ú\˜XÝ\ŠXÝÜ’Y
+HÂˆÛÛœÝXÝÜYØ[YK˜XÝÜœË™Ù]
+XÝÜ’Y
+NÂˆYŠXXÝÜˆXÝÜ‹\HOOH˜Ú\˜XÝ\ˆˆ
+YØ[YK\Ù\‹š\ÑÓH	‰ˆXXÝÜ‹š\ÓÝÛ™\ŠJH™]\›ˆ˜[ÙNÂˆ]ØZ]Ø[YKœÙ][™ÜËœÙ]
+SÑSWÒQœÙ[XÝYXZ[Ú\˜XÝ\’Y‹XÝÜ‹šY
+NÂˆ™]\›ˆYNÂŸB‚™[˜Ý[Ûˆ[[]Û“^[Ý]
+XÝÜ’Y
+HÂˆÛÛœÝ^[Ý]ÈHØ[YKœÙ][™ÜË™Ù]
+SÑSWÒQ[[]Û“^[Ý]ÈŠHÏÈßNÂˆ™]\›ˆ›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+ÞŒÍŒNŒÌÌÚ^™NŽM‹š\ÚX›N™˜[Ù_K^[Ý]ÖØXÝÜ’YHÏÈßKÚ[œXÙN™˜[Ù_JNÂŸB‚™[˜Ý[ÛˆXÚš\]YP]Û“^[Ý]
+XÝÜ’Y
+HÂˆÛÛœÝ^[Ý]ÈHØ[YKœÙ][™ÜË™Ù]
+SÑSWÒQXÚš\]YP]Û“^[Ý]ÈŠHÏÈßNÂˆ™]\›ˆ›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+ÞNŒÌÌÚ^™NŽM‹š\ÚX›N™˜[Ù_K^[Ý]ÖØXÝÜ’YHÏÈßKÚ[œXÙN™˜[Ù_JNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆØ]™UXÚš\]YP]Û“^[Ý]
+XÝÜ’YÚ[™Ù\ÊHÂˆÛÛœÝ^[Ý]ÈH›Ý[™žK][Ë™Y\ÛÛ™JØ[YKœÙ][™ÜË™Ù]
+SÑSWÒQXÚš\]YP]Û“^[Ý]ÈŠHÏÈßJNÂˆ^[Ý]ÖØXÝÜ’YHH›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+^[Ý]ÖØXÝÜ’YHÏÈßKÚ[™Ù\ËÚ[œXÙN™˜[Ù_JNÂˆ]ØZ]Ø[YKœÙ][™ÜËœÙ]
+SÑSWÒQXÚš\]YP]Û“^[Ý]È‹^[Ý]ÊNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆØ]™U[[]Û“^[Ý]
+XÝÜ’YÚ[™Ù\ÊHÂˆÛÛœÝ^[Ý]ÈH›Ý[™žK][Ë™Y\ÛÛ™JØ[YKœÙ][™ÜË™Ù]
+SÑSWÒQ[[]Û“^[Ý]ÈŠHÏÈßJNÂˆ^[Ý]ÖØXÝÜ’YHH›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+^[Ý]ÖØXÝÜ’YHÏÈßKÚ[™Ù\ËÚ[œXÙN™˜[Ù_JNÂˆ]ØZ]Ø[YKœÙ][™ÜËœÙ]
+SÑSWÒQ[[]Û“^[Ý]È‹^[Ý]ÊNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆÚÝÕ[[Ü\
+XÝÜŠHÂˆYˆ
+XXÝÜˆ
+YØ[YK\Ù\‹š\ÑÓH	‰ˆXXÝÜ‹š\ÓÝÛ™\ŠJH™]\›ˆZK››ÝYšXØ][ÛœË™\œ›ÜŠ–[ÝHÈ›ÝÝÛˆ\ÈÚ\˜XÝ\‹ˆŠNÂˆÛÛœÝÛÛ™šYÈHÙ]ÛÛ™šYÊXÝÜŠNÂˆÛÛœÝÝšYÙÙ\‹Ý™\˜Ø\HH[[Ú[[Z]ÊXÝÜŠNÂˆÛÛœÝ›ÙHH]ØZ]^Y]Ü‹™[œšXÚS
+ÛÛ™šYË[[^[O“›È[[\ØÜš\[Ûˆ\È™Y[ˆ[\™YÙ[Oˆ‹Ø\Þ[˜ÎYKÙXÜ™]Î˜XÝÜ‹š\ÓÝÛ™\‹™[]]™UÎ˜XÝÜŸJNÂˆÛÛœÝÛÛ[HÙXÝ[ÛˆÛ\ÜÏHÜK][[YX[ÙÈˆ]KXXÝÜ‹ZYH‰ØXÝÜ‹šYHXY\[YÈÜ˜ÏH‰Ù\ØØ\RS
+ÛÛ™šYË[[XÛÛˆXÝÜ‹š[YÈšXÛÛœËÜÝ™ËÜÝ\‹œÝ™ÈŠ_Hˆ[Hˆ]Ý›Û™Ï‰Ù\ØØ\RS
+XÝÜ‹›˜[YJ_H8 %[[ÜÝ›Û™ÏÜ[ˆ]K][[XÛÝ[‰ØÝ\œ™[[[Ú[ÊXÝÜŠ_KÉÝšYÙÙ\ŸIÛÝ™\˜Ø\ˆšYÙÙ\ˆÈ
+Ý™\˜Ø\	ÛÝ™\˜Ø\JXˆˆŸOÜÜ[Ù]ÚXY\]ˆÛ\ÜÏHÜK][[Y\ØÜš\[Ûˆ‰Ø›Ù_OÙ]›ÛÝ\]Ûˆ\OH˜]Ûˆˆ]K][[\Ü\Y[OH‹LHHÛ\ÜÏH™˜\È˜K[Z[\ÈÚOØ]Û]Ûˆ\OH˜]Ûˆˆ]K][[\Ü\Y[OHŒHHÛ\ÜÏH™˜\È˜K\\ÈÚOØ]ÛÙ›ÛÝ\ÜÙXÝ[Û˜ÂˆÛÛœÝX[ÙÈH™]ÈX[ÙÊÝ]N˜	ØXÝÜ‹›˜[Y_H8 %[[ÛÛ[]ÛœÎžØÛÜÙNžÚXÛÛŽ‰ÏHÛ\ÜÏH™˜\È˜KXÚXÚÈÚO‰ËX™[ˆÛÜÙHŸ_K™[™\Žš[OˆÂˆ[™š[™
+–Ù]K][[\Ü\Y[WHŠK›ÛŠ˜ÛXÚÈ‹\Þ[˜È]™[OˆÂˆ]ØZ]™\]Y\Ý[[Y\ÝY[
+XÝÜ‹[X™\Š]™[˜Ý\œ™[\™Ù]™]\Ù][[Ü\[JJNÂˆÛÛœÝ[Z]ÈH[[Ú[[Z]ÊXÝÜŠNÂˆ[™š[™
+–Ù]K][[XÛÝ[HŠK^
+	ØÝ\œ™[[[Ú[ÊXÝÜŠ_KÉÛ[Z]ËšYÙÙ\ŸIÛ[Z]Ë›Ý™\˜Ø\ˆ[Z]ËšYÙÙ\ˆÈ
+Ý™\˜Ø\	Û[Z]Ë›Ý™\˜Ø\JXˆˆŸX
+NÂˆJNÂˆ_JNÂˆX[ÙËœ™[™\ŠYJNÂŸB‚˜Û\ÜÈ[[]ÛˆÂˆÛÛœÝXÝÜŠXÝÜŠHÈ\Ë˜XÝÜXXÝÜŽÈ\Ë™[[Y[[[È\Ë™˜YÏ[[È\Ëœ™\Ú^™O[[ÈBˆ™[™\Š
+HÂˆÛÛœÝ^[Ý]][[]Û“^[Ý]
+\Ë˜XÝÜ‹šY
+KÛÛ™šYÏYÙ]ÛÛ™šYÊ\Ë˜XÝÜŠNÂˆYˆ
+[^[Ý]š\ÚX›JH™]\›ˆ\Ë™\Ý›ÞJ
+NÂˆYˆ
+]\Ë™[[Y[
+HÂˆ\Ë™[[Y[YØÝ[Y[˜Ü™X]Q[[Y[
+™]ˆŠNÂˆ\Ë™[[Y[˜Û\ÜÓ˜[YOHÜK\ÚÚ[]ÚYÙ]ÜK][[]ÚYÙ]ŽÂˆ\Ë™[[Y[™]\Ù]˜XÝÜ’Y]\Ë˜XÝÜ‹šYÂˆ\Ë™[[Y[š[›™\’SX]ˆÛ\ÜÏHÜK\ÚÚ[Y˜YÈˆ]OH“[Ý™H[[]ÛˆHÛ\ÜÏH™˜\È˜KYÜš\[[™\ÈÚOÙ]]Ûˆ\OH˜]ÛˆˆÛ\ÜÏHÜK\ÚÚ[X]ÛˆÜK][[X]Ûˆ[YÏØ]Û]ˆÛ\ÜÏHÜK\ÚÚ[[X™[•[[Ù]]Ûˆ\OH˜]ÛˆˆÛ\ÜÏHÜK\ÚÚ[XÛÜÙHˆ]OH’YH[[]ÛˆHÛ\ÜÏH™˜\È˜K^X\šÈÚOØ]Û]ˆÛ\ÜÏHÜK\ÚÚ[\™\Ú^™Hˆ]OH”™\Ú^™HÙ]˜ÂˆØÝ[Y[˜›ÙK˜\[™Ú[
+\Ë™[[Y[
+NÂˆÛÛœÝ˜YÏ]\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK\ÚÚ[Y˜YÈŠK™\Ú^™O]\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK\ÚÚ[\™\Ú^™HŠNÂˆ˜YË˜Y]™[\Ý[™\ŠœÚ[\™ÝÛˆ‹OOžÙKœ™]™[Y˜][
+
+NØÛÛœÝ]\Ë™[[Y[™Ù]›Ý[™[™ÐÛY[™XÝ
+
+NÝ\Ë™˜YÏ^Ù™K˜ÛY[\‹›YN™K˜ÛY[K\‹ÜNÙ˜YËœÙ]Ú[\Ø\\™JKœÚ[\’Y
+NßJNÂˆ˜YË˜Y]™[\Ý[™\ŠœÚ[\›[Ý™H‹OOžÚYŠ]\Ë™˜YÊ\™]\›ŽÝ\Ë™[[Y[œÝ[K›YX	ØÛ[\
+K˜ÛY[]\Ë™˜YË™Ú[™ÝËš[›™\•ÚYM
+_\Ý\Ë™[[Y[œÝ[KÜX	ØÛ[\
+K˜ÛY[K]\Ë™˜YË™KÚ[™ÝËš[›™\’ZYÚM
+_\ßJNÂˆ˜YË˜Y]™[\Ý[™\ŠœÚ[\\‹\Þ[˜ÈOOžÚYŠ]\Ë™˜YÊ\™]\›ŽÝ\Ë™˜YÏ[[Ù˜YËœ™[X\ÙTÚ[\Ø\\™JKœÚ[\’Y
+NØÛÛœÝ]\Ë™[[Y[™Ù]›Ý[™[™ÐÛY[™XÝ
+
+NØ]ØZ]Ø]™U[[]Û“^[Ý]
+\Ë˜XÝÜ‹šYÞ“X]œ›Ý[™
+‹›Y
+KN“X]œ›Ý[™
+‹Ü
+_JNßJNÂˆ™\Ú^™K˜Y]™[\Ý[™\ŠœÚ[\™ÝÛˆ‹OOžÙKœ™]™[Y˜][
+
+NÝ\Ëœ™\Ú^™O^ÜÝ\™K˜ÛY[Ý\Ú^™N\Ë™[[Y[™Ù]›Ý[™[™ÐÛY[™XÝ
+
+KÚYNÜ™\Ú^™KœÙ]Ú[\Ø\\™JKœÚ[\’Y
+NßJNÂˆ™\Ú^™K˜Y]™[\Ý[™\ŠœÚ[\›[Ý™H‹OOžÚYŠ\Ëœ™\Ú^™J]\Ë™[[Y[œÝ[KœÙ]›Ü\J‹K]ÜK\ÚÚ[\Ú^™H‹	ØÛ[\
+\Ëœ™\Ú^™KœÝ\Ú^™JÙK˜ÛY[]\Ëœ™\Ú^™KœÝ\Ž
+_\
+NßJNÂˆ™\Ú^™K˜Y]™[\Ý[™\ŠœÚ[\\‹\Þ[˜ÈOOžÚYŠ]\Ëœ™\Ú^™J\™]\›ŽØÛÛœÝÚ^™OXÛ[\
+\Ëœ™\Ú^™KœÝ\Ú^™JÙK˜ÛY[]\Ëœ™\Ú^™KœÝ\Ž
+NÝ\Ëœ™\Ú^™O[[Ü™\Ú^™Kœ™[X\ÙTÚ[\Ø\\™JKœÚ[\’Y
+NØ]ØZ]Ø]™U[[]Û“^[Ý]
+\Ë˜XÝÜ‹šYÜÚ^™N“X]œ›Ý[™
+Ú^™J_JNßJNÂˆ\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK\ÚÚ[XÛÜÙHŠK˜Y]™[\Ý[™\Š˜ÛXÚÈ‹\Þ[˜Ê
+OOžØ]ØZ]Ø]™U[[]Û“^[Ý]
+\Ë˜XÝÜ‹šYÝš\ÚX›N™˜[Ù_JNÝ\Ë™\Ý›ÞJ
+NßJNÂˆ\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK][[X]ÛˆŠK˜Y]™[\Ý[™\Š˜ÛXÚÈ‹
+
+OOœÚÝÕ[[Ü\
+\Ë˜XÝÜŠJNÂˆXÝ]˜]TÝ\”˜Z[XÝ[Û‘˜YÊ\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK][[X]ÛˆŠK\Ë˜XÝÜ‹[[ŠNÂˆBˆ\Ë™[[Y[œÝ[K›YX	ØÛ[\
+^[Ý]žÚ[™ÝËš[›™\•ÚYM
+_\Ý\Ë™[[Y[œÝ[KÜX	ØÛ[\
+^[Ý]žKÚ[™ÝËš[›™\’ZYÚM
+_\Ý\Ë™[[Y[œÝ[KœÙ]›Ü\J‹K]ÜK\ÚÚ[\Ú^™H‹	ØÛ[\
+^[Ý]œÚ^™KŽ
+_\
+NÂˆÛÛœÝ]Û]\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK][[X]ÛˆŠNÂˆ]Û‹œ]Y\žTÙ[XÝÜŠš[YÈŠKœÜ˜ÏXÛÛ™šYË[[XÛÛˆ\Ë˜XÝÜ‹š[YÈšXÛÛœËÜÝ™ËÜÝ\‹œÝ™ÈŽÂˆ]Û‹]O\Z[Xš[]U^
+ÛÛ™šYË[[^
+H	Ý\Ë˜XÝÜ‹›˜[Y_H[[Âˆ\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK\ÚÚ[[X™[ŠK^ÛÛ[X[[	ØÝ\œ™[[[Ú[Ê\Ë˜XÝÜŠ_KÉÝ[[Ú[[Z]Ê\Ë˜XÝÜŠKšYÙÙ\ŸXÂˆ™]\›ˆ\ÎÂˆBˆ\Ý›ÞJ
+^Ý\Ë™[[Y[Ëœ™[[Ý™J
+NÝ\Ë™[[Y[[[ÜÝ]K[[]ÛœË™[]J\Ë˜XÝÜ‹šY
+NßBŸB‚™[˜Ý[Ûˆ™Yœ™\Ú[[]ÛœÊ
+HÂˆÛÛœÝXÝÜœÈHØ[YK\Ù\‹š\ÑÓBˆÈØ[YK˜XÝÜœË™š[\ŠXÝÜˆOˆXÝÜ‹\HOOH˜Ú\˜XÝ\ˆˆ	‰ˆ[[]Û“^[Ý]
+XÝÜ‹šY
+Kš\ÚX›JBˆˆÜÙ[XÝYXZ[Ú\˜XÝ\Š
+WK™š[\ŠXÝÜˆOˆXÝÜˆ	‰ˆ[[]Û“^[Ý]
+XÝÜ‹šY
+Kš\ÚX›JNÂˆÛÛœÝXÝÜ’YÈH™]ÈÙ]
+XÝÜœË›X\
+XÝÜˆOˆXÝÜ‹šY
+JNÂˆ›Üˆ
+ÛÛœÝÚY]Û—HÙˆË‹‹œÝ]K[[]Ûœ×JHYˆ
+XXÝÜ’YËš\ÊY
+JH]Û‹™\Ý›ÞJ
+NÂˆ›Üˆ
+ÛÛœÝXÝÜˆÙˆXÝÜœÊHÂˆ]]Û\Ý]K[[]ÛœË™Ù]
+XÝÜ‹šY
+NÂˆYŠX]ÛŠ^Ø]Û[™]È[[]ÛŠXÝÜŠNÜÝ]K[[]ÛœËœÙ]
+XÝÜ‹šY]ÛŠNßBˆ]Û‹œ™[™\Š
+NÂˆBŸB‚˜\Þ[˜È[˜Ý[ÛˆXÙU[[]ÛŠXÝÜ‹ÛÜ[”Ü\H˜[Ù_HHßJHÂˆYˆ
+XXÝÜŠH™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š”Ù[XÝ[Ý\ˆXZ[ˆÚ\˜XÝ\ˆš\œÝˆŠNÂˆ]ØZ]Ø]™U[[]Û“^[Ý]
+XÝÜ‹šYÝš\ÚX›NY_JNÂˆ™Yœ™\Ú[[]ÛœÊ
+NÂˆYˆ
+Ü[”Ü\
+HÚÝÕ[[Ü\
+XÝÜŠNÂˆ[ÙHZK››ÝYšXØ][ÛœËš[™›Ê	ØXÝÜ‹›˜[Y_IÜÈ[[]ÛˆØ\ÈXÙY˜
+NÂˆ™]\›ˆYNÂŸB‚™[˜Ý[ÛˆÚÝÑÓU[[XÝÜ”XÚÙ\Š
+HÂˆÛÛœÝXÝÜœÈHØ[YK˜XÝÜœÂˆ™š[\ŠXÝÜˆOˆXÝÜ‹\HOOH˜Ú\˜XÝ\ˆŠBˆœÛÜ
+
+YšYÚ
+HOˆÝš[™ÊY›˜[YJK›ØØ[PÛÛ\\™JÝš[™ÊšYÚ›˜[YJK[™Yš[™YÜÙ[œÚ]]š]Nˆ˜˜\ÙHŸJJNÂˆYˆ
+XXÝÜœË›[™Ý
+H™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š“›È^Y\ˆÚ\˜XÝ\œÈ\™H]˜Z[X›KˆŠNÂˆÛÛœÝÜ[ÛœÈHXÝÜœË›X\
+XÝÜˆOˆÜ[Ûˆ˜[YOH‰ØXÝÜ‹šYH‰Ù\ØØ\RS
+XÝÜ‹›˜[YJ_OÛÜ[Û˜
+Kš›Ú[ŠˆŠNÂˆÛÛœÝÛÛ[H›Ü›HÛ\ÜÏHÜK][[XÚ\˜XÝ\‹\XÚÙ\ˆ]ˆÛ\ÜÏH™›Ü›KYÜ›Ý\X™[”Ù[XÝÚ\˜XÝ\ÛX™[]ˆÛ\ÜÏH™›Ü›KYšY[ÈÙ[XÝ˜[YOH˜XÝÜ’Y‰ÛÜ[ÛœßOÜÙ[XÝÙ]Û\ÜÏHš[Ü™X]\È]Ú\˜XÝ\‰ÜÈ]XÚY[[]Ûˆ\Ú[™ÈH[[ÛÛ™šYÝ\™YÛˆZ\ˆÚY]ÜÙ]Ù›Ü›O˜Âˆ™]ÈX[ÙÊÂˆ]Nˆ”ÚÝÈÚ\˜XÝ\ˆ[[‹ˆÛÛ[ˆ]ÛœÎžÂˆÚÎžÚXÛÛŽ‰ÏHÛ\ÜÏH™˜\È˜KXÚXÚÈÚO‰ËX™[ˆ“ÒÈ‹Ø[˜XÚÎš[OˆXÙU[[]ÛŠØ[YK˜XÝÜœË™Ù]
+[™š[™
+	ÖÛ˜[YOH˜XÝÜ’Y—IÊK˜[
+
+JJ_KˆØ[˜Ù[žÚXÛÛŽ‰ÏHÛ\ÜÏH™˜\È˜K][Y\ÈÚO‰ËX™[ˆØ[˜Ù[ŸBˆKˆY˜][ˆ›ÚÈ‚ˆJKœ™[™\ŠYJNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆÚÝÕ[[RJ
+HÂˆYˆ
+Ø[YK\Ù\‹š\ÑÓJH™]\›ˆÚÝÑÓU[[XÝÜ”XÚÙ\Š
+NÂˆ™]\›ˆXÙU[[]ÛŠÙ[XÝYXZ[Ú\˜XÝ\Š
+KÛÜ[”Ü\Y_JNÂŸB‚˜Û\ÜÈXÚš\]YP]ÛˆÂˆÛÛœÝXÝÜŠXÝÜŠHÈ\Ë˜XÝÜXXÝÜŽÈ\Ë™[[Y[[[È\Ë™˜YÏ[[È\Ëœ™\Ú^™O[[ÈBˆ™[™\Š
+HÂˆÛÛœÝ^[Ý]]XÚš\]YP]Û“^[Ý]
+\Ë˜XÝÜ‹šY
+KÛÛ™šYÏYÙ]ÛÛ™šYÊ\Ë˜XÝÜŠNÂˆYˆ
+[^[Ý]š\ÚX›H
+YØ[YK\Ù\‹š\ÑÓH	‰ˆ]\Ë˜XÝÜ‹š\ÓÝÛ™\ŠJH™]\›ˆ\Ë™\Ý›ÞJ
+NÂˆYˆ
+]\Ë™[[Y[
+HÂˆ\Ë™[[Y[YØÝ[Y[˜Ü™X]Q[[Y[
+™]ˆŠNÂˆ\Ë™[[Y[˜Û\ÜÓ˜[YOHÜK\ÚÚ[]ÚYÙ]ÜK]XÚš\]YK]ÚYÙ]ŽÂˆ\Ë™[[Y[™]\Ù]˜XÝÜ’Y]\Ë˜XÝÜ‹šYÂˆ\Ë™[[Y[š[›™\’SX]ˆÛ\ÜÏHÜK\ÚÚ[Y˜YÈˆ]OH“[Ý™HXÚš\]YH]ÛˆHÛ\ÜÏH™˜\È˜KYÜš\[[™\ÈÚOÙ]]Ûˆ\OH˜]ÛˆˆÛ\ÜÏHÜK\ÚÚ[X]ÛˆÜK]XÚš\]YKX]Ûˆ[YÏØ]Û]ˆÛ\ÜÏHÜK\ÚÚ[[X™[•XÚš\]YOÙ]]Ûˆ\OH˜]ÛˆˆÛ\ÜÏHÜK\ÚÚ[XÛÜÙHˆ]OH’YHXÚš\]YH]ÛˆHÛ\ÜÏH™˜\È˜K^X\šÈÚOØ]Û]ˆÛ\ÜÏHÜK\ÚÚ[\™\Ú^™Hˆ]OH”™\Ú^™HÙ]˜ÂˆØÝ[Y[˜›ÙK˜\[™Ú[
+\Ë™[[Y[
+NÂˆÛÛœÝ˜YÏ]\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK\ÚÚ[Y˜YÈŠK™\Ú^™O]\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK\ÚÚ[\™\Ú^™HŠNÂˆ˜YË˜Y]™[\Ý[™\ŠœÚ[\™ÝÛˆ‹]™[OžÙ]™[œ™]™[Y˜][
+
+NØÛÛœÝ™XÝ]\Ë™[[Y[™Ù]›Ý[™[™ÐÛY[™XÝ
+
+NÝ\Ë™˜YÏ^Ù™]™[˜ÛY[\™XÝ›YN™]™[˜ÛY[K\™XÝÜNÙ˜YËœÙ]Ú[\Ø\\™J]™[œÚ[\’Y
+NßJNÂˆ˜YË˜Y]™[\Ý[™\ŠœÚ[\›[Ý™H‹]™[OžÚYŠ]\Ë™˜YÊ\™]\›ŽÝ\Ë™[[Y[œÝ[K›YX	ØÛ[\
+]™[˜ÛY[]\Ë™˜YË™Ú[™ÝËš[›™\•ÚYM
+_\Ý\Ë™[[Y[œÝ[KÜX	ØÛ[\
+]™[˜ÛY[K]\Ë™˜YË™KÚ[™ÝËš[›™\’ZYÚM
+_\ßJNÂˆ˜YË˜Y]™[\Ý[™\ŠœÚ[\\‹\Þ[˜È]™[OžÚYŠ]\Ë™˜YÊ\™]\›ŽÝ\Ë™˜YÏ[[Ù˜YËœ™[X\ÙTÚ[\Ø\\™J]™[œÚ[\’Y
+NØÛÛœÝ™XÝ]\Ë™[[Y[™Ù]›Ý[™[™ÐÛY[™XÝ
+
+NØ]ØZ]Ø]™UXÚš\]YP]Û“^[Ý]
+\Ë˜XÝÜ‹šYÞ“X]œ›Ý[™
+™XÝ›Y
+KN“X]œ›Ý[™
+™XÝÜ
+_JNßJNÂˆ™\Ú^™K˜Y]™[\Ý[™\ŠœÚ[\™ÝÛˆ‹]™[OžÙ]™[œ™]™[Y˜][
+
+NÝ\Ëœ™\Ú^™O^ÜÝ\™]™[˜ÛY[Ý\Ú^™N\Ë™[[Y[™Ù]›Ý[™[™ÐÛY[™XÝ
+
+KÚYNÜ™\Ú^™KœÙ]Ú[\Ø\\™J]™[œÚ[\’Y
+NßJNÂˆ™\Ú^™K˜Y]™[\Ý[™\ŠœÚ[\›[Ý™H‹]™[OžÚYŠ\Ëœ™\Ú^™J]\Ë™[[Y[œÝ[KœÙ]›Ü\J‹K]ÜK\ÚÚ[\Ú^™H‹	ØÛ[\
+\Ëœ™\Ú^™KœÝ\Ú^™JÙ]™[˜ÛY[]\Ëœ™\Ú^™KœÝ\Ž
+_\
+NßJNÂˆ™\Ú^™K˜Y]™[\Ý[™\ŠœÚ[\\‹\Þ[˜È]™[OžÚYŠ]\Ëœ™\Ú^™J\™]\›ŽØÛÛœÝÚ^™OXÛ[\
+\Ëœ™\Ú^™KœÝ\Ú^™JÙ]™[˜ÛY[]\Ëœ™\Ú^™KœÝ\Ž
+NÝ\Ëœ™\Ú^™O[[Ü™\Ú^™Kœ™[X\ÙTÚ[\Ø\\™J]™[œÚ[\’Y
+NØ]ØZ]Ø]™UXÚš\]YP]Û“^[Ý]
+\Ë˜XÝÜ‹šYÜÚ^™N“X]œ›Ý[™
+Ú^™J_JNßJNÂˆ\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK\ÚÚ[XÛÜÙHŠK˜Y]™[\Ý[™\Š˜ÛXÚÈ‹\Þ[˜Ê
+OOžØ]ØZ]Ø]™UXÚš\]YP]Û“^[Ý]
+\Ë˜XÝÜ‹šYÝš\ÚX›N™˜[Ù_JNÝ\Ë™\Ý›ÞJ
+NßJNÂˆ\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK]XÚš\]YKX]ÛˆŠK˜Y]™[\Ý[™\Š˜ÛXÚÈ‹
+
+OOœ™\]Y\ÝXÚš\]YJ\Ë˜XÝÜŠJNÂˆXÝ]˜]TÝ\”˜Z[XÝ[Û‘˜YÊ\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK]XÚš\]YKX]ÛˆŠK\Ë˜XÝÜ‹XÚš\]YHŠNÂˆBˆ\Ë™[[Y[œÝ[K›YX	ØÛ[\
+^[Ý]žÚ[™ÝËš[›™\•ÚYM
+_\Âˆ\Ë™[[Y[œÝ[KÜX	ØÛ[\
+^[Ý]žKÚ[™ÝËš[›™\’ZYÚM
+_\Âˆ\Ë™[[Y[œÝ[KœÙ]›Ü\J‹K]ÜK\ÚÚ[\Ú^™H‹	ØÛ[\
+^[Ý]œÚ^™KŽ
+_\
+NÂˆ\Ë™[[Y[˜Û\ÜÓ\ÝÙÙÛJš\Ë][˜]˜Z[X›H‹XÛÛ™šYËXÚš\]YQ[˜X›YÝ\œ™[XÚš\]YTÚ[Ê
+OJNÂˆÛÛœÝ]Û]\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK]XÚš\]YKX]ÛˆŠNÂˆ]Û‹œ]Y\žTÙ[XÝÜŠš[YÈŠKœÜ˜ÏXÛÛ™šYËXÚš\]YP]Û’[XYÙH\Ë˜XÝÜ‹š[YÈšXÛÛœËÜÝ™ËÛYÚš[™ËœÝ™ÈŽÂˆ]Û‹]OXÛÛ™šYËXÚš\]YQ[˜X›YÈ	Ý\Ë˜XÝÜ‹›˜[Y_Nˆ\ÙHXÚš\]YXˆ	Ý\Ë˜XÝÜ‹›˜[Y_IÜÈXÚš\]YH\È\ØX›Y˜Âˆ™]\›ˆ\ÎÂˆBˆ\Ý›ÞJ
+^Ý\Ë™[[Y[Ëœ™[[Ý™J
+NÝ\Ë™[[Y[[[ÜÝ]KXÚš\]YP]ÛœË™[]J\Ë˜XÝÜ‹šY
+NßBŸB‚™[˜Ý[Ûˆ™Yœ™\ÚXÚš\]YP]ÛœÊ
+HÂˆÛÛœÝXÝÜœÏYØ[YK˜XÝÜœË™š[\ŠXÝÜO˜XÝÜ‹\OOOH˜Ú\˜XÝ\ˆˆ	‰ˆXÚš\]YP]Û“^[Ý]
+XÝÜ‹šY
+Kš\ÚX›H	‰ˆ
+Ø[YK\Ù\‹š\ÑÓHXÝÜ‹š\ÓÝÛ™\ŠJNÂˆÛÛœÝXÝÜ’YÏ[™]ÈÙ]
+XÝÜœË›X\
+XÝÜO˜XÝÜ‹šY
+JNÂˆ›ÜŠÛÛœÝÚY]Û—HÙˆË‹‹œÝ]KXÚš\]YP]Ûœ×JHYŠXXÝÜ’YËš\ÊY
+JH]Û‹™\Ý›ÞJ
+NÂˆ›ÜŠÛÛœÝXÝÜˆÙˆXÝÜœÊ^Û]]Û\Ý]KXÚš\]YP]ÛœË™Ù]
+XÝÜ‹šY
+NÚYŠX]ÛŠ^Ø]Û[™]ÈXÚš\]YP]ÛŠXÝÜŠNÜÝ]KXÚš\]YP]ÛœËœÙ]
+XÝÜ‹šY]ÛŠNßX]Û‹œ™[™\Š
+NßBŸB‚˜\Þ[˜È[˜Ý[ÛˆÜ]ÛXš[]PX˜›\ÊXÝÜ‹Ù[XÝ[ÛœÏ^ÜÚÚ[YK[[X]NYK[[YKXÚš\]YNY_KÛ›ÝYžO]Y_O^ßJHÂˆYˆ
+XXÝÜˆXÝÜ‹\HOOH˜Ú\˜XÝ\ˆŠH™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š”Ù[XÝHÚ\˜XÝ\ˆš\œÝˆŠNÂˆYˆ
+YØ[YK\Ù\‹š\ÑÓH	‰ˆXXÝÜ‹š\ÓÝÛ™\ŠH™]\›ˆZK››ÝYšXØ][ÛœË™\œ›ÜŠ–[ÝHÈ›ÝÝÛˆ\ÈÚ\˜XÝ\‹ˆŠNÂˆYˆ
+Ù[XÝ[ÛœË[[X]JHÂˆ]ØZ]Ø]™S^[Ý]
+XÝÜ‹šYÝš\ÚX›NY_JNÂˆ]Ü˜\Ý]K›Ü˜œË™Ù]
+XÝÜ‹šY
+NÂˆYŠ[Ü˜Š^ÛÜ˜[™]È[[X]SÜ˜ŠXÝÜŠNÜÝ]K›Ü˜œËœÙ]
+XÝÜ‹šYÜ˜ŠNßBˆÜ˜‹œ™[™\Š
+NÂˆBˆYˆ
+Ù[XÝ[ÛœËœÚÚ[
+H]ØZ]Ø]™TÚÚ[]Û“^[Ý]
+XÝÜ‹šYÝš\ÚX›NY_JNÂˆYˆ
+Ù[XÝ[ÛœË[[
+H]ØZ]Ø]™U[[]Û“^[Ý]
+XÝÜ‹šYÝš\ÚX›NY_JNÂˆYˆ
+Ù[XÝ[ÛœËXÚš\]YJH]ØZ]Ø]™UXÚš\]YP]Û“^[Ý]
+XÝÜ‹šYÝš\ÚX›NY_JNÂˆYŠÙ[XÝ[ÛœËœÚÚ[
+^Û]]Û\Ý]KœÚÚ[]ÛœË™Ù]
+XÝÜ‹šY
+NÚYŠX]ÛŠ^Ø]Û[™]ÈÚÚ[]ÛŠXÝÜŠNÜÝ]KœÚÚ[]ÛœËœÙ]
+XÝÜ‹šY]ÛŠNßX]Û‹œ™[™\Š
+NßBˆYŠÙ[XÝ[ÛœË[[
+^Û]]Û\Ý]K[[]ÛœË™Ù]
+XÝÜ‹šY
+NÚYŠX]ÛŠ^Ø]Û[™]È[[]ÛŠXÝÜŠNÜÝ]K[[]ÛœËœÙ]
+XÝÜ‹šY]ÛŠNßX]Û‹œ™[™\Š
+NßBˆYŠÙ[XÝ[ÛœËXÚš\]YJ^Û]]Û\Ý]KXÚš\]YP]ÛœË™Ù]
+XÝÜ‹šY
+NÚYŠX]ÛŠ^Ø]Û[™]ÈXÚš\]YP]ÛŠXÝÜŠNÜÝ]KXÚš\]YP]ÛœËœÙ]
+XÝÜ‹šY]ÛŠNßX]Û‹œ™[™\Š
+NßBˆÛÛœÝÚÝÛVÂˆÙ[XÝ[ÛœË[[X]H	‰ˆÝ]K›Ü˜œË™Ù]
+XÝÜ‹šY
+OË™[[Y[Ëš\ÐÛÛ›™XÝYˆÙ[XÝ[ÛœËœÚÚ[	‰ˆÝ]KœÚÚ[]ÛœË™Ù]
+XÝÜ‹šY
+OË™[[Y[Ëš\ÐÛÛ›™XÝYˆÙ[XÝ[ÛœË[[	‰ˆÝ]K[[]ÛœË™Ù]
+XÝÜ‹šY
+OË™[[Y[Ëš\ÐÛÛ›™XÝYˆÙ[XÝ[ÛœËXÚš\]YH	‰ˆÝ]KXÚš\]YP]ÛœË™Ù]
+XÝÜ‹šY
+OË™[[Y[Ëš\ÐÛÛ›™XÝYˆK™š[\Š›ÛÛX[ŠK›[™ÝÂˆYŠ\ÚÝÛŠ^ÝZK››ÝYšXØ][ÛœË™\œ›ÜŠ›ÈXš[]HX˜›\ÈÛÝ[™HÚÝÛˆ›Üˆ	ØXÝÜ‹›˜[Y_KˆÚXÚÈ]\È^Y\ˆÝÛœÈHÚ\˜XÝ\‹˜
+NÜ™]\›ˆ˜[ÙNßBˆYˆ
+›ÝYžJHZK››ÝYšXØ][ÛœËš[™›Ê	ÜÚÝÛŸHXš[]HX˜›IÜÚÝÛOOLOÈˆŽˆœÈŸHÚÝÛˆ›Üˆ	ØXÝÜ‹›˜[Y_K˜
+NÂˆ™]\›ˆÚÝÛŽÂŸB‚™[˜Ý[Ûˆ^Y\Ú\˜XÝ\XÝÜœÊ
+HÂˆ™]\›ˆØ[YK˜XÝÜœË™š[\ŠXÝÜO˜XÝÜ‹\OOOH˜Ú\˜XÝ\ˆŠBˆœÛÜ
+
+KŠOO”Ýš[™ÊK›˜[YJK›ØØ[PÛÛ\\™JÝš[™Ê‹›˜[YJK[™Yš[™YÜÙ[œÚ]]š]Nˆ˜˜\ÙHŸJJNÂŸB‚™[˜Ý[ÛˆÚÝÑÓPXš[]PX˜›TXÚÙ\Š
+HÂˆÛÛœÝXÝÜœÏ\^Y\Ú\˜XÝ\XÝÜœÊ
+NÂˆYŠXXÝÜœË›[™Ý
+H™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š“›È^Y\ˆÚ\˜XÝ\œÈ\™H]˜Z[X›KˆŠNÂˆÛÛœÝXÝÜ”›ÝÜÏXXÝÜœË›X\
+
+XÝÜ‹[™^
+OO˜X™[Û\ÜÏHÜKXXš[]KXXÝÜˆ[œ]\OH˜ÚXÚØ›Þˆ˜[YOH˜XÝÜ’Yˆ˜[YOH‰ØXÝÜ‹šYHˆ	Ú[™^OOLÈ˜ÚXÚÙYŽˆˆŸO[YÈÜ˜ÏH‰Ù\ØØ\RS
+XÝÜ‹š[YÈšXÛÛœËÜÝ™ËÛ^\Ý\žK[X[‹œÝ™ÈŠ_Hˆ[HˆÜ[‰Ù\ØØ\RS
+XÝÜ‹›˜[YJ_OÜÜ[ÛX™[˜
+Kš›Ú[ŠˆŠNÂˆÛÛœÝÛÛ[X›Ü›HÛ\ÜÏHÜKXXš[]KXX˜›K\XÚÙ\ˆšY[Ù]YÙ[™Xš[]HX˜›\ÏÛYÙ[™X™[[œ]\OH˜ÚXÚØ›Þˆ˜[YOHœÚÚ[ˆÚXÚÙYˆÚÚ[ÛX™[X™[[œ]\OH˜ÚXÚØ›Þˆ˜[YOH[[X]HˆÚXÚÙYˆ[ÛX™[X™[[œ]\OH˜ÚXÚØ›Þˆ˜[YOH[[ˆÚXÚÙYˆ[[ÛX™[X™[[œ]\OH˜ÚXÚØ›Þˆ˜[YOHXÚš\]YHˆÚXÚÙYˆXÚš\]YOÛX™[ÙšY[Ù]]ˆÛ\ÜÏHÜKXXš[]KXXÝÜœÈ‰ØXÝÜ”›ÝÜßOÙ]Ù›Ü›O˜ÂˆÛÛœÝÙ[XÝYXÝÜœÏZ[Oš[™š[™
+	ÖÛ˜[YOH˜XÝÜ’Y—N˜ÚXÚÙY	ÊKÐ\œ˜^J
+K›X\
+[œ]O™Ø[YK˜XÝÜœË™Ù]
+[œ]˜[YJJK™š[\Š›ÛÛX[ŠNÂˆ™]ÈX[ÙÊÝ]Nˆ”ÚÝÈ[Xš[]HX˜›\È‹ÛÛ[]ÛœÎžÂˆÜ]ÛŽžÚXÛÛŽ‰ÏHÛ\ÜÏH™˜\È˜KXÚ\˜ÛK\^HÚO‰ËX™[ˆ”Ü]Ûˆ]ÛœÈ‹Ø[˜XÚÎ˜\Þ[˜È[OžØÛÛœÝÙ[XÝ[ÛœÏ^ÜÚÚ[š[™š[™
+	ÖÛ˜[YOHœÚÚ[—IÊKœ›Ü
+˜ÚXÚÙYŠK[[X]Nš[™š[™
+	ÖÛ˜[YOH[[X]H—IÊKœ›Ü
+˜ÚXÚÙYŠK[[š[™š[™
+	ÖÛ˜[YOH[[—IÊKœ›Ü
+˜ÚXÚÙYŠKXÚš\]YNš[™š[™
+	ÖÛ˜[YOHXÚš\]YH—IÊKœ›Ü
+˜ÚXÚÙYŠ_NÙ›ÜŠÛÛœÝXÝÜˆÙˆÙ[XÝYXÝÜœÊ[
+JX]ØZ]Ü]ÛXš[]PX˜›\ÊXÝÜ‹Ù[XÝ[ÛœËÛ›ÝYžN™˜[Ù_JNÝZK››ÝYšXØ][ÛœËš[™›Ê”Ù[XÝYXš[]HX˜›\ÈÙ\™HÚÝÛ‹ˆŠNß_Kˆ[žÚXÛÛŽ‰ÏHÛ\ÜÏH™˜\È˜K[^Y\‹YÜ›Ý\ÚO‰ËX™[ˆ”Ü]Ûˆ[]ÛœÈ‹Ø[˜XÚÎ˜\Þ[˜È[OžÙ›ÜŠÛÛœÝXÝÜˆÙˆÙ[XÝYXÝÜœÊ[
+JX]ØZ]Ü]ÛXš[]PX˜›\ÊXÝÜ‹ÜÚÚ[YK[[X]NYK[[YKXÚš\]YNY_KÛ›ÝYžN™˜[Ù_JNÝZK››ÝYšXØ][ÛœËš[™›Ê[Xš[]HX˜›\ÈÙ\™HÚÝÛ‹ˆŠNß_KˆØ[˜Ù[žÚXÛÛŽ‰ÏHÛ\ÜÏH™˜\È˜K][Y\ÈÚO‰ËX™[ˆØ[˜Ù[ŸBˆKY˜][ˆœÜ]ÛˆŸJKœ™[™\ŠYJNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆÚÝÐ[Xš[]PX˜›\Ê
+HÂˆYŠØ[YK\Ù\‹š\ÑÓJH™]\›ˆÚÝÑÓPXš[]PX˜›TXÚÙ\Š
+NÂˆÛÛœÝXÝÜ\Ù[XÝYXZ[Ú\˜XÝ\Š
+NÂˆYŠXXÝÜŠH™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š”Ù[XÝ[Ý\ˆXZ[ˆÚ\˜XÝ\ˆ[ˆHÔˆXˆš\œÝˆŠNÂˆ™]\›ˆÜ]ÛXš[]PX˜›\ÊXÝÜ‹ÜÚÚ[YK[[X]NYK[[YKXÚš\]YNY_JNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆØ]™TÚÚ[]Û“^[Ý]
+XÝÜ’YÚ[™Ù\ÊHÂˆÛÛœÝ^[Ý]ÈH›Ý[™žK][Ë™Y\ÛÛ™JØ[YKœÙ][™ÜË™Ù]
+SÑSWÒQœÚÚ[]Û“^[Ý]ÈŠHÏÈßJNÂˆ^[Ý]ÖØXÝÜ’YHH›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+^[Ý]ÖØXÝÜ’YHÏÈßKÚ[™Ù\ËÚ[œXÙNˆ˜[Ù_JNÂˆ]ØZ]Ø[YKœÙ][™ÜËœÙ]
+SÑSWÒQœÚÚ[]Û“^[Ý]È‹^[Ý]ÊNÂŸB‚˜Û\ÜÈÚÚ[Ú[Y]\ˆÂˆÛÛœÝXÝÜŠ
+HÈ\Ë™[[Y[H[È\Ë™˜YÈH[È\Ëœ™\Ú^™HH[ÈBˆ™[™\Š
+HÂˆÛÛœÝ^[Ý]HÚÚ[Y]\“^[Ý]
+
+NÂˆYˆ
+XÛÛX˜]\Ò[š]X]]™J
+H[^[Ý]š\ÚX›JH™]\›ˆ\Ë™\Ý›ÞJ
+NÂˆYˆ
+]\Ë™[[Y[
+HÂˆ\Ë™[[Y[HØÝ[Y[˜Ü™X]Q[[Y[
+™]ˆŠNÂˆ\Ë™[[Y[˜Û\ÜÓ˜[YHHÜK\ÚÚ[[Y]\ˆŽÂˆ\Ë™[[Y[š[›™\’SH]ˆÛ\ÜÏHÜK\ÚÚ[[Y]\‹Y˜YÈˆ]OH“[Ý™HÚÚ[Ú[Y]\ˆHÛ\ÜÏH™˜\È˜KYÜš\[[™\ÈÚOÙ]]ˆÛ\ÜÏHÜK\ÚÚ[[Y]\‹XÛÛ[]ˆÛ\ÜÏHÜK\ÚÚ[\Ú[[[X™\ˆÙ]]ˆÛ\ÜÏHÜK\ÚÚ[\Ú[\Ù\\˜]Üˆˆ\šXKZY[HYHÙ]]ˆÛ\ÜÏHÜK\ÚÚ[\\ÈÙ]Ù]]ˆÛ\ÜÏHÜK\ÚÚ[[Y]\‹][™\›[™HÙ]]Ûˆ\OH˜]ÛˆˆÛ\ÜÏHÜK\ÚÚ[[Y]\‹XÛÜÙHˆ]OH’YHÚÚ[Ú[Y]\ˆHÛ\ÜÏH™˜\È˜K^X\šÈÚOØ]Û]ˆÛ\ÜÏHÜK\ÚÚ[[Y]\‹\™\Ú^™Hˆ]OH”™\Ú^™HÙ]˜ÂˆØÝ[Y[˜›ÙK˜\[™Ú[
+\Ë™[[Y[
+NÂˆ\Ë˜XÝ]˜]S\Ý[™\œÊ
+NÂˆBˆÛÛœÝÛÛ™šYÈHÙ]ÚÚ[Ú[ÛÛ™šYÊ
+NÂˆÛÛœÝÝ\œ™[HÝ\œ™[ÚÚ[Ú[Ê
+NÂˆÛÛœÝÜ[HÛÛ™šYË›X^[][HHÝ\œ™[ÂˆÛÛœÝ˜Z[“Ü™\ˆH×NÂˆ›Üˆ
+]Ý\HÈÝ\ÛÛ™šYË›X^[][NÈÝ\
+ÏHÛÛ™šYËœÚ[Ô\”›ÝÊHÂˆÛÛœÝ[™HX]›Z[ŠÝ\
+ÈÛÛ™šYËœÚ[Ô\”›ÝËÛÛ™šYË›X^[][JNÂˆ›Üˆ
+][™^H[™HNÈ[™^HÝ\È[™^KJH˜Z[“Ü™\‹œ\Ú
+[™^
+NÂˆBˆÛÛœÝ[\HH™]ÈÙ]
+˜Z[“Ü™\‹œÛXÙJÜ[
+JNÂˆÛÛœÝ\ÈH\œ˜^K™œ›ÛJÛ[™ÝˆÛÛ™šYË›X^[][_K
+Ù[žK[™^
+HOˆÂˆÛÛœÝXÝ]™HHY[\Kš\Ê[™^
+NÂˆÛÛœÝÜ˜ÈHXÝ]™HÈÛÛ™šYËš[[Z[˜]YXÛÛˆˆÛÛ™šYË™[\RXÛÛŽÂˆ™]\›ˆ[YÈÛ\ÜÏHÜK\ÚÚ[\\	ØXÝ]™HÈš\ËYš[Yˆˆš\ËY[\HŸHˆÜ˜ÏH‰Ù\ØØ\RS
+Ü˜Ê_Hˆ[H‰ØXÝ]™HÈ‘š[Yˆˆ‘[\HŸHÚÚ[Ú[˜ÂˆJKš›Ú[ŠˆŠNÂˆ\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK\ÚÚ[\\ÈŠKš[›™\’SH\ÎÂˆ\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK\ÚÚ[\\ÈŠKœÝ[KœÙ]›Ü\J‹K]ÜK\ÚÚ[XÛÛ[[œÈ‹Ýš[™ÊÛÛ™šYËœÚ[Ô\”›ÝÊJNÂˆ\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK\ÚÚ[\\ÈŠKœÝ[KœÙ]›Ü\J‹K]ÜK\ÚÚ[\Ú[YØ\‹	ØÛÛ™šYËœÚ[ÜXÚ[™ß\
+NÂˆ\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK\ÚÚ[\Ú[[[X™\ˆŠK^ÛÛ[HÝš[™ÊÝ\œ™[
+NÂˆØYÜ\Ú›Û
+ÛÛ™šYË›[X™\‘›Ûš[JK[Š›ÛOˆ\Ë™[[Y[ËœÝ[KœÙ]›Ü\J‹K]ÜK\ÚÚ[[[X™\‹Y›Û‹›Û
+JK˜Ø]Ú
+\œ›ÜˆOˆÛÛœÛÛKØ\›Š	ÓSÑSWÒQHÛÝ[›ÝØYÚÚ[Ú[›Û\œ›ÜŠJNÂˆ\Ë™[[Y[œÝ[K›YH	ØÛ[\
+^[Ý]žÚ[™ÝËš[›™\•ÚYH
+_\Âˆ\Ë™[[Y[œÝ[KÜH	ØÛ[\
+^[Ý]žKÚ[™ÝËš[›™\’ZYÚH
+_\Âˆ\Ë™[[Y[œÝ[KœÙ]›Ü\J‹K]ÜK\ÚÚ[\\\Ú^™H‹	ØÛ[\
+^[Ý]œÚ^™KL
+_\
+NÂˆ™]\›ˆ\ÎÂˆBˆXÝ]˜]S\Ý[™\œÊ
+HÂˆÛÛœÝ˜YÈH\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK\ÚÚ[[Y]\‹Y˜YÈŠNÂˆÛÛœÝ™\Ú^™HH\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK\ÚÚ[[Y]\‹\™\Ú^™HŠNÂˆ˜YË˜Y]™[\Ý[™\ŠœÚ[\™ÝÛˆ‹]™[OˆÈ]™[œ™]™[Y˜][
+
+NÈÛÛœÝ™XÝH\Ë™[[Y[™Ù]›Ý[™[™ÐÛY[™XÝ
+
+NÈ\Ë™˜YÈHÙˆ]™[˜ÛY[H™XÝ›YNˆ]™[˜ÛY[HH™XÝÜNÈ˜YËœÙ]Ú[\Ø\\™J]™[œÚ[\’Y
+NÈJNÂˆ˜YË˜Y]™[\Ý[™\ŠœÚ[\›[Ý™H‹]™[OˆÈYˆ
+]\Ë™˜YÊH™]\›ŽÈ\Ë™[[Y[œÝ[K›YH	ØÛ[\
+]™[˜ÛY[H\Ë™˜YË™Ú[™ÝËš[›™\•ÚYH
+_\È\Ë™[[Y[œÝ[KÜH	ØÛ[\
+]™[˜ÛY[HH\Ë™˜YË™KÚ[™ÝËš[›™\’ZYÚH
+_\ÈJNÂˆ˜YË˜Y]™[\Ý[™\ŠœÚ[\\‹\Þ[˜È]™[OˆÈYˆ
+]\Ë™˜YÊH™]\›ŽÈ\Ë™˜YÈH[È˜YËœ™[X\ÙTÚ[\Ø\\™J]™[œÚ[\’Y
+NÈÛÛœÝ™XÝH\Ë™[[Y[™Ù]›Ý[™[™ÐÛY[™XÝ
+
+NÈ]ØZ]Ø]™TÚÚ[Y]\“^[Ý]
+ÞˆX]œ›Ý[™
+™XÝ›Y
+KNˆX]œ›Ý[™
+™XÝÜ
+_JNÈJNÂˆ™\Ú^™K˜Y]™[\Ý[™\ŠœÚ[\™ÝÛˆ‹]™[OˆÈ]™[œ™]™[Y˜][
+
+NÈ\Ëœ™\Ú^™HHÜÝ\ˆ]™[˜ÛY[Ý\Ú^™NˆÚÚ[Y]\“^[Ý]
+
+KœÚ^™_NÈ™\Ú^™KœÙ]Ú[\Ø\\™J]™[œÚ[\’Y
+NÈJNÂˆ™\Ú^™K˜Y]™[\Ý[™\ŠœÚ[\›[Ý™H‹]™[OˆÈYˆ
+]\Ëœ™\Ú^™JH™]\›ŽÈ\Ë™[[Y[œÝ[KœÙ]›Ü\J‹K]ÜK\ÚÚ[\\\Ú^™H‹	ØÛ[\
+\Ëœ™\Ú^™KœÝ\Ú^™H
+È]™[˜ÛY[H\Ëœ™\Ú^™KœÝ\L
+_\
+NÈJNÂˆ™\Ú^™K˜Y]™[\Ý[™\ŠœÚ[\\‹\Þ[˜È]™[OˆÈYˆ
+]\Ëœ™\Ú^™JH™]\›ŽÈÛÛœÝÚ^™HHÛ[\
+\Ëœ™\Ú^™KœÝ\Ú^™H
+È]™[˜ÛY[H\Ëœ™\Ú^™KœÝ\L
+NÈ\Ëœ™\Ú^™HH[È™\Ú^™Kœ™[X\ÙTÚ[\Ø\\™J]™[œÚ[\’Y
+NÈ]ØZ]Ø]™TÚÚ[Y]\“^[Ý]
+ÜÚ^™NˆX]œ›Ý[™
+Ú^™J_JNÈ\Ëœ™[™\Š
+NÈJNÂˆ\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK\ÚÚ[[Y]\‹XÛÜÙHŠK˜Y]™[\Ý[™\Š˜ÛXÚÈ‹\Þ[˜È
+
+HOˆÈ]ØZ]Ø]™TÚÚ[Y]\“^[Ý]
+Ýš\ÚX›Nˆ˜[Ù_JNÈ\Ë™\Ý›ÞJ
+NÈJNÂˆBˆ\Ý›ÞJ
+HÈ\Ë™[[Y[Ëœ™[[Ý™J
+NÈ\Ë™[[Y[H[ÈYˆ
+Ý]KœÚÚ[Y]\ˆOOH\ÊHÝ]KœÚÚ[Y]\ˆH[ÈBŸB‚™[˜Ý[ÛˆØ[•\ÙTÚÚ[XÝÜŠXÝÜŠHÂˆ™]\›ˆ›ÛÛX[ŠXÝÜË\HOOH˜Ú\˜XÝ\ˆˆ	‰ˆ
+Ø[YK\Ù\‹š\ÑÓHXÝÜ‹š\ÓÝÛ™\ŠJNÂŸB‚˜Û\ÜÈÚÚ[]ÛˆÂˆÛÛœÝXÝÜŠXÝÜŠHÈ\Ë˜XÝÜˆHXÝÜŽÈ\Ë™[[Y[H[È\Ë™˜YÈH[È\Ëœ™\Ú^™HH[ÈBˆ™[™\Š
+HÂˆÛÛœÝ^[Ý]HÚÚ[]Û“^[Ý]
+\Ë˜XÝÜ‹šY
+NÂˆYˆ
+XØ[•\ÙTÚÚ[XÝÜŠ\Ë˜XÝÜŠH[^[Ý]š\ÚX›JH™]\›ˆ\Ë™\Ý›ÞJ
+NÂˆYˆ
+]\Ë™[[Y[
+HÂˆ\Ë™[[Y[HØÝ[Y[˜Ü™X]Q[[Y[
+™]ˆŠNÂˆ\Ë™[[Y[˜Û\ÜÓ˜[YHHÜK\ÚÚ[]ÚYÙ]ŽÂˆ\Ë™[[Y[™]\Ù]˜XÝÜ’YH\Ë˜XÝÜ‹šYÂˆ\Ë™[[Y[š[›™\’SH]ˆÛ\ÜÏHÜK\ÚÚ[Y˜YÈˆ]OH“[Ý™HÚÚ[]ÛˆHÛ\ÜÏH™˜\È˜KYÜš\[[™\ÈÚOÙ]]Ûˆ\OH˜]ÛˆˆÛ\ÜÏHÜK\ÚÚ[X]Ûˆ[YÏØ]Û]ˆÛ\ÜÏHÜK\ÚÚ[[X™[”ÚÚ[Ù]]Ûˆ\OH˜]ÛˆˆÛ\ÜÏHÜK\ÚÚ[XÛÜÙHˆ]OH’YHÚÚ[]ÛˆHÛ\ÜÏH™˜\È˜K^X\šÈÚOØ]Û]ˆÛ\ÜÏHÜK\ÚÚ[\™\Ú^™Hˆ]OH”™\Ú^™HÙ]˜ÂˆØÝ[Y[˜›ÙK˜\[™Ú[
+\Ë™[[Y[
+NÂˆ\Ë˜XÝ]˜]S\Ý[™\œÊ
+NÂˆXÝ]˜]TÝ\”˜Z[XÝ[Û‘˜YÊ\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK\ÚÚ[X]ÛˆŠK\Ë˜XÝÜ‹œÚÚ[ŠNÂˆBˆÛÛœÝÛÛ™šYÈHÙ]ÛÛ™šYÊ\Ë˜XÝÜŠNÂˆÛÛœÝ[[Y[HÙ][[Y[Ê
+K™š[™
+[žHOˆ[žKšYOOHÛÛ™šYË™[[Y[Y
+NÂˆÛÛœÝÛÜÝHX]›X^
+X]™›ÛÜŠ[X™\ŠÛÛ™šYËœÚÚ[Ú[ÛÜÝ
+H
+JNÂˆÛÛœÝ]˜Z[X›HHÙ]ÛÛ™šYÊ\Ë˜XÝÜŠKœÚÚ[[˜X›Y	‰ˆÝ\œ™[ÚÚ[Ú[Ê
+HHÛÜÝ	‰ˆ\Ý]KœÚÚ[ØÚÜËš\Ê\Ë˜XÝÜ‹šY
+NÂˆ\Ë™[[Y[œÝ[K›YH	ØÛ[\
+^[Ý]žÚ[™ÝËš[›™\•ÚYH
+_\Âˆ\Ë™[[Y[œÝ[KÜH	ØÛ[\
+^[Ý]žKÚ[™ÝËš[›™\’ZYÚH
+_\Âˆ\Ë™[[Y[œÝ[KœÙ]›Ü\J‹K]ÜK\ÚÚ[\Ú^™H‹	ØÛ[\
+^[Ý]œÚ^™KŽ
+_\
+NÂˆ\Ë™[[Y[œÝ[KœÙ]›Ü\J‹K]ÜK\ÚÚ[XÛÛÜˆ‹[[Y[Ëœ™XYPÛÛÜˆQUSÐÓÓ‘’QËœ™XYPÛÛÜŠNÂˆ\Ë™[[Y[˜Û\ÜÓ\ÝÙÙÛJš\Ë][˜]˜Z[X›H‹X]˜Z[X›JNÂˆÛÛœÝ]ÛˆH\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK\ÚÚ[X]ÛˆŠNÂˆ]Û‹™\ØX›YH˜[ÙNÂˆ]Û‹œÙ]]šX]J˜\šXKY\ØX›Y‹Ýš[™ÊX]˜Z[X›JJNÂˆ]Û‹]HH]˜Z[X›HÈ	Ý\Ë˜XÝÜ‹›˜[Y_Nˆ\ÙHÚÚ[
+ÛÜÝÈ	ØÛÜÝHÚÚ[Ú[	ØÛÜÝOOHHÈˆˆˆœÈŸJXˆÝ]KœÚÚ[ØÚÜËš\Ê\Ë˜XÝÜ‹šY
+HÈ•\ÈÚÚ[\ÈÝ\œ™[H™\ÛÛš[™Ëˆˆˆ\ÈÚÚ[™\]Z\™\È	ØÛÜÝHÚÚ[Ú[Ë˜Âˆ]Û‹œ]Y\žTÙ[XÝÜŠš[YÈŠKœÜ˜ÈHÛÛ™šYËœÚÚ[]Û’[XYÙH\Ë˜XÝÜ‹š[YÈšXÛÛœËÜÝ™ËÜÝÛÜ™œÝ™ÈŽÂˆ™]\›ˆ\ÎÂˆBˆXÝ]˜]S\Ý[™\œÊ
+HÂˆÛÛœÝ˜YÈH\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK\ÚÚ[Y˜YÈŠNÈÛÛœÝ™\Ú^™HH\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK\ÚÚ[\™\Ú^™HŠNÂˆ˜YË˜Y]™[\Ý[™\ŠœÚ[\™ÝÛˆ‹]™[OˆÈ]™[œ™]™[Y˜][
+
+NÈÛÛœÝ™XÝH\Ë™[[Y[™Ù]›Ý[™[™ÐÛY[™XÝ
+
+NÈ\Ë™˜YÈHÙˆ]™[˜ÛY[H™XÝ›YNˆ]™[˜ÛY[HH™XÝÜNÈ˜YËœÙ]Ú[\Ø\\™J]™[œÚ[\’Y
+NÈJNÂˆ˜YË˜Y]™[\Ý[™\ŠœÚ[\›[Ý™H‹]™[OˆÈYˆ
+]\Ë™˜YÊH™]\›ŽÈ\Ë™[[Y[œÝ[K›YH	ØÛ[\
+]™[˜ÛY[H\Ë™˜YË™Ú[™ÝËš[›™\•ÚYH
+_\È\Ë™[[Y[œÝ[KÜH	ØÛ[\
+]™[˜ÛY[HH\Ë™˜YË™KÚ[™ÝËš[›™\’ZYÚH
+_\ÈJNÂˆ˜YË˜Y]™[\Ý[™\ŠœÚ[\\‹\Þ[˜È]™[OˆÈYˆ
+]\Ë™˜YÊH™]\›ŽÈ\Ë™˜YÈH[È˜YËœ™[X\ÙTÚ[\Ø\\™J]™[œÚ[\’Y
+NÈÛÛœÝ™XÝH\Ë™[[Y[™Ù]›Ý[™[™ÐÛY[™XÝ
+
+NÈ]ØZ]Ø]™TÚÚ[]Û“^[Ý]
+\Ë˜XÝÜ‹šYÞˆX]œ›Ý[™
+™XÝ›Y
+KNˆX]œ›Ý[™
+™XÝÜ
+_JNÈJNÂˆ™\Ú^™K˜Y]™[\Ý[™\ŠœÚ[\™ÝÛˆ‹]™[OˆÈ]™[œ™]™[Y˜][
+
+NÈÛÛœÝ™XÝH\Ë™[[Y[™Ù]›Ý[™[™ÐÛY[™XÝ
+
+NÈ\Ëœ™\Ú^™HHÜÝ\ˆ]™[˜ÛY[Ý\Ú^™Nˆ™XÝÚYNÈ™\Ú^™KœÙ]Ú[\Ø\\™J]™[œÚ[\’Y
+NÈJNÂˆ™\Ú^™K˜Y]™[\Ý[™\ŠœÚ[\›[Ý™H‹]™[OˆÈYˆ
+]\Ëœ™\Ú^™JH™]\›ŽÈ\Ë™[[Y[œÝ[KœÙ]›Ü\J‹K]ÜK\ÚÚ[\Ú^™H‹	ØÛ[\
+\Ëœ™\Ú^™KœÝ\Ú^™H
+È]™[˜ÛY[H\Ëœ™\Ú^™KœÝ\Ž
+_\
+NÈJNÂˆ™\Ú^™K˜Y]™[\Ý[™\ŠœÚ[\\‹\Þ[˜È]™[OˆÈYˆ
+]\Ëœ™\Ú^™JH™]\›ŽÈÛÛœÝÚ^™HHÛ[\
+\Ëœ™\Ú^™KœÝ\Ú^™H
+È]™[˜ÛY[H\Ëœ™\Ú^™KœÝ\Ž
+NÈ\Ëœ™\Ú^™HH[È™\Ú^™Kœ™[X\ÙTÚ[\Ø\\™J]™[œÚ[\’Y
+NÈ]ØZ]Ø]™TÚÚ[]Û“^[Ý]
+\Ë˜XÝÜ‹šYÜÚ^™NˆX]œ›Ý[™
+Ú^™J_JNÈJNÂˆ\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK\ÚÚ[XÛÜÙHŠK˜Y]™[\Ý[™\Š˜ÛXÚÈ‹\Þ[˜È
+
+HOˆÈ]ØZ]Ø]™TÚÚ[]Û“^[Ý]
+\Ë˜XÝÜ‹šYÝš\ÚX›Nˆ˜[Ù_JNÈ\Ë™\Ý›ÞJ
+NÈJNÂˆ\Ë™[[Y[œ]Y\žTÙ[XÝÜŠ‹ÜK\ÚÚ[X]ÛˆŠK˜Y]™[\Ý[™\Š˜ÛXÚÈ‹
+
+HOˆ™\]Y\ÝÚÚ[
+\Ë˜XÝÜŠJNÂˆBˆ\Ý›ÞJ
+HÈ\Ë™[[Y[Ëœ™[[Ý™J
+NÈ\Ë™[[Y[H[ÈÝ]KœÚÚ[]ÛœË™[]J\Ë˜XÝÜ‹šY
+NÈBŸB‚™[˜Ý[Ûˆ™Yœ™\ÚÚÚ[RJ
+HÂˆÛÛœÝY]\“^[Ý]HÚÚ[Y]\“^[Ý]
+
+NÂˆYˆ
+ÛÛX˜]\Ò[š]X]]™J
+H	‰ˆY]\“^[Ý]š\ÚX›JHÈYˆ
+\Ý]KœÚÚ[Y]\ŠHÝ]KœÚÚ[Y]\ˆH™]ÈÚÚ[Ú[Y]\Š
+NÈÝ]KœÚÚ[Y]\‹œ™[™\Š
+NÈBˆ[ÙHÝ]KœÚÚ[Y]\Ë™\Ý›ÞJ
+NÂˆ›Üˆ
+ÛÛœÝXÝÜˆÙˆØ[YK˜XÝÜœÈÏÈ×JHÂˆYˆ
+XØ[•\ÙTÚÚ[XÝÜŠXÝÜŠH\ÚÚ[]Û“^[Ý]
+XÝÜ‹šY
+Kš\ÚX›JHÈÝ]KœÚÚ[]ÛœË™Ù]
+XÝÜ‹šY
+OË™\Ý›ÞJ
+NÈÛÛ[YNÈBˆ]]ÛˆHÝ]KœÚÚ[]ÛœË™Ù]
+XÝÜ‹šY
+NÂˆYˆ
+X]ÛŠHÈ]ÛˆH™]ÈÚÚ[]ÛŠXÝÜŠNÈÝ]KœÚÚ[]ÛœËœÙ]
+XÝÜ‹šY]ÛŠNÈBˆ]Û‹œ™[™\Š
+NÂˆBŸB‚˜\Þ[˜È[˜Ý[ÛˆÚÝÔÚÚ[RJ
+HÂˆ]ØZ]Ø]™TÚÚ[Y]\“^[Ý]
+Ýš\ÚX›NˆY_JNÂˆ›Üˆ
+ÛÛœÝXÝÜˆÙˆØ[YK˜XÝÜœË™š[\ŠØ[•\ÙTÚÚ[XÝÜŠJH]ØZ]Ø]™TÚÚ[]Û“^[Ý]
+XÝÜ‹šYÝš\ÚX›NˆY_JNÂˆ™Yœ™\ÚÚÚ[RJ
+NÂŸB‚™[˜Ý[ÛˆÙ][[Y[Ê
+HÂˆ™]\›ˆ
+Ø[YKœÙ][™ÜË™Ù]
+SÑSWÒQ™[[Y[ÈŠHÏÈ×JK›X\
+[[Y[Oˆ
+Âˆ‹‹™[[Y[ˆÚ\™ÙPÛÛÜŽˆ[[Y[˜Ú\™ÙPÛÛÜˆ[[Y[˜ÛÛÜˆQUSÐÓÓ‘’QË˜Ú\™ÙPÛÛÜ‹ˆ™XYPÛÛÜŽˆ[[Y[œ™XYPÛÛÜˆ[[Y[˜ÛÛÜˆQUSÐÓÓ‘’QËœ™XYPÛÛÜ‹ˆÛÛÜŽˆ[[Y[œ™XYPÛÛÜˆ[[Y[˜ÛÛÜˆQUSÐÓÓ‘’QËœ™XYPÛÛÜ‚ˆJJNÂŸB‚™[˜Ý[ÛˆÙ]]Ê
+HÂˆÛÛœÝÝÜ™YHØ[YKœÙ][™ÜË™Ù]
+SÑSWÒQœ]ÈŠHÏÈ×NÂˆ™]\›ˆ
+\œ˜^Kš\Ð\œ˜^JÝÜ™Y
+HÈÝÜ™YˆØš™XÝ˜[Y\ÊÝÜ™Y
+JK™š[\Š›ÛÛX[ŠK›X\
+]Oˆ
+Ë‹‹œ]ÛÛÜŽœ]˜ÛÛÜˆˆÙMXÎÎŸJJNÂŸB‚™[˜Ý[ÛˆÙ]Ü˜Y[™Ô™XÚ\\Ê
+HÂˆÛÛœÝÝÜ™YHØ[YKœÙ][™ÜË™Ù]
+SÑSWÒQ˜Ü˜Y[™Ô™XÚ\\ÈŠHÏÈ×NÂˆ™]\›ˆ
+\œ˜^Kš\Ð\œ˜^JÝÜ™Y
+HÈÝÜ™YˆØš™XÝ˜[Y\ÊÝÜ™Y
+JK™š[\Š›ÛÛX[ŠNÂŸB‚™[˜Ý[Ûˆ\PÜ˜Y[™ÐXÝÜœÊ
+HÂˆ™]\›ˆØ[YK˜XÝÜœË™š[\ŠXÝÜˆOˆXÝÜ‹\HOOH˜Ú\˜XÝ\ˆˆ	‰ˆÙ]ÛÛ™šYÊXÝÜŠK›XZ[”\JNÂŸB‚™[˜Ý[Ûˆ™XÚ\R][RÙ^J[žJHÂˆ™]\›ˆÝš[™Ê[žOË]ZY	Ù[žOË\H›ÛÝŸN‰Ù[žOË›˜[YHˆŸX
+KÓÝÙ\Ø\ÙJ
+NÂŸB‚™[˜Ý[Ûˆ][SX]Ú\Ô™XÚ\Q[žJ][K[žJHÂˆYˆ
+Z][HY[žJH™]\›ˆ˜[ÙNÂˆÛÛœÝÛÝ\˜ÙRYH][K™Ù]›YÏËŠ˜ÛÜ™H‹œÛÝ\˜ÙRYŠNÂˆYˆ
+[žK]ZY	‰ˆ
+][K]ZYOOH[žK]ZYÛÝ\˜ÙRYOOH[žK]ZY
+JH™]\›ˆYNÂˆ™]\›ˆ][K›˜[YHOOH[žK›˜[YH	‰ˆ
+Y[žK\H][K\HOOH[žK\JNÂŸB‚™[˜Ý[Ûˆ][T]X[]J][JHÂˆ™]\›ˆX]›X^
+[X™\Š][OËœÞ\Ý[OËœ]X[]HÏÈJH
+NÂŸB‚™[˜Ý[ÛˆÛÛYÜ˜Y[™Ò[™[ÜžJ
+HÂˆÛÛœÝXÝÜœÈH\PÜ˜Y[™ÐXÝÜœÊ
+NÂˆÛÛœÝÝ[ÈH™]ÈX\
+
+NÂˆ›Üˆ
+ÛÛœÝXÝÜˆÙˆXÝÜœÊH›Üˆ
+ÛÛœÝ][HÙˆXÝÜ‹š][\ÈÏÈ×JHÂˆÛÛœÝÛÝ\˜ÙRYH][K™Ù]›YÏËŠ˜ÛÜ™H‹œÛÝ\˜ÙRYŠNÂˆÛÛœÝ[žHHÝ]ZYœÛÝ\˜ÙRY][K]ZY˜[YNš][K›˜[YK\Nš][K\_NÂˆÛÛœÝÙ^HH™XÚ\R][RÙ^J[žJNÂˆÛÛœÝÝ\œ™[HÝ[Ë™Ù]
+Ù^JHÏÈÜ]X[]NŒ][\Î–×K˜[YNš][K›˜[YK[YÎš][Kš[YßNÂˆÝ\œ™[œ]X[]H
+ÏH][T]X[]J][JNÂˆÝ\œ™[š][\Ëœ\Ú
+ØXÝÜ‹][_JNÂˆÝ[ËœÙ]
+Ù^KÝ\œ™[
+NÂˆBˆ™]\›ˆØXÝÜœËÝ[ßNÂŸB‚™[˜Ý[ÛˆÛÛY]X[]Q›ÜŠ[žKXÝÜœÏ\\PÜ˜Y[™ÐXÝÜœÊ
+JHÂˆ]]X[]HHÂˆ›Üˆ
+ÛÛœÝXÝÜˆÙˆXÝÜœÊH›Üˆ
+ÛÛœÝ][HÙˆXÝÜ‹š][\ÈÏÈ×JHYˆ
+][SX]Ú\Ô™XÚ\Q[žJ][K[žJJH]X[]H
+ÏH][T]X[]J][JNÂˆ™]\›ˆ]X[]NÂŸB‚™[˜Ý[ÛˆXÝÜ•[›ØÚÙY™XÚ\\ÊXÝÜŠHÂˆÛÛœÝ˜[YHHXÝÜË™Ù]›YÊSÑSWÒQ[›ØÚÙYÜ˜Y[™Ô™XÚ\\ÈŠHÏÈ×NÂˆ™]\›ˆ™]ÈÙ]
+\œ˜^Kš\Ð\œ˜^J˜[YJHÈ˜[YHˆ×JNÂŸB‚™[˜Ý[ÛˆÜ˜Y[™ÓX\›š[™ÐXÝÜœÊÛÝ\˜ÙPXÝÜŠHÂˆÛÛœÝ\HH\PÜ˜Y[™ÐXÝÜœÊ
+NÂˆÛÛœÝÝÛ™\’YÈH™]ÈÙ]
+
+NÂˆ›Üˆ
+ÛÛœÝXÝÜˆÙˆ\JH›Üˆ
+ÛÛœÝ\Ù\ˆÙˆØ[YK\Ù\œÈÏÈ×JHYˆ
+]\Ù\‹š\ÑÓH	‰ˆXÝÜ‹\Ý\Ù\”\›Z\ÜÚ[ÛŠ\Ù\‹“ÕÓ‘TˆŠJHÝÛ™\’YË˜Y
+\Ù\‹šY
+NÂˆÛÛœÝ™XÚ\Y[ÈH™]ÈX\
+\K›X\
+XÝÜO–ØXÝÜ‹šYXÝÜ—JJNÂˆYŠÛÝ\˜ÙPXÝÜŠ\™XÚ\Y[ËœÙ]
+ÛÝ\˜ÙPXÝÜ‹šYÛÝ\˜ÙPXÝÜŠNÂˆ›ÜŠÛÛœÝXÝÜˆÙˆØ[YK˜XÝÜœË™š[\Š[žOO™[žK\OOOH˜Ú\˜XÝ\ˆŠJ^ÂˆYŠË‹‹›ÝÛ™\’Y×KœÛÛYJYO˜XÝÜ‹\Ý\Ù\”\›Z\ÜÚ[ÛŠØ[YK\Ù\œË™Ù]
+Y
+K“ÕÓ‘TˆŠJJ\™XÚ\Y[ËœÙ]
+XÝÜ‹šYXÝÜŠNÂˆBˆ™]\›ˆË‹‹œ™XÚ\Y[Ë˜[Y\Ê
+WNÂŸB‚˜\Þ[˜È[˜Ý[Ûˆ[›ØÚÐÜ˜Y[™Ô™XÚ\J™XÚ\RYÛÝ\˜ÙPXÝÜŠHÂˆÛÛœÝ™XÚ\OYÙ]Ü˜Y[™Ô™XÚ\\Ê
+K™š[™
+[žOO™[žKšYOO\™XÚ\RY
+NÂˆYŠ\™XÚ\J\™]\›ˆ˜[ÙNÂˆ›ÜŠÛÛœÝXÝÜˆÙˆÜ˜Y[™ÓX\›š[™ÐXÝÜœÊÛÝ\˜ÙPXÝÜŠJ^ÂˆÛÛœÝ[›ØÚÙYXXÝÜ•[›ØÚÙY™XÚ\\ÊXÝÜŠNÂˆYŠ[›ØÚÙYš\Ê™XÚ\RY
+JXÛÛ[YNÂˆ[›ØÚÙY˜Y
+™XÚ\RY
+NÂˆ]ØZ]XÝÜ‹œÙ]›YÊSÑSWÒQ[›ØÚÙYÜ˜Y[™Ô™XÚ\\È‹Ë‹‹[›ØÚÙYJNÂˆBˆ™]\›ˆYNÂŸB‚™[˜Ý[ÛˆÜ˜Y[™Õ\Ù\XÝÜœÊ\Ù\YØ[YK\Ù\ŠHÂˆ™]\›ˆ\PÜ˜Y[™ÐXÝÜœÊ
+K™š[\ŠXÝÜO\Ù\‹š\ÑÓ_XÝÜ‹\Ý\Ù\”\›Z\ÜÚ[ÛŠ\Ù\‹“ÕÓ‘TˆŠJNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆÛÛœÝ[YT\R[™Ü™YY[Ê™XÚ\JHÂˆÛÛœÝXÝÜœÏ\\PÜ˜Y[™ÐXÝÜœÊ
+NÂˆ›ÜŠÛÛœÝ[™Ü™YY[Ùˆ™XÚ\Kš[™Ü™YY[ÏÏÖ×JZYŠÛÛY]X[]Q›ÜŠ[™Ü™YY[XÝÜœÊOX]›X^
+K[X™\Š[™Ü™YY[œ]X[]J_JJ]›ÝÈ™]È\œ›ÜŠ›Ý[›ÝYÚ	Ú[™Ü™YY[›˜[Y_K˜
+NÂˆ›ÜŠÛÛœÝ[™Ü™YY[Ùˆ™XÚ\Kš[™Ü™YY[ÏÏÖ×J^Âˆ]™[XZ[š[™ÏSX]›X^
+K[X™\Š[™Ü™YY[œ]X[]J_JNÂˆ›ÜŠÛÛœÝXÝÜˆÙˆXÝÜœÊ^Âˆ›ÜŠÛÛœÝ][HÙˆË‹‹ŠXÝÜ‹š][\ÏÏÖ×JWJ^ÂˆYŠ\™[XZ[š[™ßZ][SX]Ú\Ô™XÚ\Q[žJ][K[™Ü™YY[
+JXÛÛ[YNÂˆÛÛœÝ]X[]OZ][T]X[]J][JK\ÙYSX]›Z[Š]X[]K™[XZ[š[™ÊNÂˆ™[XZ[š[™ËO]\ÙYÂˆYŠ]X[]O]\ÙY
+X]ØZ]][K™[]J
+NÂˆ[ÙH]ØZ]][K\]JÈœÞ\Ý[Kœ]X[]HŽœ]X[]K]\ÙYJNÂˆBˆYŠ\™[XZ[š[™ÊXœ™XZÎÂˆBˆBŸB‚˜\Þ[˜È[˜Ý[ÛˆÜ˜[Ü˜Y[™ÓÝ]]
+XÝÜ‹Ý]]
+HÂˆYŠXXÝÜŸ[Ý]]Ëš][Q]J]›ÝÈ™]È\œ›ÜŠ•\È™XÚ\H\È›ÈÛÛ™šYÝ\™YÝ]]][KˆŠNÂˆÛÛœÝ]X[]OSX]›X^
+K[X™\ŠÝ]]œ]X[]J_JNÂˆÛÛœÝ^\Ý[™ÏXXÝÜ‹š][\Ë™š[™
+][OOš][SX]Ú\Ô™XÚ\Q[žJ][KÝ]]
+JNÂˆYŠ^\Ý[™Ê\™]\›ˆ^\Ý[™Ë\]JÈœÞ\Ý[Kœ]X[]HŽš][T]X[]J^\Ý[™ÊJÜ]X[]_JNÂˆÛÛœÝ]OY›Ý[™žK][Ë™Y\ÛÛ™JÝ]]š][Q]JNÙ[]H]K—ÚYÙ[]H]K™›Û\ŽÙ[]H]KœÛÜÙ[]H]K›ÝÛ™\œÚ\Âˆ›Ý[™žK][ËœÙ]›Ü\J]KœÞ\Ý[Kœ]X[]H‹]X[]JNÂˆ™]\›ˆXÝÜ‹˜Ü™X]Q[X™YYØÝ[Y[Ê’][H‹Ù]WJNÂŸB‚˜\Þ[˜È[˜Ý[Ûˆ^XÝ]PÜ˜Y™XÚ\J™XÚ\RYXÝÜ’Y™\]Y\Ý[™Õ\Ù\’Y
+HÂˆYŠZ\Ð]]Üš]J
+J\™]\›ˆÛÚÎ™˜[ÙKY\ÜØYÙNˆ“›ÈXÝ]™HÓH\È]˜Z[X›KˆŸNÂˆYŠÝ]K˜Ü˜Y[™ÓØÚÜËš\Êœ\HŠJ\™]\›ˆÛÚÎ™˜[ÙKY\ÜØYÙNˆ•H\H\È[™XYHÜ˜Y[™ËˆX\ÙHžHYØZ[‹ˆŸNÂˆÛÛœÝ™\]Y\Ý\YØ[YK\Ù\œË™Ù]
+™\]Y\Ý[™Õ\Ù\’Y
+KXÝÜYØ[YK˜XÝÜœË™Ù]
+XÝÜ’Y
+K™XÚ\OYÙ]Ü˜Y[™Ô™XÚ\\Ê
+K™š[™
+[žOO™[žKšYOO\™XÚ\RY
+NÂˆYŠ\™\]Y\Ý\ŸXXÝÜŸ\™XÚ\J\™]\›ˆÛÚÎ™˜[ÙKY\ÜØYÙNˆ•H™XÚ\HÜˆ™XÙZ]š[™ÈÚ\˜XÝ\ˆ›ÈÛ™Ù\ˆ^\ÝËˆŸNÂˆYŠYÙ]ÛÛ™šYÊXÝÜŠK›XZ[”\_
+\™\]Y\Ý\‹š\ÑÓI‰ˆXXÝÜ‹\Ý\Ù\”\›Z\ÜÚ[ÛŠ™\]Y\Ý\‹“ÕÓ‘TˆŠJJ\™]\›ˆÛÚÎ™˜[ÙKY\ÜØYÙNˆÚÛÜÙHÛ™HÙˆ[Ý\ˆXZ[ˆ\HÚ\˜XÝ\œÈÈ™XÙZ]™HH™\Ý[ˆŸNÂˆYŠ\™\]Y\Ý\‹š\ÑÓI‰ˆXXÝÜ•[›ØÚÙY™XÚ\\ÊXÝÜŠKš\Ê™XÚ\RY
+J\™]\›ˆÛÚÎ™˜[ÙKY\ÜØYÙNˆ•]™XÚ\H\È›Ý™Y[ˆ[›ØÚÙYˆŸNÂˆYŠ\™XÚ\K›Ý]]Ëš][Q]J\™]\›ˆÛÚÎ™˜[ÙKY\ÜØYÙNˆ•\È™XÚ\H\È›ÈÛÛ™šYÝ\™YÝ]]][KˆŸNÂˆÝ]K˜Ü˜Y[™ÓØÚÜË˜Y
+œ\HŠNÂˆž^Ø]ØZ]ÛÛœÝ[YT\R[™Ü™YY[Ê™XÚ\JNØ]ØZ]Ü˜[Ü˜Y[™ÓÝ]]
+XÝÜ‹™XÚ\K›Ý]]
+NØ]ØZ][›ØÚÐÜ˜Y[™Ô™XÚ\J™XÚ\RYXÝÜŠNÜ™]\›ˆÛÚÎYKY\ÜØYÙN˜Ü˜YY	ÓX]›X^
+K[X™\Š™XÚ\K›Ý]]Ëœ]X[]J_J_H0åÈ	Ü™XÚ\K›Ý]]Ë›˜[Y_K˜NßBˆØ]Ú
+\œ›ÜŠ^ØÛÛœÛÛK™\œ›ÜŠ	ÓSÑSWÒQHÜ˜Y[™È˜Z[Y\œ›ÜŠNÜ™]\›ˆÛÚÎ™˜[ÙKY\ÜØYÙN™\œ›Ü‹›Y\ÜØYÙ_NßBˆš[˜[^ÜÝ]K˜Ü˜Y[™ÓØÚÜË™[]Jœ\HŠNßBŸB‚˜\Þ[˜È[˜Ý[Ûˆ^XÝ]T™YY[T™XÚ\PØ\™
+XÝÜ’Y][RY™\]Y\Ý[™Õ\Ù\’Y
+HÂˆYŠZ\Ð]]Üš]J
+J\™]\›ˆÛÚÎ™˜[ÙKY\ÜØYÙNˆ“›ÈXÝ]™HÓH\È]˜Z[X›KˆŸNÂˆÛÛœÝ™\]Y\Ý\YØ[YK\Ù\œË™Ù]
+™\]Y\Ý[™Õ\Ù\’Y
+KXÝÜYØ[YK˜XÝÜœË™Ù]
+XÝÜ’Y
+K][OXXÝÜËš][\Ë™Ù]
+][RY
+NÂˆÛÛœÝ™XÚ\RYZ][OË™Ù]›YÊSÑSWÒQœ™XÚ\PØ\™ŠOËœ™XÚ\RYÂˆÛÛœÝ™XÚ\OYÙ]Ü˜Y[™Ô™XÚ\\Ê
+K™š[™
+[žOO™[žKšYOO\™XÚ\RY
+NÂˆYŠ\™\]Y\Ý\ŸXXÝÜŸZ][_\™XÚ\J\™]\›ˆÛÚÎ™˜[ÙKY\ÜØYÙNˆ•]™XÚ\HØ\™\È›ÈÛ™Ù\ˆ]˜Z[X›KˆŸNÂˆYŠ\™\]Y\Ý\‹š\ÑÓI‰ˆXXÝÜ‹\Ý\Ù\”\›Z\ÜÚ[ÛŠ™\]Y\Ý\‹“ÕÓ‘TˆŠJ\™]\›ˆÛÚÎ™˜[ÙKY\ÜØYÙNˆ–[ÝHÈ›ÝÝÛˆHÚ\˜XÝ\ˆÛ[™È]Ø\™ˆŸNÂˆYŠXÝÜ•[›ØÚÙY™XÚ\\ÊXÝÜŠKš\Ê™XÚ\RY
+J\™]\›ˆÛÚÎ™˜[ÙKY\ÜØYÙN˜	Ü™XÚ\K›˜[Y_H\È[™XYH[›ØÚÙY˜NÂˆÛÛœÝ]X[]OZ][T]X[]J][JNÚYŠ]X[]OLJX]ØZ]][K™[]J
+NÙ[ÙH]ØZ]][K\]JÈœÞ\Ý[Kœ]X[]HŽœ]X[]KL_JNÂˆ]ØZ][›ØÚÐÜ˜Y[™Ô™XÚ\J™XÚ\RYXÝÜŠNÂˆ™]\›ˆÛÚÎYKY\ÜØYÙN˜	Ü™XÚ\K›˜[Y_HØ\È[›ØÚÙY›ÜˆH\H[™Z\ˆÝÛ™\œÉÈÚ\˜XÝ\œË˜NÂŸB‚˜\Þ[˜È[˜Ý[Ûˆ[œÝ\™QY˜][]Ê
+HÂˆYˆ
+YØ[YK\Ù\‹š\ÑÓJH™]\›ˆ˜[ÙNÂˆÛÛœÝÝÜ™YHÙ]]Ê
+NÂˆÛÛœÝ˜[Y\ÈH™]ÈÙ]
+ÝÜ™Y›X\
+]OˆÝš[™Ê]›˜[YHˆŠKš[J
+KÓÝÙ\Ø\ÙJ
+JJNÂˆÛÛœÝZ\ÜÚ[™ÈHQUSÔUË™š[\Š]Oˆ[˜[Y\Ëš\Ê]›˜[YKÓÝÙ\Ø\ÙJ
+JJK›X\
+]Oˆ
+Ë‹‹œ]JJNÂˆYˆ
+[Z\ÜÚ[™Ë›[™Ý
+H™]\›ˆ˜[ÙNÂˆ]ØZ]Ø[YKœÙ][™ÜËœÙ]
+SÑSWÒQœ]È‹Ë‹‹œÝÜ™Y‹‹›Z\ÜÚ[™×JNÂˆ™]\›ˆYNÂŸB‚™[˜Ý[Ûˆ›ÜY\ÜÙ]]
+]™[
+HÂˆÛÛœÝ˜[œÙ™\ˆH]™[›ÜšYÚ[˜[]™[Ë™]U˜[œÙ™\ˆÏÈ]™[™]U˜[œÙ™\ŽÂˆÛÛœÝZ[ˆH˜[œÙ™\Ë™Ù]]J^ÜZ[ˆŠH˜[œÙ™\Ë™Ù]]J^Ý\šK[\ÝŠHˆŽÂˆžHÂˆÛÛœÝ]HH”ÓÓ‹œ\œÙJZ[ŠNÂˆ™]\›ˆ]KœÜ˜È]Kš[YÈ]Kœ]]K^\™OËœÜ˜ÈˆŽÂˆHØ]Ú
+Ù\œ›ÜŠHÈ™]\›ˆZ[‹š[J
+NÈBŸB‚™[˜Ý[ÛˆXÝ]˜]R[XYÙQ›ÜÊ[
+HÂˆ[™š[™
+‹ÜKY›ÜZ[XYÙHŠK›ÛŠ™˜YÛÝ™\ˆ‹]™[OˆÈ]™[œ™]™[Y˜][
+
+NÈ]™[˜Ý\œ™[\™Ù]˜Û\ÜÓ\Ý˜Y
+š\ËY˜YÛÝ™\ˆŠNÈJNÂˆ[™š[™
+‹ÜKY›ÜZ[XYÙHŠK›ÛŠ™˜YÛX]™H‹]™[Oˆ]™[˜Ý\œ™[\™Ù]˜Û\ÜÓ\Ýœ™[[Ý™Jš\ËY˜YÛÝ™\ˆŠJNÂˆ[™š[™
+‹ÜKY›ÜZ[XYÙHŠK›ÛŠ™›Ü‹]™[OˆÂˆ]™[œ™]™[Y˜][
+
+NÈ]™[˜Ý\œ™[\™Ù]˜Û\ÜÓ\Ýœ™[[Ý™Jš\ËY˜YÛÝ™\ˆŠNÂˆÛÛœÝ]H›ÜY\ÜÙ]]
+]™[
+NÂˆYˆ
+]
+H	
+]™[˜Ý\œ™[\™Ù]
+K˜[
+]
+KšYÙÙ\Š˜Ú[™ÙHŠNÂˆJNÂŸB‚‚™[˜Ý[ÛˆÙ]YÚÛÛ™Q]J][JHÂˆÛÛœÝÝÜ™YH][OË™Ù]›YÏËŠSÑSWÒQ›YÚÛÛ™HŠHÏÈßNÂˆ™]\›ˆÂˆ[˜X›Yˆ›ÛÛX[ŠÝÜ™Y™[˜X›Y
+Kˆ]YˆÝš[™ÊÝÜ™Yœ]YˆŠKˆ\ØÜš\[ÛŽˆÝš[™ÊÝÜ™Y™\ØÜš\[ÛˆÏÈ][OËœÞ\Ý[OË™\ØÜš\[ÛË˜[YHÏÈˆŠKˆ[XYÙNˆÝš[™ÊÝÜ™Yš[XYÙH][OËš[YÈšXÛÛœËÜÝ™ËÚ][KX˜YËœÝ™ÈŠBˆNÂŸB‚™[˜Ý[Ûˆ\ÓYÚÛÛ™J][JHÂˆ™]\›ˆ›ÛÛX[Š][OË™Ù]›YÏËŠSÑSWÒQ›YÚÛÛ™HŠOË™[˜X›Y
+NÂŸB‚™[˜Ý[Ûˆ\]Z\YYÚÛÛ™JXÝÜŠHÂˆÛÛœÝ][RYHÝš[™ÊXÝÜË™Ù]›YÏËŠSÑSWÒQœÙ[XÝYYÚÛÛ™R][RYŠHˆŠNÂˆ™]\›ˆ][RYÈXÝÜ‹š][\ÏË™Ù]
+][RY
+HÏÈ[ˆ[ÂŸB‚˜\Þ[˜È[˜Ý[Ûˆ[œÝ\™SYÚÛÛ™Q›Û\Š
+HÂˆ]›Û\ˆH\œ˜^K™œ›ÛJØ[YK™›Û\œÈÏÈ×JK™š[™
+[žHOˆ[žK\HOOH’][Hˆ	‰ˆ[žK›˜[YHOOH“YÚÛÛ™\ÈŠNÂˆYˆ
+Y›Û\ŠH›Û\ˆH]ØZ]›Û\‹˜Ü™X]JÛ˜[YNˆ“YÚÛÛ™\È‹\Nˆ’][HŸJNÂˆ™]\›ˆ›Û\ŽÂŸB‚™[˜Ý[ÛˆYÚÛÛ™Q›Û\“Ü[ÛœÊÙ[XÝYYHˆŠHÂˆ™]\›ˆ\œ˜^K™œ›ÛJØ[YK™›Û\œÈÏÈ×JBˆ™š[\Š›Û\ˆOˆ›Û\‹\HOOH’][HŠBˆœÛÜ
+
+KŠHOˆÝš[™ÊK›˜[YJK›ØØ[PÛÛ\\™JÝš[™Ê‹›˜[YJJJBˆ›X\
+›Û\ˆOˆÜ[Ûˆ˜[YOH‰Ù\ØØ\RS
+›Û\‹šY
+_Hˆ	Ù›Û\‹šYOOHÙ[XÝYYÈœÙ[XÝYˆˆˆŸO‰Ù\ØØ\RS
+›Û\‹›˜[YJ_OÛÜ[Û˜
+Bˆš›Ú[ŠˆŠNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆÜ[“YÚÛÛ™QÙ[™\˜]ÜŠ
+HÂˆYˆ
+YØ[YK\Ù\‹š\ÑÓJH™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š“Û›HHÓHØ[ˆÙ[™\˜]HYÚÛÛ™\ËˆŠNÂˆÛÛœÝ]ÈHÙ]]Ê
+NÂˆYˆ
+\]Ë›[™Ý
+H™]\›ˆZK››ÝYšXØ][ÛœËØ\›ŠÜ™X]H]X\ÝÛ™H]™Y›Ü™HÙ[™\˜][™ÈHYÚÛÛ™KˆŠNÂˆÛÛœÝÜ[ÛœÈH]Ë›X\
+]OˆÜ[Ûˆ˜[YOH‰Ù\ØØ\RS
+]šY
+_H‰Ù\ØØ\RS
+]›˜[YJ_OÛÜ[Û˜
+Kš›Ú[ŠˆŠNÂˆÛÛœÝY˜][›Û\ˆH]ØZ][œÝ\™SYÚÛÛ™Q›Û\Š
+NÂˆÛÛœÝ›Û\“Ü[ÛœÈHYÚÛÛ™Q›Û\“Ü[ÛœÊY˜][›Û\‹šY
+NÂˆÛÛœÝÛÛ[H›Ü›HÛ\ÜÏHÜK[YÚXÛÛ™KYÙ[™\˜]Üˆ‚ˆ]ˆÛ\ÜÏH™›Ü›KYÜ›Ý\X™[“˜[YOÛX™[]ˆÛ\ÜÏH™›Ü›KYšY[È[œ]\OH^ˆ˜[YOH›˜[YHˆXÙZÛ\H“YÚÛÛ™H˜[YHÙ]Ù]‚ˆ]ˆÛ\ÜÏH™›Ü›KYÜ›Ý\X™[”]ÛX™[]ˆÛ\ÜÏH™›Ü›KYšY[ÈÙ[XÝ˜[YOHœ]Y‰ÛÜ[ÛœßOÜÙ[XÝÙ]Ù]‚ˆ]ˆÛ\ÜÏH™›Ü›KYÜ›Ý\X™[“YÚÛÛ™H[XYÙOÛX™[]ˆÛ\ÜÏH™›Ü›KYšY[È[œ]\OH^ˆ˜[YOHš[XYÙHˆ˜[YOHšXÛÛœËÜÝ™ËÚ][KX˜YËœÝ™È]Ûˆ\OH˜]ÛˆˆÛ\ÜÏH™š[K\XÚÙ\ˆˆ]K]\OHš[XYÙHˆ]K]\™Ù]Hš[XYÙHHÛ\ÜÏH™˜\È˜KYš[KZ[\ÜÚOØ]ÛÙ]Ù]‚ˆ]ˆÛ\ÜÏH™›Ü›KYÜ›Ý\X™[•\™Ù]][H›Û\ÛX™[]ˆÛ\ÜÏH™›Ü›KYšY[ÈÙ[XÝ˜[YOH™›Û\’Y‰Ù›Û\“Ü[ÛœßOÜÙ[XÝÙ]Ù]‚ˆ]ˆÛ\ÜÏH™›Ü›KYÜ›Ý\ÝXÚÙYX™[‘\ØÜš\[ÛÛX™[^\™XH˜[YOH™\ØÜš\[Ûˆˆ›ÝÜÏHŒLˆXÙZÛ\H“YÚÛÛ™HY™™XÝÈÝ^\™XOÙ]‚ˆÛ\ÜÏH››Ý\È•H]™\ÝšXÝ[Ûˆ[™HÚ[™H[œÙ\Y]]ÛX]XØ[H]HÜ[ˆ›Û\\˜Ø\ÙH^Ü‚ˆÙ›Ü›O˜ÂˆÛÛœÝX[ÙÈH™]ÈX[ÙÊÂˆ]Nˆ‘Ù[™\˜]H™]ÈYÚÛÛ™H‹ˆÛÛ[ˆ]ÛœÎˆÂˆÜ™X]NˆÂˆXÛÛŽˆ	ÏHÛ\ÜÏH™˜\È˜K\\ÈÚO‰ËˆX™[ˆÜ™X]H‹ˆØ[˜XÚÎˆ\Þ[˜È[OˆÂˆÛÛœÝ˜[YHHÝš[™Ê[™š[™
+	ÖÛ˜[YOH›˜[YH—IÊK˜[
+
+HˆŠKš[J
+NÂˆÛÛœÝ]YHÝš[™Ê[™š[™
+	ÖÛ˜[YOHœ]Y—IÊK˜[
+
+HˆŠNÂˆÛÛœÝ]H]Ë™š[™
+[žHOˆ[žKšYOOH]Y
+NÂˆYˆ
+[˜[YJH™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š‘[\ˆHYÚÛÛ™H˜[YKˆŠNÂˆYˆ
+\]
+H™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š”Ù[XÝH˜[Y]ˆŠNÂˆÛÛœÝ[XYÙHHÝš[™Ê[™š[™
+	ÖÛ˜[YOHš[XYÙH—IÊK˜[
+
+HšXÛÛœËÜÝ™ËÚ][KX˜YËœÝ™ÈŠKš[J
+NÂˆÛÛœÝ›Û\’YHÝš[™Ê[™š[™
+	ÖÛ˜[YOH™›Û\’Y—IÊK˜[
+
+HY˜][›Û\‹šY
+NÂˆÛÛœÝ›ÙHHÝš[™Ê[™š[™
+	ÖÛ˜[YOH™\ØÜš\[Ûˆ—IÊK˜[
+
+HˆŠKš[J
+NÂˆÛÛœÝ™\ÝšXÝ[ÛˆHÝ›Û™Ï•H“ÓÕÒS‘ÈQ‘‘PÕÈÓ“HÓÔ’ÈÓˆÒTPÕT”ÈÑˆHUÑˆ	Ù\ØØ\RS
+]›˜[YJKÕ\\Ø\ÙJ
+_OÜÝ›Û™ÏÜ˜ÂˆÛÛœÝ\ØÜš\[ÛˆH	Ü™\ÝšXÝ[ÛŸW‰Ø›Ù_XÂˆÛÛœÝYÚÛÛ™HHÙ[˜X›YˆYK]Y[XYÙK\ØÜš\[ÛŸNÂˆÛÛœÝ][HH]ØZ]][K˜Ü™X]JÂˆ˜[YKˆ\Nˆ›ÛÝ‹ˆ[YÎˆ[XYÙKˆ›Û\Žˆ›Û\’YˆÞ\Ý[NˆÙ\ØÜš\[ÛŽˆÝ˜[YNˆ\ØÜš\[ÛŸK]X[]NˆK][™[Y[ˆ_Kˆ›YÜÎˆÖÓSÑSWÒQNˆÛYÚÛÛ™__BˆJNÂˆZK››ÝYšXØ][ÛœËš[™›ÊÜ™X]YYÚÛÛ™Nˆ	Û˜[Y_K˜
+NÂˆ][OËœÚY]Ëœ™[™\ŠYJNÂˆBˆKˆØ[˜Ù[ˆÚXÛÛŽˆ	ÏHÛ\ÜÏH™˜\È˜K][Y\ÈÚO‰ËX™[ˆØ[˜Ù[ŸBˆKˆY˜][ˆ˜Ü™X]H‚ˆJNÂˆÛÚÜË›Û˜ÙJœ™[™\‘X[ÙÈ‹™[™\™YOˆÂˆYˆ
+™[™\™YOOHX[ÙÊH™]\›ŽÂˆ™[™\™Y™[[Y[™š[™
+‹™š[K\XÚÙ\ˆŠK›ÛŠ˜ÛXÚÈ‹]™[OˆÂˆÛÛœÝ\™Ù]H]™[˜Ý\œ™[\™Ù]™]\Ù]\™Ù]ÂˆÛÛœÝ[œ]H™[™\™Y™[[Y[™š[™
+Û˜[YOH‰Ý\™Ù]H—X
+NÂˆ™]Èš[TXÚÙ\ŠÝ\Nˆš[XYÙH‹Ý\œ™[ˆ[œ]˜[
+
+KØ[˜XÚÎˆ]Oˆ[œ]˜[
+]
+_JK˜œ›ÝÜÙJ
+NÂˆJNÂˆJNÂˆX[ÙËœ™[™\ŠYJNÂŸB‚™[˜Ý[ÛˆYÚÛÛ™P][™[Y[\]J][K\]Z\Y
+HÂˆÛÛœÝÚ[™Ù\ÈHßNÂˆÛÛœÝÝ]T]H›YÜË‰ÓSÑSWÒQK›YÚÛÛ™P][™[Y[Ý]XÂˆÛÛœÝ›Ü\Y\ÈH™]ÈÙ]
+\œ˜^K™œ›ÛJ][OËœÞ\Ý[OËœ›Ü\Y\ÈÏÈ×JJNÂˆÛÛœÝØ]™YH][OË™Ù]›YÏËŠSÑSWÒQ›YÚÛÛ™P][™[Y[Ý]HŠNÂˆÛÛœÝÝ\ÜÐ][™[Y[H›Ý[™žK][Ëš\Ô›Ü\J][KœÞ\Ý[K˜][™[Y[ŠBˆ	‰ˆ›Ý[™žK][Ëš\Ô›Ü\J][KœÞ\Ý[K˜][™YŠNÂˆYˆ
+\]Z\Y
+HÂˆËÈÛÝ][\È]™H›È][™[Y[šY[È[ˆ	‘YKˆZ\ˆÙ[XÝYYÚÛÛ™BˆËÈÛÛœÝ[Y\ÈHš\X[ÛÝ[ˆH™\\™YÚY]ÛÛ^[œÝXY‚ˆYˆ
+\Ý\ÜÐ][™[Y[
+H™]\›ˆÚ[™Ù\ÎÂˆYˆ
+\Ø]™Y
+HÂˆÚ[™Ù\ÖÜÝ]T]HHÂˆ][™[Y[ˆ][OËœÞ\Ý[OË˜][™[Y[ˆ][™Yˆ›ÛÛX[Š][OËœÞ\Ý[OË˜][™Y
+KˆYXYÚXÎˆ›Ü\Y\Ëš\Ê›YØÈŠBˆNÂˆBˆËÈ	‘YHKŒÈÛX\œÈ][™[Y[\š[™È]H™\\˜][Ûˆ[›\ÜÈH][H\ÂˆËÈHXYÚXØ[›Ü\KÛÈYÚÛÛ™\È™YY]›Üˆ\ÈÛ™È\È^H\™HÙ[XÝY‚ˆ›Ü\Y\Ë˜Y
+›YØÈŠNÂˆÚ[™Ù\ÖÈœÞ\Ý[Kœ›Ü\Y\È—HH\œ˜^K™œ›ÛJ›Ü\Y\ÊNÂˆYˆ
+›Ý[™žK][Ëš\Ô›Ü\J][KœÞ\Ý[K˜][™[Y[ŠJHÚ[™Ù\ÖÈœÞ\Ý[K˜][™[Y[—HH›Ü[Û˜[ŽÂˆYˆ
+›Ý[™žK][Ëš\Ô›Ü\J][KœÞ\Ý[K˜][™YŠJHÚ[™Ù\ÖÈœÞ\Ý[K˜][™Y—HHYNÂˆH[ÙHÂˆYˆ
+Ø]™Y	‰ˆ\Ø]™YšYXYÚXÊH›Ü\Y\Ë™[]J›YØÈŠNÂˆÚ[™Ù\ÖÈœÞ\Ý[Kœ›Ü\Y\È—HH\œ˜^K™œ›ÛJ›Ü\Y\ÊNÂˆYˆ
+›Ý[™žK][Ëš\Ô›Ü\J][KœÞ\Ý[K˜][™[Y[ŠJHÚ[™Ù\ÖÈœÞ\Ý[K˜][™[Y[—HHØ]™YË˜][™[Y[ÏÈˆŽÂˆYˆ
+›Ý[™žK][Ëš\Ô›Ü\J][KœÞ\Ý[K˜][™YŠJHÚ[™Ù\ÖÈœÞ\Ý[K˜][™Y—HHØ]™YË˜][™YÏÈ˜[ÙNÂˆYˆ
+Ø]™Y
+HÚ[™Ù\ÖØ›YÜË‰ÓSÑSWÒQK‹O[YÚÛÛ™P][™[Y[Ý]XHH[ÂˆBˆ™]\›ˆÚ[™Ù\ÎÂŸB‚™[˜Ý[Ûˆ][R\Ð][™Y
+][JHÂˆÛÛœÝ][™[Y[H][OËœÞ\Ý[OË˜][™[Y[Âˆ™]\›ˆ][OËœÞ\Ý[OË˜][™YOOHYH][™[Y[OOHˆÝš[™Ê][™[Y[ˆŠKÓÝÙ\Ø\ÙJ
+HOOH˜][™YŽÂŸB‚™[˜Ý[ÛˆXÝÜ][™[Y[Ø\XÚ]JXÝÜŠHÂˆÛÛœÝ]šX]\ÈHXÝÜËœÞ\Ý[OË˜]šX]\ÈÏÈßNÂˆÛÛœÝÛÛ™šYÝ\™YH[X™\Š]šX]\Ë˜][™[Y[Ë›X^ÏÈ]šX]\Ë˜][™[Y[X^ÏÈÊNÂˆ™]\›ˆ[X™\‹š\Ñš[š]JÛÛ™šYÝ\™Y
+HÈX]›X^
+ÛÛ™šYÝ\™Y
+HˆÎÂŸB‚™[˜Ý[ÛˆXÝÜ][™Y][PÛÝ[
+XÝÜŠHÂˆÛÛœÝ˜]]™PÛÝ[H\œ˜^K™œ›ÛJXÝÜËš][\ÈÏÈ×JK™š[\Š][R\Ð][™Y
+K›[™ÝÂˆÛÛœÝÛÛ™HH\]Z\YYÚÛÛ™JXÝÜŠNÂˆ™]\›ˆ˜]]™PÛÝ[
+È
+ÛÛ™H	‰ˆZ][R\Ð][™Y
+ÛÛ™JHÈHˆ
+NÂŸB‚˜\Þ[˜È[˜Ý[Ûˆ™\Z\”Ù[XÝYYÚÛÛ™P][™[Y[Ê
+HÂˆYˆ
+YØ[YK\Ù\‹š\ÑÓJH™]\›ŽÂˆ›Üˆ
+ÛÛœÝXÝÜˆÙˆØ[YK˜XÝÜœË™š[\Š[žHOˆ[žK\HOOH˜Ú\˜XÝ\ˆŠJHÂˆÛÛœÝ][HH\]Z\YYÚÛÛ™JXÝÜŠNÂˆYˆ
+Z][JHÛÛ[YNÂˆÛÛœÝÝ\ÜÐ][™[Y[H›Ý[™žK][Ëš\Ô›Ü\J][KœÞ\Ý[K˜][™[Y[ŠBˆ	‰ˆ›Ý[™žK][Ëš\Ô›Ü\J][KœÞ\Ý[K˜][™YŠNÂˆ]Ú[™Ù\ÈHßNÂˆËÈÛX[ˆ\HXYÚXØ[›Ü\HYYÈÛÝžHŒ‹ŒKNÈÛÝ\Ù\ÈBˆËÈš\X[Ù[XÝYSYÚPÛÛ™HÛÝ™XØ]\ÙH]ÈØÚ[XHØ[››Ý™H][™Y‚ˆYˆ
+\Ý\ÜÐ][™[Y[	‰ˆ][K™Ù]›YÊSÑSWÒQ›YÚÛÛ™P][™[Y[Ý]HŠJHÚ[™Ù\ÈHYÚÛÛ™P][™[Y[\]J][K˜[ÙJNÂˆ[ÙHYˆ
+Ý\ÜÐ][™[Y[	‰ˆZ][R\Ð][™Y
+][JJHÚ[™Ù\ÈHYÚÛÛ™P][™[Y[\]J][KYJNÂˆYˆ
+Øš™XÝšÙ^\ÊÚ[™Ù\ÊK›[™Ý
+H]ØZ]][K\]JÚ[™Ù\ËÝÜSYÚÛÛ™TÙ[XÝ[ÛŽˆY_JNÂˆBŸB‚™[˜Ý[Ûˆ™\\™SYÚÛÛ™P][™[Y[ÛÛ^
+\Ü\YÛÛ^
+HÂˆÛÛœÝXÝÜˆH\Ë˜XÝÜˆÏÈ\Ë™ØÝ[Y[ÂˆÛÛœÝ][™[Y[HÛÛ^ËœÞ\Ý[OË˜]šX]\ÏË˜][™[Y[ÂˆYˆ
+XÝÜË™ØÝ[Y[˜[YHOOHXÝÜˆˆXÝÜ‹\HOOH˜Ú\˜XÝ\ˆˆX][™[Y[
+H™]\›ŽÂˆ][™[Y[˜[YHHXÝÜ][™Y][PÛÝ[
+XÝÜŠNÂŸB‚˜\Þ[˜È[˜Ý[Ûˆ[™\]Z\YÚÛÛ™J][JHÂˆÛÛœÝXÝÜˆH][OËœ\™[ÂˆYˆ
+JØ[YK\Ù\‹š\ÑÓHXÝÜËš\ÓÝÛ™\ŠH\]Z\YYÚÛÛ™JXÝÜŠOËšYOOH][OËšY
+H™]\›ŽÂˆÛÛœÝ][™[Y[HYÚÛÛ™P][™[Y[\]J][K˜[ÙJNÂˆYˆ
+Øš™XÝšÙ^\Ê][™[Y[
+K›[™Ý
+H]ØZ]][K\]J][™[Y[ÝÜSYÚÛÛ™TÙ[XÝ[ÛŽˆY_JNÂˆ]ØZ]XÝÜ‹[œÙ]›YÊSÑSWÒQœÙ[XÝYYÚÛÛ™R][RYŠNÂˆÛX\“YÚÛÛ™PÛÛ^˜XÚÙ›Ü
+XÝÜ‹œÚY]Ë™[[Y[Ëšœ]Y\žHÈXÝÜ‹œÚY]™[[Y[ÌHˆXÝÜ‹œÚY]Ë™[[Y[
+NÂˆXÝÜ‹œÚY]Ëœ™[™\Š˜[ÙJNÂˆZK››ÝYšXØ][ÛœËš[™›Ê	Ú][K›˜[Y_HØ\È[™\]Z\Y\È	ØXÝÜ‹›˜[Y_IÜÈYÚÛÛ™K˜
+NÂŸB‚˜\Þ[˜È[˜Ý[ÛˆÙ[XÝYÚÛÛ™R][J][JHÂˆÛÛœÝXÝÜˆH][OËœ\™[ÂˆYˆ
+JØ[YK\Ù\‹š\ÑÓHXÝÜËš\ÓÝÛ™\ŠHXÝÜË™ØÝ[Y[˜[YHOOHXÝÜˆˆXÝÜ‹\HOOH˜Ú\˜XÝ\ˆŠH™]\›ŽÂˆÛÛœÝÝ\œ™[H\]Z\YYÚÛÛ™JXÝÜŠNÂˆYˆ
+Ý\œ™[ËšYOOH][KšY
+H™]\›ˆ[™\]Z\YÚÛÛ™J][JNÂˆYˆ
+XÝ\œ™[	‰ˆZ][R\Ð][™Y
+][JJHÂˆÛÛœÝ\ÙYHXÝÜ][™Y][PÛÝ[
+XÝÜŠNÂˆÛÛœÝX^[][HHXÝÜ][™[Y[Ø\XÚ]JXÝÜŠNÂˆYˆ
+\ÙYHX^[][JH™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š	ØXÝÜ‹›˜[Y_H[™XYH\ÈHX^[][HÙˆ	ÛX^[][_H][™Y][\Ë˜
+NÂˆBˆYˆ
+Ý\œ™[
+HÂˆÛÛœÝÛÛ™š\›YYH]ØZ]X[ÙË˜ÛÛ™š\›JÂˆ]Nˆ”ÝÚ]ÚYÚÛÛ™\ÏÈ‹ˆÛÛ[ˆÝ›Û™Ï‰Ù\ØØ\RS
+XÝÜ‹›˜[YJ_OÜÝ›Û™Ïˆ\ÈÝ\œ™[H\Ú[™ÈÝ›Û™Ï‰Ù\ØØ\RS
+Ý\œ™[›˜[YJ_OÜÝ›Û™Ï‹Ü•[™\]Z\][™\]Z\Ý›Û™Ï‰Ù\ØØ\RS
+][K›˜[YJ_OÜÝ›Û™Ïˆ[œÝXYÏÜ˜ˆY\Îˆ
+
+HOˆYKˆ›Îˆ
+
+HOˆ˜[ÙKˆY˜][Y\Îˆ˜[ÙBˆJNÂˆYˆ
+XÛÛ™š\›YY
+H™]\›ˆZK››ÝYšXØ][ÛœËš[™›Ê	ØÝ\œ™[›˜[Y_H™[XZ[œÈ\]Z\Y›Üˆ	ØXÝÜ‹›˜[Y_K˜
+NÂˆBˆÛÛœÝ™]Ð][™[Y[HYÚÛÛ™P][™[Y[\]J][KYJNÂˆYˆ
+Øš™XÝšÙ^\Ê™]Ð][™[Y[
+K›[™Ý
+H]ØZ]][K\]J™]Ð][™[Y[ÝÜSYÚÛÛ™TÙ[XÝ[ÛŽˆY_JNÂˆžHÂˆYˆ
+Ý\œ™[
+HÂˆÛÛœÝÛ][™[Y[HYÚÛÛ™P][™[Y[\]JÝ\œ™[˜[ÙJNÂˆYˆ
+Øš™XÝšÙ^\ÊÛ][™[Y[
+K›[™Ý
+H]ØZ]Ý\œ™[\]JÛ][™[Y[ÝÜSYÚÛÛ™TÙ[XÝ[ÛŽˆY_JNÂˆBˆ]ØZ]XÝÜ‹œÙ]›YÊSÑSWÒQœÙ[XÝYYÚÛÛ™R][RY‹][KšY
+NÂˆHØ]Ú
+\œ›ÜŠHÂˆÛÛœÝ›Û˜XÚÈHYÚÛÛ™P][™[Y[\]J][K˜[ÙJNÂˆYˆ
+Øš™XÝšÙ^\Ê›Û˜XÚÊK›[™Ý
+H]ØZ]][K\]J›Û˜XÚËÝÜSYÚÛÛ™TÙ[XÝ[ÛŽˆY_JK˜Ø]Ú
+
+
+HOˆßJNÂˆ›ÝÈ\œ›ÜŽÂˆBˆÛX\“YÚÛÛ™PÛÛ^˜XÚÙ›Ü
+XÝÜ‹œÚY]Ë™[[Y[Ëšœ]Y\žHÈXÝÜ‹œÚY]™[[Y[ÌHˆXÝÜ‹œÚY]Ë™[[Y[
+NÂˆXÝÜ‹œÚY]Ëœ™[™\Š˜[ÙJNÂˆZK››ÝYšXØ][ÛœËš[™›Ê	Ú][K›˜[Y_H\È›ÝÈ\]Z\Y\È	ØXÝÜ‹›˜[Y_IÜÈYÚÛÛ™K˜
+NÂŸB‚™[˜Ý[ÛˆÛX\“YÚÛÛ™PÛÛ^˜XÚÙ›Ü
+›ÛÝ[[Y[
+HÂˆ	
+ˆÝÜK[YÚXÛÛ™KXÛÛ^Y˜[˜XÚÈŠKœ™[[Ý™J
+NÂˆÛÛœÝ›ÛÝH	
+›ÛÝ[[Y[ÏÈ×JNÂˆ›ÛÝ™š[\Š‹˜ÛÛ^ŠK˜Y
+›ÛÝ™š[™
+‹˜ÛÛ^ŠJKœ™[[Ý™PÛ\ÜÊ˜ÛÛ^ŠNÂˆ›ÛÝ™š[\Š‹˜ÛÛ^[Y[K[Ü[ˆŠK˜Y
+›ÛÝ™š[™
+‹˜ÛÛ^[Y[K[Ü[ˆŠJKœ™[[Ý™PÛ\ÜÊ˜ÛÛ^[Y[K[Ü[ˆŠNÂˆØÝ[Y[˜›ÙOË˜Û\ÜÓ\Ýœ™[[Ý™J˜ÛÛ^‹˜ÛÛ^[Y[K[Ü[ˆŠNÂŸB‚™[˜Ý[ÛˆXÝ]˜]SYÚÛÛ™R[™[ÜžPÛÛ^
+\[
+HÂˆÛÛœÝXÝÜˆH\˜XÝÜˆÏÈ\™ØÝ[Y[ÂˆYˆ
+JØ[YK\Ù\‹š\ÑÓHXÝÜËš\ÓÝÛ™\ŠHXÝÜË™ØÝ[Y[˜[YHOOHXÝÜˆˆXÝÜ‹\HOOH˜Ú\˜XÝ\ˆŠH™]\›ŽÂˆÛÛœÝ™[™\™Y›ÛÝH[Ëšœ]Y\žHÈ[ÌHˆ[ÂˆÛÛœÝ\›ÛÝH\™[[Y[Ëšœ]Y\žHÈ\™[[Y[ÌHˆ\™[[Y[ÂˆÛÛœÝ›ÛÝ[[Y[H\›ÛÝÏÈ™[™\™Y›ÛÝÂˆYˆ
+\›ÛÝ[[Y[
+H™]\›ŽÂˆÛX\“YÚÛÛ™PÛÛ^˜XÚÙ›Ü
+›ÛÝ[[Y[
+NÂˆYˆ
+›ÛÝ[[Y[™]\Ù]ÜSYÚÛÛ™PÛÛ^OOHYHŠH™]\›ŽÂˆ›ÛÝ[[Y[™]\Ù]ÜSYÚÛÛ™PÛÛ^HYHŽÂ‚ˆ›ÛÝ[[Y[˜Y]™[\Ý[™\Š˜ÛÛ^Y[H‹]™[OˆÂˆÛÛœÝ›ÝÈH]™[\™Ù]˜ÛÜÙ\ÝËŠ–Ù]KZ][KZYKÙ]KYØÝ[Y[ZYKÙ]KY[žKZYKÙ]KZYKš][Kš][HŠNÂˆÛÛœÝ][RYH›ÝÏË™]\Ù]Ëš][RY›ÝÏË™]\Ù]Ë™ØÝ[Y[Y›ÝÏË™]\Ù]Ë™[žRY›ÝÏË™]\Ù]ËšYÂˆÛÛœÝ][HHXÝÜ‹š][\Ë™Ù]
+][RY
+NÂˆYˆ
+Z][JH™]\›ŽÂˆÛÛœÝ\Ñ\]Z\YH\]Z\YYÚÛÛ™JXÝÜŠOËšYOOH][KšYÂˆÛÛœÝÚ[\ˆHÞˆ]™[˜ÛY[Nˆ]™[˜ÛY[_NÂ‚ˆÛÛœÝXÝ]˜]HHXÝ]˜]Q]™[OˆÂˆXÝ]˜]Q]™[œ™]™[Y˜][
+
+NÂˆ	
+ˆÝÜK[YÚXÛÛ™KXÛÛ^Y˜[˜XÚÈŠKœ™[[Ý™J
+NÂˆÛÛœÝÜ\˜][ÛˆH\Ñ\]Z\YÈ[™\]Z\YÚÛÛ™J][JHˆÙ[XÝYÚÛÛ™R][J][JNÂˆÚ[™ÝËœÙ][Y[Ý]
+
+
+HOˆÂˆØÝ[Y[˜›ÙOË™\Ü]Ú]™[
+™]È[Ý\ÙQ]™[
+˜ÛXÚÈ‹ØX˜›\ÎˆYKØ[˜Ù[X›NˆY_JJNÂˆÛX\“YÚÛÛ™PÛÛ^˜XÚÙ›Ü
+›ÛÝ[[Y[
+NÂˆK
+NÂˆ™]\›ˆÜ\˜][ÛŽÂˆNÂˆÛÛœÝX™[H\Ñ\]Z\YÈ•[™\]Z\YÚÛÛ™Hˆˆ”Ù[XÝ\ÈYÚÛÛ™HŽÂˆÛÛœÝXÛÛˆH\Ñ\]Z\YÈ™˜K[[šË\Û\Úˆˆ™˜KZYXØ\™ŽÂˆÛÛœÝÜ[Û“X\šÝ\HHÛ\ÜÏH™˜\È	ÚXÛÛŸH˜KYÈÚOÜ[‰ÛX™[OÜÜ[˜Â‚ˆÛÛœÝYÜ[ÛˆH][\ÈOˆÂˆÛÛœÝY[\ÈH	
+ˆØÛÛ^[Y[Nš\ÚX›K˜ÛÛ^[Y[Nš\ÚX›KÙ]KX\XØ][Û‹\\IØÛÛ^[Y[I×Nš\ÚX›KÜ›ÛOIÛY[I×Nš\ÚX›HŠK››Ý
+ˆÝÜK[YÚXÛÛ™KXÛÛ^Y˜[˜XÚÈŠNÂˆÛÛœÝY[HHY[\Ë›\Ý
+
+NÂˆYˆ
+Y[K›[™Ý
+HÂˆÛÛœÝ™\ÝY\ÝHY[K™š[™
+‹˜ÛÛ^Z][\ËÛ[Y[HŠK™š\œÝ
+
+NÂˆÛÛœÝ\ÝH™\ÝY\Ý›[™ÝÈ™\ÝY\ÝˆY[NÂˆY[K™š[™
+–Ù]K]ÜK\Ù[XÝ[YÚXÛÛ™WHŠKœ™[[Ý™J
+NÂˆÛÛœÝÜ[ÛˆH	
+HÛ\ÜÏH˜ÛÛ^Z][Hˆ]K]ÜK\Ù[XÝ[YÚXÛÛ™HXš[™^HŒ‰ÛÜ[Û“X\šÝ\OÛO˜
+NÂˆ\Ý˜\[™
+Ü[ÛŠNÂˆÜ[Û‹›ÛŠ˜ÛXÚËÜH‹XÝ]˜]JNÂˆÜ[Û‹›ÛŠšÙ^YÝÛ‹ÜH‹Ù^Q]™[OˆÂˆYˆ
+Ù^Q]™[šÙ^HOOH‘[\ˆˆÙ^Q]™[šÙ^HOOHˆŠHXÝ]˜]JÙ^Q]™[
+NÂˆJNÂˆ™]\›ŽÂˆBˆYˆ
+][\ÈLŠH™]\›ˆ™\]Y\Ý[š[X][Û‘œ˜[YJ
+
+HOˆYÜ[ÛŠ][\È
+ÈJJNÂˆ	
+ˆÝÜK[YÚXÛÛ™KXÛÛ^Y˜[˜XÚÈŠKœ™[[Ý™J
+NÂˆÛÛœÝ˜[˜XÚÈH	
+˜]ˆYHÜK[YÚXÛÛ™KXÛÛ^Y˜[˜XÚÈˆÛ\ÜÏHÜK[YÚXÛÛ™KXÛÛ^Y˜[˜XÚÈˆ›ÛOH›Y[H]Ûˆ\OH˜]Ûˆ‰ÛÜ[Û“X\šÝ\OØ]ÛÛ˜]˜
+NÂˆ˜[˜XÚË˜ÜÜÊÛYˆ	ÜÚ[\‹ž\Üˆ	ÜÚ[\‹ž_\JK˜\[™ÊØÝ[Y[˜›ÙJNÂˆ˜[˜XÚË™š[™
+˜]ÛˆŠK›ÛŠ˜ÛXÚËÜH‹XÝ]˜]JNÂˆÚ[™ÝËœÙ][Y[Ý]
+
+
+HOˆÂˆÛÛœÝ\ÛZ\ÜÈH\ÛZ\ÜÑ]™[OˆÂˆYˆ
+Y\ÛZ\ÜÑ]™[\™Ù]˜ÛÜÙ\ÝËŠˆÝÜK[YÚXÛÛ™KXÛÛ^Y˜[˜XÚÈŠJH˜[˜XÚËœ™[[Ý™J
+NÂˆØÝ[Y[œ™[[Ý™Q]™[\Ý[™\ŠœÚ[\™ÝÛˆ‹\ÛZ\ÜËYJNÂˆNÂˆØÝ[Y[˜Y]™[\Ý[™\ŠœÚ[\™ÝÛˆ‹\ÛZ\ÜËYJNÂˆK
+NÂˆNÂˆ™\]Y\Ý[š[X][Û‘œ˜[YJ
+
+HOˆYÜ[ÛŠ
+JNÂˆKYJNÂŸB‚˜\Þ[˜È[˜Ý[Ûˆ[š™XÝYÚÛÛ™T[™[
+\›ÛÝÜÝ
+HÂˆÛÛœÝXÝÜˆH\˜XÝÜˆÏÈ\™ØÝ[Y[ÂˆÛÛœÝ™[™\’Ù^HH›Ý[™žK][Ëœ˜[™ÛRQ
+
+NÂˆ›ÛÝ˜]Š™]K]ÜK[YÚXÛÛ™K\™[™\ˆ‹™[™\’Ù^JNÂˆ›ÛÝ™š[™
+–Ù]K]ÜK[YÚXÛÛ™WHŠKœ™[[Ý™J
+NÂˆÛÛœÝ][HH\]Z\YYÚÛÛ™JXÝÜŠNÂˆ]\ØÜš\[ÛˆHˆŽÂˆ]ÛÛ™HH[Âˆ]]H[Âˆ]Z\ÛX]ÚH˜[ÙNÂˆYˆ
+][JHÂˆÛÛ™HHÙ]YÚÛÛ™Q]J][JNÂˆÛÛœÝXÝÜ”]YHÝš[™ÊÙ]ÛÛ™šYÊXÝÜŠKœ]YˆŠNÂˆZ\ÛX]ÚH›ÛÛX[ŠÛÛ™Kœ]Y	‰ˆXÝÜ”]Y	‰ˆÛÛ™Kœ]YOOHXÝÜ”]Y
+NÂˆ]HÙ]]Ê
+K™š[™
+[žHOˆ[žKšYOOHÛÛ™Kœ]Y
+NÂˆ\ØÜš\[ÛˆH]ØZ]^Y]Ü‹™[œšXÚS
+ÛÛ™K™\ØÜš\[Û‹Ø\Þ[˜ÎˆYKÙXÜ™]ÎˆXÝÜ‹š\ÓÝÛ™\ŸJNÂˆBˆYˆ
+›ÛÝ˜]Š™]K]ÜK[YÚXÛÛ™K\™[™\ˆŠHOOH™[™\’Ù^JH™]\›ŽÂˆÛÛœÝ[™[H][HÈ	
+\XÛHÛ\ÜÏHÜK[YÚXÛÛ™KXØ\™	ÛZ\ÛX]ÚÈœ][Z\ÛX]ÚˆˆˆŸHˆ]K]ÜK[YÚXÛÛ™H]KZ][K]]ZYH‰Ù\ØØ\RS
+][K]ZY
+_H‚ˆ]ˆÛ\ÜÏHÜK[YÚXÛÛ™KZ[XYÙH[YÈÜ˜ÏH‰Ù\ØØ\RS
+ÛÛ™Kš[XYÙJ_Hˆ[H‰Ù\ØØ\RS
+][K›˜[YJ_H]ˆÛ\ÜÏHÜK[YÚXÛÛ™KY\ØÜš\[Ûˆ‰Ù\ØÜš\[Ûˆ[O“›È\ØÜš\[ÛˆÛÛ™šYÝ\™YÙ[OˆŸOÙ]Ù]‚ˆ›ÛÝ\Ý›Û™Ï‰Ù\ØØ\RS
+][K›˜[YJ_OÜÝ›Û™ÏÜ[‰Ù\ØØ\RS
+]Ë›˜[YH[žH]Š_OÜÜ[Ù›ÛÝ\‚ˆØ\XÛO˜
+Hˆ	
+	Ï\XÛHÛ\ÜÏHÜK[YÚXÛÛ™KXØ\™[™\]Z\Yˆ]K]ÜK[YÚXÛÛ™O]ˆÛ\ÜÏHÜK[YÚXÛÛ™KZ[XYÙHÜK[YÚXÛÛ™KY[\HHÛ\ÜÏH™˜\È˜KZYXØ\™ÚOÜ[“›ÈYÚÛÛ™H\]Z\YÜÜ[Ù]›ÛÝ\Ý›Û™Ï•[™\]Z\YÜÝ›Û™ÏÜ[“YÚÛÛ™OÜÜ[Ù›ÛÝ\Ø\XÛO‰ÊNÂˆ
+ÜÝË›[™ÝÈÜÝˆ›ÛÝ
+K˜\[™
+[™[
+NÂŸB‚™[˜Ý[ÛˆYÚÛÛ™PÛÛ[[ÛÛÛZ[™\Š[[Y[Ë›ÛÝ[[Y[
+HÂˆÛÛœÝ›Ù\ÈH[[Y[Ë™š[\Š›ÛÛX[ŠNÂˆYˆ
+[›Ù\Ë›[™Ý
+H™]\›ˆ[Âˆ]Ø[™Y]HH›Ù\ÖÌKœ\™[[[Y[ÂˆÚ[H
+Ø[™Y]H	‰ˆØ[™Y]HOOH›ÛÝ[[Y[
+HÂˆYˆ
+›Ù\Ë™]™\žJ›ÙHOˆØ[™Y]K˜ÛÛZ[œÊ›ÙJJJH™]\›ˆØ[™Y]NÂˆØ[™Y]HHØ[™Y]Kœ\™[[[Y[ÂˆBˆ™]\›ˆ[ÂŸB‚™[˜Ý[Ûˆ[š™XÝYÚÛÛ™TÚY][™[
+\[
+HÂˆÛÛœÝXÝÜˆH\˜XÝÜˆÏÈ\™ØÝ[Y[ÂˆYˆ
+XÝÜË™ØÝ[Y[˜[YHOOHXÝÜˆˆXÝÜ‹\HOOH˜Ú\˜XÝ\ˆŠH™]\›ŽÂˆÛÛœÝ™[™\™Y›ÛÝH[Ëšœ]Y\žHÈ[ÌHˆ[ÂˆÛÛœÝ\›ÛÝH\™[[Y[Ëšœ]Y\žHÈ\™[[Y[ÌHˆ\™[[Y[ÂˆÛÛœÝ›ÛÝ[[Y[H\›ÛÝÏÈ™[™\™Y›ÛÝÂˆYˆ
+\›ÛÝ[[Y[
+H™]\›ŽÂˆÛÛœÝ›ÛÝH	
+›ÛÝ[[Y[
+NÂˆ›ÛÝ™š[™
+–Ù]K]ÜK[YÚXÛÛ™WHŠKœ™[[Ý™J
+NÂ‚ˆÛÛœÝY[]RYÈH\œ˜^K™œ›ÛJXÝÜ‹š][\ÈÏÈ×JBˆ™š[\Š][HOˆ][K\HOOHœ˜XÙHˆ][K\HOOH˜˜XÚÙÜ›Ý[™ŠBˆ›X\
+][HOˆ][KšY
+NÂˆÛÛœÝY[]T›ÝÜÈHY[]RYË™›]X\
+YOˆ›ÛÝ™š[™
+Ù]KZ][KZYH‰ÚYH—KÙ]KYØÝ[Y[ZYH‰ÚYH—KÙ]KY[žKZYH‰ÚYH—X
+KÐ\œ˜^J
+JNÂˆ]ÜÝ[[Y[HYÚÛÛ™PÛÛ[[ÛÛÛZ[™\ŠY[]T›ÝÜË›ÛÝ[[Y[
+NÂ‚ˆYˆ
+ZÜÝ[[Y[	‰ˆY[]T›ÝÜË›[™ÝOOHJHÜÝ[[Y[HY[]T›ÝÜÖÌKœ\™[[[Y[ÂˆYˆ
+ZÜÝ[[Y[
+HÂˆÛÛœÝY[]PÛÛ›ÛÈH›ÛÝ™š[™
+˜]Û‹Ü›ÛOIØ]Û‰×KÙ]KXXÝ[Û—HŠK™š[\Š
+Ú[™^›ÙJHOˆ×ŠYÙ[XÝ
+WÊÊ˜XÙ_˜XÚÙÜ›Ý[™
+IÚK\Ý
+›ÙK^ÛÛ[Ëœ™\XÙJ×ÊËÙËˆŠKš[J
+HˆŠJKÐ\œ˜^J
+NÂˆÜÝ[[Y[HYÚÛÛ™PÛÛ[[ÛÛÛZ[™\ŠY[]PÛÛ›ÛË›ÛÝ[[Y[
+NÂˆYˆ
+ZÜÝ[[Y[	‰ˆY[]PÛÛ›ÛË›[™ÝOOHJHÜÝ[[Y[HY[]PÛÛ›ÛÖÌKœ\™[[[Y[ÂˆB‚ˆYˆ
+ZÜÝ[[Y[
+HÂˆÛÛœÝXZ[•XˆH›ÛÝ™š[™
+	ËX–Ù]K]XH™]Z[È—KÙXÝ[Û–Ù]K]XH™]Z[È—KX–Ù]K]XH˜Ú\˜XÝ\ˆ—KÙXÝ[Û–Ù]K]XH˜Ú\˜XÝ\ˆ—KÙ]KX\XØ][Û‹\\H™]Z[È—IÊK™š[\Š
+Ú[™^›ÙJHOˆ[›ÙK˜ÛÜÙ\Ý
+–Ù]K]ÜK[YÚXÛÛ™WHŠJK™š\œÝ
+
+NÂˆÛÛœÝšYÚÛÛ[[ˆHXZ[•X‹™š[™
+	ÎœØÛÜHˆœšYÚœØÛÜHˆØÛ\ÜÊHœšYÚXÛÛ[[ˆ—KœØÛÜHˆØÛ\ÜÊH™]Z[ËXÛÛ[[ˆ—KœØÛÜHˆ›\ÝXÚ[	ÊK›\Ý
+
+NÂˆYˆ
+šYÚÛÛ[[‹›[™Ý
+HÜÝ[[Y[HšYÚÛÛ[[–ÌNÂˆB‚ˆÛÛœÝÜÝ™XÝHÜÝ[[Y[Ë™Ù]›Ý[™[™ÐÛY[™XÝËŠ
+NÂˆYˆ
+ZÜÝ[[Y[ÜÝ[[Y[OOH›ÛÝ[[Y[
+ÜÝ™XÝËÚY	‰ˆÜÝ™XÝÚYˆLŒ
+H	
+ÜÝ[[Y[
+Kš\Ê‹œÚY]X›ÙKÙ]KX\XØ][Û‹\\IØ›ÙI×KXˆŠJHÂˆÛÛœÛÛKØ\›Š	ÓSÑSWÒQHYÚÛÛ™Hœ˜[YHÜÝØ\È›Ý›Ý[™›Üˆ	ØXÝÜ‹›˜[Y_NÈ™Y\Ú[™ÈÈXÙH]Ý™\ˆ[ˆ\˜š]˜\žHÚY]X‹˜
+NÂˆ™]\›ŽÂˆBˆÛÛœÝÜÝH	
+ÜÝ[[Y[
+K˜YÛ\ÜÊÜK[YÚXÛÛ™K\ÚY]ZÜÝŠNÂˆ[š™XÝYÚÛÛ™T[™[
+\›ÛÝÜÝ
+NÂŸB‚˜\Þ[˜È[˜Ý[ÛˆÜÝYÚÛÛ™UÐÚ]
+][KXÝÜŠHÂˆYˆ
+Z][HXXÝÜˆJØ[YK\Ù\‹š\ÑÓHXÝÜ‹š\ÓÝÛ™\ŠJH™]\›ŽÂˆÛÛœÝÛÛ™HHÙ]YÚÛÛ™Q]J][JNÂˆÛÛœÝ]HÙ]]Ê
+K™š[™
+[žHOˆ[žKšYOOHÛÛ™Kœ]Y
+NÂˆÛÛœÝ\ØÜš\[ÛˆH]ØZ]^Y]Ü‹™[œšXÚS
+ÛÛ™K™\ØÜš\[Û‹Ø\Þ[˜ÎˆYKÙXÜ™]ÎˆXÝÜ‹š\ÓÝÛ™\ŸJNÂˆ]ØZ]Ú]Y\ÜØYÙK˜Ü™X]JÂˆÜXZÙ\ŽˆÚ]Y\ÜØYÙK™Ù]ÜXZÙ\ŠØXÝÜŸJKˆÛÛ[ˆÙXÝ[ÛˆÛ\ÜÏHÜK[YÚXÛÛ™KXÚ]XY\[YÈÜ˜ÏH‰Ù\ØØ\RS
+ÛÛ™Kš[XYÙJ_H]Ï‰Ù\ØØ\RS
+][K›˜[YJ_OÚÏÜ[‰Ù\ØØ\RS
+]Ë›˜[YH[žH]Š_HYÚÛÛ™OÜÜ[Ù]ÚXY\]ˆÛ\ÜÏHÜK[YÚXÛÛ™KXÚ]Y\ØÜš\[Ûˆ‰Ù\ØÜš\[Ûˆ[O“›È\ØÜš\[ÛˆÛÛ™šYÝ\™YÙ[OˆŸOÙ]ÜÙXÝ[Û˜ˆJNÂŸB‚˜\Þ[˜È[˜Ý[Ûˆ[š™XÝÚ\˜XÝ\˜YÙ\Ê\[
+HÂˆÛÛœÝXÝÜˆH\˜XÝÜˆÏÈ\™ØÝ[Y[ÂˆYˆ
+XÝÜË™ØÝ[Y[˜[YHOOHXÝÜˆˆXÝÜ‹\HOOH˜Ú\˜XÝ\ˆŠH™]\›ŽÂˆÛÛœÝ›ÛÝ[[Y[H[Ëšœ]Y\žHÈ[ÌHˆ[[œÝ[˜Ù[ÙˆS[[Y[È[ˆ\™[[Y[Ë–ÌHÏÈ\™[[Y[ÂˆYˆ
+\›ÛÝ[[Y[
+H™]\›ŽÂˆÛÛœÝ›ÛÝH	
+›ÛÝ[[Y[
+NÂˆ›ÛÝ™š[™
+–Ù]K]ÜKXÚ\˜XÝ\‹X˜YÙ\×HŠKœ™[[Ý™J
+NÂˆ›ÛÝ™š[™
+–Ù]K]ÜK][[XÛÝ[\—HŠKœ™[[Ý™J
+NÂˆÛÛœÝÛÛ™šYÈHÙ]ÛÛ™šYÊXÝÜŠNÂˆÛÛœÝ[[Y[HÙ][[Y[Ê
+K™š[™
+[žHOˆ[žKšYOOHÛÛ™šYË™[[Y[Y
+NÂˆÛÛœÝ]HÙ]]Ê
+K™š[™
+[žHOˆ[žKšYOOHÛÛ™šYËœ]Y
+NÂˆÛÛœÝ\S˜[YHHÝš[™ÊXÝÜ‹œÞ\Ý[OË™]Z[ÏË\OË˜[YHXÝÜ‹œÞ\Ý[OË™]Z[ÏË\HˆŠKš[J
+NÂˆÛÛœÝÜXÚY\ÐØ[™Y]\ÈH›ÛÝ™š[™
+	ËœÜXÚY\ËØÛ\ÜÊHœÜXÚY\È—KÙ]KXXÝ[ÛŠHœÜXÚY\È—KÙXÝ[Û‹]‰ÊK™š[\Š
+Ú[™^›ÙJHOˆÂˆÛÛœÝ™XÝH›ÙK™Ù]›Ý[™[™ÐÛY[™XÝ
+
+NÂˆÛÛœÝ^H›ÙK^ÛÛ[Ëœ™\XÙJ×ÊËÙËˆŠKš[J
+HÏÈˆŽÂˆÛÛœÝX]Ú\Õ\HH\S˜[YH	‰ˆ^ÓØØ[SÝÙ\Ø\ÙJ
+KœÝ\ÕÚ]
+\S˜[YKÓØØ[SÝÙ\Ø\ÙJ
+JNÂˆ™]\›ˆ™XÝÚYHML	‰ˆ™XÝÚYHL	‰ˆ™XÝšZYÚHÎ	‰ˆ™XÝšZYÚHL	‰ˆ
+X]Ú\Õ\H×’[X[›ÚY‹ÚK\Ý
+^
+JNÂˆJKÐ\œ˜^J
+KœÛÜ
+
+KŠHOˆ
+K™Ù]›Ý[™[™ÐÛY[™XÝ
+
+KÚY
+ˆK™Ù]›Ý[™[™ÐÛY[™XÝ
+
+KšZYÚ
+HH
+‹™Ù]›Ý[™[™ÐÛY[™XÝ
+
+KÚY
+ˆ‹™Ù]›Ý[™[™ÐÛY[™XÝ
+
+KšZYÚ
+JNÂˆ]ÜÝHÜXÚY\ÐØ[™Y]\Ë›[™ÝÈ	
+ÜXÚY\ÐØ[™Y]\ÖÌJHˆ	
+
+NÂˆÛÛœÝÜXÚY\ÒÜÝ›Ý[™H›ÛÛX[ŠÜÝ›[™Ý
+NÂˆYˆ
+ZÜÝ›[™Ý
+HÂˆÛÛœÝÜ˜Z]H›ÛÝ™š[™
+	Ú[YÖÙ]KYY]Hš[YÈ—K[YËœ›Ùš[K[YËœÜ˜Z]Ù]KX\XØ][Û‹\\HœÜ˜Z]—H[YÉÊK™š\œÝ
+
+NÂˆYˆ
+\Ü˜Z]›[™Ý
+H™]\›ŽÂˆÜÝHÜ˜Z]œ\™[
+
+K˜YÛ\ÜÊÜK\Ü˜Z]X˜YÙKZÜÝŠNÂˆH[ÙHÜÝ˜YÛ\ÜÊÜK\ÜXÚY\ËX˜YÙKZÜÝŠNÂˆYˆ
+ÜXÚY\ÒÜÝ›Ý[™
+HÂˆÛÛœÝ[[X^[][HHX]›X^
+X]™›ÛÜŠ[X™\ŠÛÛ™šYË[[Ú[ÓX^
+H
+JNÂˆÛÛœÝ[[Ý\œ™[HÝ\œ™[[[Ú[ÊXÝÜŠNÂˆÜÝ˜™Y›Ü™J]ˆÛ\ÜÏHÜK\ÚY]][[XÛÝ[\ˆˆ]K]ÜK][[XÛÝ[\ˆ]OH•[[Ú[È™\Ù]ÈÚ[ˆÛÛX˜]Ý\ÈÜ[HÛ\ÜÏH™˜\È˜K\Ý\ˆÚOˆ[[Ú[ÏÜÜ[Ý9Û}ú¶‰žËkºwµç[žHOˆ
+[žKšYÏÈ[žK™ØÝ[Y[ËšY
+HOOH
+\™Ù]šYÏÈ\™Ù]™ØÝ[Y[ËšY
+JNÂˆYˆ
+ÛÛ™šYË˜]XÚÙY[ÙHOOH\™Ù]Yˆ]
+H]ØZ]Y[™\™ÞJXÝÜ‹[™\™ÞQØZ[ŠÛÛ™šYË˜]XÚÙYŠK]Èš]ˆˆ\™Ù]YŠNÂˆBŸB‚˜Û\ÜÈ[[Y[X[˜YÙ\ˆ^[™È›Ü›P\XØ][ÛˆÂˆÝ]XÈÙ]Y˜][Ü[ÛœÊ
+HÂˆ™]\›ˆ›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+Ý\\‹™Y˜][Ü[ÛœËÂˆYˆÜKY[[Y[[X[˜YÙ\ˆ‹ˆ]Nˆ•[IÜÈÝ\ˆ˜Z[[[X]\È8 %[[Y[È‹ˆ[\]Nˆ[Ù[\ËÉÓSÑSWÒQKÝ[\]\ËÙ[[Y[[X[˜YÙ\‹šœØˆÚYˆMŒˆZYÚˆ˜]]È‹ˆÛÜÙSÛ”ÝX›Z]ˆYBˆJNÂˆBˆÙ]]J
+HÈ™]\›ˆÙ[[Y[Îˆ›Ý[™žK][Ë™Y\ÛÛ™JÙ][[Y[Ê
+J_NÈBˆXÝ]˜]S\Ý[™\œÊ[
+HÂˆÝ\\‹˜XÝ]˜]S\Ý[™\œÊ[
+NÂˆXÝ]˜]R[XYÙQ›ÜÊ[
+NÂˆ[™š[™
+‹ÜKXYY[[Y[ŠK›ÛŠ˜ÛXÚÈ‹\Þ[˜È
+
+HOˆÂˆÛÛœÝ[[Y[ÈH\Ë—Ü™XY[[Y[Ê[
+NÂˆ[[Y[Ëœ\Ú
+ÚYˆ›Ý[™žK][Ëœ˜[™ÛRQ
+
+K˜[YNˆ“™]È[[Y[‹XÛÛŽˆšXÛÛœËÜÝ™ËØ]\˜KœÝ™È‹Ú\™ÙPÛÛÜŽˆˆÍNMŒMÌH‹™XYPÛÛÜŽˆˆÌŒM™™ˆŸJNÂˆ]ØZ]Ø[YKœÙ][™ÜËœÙ]
+SÑSWÒQ™[[Y[Ñ˜Y‹[[Y[ÊNÂˆ\Ë—Ù[[Y[ÓÝ™\œšYHH[[Y[ÎÂˆ\Ëœ™[™\ŠYJNÂˆJNÂˆ[™š[™
+‹ÜK\™[[Ý™KY[[Y[ŠK›ÛŠ˜ÛXÚÈ‹]™[OˆÂˆÛÛœÝ[™^H[X™\Š]™[˜Ý\œ™[\™Ù]˜ÛÜÙ\Ý
+‹ÜKY[[Y[\›ÝÈŠK™]\Ù]š[™^
+NÂˆÛÛœÝ[[Y[ÈH\Ë—Ü™XY[[Y[Ê[
+NÂˆ[[Y[ËœÜXÙJ[™^JNÂˆ\Ë—Ù[[Y[ÓÝ™\œšYHH[[Y[ÎÂˆ\Ëœ™[™\ŠYJNÂˆJNÂˆ[™š[™
+š[œ]Ù]KXÛÛÜ‹Z[™^HŠK›ÛŠ˜Ú[™ÙH‹]™[OˆÂˆÛÛœÝ[™^H]™[˜Ý\œ™[\™Ù]™]\Ù]˜ÛÛÜ’[™^ÂˆÛÛœÝÚ[™H]™[˜Ý\œ™[\™Ù]™]\Ù]˜ÛÛÜ’Ú[™Âˆ[™š[™
+[œ]Û˜[YOH™[[Y[Ë‰Ú[™^K‰ÚÚ[™H—X
+K˜[
+]™[˜Ý\œ™[\™Ù]˜[YJNÂˆJNÂˆBˆ\Þ[˜ÈÜ™[™\Š‹‹˜\™ÜÊHÂˆYˆ
+\Ë—Ù[[Y[ÓÝ™\œšYJHÂˆÛÛœÝÜšYÚ[˜[H\Ë™Ù]]NÂˆÛÛœÝÝ™\œšYHH\Ë—Ù[[Y[ÓÝ™\œšYNÂˆ\Ë™Ù]]HH
+
+HOˆ
+Ù[[Y[ÎˆÝ™\œšY_JNÂˆ]ØZ]Ý\\‹—Ü™[™\Š‹‹˜\™ÜÊNÂˆ\Ë™Ù]]HHÜšYÚ[˜[Âˆ™]\›ŽÂˆBˆ™]\›ˆÝ\\‹—Ü™[™\Š‹‹˜\™ÜÊNÂˆBˆÜ™XY[[Y[Ê[
+HÂˆÛÛœÝ]HH™]È›Ü›Q]J[ÌJNÂˆÛÛœÝ^[™YH›Ý[™žK][Ë™^[™Øš™XÝ
+Øš™XÝ™œ›ÛQ[šY\Ê]K™[šY\Ê
+JJNÂˆ™]\›ˆØš™XÝ˜[Y\Ê^[™Y™[[Y[ÈÏÈßJK›X\
+[žHOˆ
+ÂˆYˆ[žKšY›Ý[™žK][Ëœ˜[™ÛRQ
+
+Kˆ˜[YNˆ[žK›˜[YOËš[J
+H‘[[Y[‹ˆXÛÛŽˆ[žKšXÛÛˆˆ‹ˆÚ\™ÙPÛÛÜŽˆ[žK˜Ú\™ÙPÛÛÜˆˆÍNMŒMÌH‹ˆ™XYPÛÛÜŽˆ[žKœ™XYPÛÛÜˆˆÌŒM™™ˆ‚ˆJJNÂˆBˆ\Þ[˜ÈÝ\]SØš™XÝ
+Ù]™[›Ü›Q]JHÂˆÛÛœÝ^[™YH›Ý[™žK][Ë™^[™Øš™XÝ
+›Ü›Q]JNÂˆÛÛœÝ[[Y[ÈHØš™XÝ˜[Y\Ê^[™Y™[[Y[ÈÏÈßJK›X\
+[žHOˆ
+ÂˆYˆ[žKšYˆ˜[YNˆ[žK›˜[YKˆXÛÛŽˆ[žKšXÛÛ‹ˆÚ\™ÙPÛÛÜŽˆ[žK˜Ú\™ÙPÛÛÜˆˆÍNMŒMÌH‹ˆ™XYPÛÛÜŽˆ[žKœ™XYPÛÛÜˆˆÌŒM™™ˆ‚ˆJJNÂˆ]ØZ]Ø[YKœÙ][™ÜËœÙ]
+SÑSWÒQ™[[Y[È‹[[Y[ÊNÂˆ\Ë—Ù[[Y[ÓÝ™\œšYHH[Âˆ™Yœ™\Ú[Ü˜œÊ
+NÂˆ›Üˆ
+ÛÛœÝ\ÙˆØš™XÝ˜[Y\ÊZKÚ[™ÝÜÈÏÈßJJHYˆ
+\˜XÝÜË\HOOH˜Ú\˜XÝ\ˆŠH\œ™[™\Š˜[ÙJNÂˆBŸB‚˜Û\ÜÈ[[Y[Y[H^[™È›Ü›P\XØ][ÛˆÂˆ™[™\Š
+HÈ™]È[[Y[X[˜YÙ\Š
+Kœ™[™\ŠYJNÈ™]\›ˆ\ÎÈBŸB‚™[˜Ý[ÛˆÜ˜Y[™Ò][TÛ˜\ÚÝ
+][K]X[]OLJHÂˆ™]\›ˆÝ]ZYš][K™Ù]›YÏËŠ˜ÛÜ™H‹œÛÝ\˜ÙRYŠ_][K]ZY˜[YNš][K›˜[YK[YÎš][Kš[YË\Nš][K\K]X[]N“X]›X^
+K[X™\Š]X[]J_JK][Q]Nš][KÓØš™XÝ
+
+_NÂŸB‚˜\Þ[˜È[˜Ý[Ûˆ›ÜYÜ˜Y[™Ò][J]™[
+HÂˆÛÛœÝ˜]ÏY]™[›ÜšYÚ[˜[]™[Ë™]U˜[œÙ™\Ë™Ù]]J^ÜZ[ˆŠ_]™[™]U˜[œÙ™\Ë™Ù]]J^ÜZ[ˆŠ_ˆŽÂˆž^ØÛÛœÝ]OR”ÓÓ‹œ\œÙJ˜]ÊNØÛÛœÝØÝ[Y[Y]K]ZYØ]ØZ]œ›ÛU]ZY
+]K]ZY
+N›[Ü™]\›ˆØÝ[Y[Ë™ØÝ[Y[˜[YOOOH’][HÙØÝ[Y[›[ßXØ]Ú
+Ù\œ›ÜŠ^Ü™]\›ˆ[ßBŸB‚˜Û\ÜÈ™XÚ\SX[˜YÙ\ˆ^[™È›Ü›P\XØ][ÛˆÂˆÝ]XÈÙ]Y˜][Ü[ÛœÊ
+^Ü™]\›ˆ›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+Ý\\‹™Y˜][Ü[ÛœËÚYˆÜK\™XÚ\K[X[˜YÙ\ˆ‹]Nˆ•[IÜÈÝ\ˆ˜Z[[[X]\È8 %™XÚ\\È‹[\]N˜[Ù[\ËÉÓSÑSWÒQKÝ[\]\ËÜ™XÚ\K[X[˜YÙ\‹šœØÚYÌŒZYÚÍŒ™\Ú^˜X›NYKÛÜÙSÛ”ÝX›Z]™˜[Ù_JNßBˆÙ]]J
+^Ü™]\›ˆÜ™XÚ\\Î™›Ý[™žK][Ë™Y\ÛÛ™J\Ë—Ü™XÚ\\ÓÝ™\œšYOÏÙÙ]Ü˜Y[™Ô™XÚ\\Ê
+JK›X\
+
+™XÚ\K™XÚ\R[™^
+OOŠË‹‹œ™XÚ\K™XÚ\R[™^[™Ü™YY[ÎŠ™XÚ\Kš[™Ü™YY[ÏÏÖ×JK›X\
+
+[™Ü™YY[[™Ü™YY[[™^
+OOŠË‹‹š[™Ü™YY[™XÚ\R[™^[™Ü™YY[[™^JJ_JJ_NßBˆ™XÚ\\Ê
+^Ü™]\›ˆ\Ë—Ü™XÚ\\ÓÝ™\œšYOÏÙ›Ý[™žK][Ë™Y\ÛÛ™JÙ]Ü˜Y[™Ô™XÚ\\Ê
+JNßBˆ\Þ[˜ÈØ]™J
+^Ø]ØZ]Ø[YKœÙ][™ÜËœÙ]
+SÑSWÒQ˜Ü˜Y[™Ô™XÚ\\È‹\Ëœ™XÚ\\Ê
+JNÝZK››ÝYšXØ][ÛœËš[™›ÊÜ˜Y[™È™XÚ\\ÈØ]™YˆŠNÜÝ]K˜Ü˜Y[™Ð\Ëœ™[™\Š˜[ÙJNßBˆXÝ]˜]S\Ý[™\œÊ[
+^ÂˆÝ\\‹˜XÝ]˜]S\Ý[™\œÊ[
+NÂˆ[™š[™
+–Ù]K\™XÚ\KYšY[HŠK›ÛŠ˜Ú[™ÙH‹]™[OžØÛÛœÝ™XÚ\\Ï]\Ëœ™XÚ\\Ê
+K™XÚ\O\™XÚ\\ÖÓ[X™\Š]™[˜Ý\œ™[\™Ù]™]\Ù]œ™XÚ\R[™^
+WNÚYŠ\™XÚ\J\™]\›ŽØÛÛœÝšY[Y]™[˜Ý\œ™[\™Ù]™]\Ù]œ™XÚ\QšY[Ü™XÚ\VÙšY[OY]™[˜Ý\œ™[\™Ù]\OOOH›[X™\ˆÓX]›X^
+K[X™\Š]™[˜Ý\œ™[\™Ù]˜[YJ_JN™]™[˜Ý\œ™[\™Ù]˜[YNÝ\Ë—Ü™XÚ\\ÓÝ™\œšYO\™XÚ\\ÎßJNÂˆ[™š[™
+–Ù]KZ[™Ü™YY[\]X[]WHŠK›ÛŠ˜Ú[™ÙH‹]™[OžØÛÛœÝ™XÚ\\Ï]\Ëœ™XÚ\\Ê
+K™XÚ\O\™XÚ\\ÖÓ[X™\Š]™[˜Ý\œ™[\™Ù]™]\Ù]œ™XÚ\R[™^
+WK[™Ü™YY[\™XÚ\OËš[™Ü™YY[ÏË–Ó[X™\Š]™[˜Ý\œ™[\™Ù]™]\Ù]š[™Ü™YY[]X[]JWNÚYŠ[™Ü™YY[
+Z[™Ü™YY[œ]X[]OSX]›X^
+K[X™\Š]™[˜Ý\œ™[\™Ù]˜[YJ_JNÝ\Ë—Ü™XÚ\\ÓÝ™\œšYO\™XÚ\\ÎßJNÂˆ[™š[™
+–Ù]K[Ý]]\]X[]WHŠK›ÛŠ˜Ú[™ÙH‹]™[OžØÛÛœÝ™XÚ\\Ï]\Ëœ™XÚ\\Ê
+K™XÚ\O\™XÚ\\ÖÓ[X™\Š]™[˜Ý\œ™[\™Ù]™]\Ù]œ™XÚ\R[™^
+WNÚYŠ™XÚ\OË›Ý]]
+\™XÚ\K›Ý]]œ]X[]OSX]›X^
+K[X™\Š]™[˜Ý\œ™[\™Ù]˜[YJ_JNÝ\Ë—Ü™XÚ\\ÓÝ™\œšYO\™XÚ\\ÎßJNÂˆ[™š[™
+–Ù]KXXÝ[ÛIØY\™XÚ\I×HŠK›ÛŠ˜ÛXÚÈ‹
+
+OOžØÛÛœÝ™XÚ\\Ï]\Ëœ™XÚ\\Ê
+NÜ™XÚ\\Ëœ\Ú
+ÚY™›Ý[™žK][Ëœ˜[™ÛRQ
+
+K˜[YNˆ“™]È™XÚ\H‹[YÎˆšXÛÛœËÜÝ™ËÙ›Ü™ÙKœÝ™È‹\ØÜš\[ÛŽˆˆ‹[™Ü™YY[Î–×KÝ]]›[JNÝ\Ë—Ü™XÚ\\ÓÝ™\œšYO\™XÚ\\ÎÝ\Ëœ™[™\ŠYJNßJNÂˆ[™š[™
+–Ù]KXXÝ[ÛIÜ™[[Ý™K\™XÚ\I×HŠK›ÛŠ˜ÛXÚÈ‹]™[OžØÛÛœÝ™XÚ\\Ï]\Ëœ™XÚ\\Ê
+NÜ™XÚ\\ËœÜXÙJ[X™\Š]™[˜Ý\œ™[\™Ù]™]\Ù]œ™XÚ\R[™^
+KJNÝ\Ë—Ü™XÚ\\ÓÝ™\œšYO\™XÚ\\ÎÝ\Ëœ™[™\ŠYJNßJNÂˆ[™š[™
+–Ù]KXXÝ[ÛIÜ™[[Ý™KZ[™Ü™YY[	×HŠK›ÛŠ˜ÛXÚÈ‹]™[OžØÛÛœÝ™XÚ\\Ï]\Ëœ™XÚ\\Ê
+K™XÚ\O\™XÚ\\ÖÓ[X™\Š]™[˜Ý\œ™[\™Ù]™]\Ù]œ™XÚ\R[™^
+WNÜ™XÚ\OËš[™Ü™YY[ÏËœÜXÙJ[X™\Š]™[˜Ý\œ™[\™Ù]™]\Ù]š[™Ü™YY[[™^
+KJNÝ\Ë—Ü™XÚ\\ÓÝ™\œšYO\™XÚ\\ÎÝ\Ëœ™[™\ŠYJNßJNÂˆ[™š[™
+–Ù]KXÜ˜Y[™ËY›ÜHŠK›ÛŠ™˜YÛÝ™\ˆ‹]™[OžÙ]™[œ™]™[Y˜][
+
+NÙ]™[˜Ý\œ™[\™Ù]˜Û\ÜÓ\Ý˜Y
+š\ËY˜YÛÝ™\ˆŠNßJK›ÛŠ™˜YÛX]™H‹]™[O™]™[˜Ý\œ™[\™Ù]˜Û\ÜÓ\Ýœ™[[Ý™Jš\ËY˜YÛÝ™\ˆŠJK›ÛŠ™›Ü‹\Þ[˜È]™[OžÙ]™[œ™]™[Y˜][
+
+NÙ]™[˜Ý\œ™[\™Ù]˜Û\ÜÓ\Ýœ™[[Ý™Jš\ËY˜YÛÝ™\ˆŠNØÛÛœÝ][OX]ØZ]›ÜYÜ˜Y[™Ò][J]™[
+NÚYŠZ][J\™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š‘›Ü[ˆ][HØÝ[Y[\™KˆŠNØÛÛœÝ™XÚ\\Ï]\Ëœ™XÚ\\Ê
+K™XÚ\O\™XÚ\\ÖÓ[X™\Š]™[˜Ý\œ™[\™Ù]™]\Ù]œ™XÚ\R[™^
+WNÚYŠ\™XÚ\J\™]\›ŽÚYŠ]™[˜Ý\œ™[\™Ù]™]\Ù]˜Ü˜Y[™Ñ›ÜOOHš[™Ü™YY[Š\™XÚ\Kš[™Ü™YY[Ëœ\Ú
+Ü˜Y[™Ò][TÛ˜\ÚÝ
+][JJNÙ[ÙH™XÚ\K›Ý]]XÜ˜Y[™Ò][TÛ˜\ÚÝ
+][JNÝ\Ë—Ü™XÚ\\ÓÝ™\œšYO\™XÚ\\ÎÝ\Ëœ™[™\ŠYJNßJNÂˆ[™š[™
+–Ù]KXXÝ[ÛIÜØ]™K\™XÚ\\É×HŠK›ÛŠ˜ÛXÚÈ‹
+
+OO\ËœØ]™J
+JNÂˆ[™š[™
+–Ù]KXXÝ[ÛIØÜ™X]K\™XÚ\KXØ\™	×HŠK›ÛŠ˜ÛXÚÈ‹\Þ[˜È]™[OžØ]ØZ]\ËœØ]™J
+NØÛÛœÝ™XÚ\O]\Ëœ™XÚ\\Ê
+VÓ[X™\Š]™[˜Ý\œ™[\™Ù]™]\Ù]œ™XÚ\R[™^
+WNÚYŠ\™XÚ\J\™]\›ŽØ]ØZ]][K˜Ü™X]JÛ˜[YN˜™XÚ\Nˆ	Ü™XÚ\K›˜[Y_X\Nˆ›ÛÝ‹[YÎœ™XÚ\Kš[Yß™XÚ\K›Ý]]Ëš[YßšXÛÛœËÜÝ™ËØ›ÛÚËœÝ™È‹Þ\Ý[NžÜ]X[]NŒK\ØÜš\[ÛŽžÝ˜[YN˜”™YY[H\ÈØ\™[ˆHÜ˜Y[™ÈY[HÈ[›ØÚÈÝ›Û™Ï‰Ù\ØØ\RS
+™XÚ\K›˜[YJ_OÜÝ›Û™Ï‹Ü˜_K›YÜÎžÖÓSÑSWÒQNžÜ™XÚ\PØ\™žÜ™XÚ\RYœ™XÚ\KšY___JNÝZK››ÝYšXØ][ÛœËš[™›ÊÜ™X]Y™XÚ\Nˆ	Ü™XÚ\K›˜[Y_H[ˆH][\È\™XÝÜžK˜
+NßJNÂˆBˆ\Þ[˜ÈÝ\]SØš™XÝ
+
+^Ü™]\›ˆ\ËœØ]™J
+NßBŸB‚˜Û\ÜÈ™XÚ\SY[H^[™È›Ü›P\XØ][ÛˆÜ™[™\Š
+^Û™]È™XÚ\SX[˜YÙ\Š
+Kœ™[™\ŠYJNÜ™]\›ˆ\Îß_B‚˜Û\ÜÈÜ˜Y[™Ð\XØ][Ûˆ^[™È›Ü›P\XØ][ÛˆÂˆÛÛœÝXÝÜŠ‹‹˜\™ÜÊ^ÜÝ\\Š‹‹˜\™ÜÊNÝ\ËœXÙY^ßNÝ\Ëš[™[ÜžPÚXÚÙYY˜[ÙNÜÝ]K˜Ü˜Y[™Ð\]\ÎßBˆÝ]XÈÙ]Y˜][Ü[ÛœÊ
+^Ü™]\›ˆ›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+Ý\\‹™Y˜][Ü[ÛœËÚYˆÜKXÜ˜Y[™È‹]Nˆ”\HÜ˜Y[™È‹[\]N˜[Ù[\ËÉÓSÑSWÒQKÝ[\]\ËØÜ˜Y[™ËšœØÚYÍŒZYÚÌŒ™\Ú^˜X›NY_JNßBˆÙ]]J
+^ÂˆÛÛœÝ™XÚ\\ÏYÙ]Ü˜Y[™Ô™XÚ\\Ê
+K\Ù\XÝÜœÏXÜ˜Y[™Õ\Ù\XÝÜœÊ
+K[›ØÚÙY[™]ÈÙ]
+\Ù\XÝÜœË™›]X\
+XÝÜO–Ë‹‹˜XÝÜ•[›ØÚÙY™XÚ\\ÊXÝÜŠWJJNÂˆÛÛœÝš\ÚX›OJØ[YK\Ù\‹š\ÑÓOÜ™XÚ\\Îœ™XÚ\\Ë™š[\Š™XÚ\OO[›ØÚÙYš\Ê™XÚ\KšY
+JJK›X\
+™XÚ\OOŠË‹‹œ™XÚ\KXÙY™XYNŠ™XÚ\Kš[™Ü™YY[ÏÏÖ×JK™]™\žJ[™Ü™YY[OŠ\ËœXÙYÜ™XÚ\KšYOË–Ü™XÚ\R][RÙ^J[™Ü™YY[
+WOÏÌ
+OSX]›X^
+K[X™\Š[™Ü™YY[œ]X[]J_JJK[™Ü™YY[ÎŠ™XÚ\Kš[™Ü™YY[ÏÏÖ×JK›X\
+[™Ü™YY[OŠË‹‹š[™Ü™YY[Ù^Nœ™XÚ\R][RÙ^J[™Ü™YY[
+K]˜Z[X›NœÛÛY]X[]Q›ÜŠ[™Ü™YY[
+KXÙY\ËœXÙYÜ™XÚ\KšYOË–Ü™XÚ\R][RÙ^J[™Ü™YY[
+WOÏÌ[›ÝYÚœÛÛY]X[]Q›ÜŠ[™Ü™YY[
+OSX]›X^
+K[X™\Š[™Ü™YY[œ]X[]J_J_JJ_JJNÂˆÛÛœÝØ\™ÏV×NÙ›ÜŠÛÛœÝXÝÜˆÙˆ\Ù\XÝÜœÊY›ÜŠÛÛœÝ][HÙˆXÝÜ‹š][\ÏÏÖ×J^ØÛÛœÝ™XÚ\RYZ][K™Ù]›YÊSÑSWÒQœ™XÚ\PØ\™ŠOËœ™XÚ\RY™XÚ\O\™XÚ\\Ë™š[™
+[žOO™[žKšYOO\™XÚ\RY
+NÚYŠ™XÚ\JXØ\™Ëœ\Ú
+ØXÝÜ’Y˜XÝÜ‹šY][RYš][KšYXÝÜ“˜[YN˜XÝÜ‹›˜[YK˜[YNœ™XÚ\K›˜[YK[YÎš][Kš[YË]X[]Nš][T]X[]J][J_JNßBˆ™]\›ˆÜ™XÚ\\Îš\ÚX›KXÝÜœÎ\Ù\XÝÜœËØ\™Ë[™[ÜžPÚXÚÙY\Ëš[™[ÜžPÚXÚÙY\ÑÓN™Ø[YK\Ù\‹š\ÑÓ_NÂˆBˆXÝ]˜]S\Ý[™\œÊ[
+^ÂˆÝ\\‹˜XÝ]˜]S\Ý[™\œÊ[
+NÂˆ[™š[™
+–Ù]KXXÝ[ÛIØÚXÚË\™XYÙ[É×HŠK›ÛŠ˜ÛXÚÈ‹
+
+OOžÝ\Ëš[™[ÜžPÚXÚÙY]YNÝ\Ëœ™[™\Š˜[ÙJNßJNÂˆ[™š[™
+–Ù]KXXÝ[ÛIØ]]Ë\XÙI×HŠK›ÛŠ˜ÛXÚÈ‹]™[OžØÛÛœÝ™XÚ\OYÙ]Ü˜Y[™Ô™XÚ\\Ê
+K™š[™
+[žOO™[žKšYOOY]™[˜Ý\œ™[\™Ù]™]\Ù]œ™XÚ\RY
+NÚYŠ\™XÚ\J\™]\›ŽÝ\ËœXÙYÜ™XÚ\KšYO^ßNÙ›ÜŠÛÛœÝ[™Ü™YY[Ùˆ™XÚ\Kš[™Ü™YY[ÏÏÖ×J]\ËœXÙYÜ™XÚ\KšYVÜ™XÚ\R][RÙ^J[™Ü™YY[
+WOSX]›Z[ŠX]›X^
+K[X™\Š[™Ü™YY[œ]X[]J_JKÛÛY]X[]Q›ÜŠ[™Ü™YY[
+JNÝ\Ëš[™[ÜžPÚXÚÙY]YNÝ\Ëœ™[™\Š˜[ÙJNßJNÂˆ[™š[™
+–Ù]K\XÙKY[WHŠK›ÛŠ˜ÛXÚÈ‹]™[OžØÛÛœÝ™XÚ\RYY]™[˜Ý\œ™[\™Ù]™]\Ù]œ™XÚ\RYÙ^OY]™[˜Ý\œ™[\™Ù]™]\Ù]š[™Ü™YY[Ù^K[OS[X™\Š]™[˜Ý\œ™[\™Ù]™]\Ù]œXÙQ[J_™XÚ\OYÙ]Ü˜Y[™Ô™XÚ\\Ê
+K™š[™
+[žOO™[žKšYOO\™XÚ\RY
+K[™Ü™YY[\™XÚ\OËš[™Ü™YY[ÏË™š[™
+[žOOœ™XÚ\R][RÙ^J[žJOOOZÙ^JNÚYŠZ[™Ü™YY[
+\™]\›ŽÝ\ËœXÙYÜ™XÚ\RYOÏÏ^ßNÝ\ËœXÙYÜ™XÚ\RYVÚÙ^WOXÛ[\
+
+\ËœXÙYÜ™XÚ\RYVÚÙ^WOÏÌ
+JÙ[KX]›Z[ŠX]›X^
+K[X™\Š[™Ü™YY[œ]X[]J_JKÛÛY]X[]Q›ÜŠ[™Ü™YY[
+JJNÝ\Ëœ™[™\Š˜[ÙJNßJNÂˆ[™š[™
+–Ù]KXXÝ[ÛIØÜ˜Y	×HŠK›ÛŠ˜ÛXÚÈ‹]™[OžØÛÛœÝ™XÚ\RYY]™[˜Ý\œ™[\™Ù]™]\Ù]œ™XÚ\RYXÝÜ’YZ[™š[™
+Ù]K\™XÚ\K\™XÚ\Y[IÉÜ™XÚ\RYI×X
+K˜[
+
+NÚYŠXXÝÜ’Y
+\™]\›ˆZK››ÝYšXØ][ÛœËØ\›ŠÚÛÜÙHH™XÙZ]š[™ÈÚ\˜XÝ\‹ˆŠNÙ]™[˜Ý\œ™[\™Ù]™\ØX›Y]YNÚYŠ\Ð]]Üš]J
+JY^XÝ]PÜ˜Y™XÚ\J™XÚ\RYXÝÜ’YØ[YK\Ù\‹šY
+K[Š™\Ý[OžÊ™\Ý[›ÚÏÝZK››ÝYšXØ][ÛœËš[™›ÎZK››ÝYšXØ][ÛœË™\œ›ÜŠK˜Ø[
+ZK››ÝYšXØ][ÛœË™\Ý[›Y\ÜØYÙJNÝ\ËœXÙYÜ™XÚ\RYO^ßNÝ\Ëœ™[™\Š˜[ÙJNßJNÙ[ÙHØ[YKœÛØÚÙ]™[Z]
+ÓÐÒÑUÝ\Nˆ˜Ü˜Y™XÚ\H‹™XÚ\RYXÝÜ’Y™\]Y\Ý[™Õ\Ù\’Y™Ø[YK\Ù\‹šYJNßJNÂˆ[™š[™
+–Ù]KXXÝ[ÛIÜ™YY[KXØ\™	×HŠK›ÛŠ˜ÛXÚÈ‹]™[OžØÛÛœÝXÝÜ’YY]™[˜Ý\œ™[\™Ù]™]\Ù]˜XÝÜ’Y][RYY]™[˜Ý\œ™[\™Ù]™]\Ù]š][RYÙ]™[˜Ý\œ™[\™Ù]™\ØX›Y]YNÚYŠ\Ð]]Üš]J
+JY^XÝ]T™YY[T™XÚ\PØ\™
+XÝÜ’Y][RYØ[YK\Ù\‹šY
+K[Š™\Ý[OžÊ™\Ý[›ÚÏÝZK››ÝYšXØ][ÛœËš[™›ÎZK››ÝYšXØ][ÛœË™\œ›ÜŠK˜Ø[
+ZK››ÝYšXØ][ÛœË™\Ý[›Y\ÜØYÙJNÝ\Ëœ™[™\Š˜[ÙJNßJNÙ[ÙHØ[YKœÛØÚÙ]™[Z]
+ÓÐÒÑUÝ\Nˆœ™YY[T™XÚ\PØ\™‹XÝÜ’Y][RY™\]Y\Ý[™Õ\Ù\’Y™Ø[YK\Ù\‹šYJNßJNÂˆBˆ\Þ[˜ÈÝ\]SØš™XÝ
+
+^Ü™]\›ˆ[™Yš[™YßBˆÛÜÙJ‹‹˜\™ÜÊ^ÚYŠÝ]K˜Ü˜Y[™Ð\OO]\Ê\Ý]K˜Ü˜Y[™Ð\[[Ü™]\›ˆÝ\\‹˜ÛÜÙJ‹‹˜\™ÜÊNßBŸB‚™[˜Ý[ÛˆÜ[Ü˜Y[™Ê
+^Âˆž^ÂˆYŠÝ]K˜Ü˜Y[™Ð\Ëœ™[™\™Y
+^ÜÝ]K˜Ü˜Y[™Ð\˜œš[™ÕÕÜ
+
+NÜ™]\›ˆÝ]K˜Ü˜Y[™Ð\ßBˆÝ]K˜Ü˜Y[™Ð\Ë˜ÛÜÙOËŠÙ›Ü˜ÙNY_JNÂˆÛÛœÝ\[™]ÈÜ˜Y[™Ð\XØ][ÛŠ
+NØ\œ™[™\ŠYJNÜ™]\›ˆ\ÂˆXØ]Ú
+\œ›ÜŠ^ÂˆÝ]K˜Ü˜Y[™Ð\[[ØÛÛœÛÛK™\œ›ÜŠ	ÓSÑSWÒQHÛÝ[›ÝÜ[ˆ\HÜ˜Y[™Ø\œ›ÜŠNÝZK››ÝYšXØ][ÛœË™\œ›ÜŠÛÝ[›ÝÜ[ˆ\HÜ˜Y[™Îˆ	Ù\œ›Ü‹›Y\ÜØYÙ_X
+NÜ™]\›ˆ[ÂˆBŸB‚˜Û\ÜÈ[š]X]]™Qœ˜[YPÛÛÜ“X[˜YÙ\ˆ^[™È›Ü›P\XØ][ÛˆÂˆÝ]XÈÙ]Y˜][Ü[ÛœÊ
+^Ü™]\›ˆ›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+Ý\\‹™Y˜][Ü[ÛœËÚYˆÜKZ[š]X]]™KYœ˜[YKXÛÛÜœÈ‹]Nˆ’[š]X]]™H˜XÚÙ\ˆœ˜[YHÛÛÜœÈ‹[\]N˜[Ù[\ËÉÓSÑSWÒQKÝ[\]\ËÚ[š]X]]™KYœ˜[YKXÛÛÜœËšœØÚYLŒZYÚˆ˜]]È‹ÛÜÙSÛ”ÝX›Z]Y_JNßBˆÙ]]J
+^Ü™]\›ˆØÛÛÜœÎ™›Ý[™žK][Ë™Y\ÛÛ™J\Ë—ØÛÛÜœÓÝ™\œšYOÏÙÙ][š]X]]™Qœ˜[YPÛÛÜœÊ
+J_NßBˆXÝ]˜]S\Ý[™\œÊ[
+^ÜÝ\\‹˜XÝ]˜]S\Ý[™\œÊ[
+NÚ[™š[™
+–Ù]KXXÝ[ÛIØYYœ˜[YKXÛÛÜ‰×HŠK›ÛŠ˜ÛXÚÈ‹
+
+OOžÝ\Ë—ØÛÛÜœÓÝ™\œšYO]\Ë—Ü™XY
+[
+NÝ\Ë—ØÛÛÜœÓÝ™\œšYKœ\Ú
+ÚY™›Ý[™žK][Ëœ˜[™ÛRQ
+
+K˜[YNˆ“™]Èœ˜[YHÛÛÜˆ‹ÛÛÜŽˆˆÍN™YHŸJNÝ\Ëœ™[™\ŠYJNßJNÚ[™š[™
+–Ù]KXXÝ[ÛIÜ™[[Ý™KYœ˜[YKXÛÛÜ‰×HŠK›ÛŠ˜ÛXÚÈ‹]™[OžÝ\Ë—ØÛÛÜœÓÝ™\œšYO]\Ë—Ü™XY
+[
+NÝ\Ë—ØÛÛÜœÓÝ™\œšYKœÜXÙJ[X™\Š]™[˜Ý\œ™[\™Ù]˜ÛÜÙ\Ý
+–Ù]KXÛÛÜ‹Z[™^HŠK™]\Ù]˜ÛÛÜ’[™^
+KJNÝ\Ëœ™[™\ŠYJNßJNßBˆÜ™XY
+[
+^ØÛÛœÝ^[™YY›Ý[™žK][Ë™^[™Øš™XÝ
+Øš™XÝ™œ›ÛQ[šY\Ê™]È›Ü›Q]J[ÌJK™[šY\Ê
+JJNÜ™]\›ˆØš™XÝ˜[Y\Ê^[™Y˜ÛÛÜœÏÏÞßJK›X\
+[žOOŠÚY”Ýš[™Ê[žKšY›Ý[™žK][Ëœ˜[™ÛRQ
+
+JK˜[YN”Ýš[™Ê[žK›˜[Y_‘œ˜[YHÛÛÜˆŠKš[J
+_‘œ˜[YHÛÛÜˆ‹ÛÛÜŽ‹×ˆÖÌNXKY—^ÍŸIÚK\Ý
+Ýš[™Ê[žK˜ÛÛÜŸˆŠJOÔÝš[™Ê[žK˜ÛÛÜŠNˆˆÍN™YHŸJJNßBˆ\Þ[˜ÈÝ\]SØš™XÝ
+Ù]™[›Ü›Q]J^ØÛÛœÝ^[™YY›Ý[™žK][Ë™^[™Øš™XÝ
+›Ü›Q]JNØÛÛœÝÛÛÜœÏSØš™XÝ˜[Y\Ê^[™Y˜ÛÛÜœÏÏÞßJK›X\
+[žOOŠÚY”Ýš[™Ê[žKšY›Ý[™žK][Ëœ˜[™ÛRQ
+
+JK˜[YN”Ýš[™Ê[žK›˜[Y_‘œ˜[YHÛÛÜˆŠKš[J
+_‘œ˜[YHÛÛÜˆ‹ÛÛÜŽ‹×ˆÖÌNXKY—^ÍŸIÚK\Ý
+Ýš[™Ê[žK˜ÛÛÜŸˆŠJOÔÝš[™Ê[žK˜ÛÛÜŠNˆˆÍN™YHŸJJNØ]ØZ]Ø[YKœÙ][™ÜËœÙ]
+SÑSWÒQš[š]X]]™Qœ˜[YPÛÛÜœÈ‹ÛÛÜœË›[™ÝØÛÛÜœÎ™›Ý[™žK][Ë™Y\ÛÛ™JQUSÒS’UPUU‘WÑ”SQWÐÓÓÔ”ÊJNÝ\Ë—ØÛÛÜœÓÝ™\œšYO[[Ü™Yœ™\Ú[š]X]]™PØ\›Ý\Ù[
+
+NÙ›ÜŠÛÛœÝ\ÙˆØš™XÝ˜[Y\ÊZKÚ[™ÝÜÏÏÞßJJZYŠ
+\˜XÝÜÏØ\™ØÝ[Y[
+OË\OOOH˜Ú\˜XÝ\ˆŠX\œ™[™\Š˜[ÙJNßBŸB‚˜Û\ÜÈ]X[˜YÙ\ˆ^[™È›Ü›P\XØ][ÛˆÂˆÝ]XÈÙ]Y˜][Ü[ÛœÊ
+HÂˆ™]\›ˆ›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+Ý\\‹™Y˜][Ü[ÛœËÚYˆÜK\][X[˜YÙ\ˆ‹]Nˆ•[IÜÈÝ\ˆ˜Z[[[X]\È8 %]È‹[\]Nˆ[Ù[\ËÉÓSÑSWÒQKÝ[\]\ËÜ][X[˜YÙ\‹šœØÚYˆMŒZYÚˆ˜]]È‹ÛÜÙSÛ”ÝX›Z]ˆY_JNÂˆBˆÙ]]J
+HÈ™]\›ˆÜ]Îˆ›Ý[™žK][Ë™Y\ÛÛ™J\Ë—Ü]ÓÝ™\œšYHÏÈÙ]]Ê
+J_NÈBˆXÝ]˜]S\Ý[™\œÊ[
+HÂˆÝ\\‹˜XÝ]˜]S\Ý[™\œÊ[
+NÂˆXÝ]˜]R[XYÙQ›ÜÊ[
+NÂˆ[™š[™
+‹ÜKXY\]ŠK›ÛŠ˜ÛXÚÈ‹
+
+HOˆÈ\Ë—Ü]ÓÝ™\œšYHH\Ë—Ü™XY]Ê[
+NÈ\Ë—Ü]ÓÝ™\œšYKœ\Ú
+ÚYˆ›Ý[™žK][Ëœ˜[™ÛRQ
+
+K˜[YNˆ“™]È]‹XÛÛŽˆšXÛÛœËÜÝ™ËÝ\Ü˜YKœÝ™È‹ÛÛÜŽˆˆÙMXÎÎŸJNÈ\Ëœ™[™\ŠYJNÈJNÂˆ[™š[™
+‹ÜK\™[[Ý™K\]ŠK›ÛŠ˜ÛXÚÈ‹]™[OˆÈÛÛœÝ[™^H[X™\Š]™[˜Ý\œ™[\™Ù]˜ÛÜÙ\Ý
+‹ÜK\]\›ÝÈŠK™]\Ù]š[™^
+NÈ\Ë—Ü]ÓÝ™\œšYHH\Ë—Ü™XY]Ê[
+NÈ\Ë—Ü]ÓÝ™\œšYKœÜXÙJ[™^JNÈ\Ëœ™[™\ŠYJNÈJNÂˆBˆÜ™XY]Ê[
+HÂˆÛÛœÝ]HH™]È›Ü›Q]J[ÌJNÂˆÛÛœÝ^[™YH›Ý[™žK][Ë™^[™Øš™XÝ
+Øš™XÝ™œ›ÛQ[šY\Ê]K™[šY\Ê
+JJNÂˆ™]\›ˆØš™XÝ˜[Y\Ê^[™Yœ]ÈÏÈßJK›X\
+[žHOˆ
+ÚYˆ[žKšY›Ý[™žK][Ëœ˜[™ÛRQ
+
+K˜[YNˆ[žK›˜[YOËš[J
+H”]‹XÛÛŽˆ[žKšXÛÛˆˆ‹ÛÛÜŽ™[žK˜ÛÛÜˆˆÙMXÎÎŸJJNÂˆBˆ\Þ[˜ÈÝ\]SØš™XÝ
+Ù]™[›Ü›Q]JHÂˆÛÛœÝ^[™YH›Ý[™žK][Ë™^[™Øš™XÝ
+›Ü›Q]JNÂˆÛÛœÝ]ÈHØš™XÝ˜[Y\Ê^[™Yœ]ÈÏÈßJK›X\
+[žHOˆ
+ÚYˆ[žKšY˜[YNˆ[žK›˜[YOËš[J
+H”]‹XÛÛŽˆ[žKšXÛÛˆˆ‹ÛÛÜŽ™[žK˜ÛÛÜˆˆÙMXÎÎŸJJNÂˆ]ØZ]Ø[YKœÙ][™ÜËœÙ]
+SÑSWÒQœ]È‹]ÊNÂˆ\Ë—Ü]ÓÝ™\œšYHH[Âˆ›Üˆ
+ÛÛœÝ\ÙˆØš™XÝ˜[Y\ÊZKÚ[™ÝÜÈÏÈßJJHYˆ
+\˜XÝÜË\HOOH˜Ú\˜XÝ\ˆŠH\œ™[™\Š˜[ÙJNÂˆBŸB‚˜Û\ÜÈ]Y[H^[™È›Ü›P\XØ][ÛˆÂˆ™[™\Š
+HÈ™]È]X[˜YÙ\Š
+Kœ™[™\ŠYJNÈ™]\›ˆ\ÎÈBŸB‚˜Û\ÜÈZPÛÛ™šYÈ^[™È›Ü›P\XØ][ÛˆÂˆÝ]XÈÙ]Y˜][Ü[ÛœÊ
+HÂˆ™]\›ˆ›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+Ý\\‹™Y˜][Ü[ÛœËÂˆYˆÜKXZKXÛÛ™šYÈ‹ˆ]NˆZH[œÝ[‹ˆ[\]Nˆ[Ù[\ËÉÓSÑSWÒQKÝ[\]\ËØZKXÛÛ™šYËšœØˆÚYˆMŒˆZYÚˆ˜]]È‹ˆÛÜÙSÛ”ÝX›Z]ˆYBˆJNÂˆBˆÙ]]J
+HÂˆÛÛœÝÛÛ™šYÈHÙ]ZPÛÛ™šYÊ
+NÂˆ™]\›ˆØÛÛ™šYË[˜Ú[™NˆÝ\œ™[[˜Ú[™J
+K]ÎˆÙ]]Ê
+K›X\
+]Oˆ
+Ë‹‹œ]Ù[XÝYˆ]šYOOHÛÛ™šYË™[][Û”]YJJ_NÂˆBˆXÝ]˜]S\Ý[™\œÊ[
+HÂˆÝ\\‹˜XÝ]˜]S\Ý[™\œÊ[
+NÂˆ[™š[™
+‹™š[K\XÚÙ\ˆŠK›ÛŠ˜ÛXÚÈ‹]™[OˆÂˆÛÛœÝ]ÛˆH]™[˜Ý\œ™[\™Ù]ÂˆÛÛœÝ\™Ù]H]Û‹™]\Ù]\™Ù]Âˆ™]Èš[TXÚÙ\ŠÝ\Nˆ]Û‹™]\Ù]\H˜[žH‹Ý\œ™[ˆ[™š[™
+Û˜[YOH‰Ý\™Ù]H—X
+K˜[
+
+KØ[˜XÚÎˆ]Oˆ[™š[™
+Û˜[YOH‰Ý\™Ù]H—X
+K˜[
+]
+KšYÙÙ\Š˜Ú[™ÙHŠ_JK˜œ›ÝÜÙJ
+NÂˆJNÂˆ[™š[™
+–Ù]KXÛÛÜ‹Y›Ü—HŠK›ÛŠ˜Ú[™ÙH‹]™[Oˆ[™š[™
+Û˜[YOH‰Ù]™[˜Ý\œ™[\™Ù]™]\Ù]˜ÛÛÜ‘›ÜŸH—X
+K˜[
+]™[˜Ý\œ™[\™Ù]˜[YJJNÂˆ[™š[™
+–Ù]KXXÝ[ÛIÜ™]šY]ËXZI×HŠK›ÛŠ˜ÛXÚÈ‹
+
+HOˆ^PZUšY[ÊÝšY[Îˆ[™š[™
+	ÖÛ˜[YOHšY[È—IÊK˜[
+
+_JJNÂˆ[™š[™
+–Ù]KXXÝ[ÛIÜÚÝËXZKX]Û‰×HŠK›ÛŠ˜ÛXÚÈ‹ÚÝÐZP]ÛŠNÂˆ[™š[™
+–Ù]KXXÝ[ÛIÜÚÝË\[˜Ú[™I×HŠK›ÛŠ˜ÛXÚÈ‹\Þ[˜È
+
+HOˆÈ]ØZ]Ø]™T[˜Ú[™S^[Ý]
+Ýš\ÚX›NˆY_JNÈ™Yœ™\Ú[˜Ú[™RQ
+
+NÈJNÂˆ[™š[™
+–Ù]KXXÝ[ÛIÜ™\Ù]XØ[˜\Ë]ÝYÚ™\ÜÉ×HŠK›ÛŠ˜ÛXÚÈ‹™\Ù]Ø[˜\ÕÝYÚ™\ÜÊNÂˆÛÛœÝ™Yœ™\Ú[˜Ú[™T™]šY]ÈH
+
+HOˆÂˆÛÛœÝ™]šY]ÈH[™š[™
+‹ÜK\[˜Ú[™K\XÙ[Y[\™]šY]ÈŠNÂˆÛÛœÝHÛ[\
+[™š[™
+	ÖÛ˜[YOHœ[˜Ú[™RXÛÛ“Ù™œÙ]—IÊK˜[
+
+KLLL
+NÂˆÛÛœÝHHÛ[\
+[™š[™
+	ÖÛ˜[YOHœ[˜Ú[™RXÛÛ“Ù™œÙ]H—IÊK˜[
+
+KLLL
+NÂˆ™]šY]Ë˜ÜÜÊ‹K]ÜK\™]šY]ËZXÛÛ‹^‹	Þ\
+K˜ÜÜÊ‹K]ÜK\™]šY]ËZXÛÛ‹^H‹	Þ_\
+NÂˆ™]šY]Ë™š[™
+‹ÜK\™]šY]Ë^]˜[YHŠK^
+	Þ\
+NÂˆ™]šY]Ë™š[™
+‹ÜK\™]šY]Ë^K]˜[YHŠK^
+	Þ_\
+NÂˆ™]šY]Ë™š[™
+š[YÈŠK˜]ŠœÜ˜È‹[™š[™
+	ÖÛ˜[YOHœ[˜Ú[™RXÛÛˆ—IÊK˜[
+
+HQUSÐRWÐÓÓ‘’QËœ[˜Ú[™RXÛÛŠNÂˆNÂˆ[™š[™
+	ÖÛ˜[YOHœ[˜Ú[™RXÛÛ“Ù™œÙ]—KÛ˜[YOHœ[˜Ú[™RXÛÛ“Ù™œÙ]H—IÊK›ÛŠš[œ]Ú[™ÙH‹™Yœ™\Ú[˜Ú[™T™]šY]ÊNÂˆ[™š[™
+	ÖÛ˜[YOHœ[˜Ú[™RXÛÛˆ—IÊK›ÛŠš[œ]Ú[™ÙH‹™Yœ™\Ú[˜Ú[™T™]šY]ÊNÂˆ™Yœ™\Ú[˜Ú[™T™]šY]Ê
+NÂˆ[™š[™
+–Ù]KXXÝ[ÛIÜÞ[˜ËXZKZ[š]X]]™I×HŠK›ÛŠ˜ÛXÚÈ‹\Þ[˜È
+
+HOˆÂˆYˆ
+YØ[YK˜ÛÛX˜]
+H™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š•\™H\È›ÈXÝ]™HÛÛX˜]ÈYZH[œÝ[ËˆŠNÂˆÛÛœÝÛÛX˜][H]ØZ]X^X™Q[œÝ\™PZPÛÛX˜][
+Ø[YK˜ÛÛX˜]Ù›Ü˜ÙNˆY_JNÂˆYˆ
+ÛÛX˜][
+HZK››ÝYšXØ][ÛœËš[™›ÊZH[œÝ[\È[ˆÛÛX˜]][š]X]]™H	ØÛÛX˜][š[š]X]]™_K˜
+NÂˆJNÂˆBˆ\Þ[˜ÈÝ\]SØš™XÝ
+Ù]™[›Ü›Q]JHÂˆÛÛœÝØ]™YÛÛ™šYÈHÂˆ[][Û‘[˜X›Yˆ›ÛÛX[Š›Ü›Q]K™[][Û‘[˜X›Y
+Kˆ[][Û”]Yˆ›Ü›Q]K™[][Û”]Yˆ‹ˆ[˜Ú[™RXÛÛŽˆ›Ü›Q]Kœ[˜Ú[™RXÛÛˆQUSÐRWÐÓÓ‘’QËœ[˜Ú[™RXÛÛ‹ˆ[˜Ú[™Q›Ûš[Nˆ›Ü›Q]Kœ[˜Ú[™Q›Ûš[Hˆ‹ˆ[˜Ú[™Q›ÛÚ^™NˆÛ[\
+›Ü›Q]Kœ[˜Ú[™Q›ÛÚ^™KL‹MŒ
+Kˆ[˜Ú[™RXÛÛ“Ù™œÙ]ˆÛ[\
+›Ü›Q]Kœ[˜Ú[™RXÛÛ“Ù™œÙ]LLL
+Kˆ[˜Ú[™RXÛÛ“Ù™œÙ]NˆÛ[\
+›Ü›Q]Kœ[˜Ú[™RXÛÛ“Ù™œÙ]KLLL
+KˆšY[Îˆ›Ü›Q]KšY[Èˆ‹ˆ]Û’[XYÙNˆ›Ü›Q]K˜]Û’[XYÙHQUSÐRWÐÓÓ‘’QË˜]Û’[XYÙKˆÛÛÜŽˆ›Ü›Q]K˜ÛÛÜˆQUSÐRWÐÓÓ‘’QË˜ÛÛÜ‹ˆ[š]X]]™Q[˜X›Yˆ›ÛÛX[Š›Ü›Q]Kš[š]X]]™Q[˜X›Y
+KˆÛÛX˜][[XYÙNˆ›Ü›Q]K˜ÛÛX˜][[XYÙHQUSÐRWÐÓÓ‘’QË˜ÛÛX˜][[XYÙBˆNÂˆ]ØZ]Ø[YKœÙ][™ÜËœÙ]
+SÑSWÒQ˜ZPÛÛ™šYÈ‹Ø]™YÛÛ™šYÊNÂˆ]ØZ]Ù][˜Ú[™J›Ü›Q]Kœ[˜Ú[™JNÂˆ™Yœ™\ÚZP]ÛŠ
+NÂˆÝ]Kœ[˜Ú[™SY]\Ë™\Ý›ÞJ
+NÂˆ™Yœ™\Ú[˜Ú[™RQ
+
+NÂˆ™[ØYZUšY[ÊØ]™YÛÛ™šYËšY[ÊNÂˆØ[YKœÛØÚÙ]™[Z]
+ÓÐÒÑUÝ\Nˆ˜ZPÛÛ™šYÐÚ[™ÙY‹ÛÝ\˜ÙU\Ù\’YˆØ[YK\Ù\‹šYšY[ÎˆØ]™YÛÛ™šYËšY[ßJNÂˆYˆ
+YÙ]ZPÛÛ™šYÊ
+K™[][Û‘[˜X›Y	‰ˆØ[YK˜ÛÛX˜]
+H]ØZ]ÛX\‘[][ÛXÝ[Û•\›œÊØ[YK˜ÛÛX˜]
+NÂˆ]ØZ]Þ[˜ÐZPÛÛX˜][Ê
+NÂˆ›Üˆ
+ÛÛœÝ\ÙˆØš™XÝ˜[Y\ÊZKÚ[™ÝÜÈÏÈßJJHYˆ
+\˜XÝÜË\HOOH˜Ú\˜XÝ\ˆŠH\œ™[™\Š˜[ÙJNÂˆZK››ÝYšXØ][ÛœËš[™›ÊZH[œÝ[ÛÛ™šYÝ\˜][ÛˆØ]™YˆŠNÂˆBŸB‚˜Û\ÜÈZSY[H^[™È›Ü›P\XØ][ÛˆÂˆ™[™\Š
+HÈ™]ÈZPÛÛ™šYÊ
+Kœ™[™\ŠYJNÈ™]\›ˆ\ÎÈBŸB‚˜Û\ÜÈXÚš\]YTÚ[ÛÛ™šYÈ^[™È›Ü›P\XØ][ÛˆÂˆÝ]XÈÙ]Y˜][Ü[ÛœÊ
+HÂˆ™]\›ˆ›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+Ý\\‹™Y˜][Ü[ÛœËÂˆYˆÜK]XÚš\]YK\Ú[XÛÛ™šYÈ‹ˆ]Nˆ•XÚš\]YHÚ[ÛÛ™šYÝ\˜][Ûˆ‹ˆ[\]Nˆ[Ù[\ËÉÓSÑSWÒQKÝ[\]\ËÝXÚš\]YK\Ú[XÛÛ™šYËšœØˆÚYˆˆZYÚˆ˜]]È‹ˆÛÜÙSÛ”ÝX›Z]ˆYBˆJNÂˆBˆÙ]]J
+HÈ™]\›ˆØÛÛ™šYÎˆÙ]XÚš\]YTÚ[ÛÛ™šYÊ
+KÝ\œ™[ˆÝ\œ™[XÚš\]YTÚ[Ê
+_NÈBˆ\Þ[˜ÈÝ\]SØš™XÝ
+Ù]™[›Ü›Q]JHÂˆÛÛœÝX^[][HHX]›X^
+KX]™›ÛÜŠ[X™\Š›Ü›Q]K›X^[][JHQUSÕPÒ’TUQWÔÒS•ÐÓÓ‘’QË›X^[][JJNÂˆÛÛœÝÛÛ™šYÈHÛX^[][KÝ\[™ÎˆÛ[\
+X]™›ÛÜŠ[X™\Š›Ü›Q]KœÝ\[™ÊJKX^[][J_NÂˆ]ØZ]Ø[YKœÙ][™ÜËœÙ]
+SÑSWÒQXÚš\]YTÚ[ÛÛ™šYÈ‹ÛÛ™šYÊNÂˆ]ØZ]Ù]XÚš\]YTÚ[ÊÛ[\
+X]™›ÛÜŠ[X™\Š›Ü›Q]K˜Ý\œ™[
+JKX^[][JJNÂˆ™Yœ™\Ú™\ÛÝ\˜ÙRYÊ
+NÂˆZK››ÝYšXØ][ÛœËš[™›Ê”Ú\™YXÚš\]YHÚ[ÛÛ™šYÝ\˜][ÛˆØ]™YˆŠNÂˆBŸB˜Û\ÜÈXÚš\]YTÚ[Y[H^[™È›Ü›P\XØ][ÛˆÂˆ™[™\Š
+HÈ™]ÈXÚš\]YTÚ[ÛÛ™šYÊ
+Kœ™[™\ŠYJNÈ™]\›ˆ\ÎÈBŸB‚˜Û\ÜÈÚÚ[Ú[ÛÛ™šYÈ^[™È›Ü›P\XØ][ÛˆÂˆÝ]XÈÙ]Y˜][Ü[ÛœÊ
+HÂˆ™]\›ˆ›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+Ý\\‹™Y˜][Ü[ÛœËÂˆYˆÜK\ÚÚ[\Ú[XÛÛ™šYÈ‹ˆ]Nˆ”ÚÚ[Ú[ÛÛ™šYÝ\˜][Ûˆ‹ˆ[\]Nˆ[Ù[\ËÉÓSÑSWÒQKÝ[\]\ËÜÚÚ[\Ú[XÛÛ™šYËšœØˆÚYˆNˆZYÚˆ˜]]È‹ˆÛÜÙSÛ”ÝX›Z]ˆYBˆJNÂˆBˆÙ]]J
+HÈ™]\›ˆØÛÛ™šYÎˆÙ]ÚÚ[Ú[ÛÛ™šYÊ
+KÝ\œ™[ˆÝ\œ™[ÚÚ[Ú[Ê
+_NÈBˆXÝ]˜]S\Ý[™\œÊ[
+HÂˆÝ\\‹˜XÝ]˜]S\Ý[™\œÊ[
+NÂˆ[™š[™
+‹™š[K\XÚÙ\ˆŠK›ÛŠ˜ÛXÚÈ‹]™[OˆÂˆÛÛœÝ]ÛˆH]™[˜Ý\œ™[\™Ù]ÂˆÛÛœÝ\™Ù]H]Û‹™]\Ù]\™Ù]Âˆ™]Èš[TXÚÙ\ŠÝ\Nˆ]Û‹™]\Ù]\Hš[XYÙH‹Ý\œ™[ˆ[™š[™
+Û˜[YOH‰Ý\™Ù]H—X
+K˜[
+
+KØ[˜XÚÎˆ]Oˆ[™š[™
+Û˜[YOH‰Ý\™Ù]H—X
+K˜[
+]
+KšYÙÙ\Š˜Ú[™ÙHŠ_JK˜œ›ÝÜÙJ
+NÂˆJNÂˆXÝ]˜]R[XYÙQ›ÜÊ[
+NÂˆ[™š[™
+–Ù]KXXÝ[ÛIÜÚÝË\ÚÚ[]ZI×HŠK›ÛŠ˜ÛXÚÈ‹ÚÝÔÚÚ[RJNÂˆ[™š[™
+–Ù]KXXÝ[ÛIÜ™Yš[\ÚÚ[\Ú[É×HŠK›ÛŠ˜ÛXÚÈ‹\Þ[˜È
+
+HOˆÂˆ]ØZ]Ù]ÚÚ[Ú[ÊÙ]ÚÚ[Ú[ÛÛ™šYÊ
+K›X^[][JNÂˆ[™š[™
+	ÖÛ˜[YOH˜Ý\œ™[—IÊK˜[
+Ý\œ™[ÚÚ[Ú[Ê
+JNÂˆJNÂˆBˆ\Þ[˜ÈÝ\]SØš™XÝ
+Ù]™[›Ü›Q]JHÂˆÛÛœÝX^[][HHX]›X^
+KX]™›ÛÜŠ[X™\Š›Ü›Q]K›X^[][JHQUSÔÒÒSÔÒS•ÐÓÓ‘’QË›X^[][JJNÂˆÛÛœÝÛÛ™šYÈHÂˆX^[][KˆÝ\[™ÎˆÛ[\
+X]™›ÛÜŠ[X™\Š›Ü›Q]KœÝ\[™ÊJKX^[][JKˆÚ[Ô\”›ÝÎˆÛ[\
+X]™›ÛÜŠ[X™\Š›Ü›Q]KœÚ[Ô\”›ÝÊJKKX^[][JKˆÚ[ÜXÚ[™ÎˆÛ[\
+[X™\Š›Ü›Q]KœÚ[ÜXÚ[™ÊKMLL
+Kˆ[[Z[˜]YXÛÛŽˆ›Ü›Q]Kš[[Z[˜]YXÛÛˆQUSÔÒÒSÔÒS•ÐÓÓ‘’QËš[[Z[˜]YXÛÛ‹ˆ[\RXÛÛŽˆ›Ü›Q]K™[\RXÛÛˆQUSÔÒÒSÔÒS•ÐÓÓ‘’QË™[\RXÛÛ‹ˆ[X™\‘›Ûš[Nˆ›Ü›Q]K›[X™\‘›Ûš[Hˆ‚ˆNÂˆ]ØZ]Ø[YKœÙ][™ÜËœÙ]
+SÑSWÒQœÚÚ[Ú[ÛÛ™šYÈ‹ÛÛ™šYÊNÂˆ]ØZ]Ù]ÚÚ[Ú[ÊÛ[\
+X]™›ÛÜŠ[X™\Š›Ü›Q]K˜Ý\œ™[
+JKX^[][JJNÂˆ™Yœ™\ÚÚÚ[RJ
+NÂˆZK››ÝYšXØ][ÛœËš[™›Ê”Ú\™YÚÚ[Ú[ÛÛ™šYÝ\˜][ÛˆØ]™YˆŠNÂˆBŸB‚˜Û\ÜÈÚÚ[Ú[Y[H^[™È›Ü›P\XØ][ÛˆÂˆ™[™\Š
+HÈ™]ÈÚÚ[Ú[ÛÛ™šYÊ
+Kœ™[™\ŠYJNÈ™]\›ˆ\ÎÈBŸB‚˜Û\ÜÈ[[Ú[ÛÛ™šYÈ^[™È›Ü›P\XØ][ÛˆÂˆÝ]XÈÙ]Y˜][Ü[ÛœÊ
+HÂˆ™]\›ˆ›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+Ý\\‹™Y˜][Ü[ÛœËÂˆYˆÜK][[\Ú[XÛÛ™šYÈ‹ˆ]Nˆ•[[Ú[ÛÛ™šYÝ\˜][Ûˆ‹ˆ[\]N˜[Ù[\ËÉÓSÑSWÒQKÝ[\]\ËÝ[[\Ú[XÛÛ™šYËšœØˆÚYLŒˆZYÚˆ˜]]È‹ˆÛÜÙSÛ”ÝX›Z]YBˆJNÂˆBˆÙ]]J
+HÈ™]\›ˆØÛÛ™šYÎ™Ù][[Ú[ÛÛ™šYÊ
+_NÈBˆXÝ]˜]S\Ý[™\œÊ[
+HÂˆÝ\\‹˜XÝ]˜]S\Ý[™\œÊ[
+NÂˆ[™š[™
+‹™š[K\XÚÙ\ˆŠK›ÛŠ˜ÛXÚÈ‹]™[OˆÂˆÛÛœÝ]ÛˆH]™[˜Ý\œ™[\™Ù]ÂˆÛÛœÝ\™Ù]H]Û‹™]\Ù]\™Ù]Âˆ™]Èš[TXÚÙ\ŠÝ\Nˆ˜[žH‹Ý\œ™[š[™š[™
+Û˜[YOH‰Ý\™Ù]H—X
+K˜[
+
+KØ[˜XÚÎœ]Oˆ[™š[™
+Û˜[YOH‰Ý\™Ù]H—X
+K˜[
+]
+KšYÙÙ\Š˜Ú[™ÙHŠ_JK˜œ›ÝÜÙJ
+NÂˆJNÂˆBˆ\Þ[˜ÈÝ\]SØš™XÝ
+Ù]™[›Ü›Q]JHÂˆ]ØZ]Ø[YKœÙ][™ÜËœÙ]
+SÑSWÒQ[[Ú[ÛÛ™šYÈ‹Û[X™\‘›Ûš[N”Ýš[™Ê›Ü›Q]K›[X™\‘›Ûš[HˆŠKš[J
+_JNÂˆ]ØZ]™Yœ™\Ú[[Ú[›Û
+
+NÂˆ™Yœ™\Ú™\ÛÝ\˜ÙRYÊ
+NÂˆ™Yœ™\ÚÛÛX˜]\RY
+
+NÂˆZK››ÝYšXØ][ÛœËš[™›Ê•[[Ú[\X\˜[˜ÙHØ]™YˆŠNÂˆBŸB‚˜Û\ÜÈ[[Ú[Y[H^[™È›Ü›P\XØ][ÛˆÂˆ™[™\Š
+HÈ™]È[[Ú[ÛÛ™šYÊ
+Kœ™[™\ŠYJNÈ™]\›ˆ\ÎÈBŸB‚˜Û\ÜÈZYÛÛ\X\˜[˜ÙPÛÛ™šYÈ^[™È›Ü›P\XØ][ÛˆÂˆÝ]XÈÙ]Y˜][Ü[ÛœÊ
+HÂˆ™]\›ˆ›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+Ý\\‹™Y˜][Ü[ÛœËÂˆYˆÜKYZYÛÛ‹X\X\˜[˜ÙKXÛÛ™šYÈ‹ˆ]Nˆ‘ZYÛÛˆ[\™˜XÙHÛÛ™šYÝ\˜][Ûˆ‹ˆ[\]Nˆ[Ù[\ËÉÓSÑSWÒQKÝ[\]\ËÙZYÛÛ‹XÛÛ™šYËšœØˆÚYˆŽˆZYÚˆ˜]]È‹ˆ™\Ú^˜X›NˆYKˆÛÜÙSÛ”ÝX›Z]ˆYBˆJNÂˆBˆÙ]]J
+HÈ™]\›ˆØÛÛ™šYÎˆÙ]ZYÛÛÛÛ™šYÊ
+_NÈBˆXÝ]˜]S\Ý[™\œÊ[
+HÂˆÝ\\‹˜XÝ]˜]S\Ý[™\œÊ[
+NÂˆ[™š[™
+‹™š[K\XÚÙ\ˆŠK›ÛŠ˜ÛXÚÈ‹]™[OˆÂˆÛÛœÝ\™Ù]H]™[˜Ý\œ™[\™Ù]™]\Ù]\™Ù]Âˆ™]Èš[TXÚÙ\ŠÝ\Nˆ]™[˜Ý\œ™[\™Ù]™]\Ù]\Hš[XYÙH‹Ý\œ™[ˆ[™š[™
+Û˜[YOH‰Ý\™Ù]H—X
+K˜[
+
+KØ[˜XÚÎˆ]Oˆ[™š[™
+Û˜[YOH‰Ý\™Ù]H—X
+K˜[
+]
+KšYÙÙ\Šš[œ]Š_JK˜œ›ÝÜÙJ
+NÂˆJNÂˆXÝ]˜]R[XYÙQ›ÜÊ[
+NÂˆÛÛœÝ™Yœ™\ÚH
+
+HOˆÂˆ[™š[™
+‹ÜKYZYÛÛ‹YÛØ˜[\™]šY]ÈÜKYZYÛÛ‹X˜XÚÙÜ›Ý[™ŠK˜]ŠœÜ˜È‹[™š[™
+	ÖÛ˜[YOH˜˜XÚÙÜ›Ý[™[XYÙH—IÊK˜[
+
+JNÂˆ[™š[™
+‹ÜKYZYÛÛ‹YÛØ˜[\™]šY]ÈÜKYZYÛÛ‹Yš]™K[Ý™\›^HŠK˜]ŠœÜ˜È‹[™š[™
+	ÖÛ˜[YOH™š]™TÚ\™Ý™\›^H—IÊK˜[
+
+JNÂˆ[™š[™
+‹ÜKYZYÛÛ‹YÛØ˜[\™]šY]ÈÜKYZYÛÛ‹YLË[Ý™\›^HŠK˜]ŠœÜ˜È‹[™š[™
+	ÖÛ˜[YOH™LÓÝ™\›^H—IÊK˜[
+
+JNÂˆNÂˆ[™š[™
+š[œ]ŠK›ÛŠš[œ]Ú[™ÙH‹™Yœ™\Ú
+NÂˆ™Yœ™\Ú
+
+NÂˆBˆ\Þ[˜ÈÝ\]SØš™XÝ
+Ù]™[›Ü›Q]JHÂˆ]ØZ]Ø[YKœÙ][™ÜËœÙ]
+SÑSWÒQ™ZYÛÛÛÛ™šYÈ‹Âˆ˜XÚÙÜ›Ý[™[XYÙNˆ›Ü›Q]K˜˜XÚÙÜ›Ý[™[XYÙHˆ‹ˆš]™TÚ\™Ý™\›^Nˆ›Ü›Q]K™š]™TÚ\™Ý™\›^Hˆ‹ˆLÓÝ™\›^Nˆ›Ü›Q]K™LÓÝ™\›^Hˆ‹ˆ™Y™\™[˜ÙR[XYÙNˆ›Ü›Q]Kœ™Y™\™[˜ÙR[XYÙHˆ‹ˆ]Q›Ûš[Nˆ›Ü›Q]K]Q›Ûš[Hˆ‹ˆX\ÚÌNˆ›Ü›Q]K›X\ÚÌHˆ‹ˆX\ÚÌŽˆ›Ü›Q]K›X\ÚÌˆˆ‹ˆX\ÚÌÎˆ›Ü›Q]K›X\ÚÌÈˆ‹ˆX\ÚÍˆ›Ü›Q]K›X\ÚÍˆ‹ˆX\ÚÍNˆ›Ü›Q]K›X\ÚÍHˆ‹ˆX\ÚÍŽˆ›Ü›Q]K›X\ÚÍˆˆ‚ˆJNÂˆ›Üˆ
+ÛÛœÝ\ÙˆØš™XÝ˜[Y\ÊZKÚ[™ÝÜÈÏÈßJJHYˆ
+\˜XÝÜË\HOOH˜Ú\˜XÝ\ˆŠH\œ™[™\Š˜[ÙJNÂˆZK››ÝYšXØ][ÛœËš[™›Ê‘ZYÛÛˆ[\™˜XÙH^Y\œÈØ]™YˆŠNÂˆBŸB‚˜Û\ÜÈZYÛÛ\X\˜[˜ÙSY[H^[™È›Ü›P\XØ][ÛˆÂˆ™[™\Š
+HÈ™]ÈZYÛÛ\X\˜[˜ÙPÛÛ™šYÊ
+Kœ™[™\ŠYJNÈ™]\›ˆ\ÎÈBŸB‚˜\Þ[˜È[˜Ý[Ûˆ[œÙ\XÝ[ÛY˜[˜ÙU\›ŠÛÛX˜][Y
+HÂˆYˆ
+Z\Ð]]Üš]J
+JH™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š“Û›HHXÝ]™HÓHØ[ˆ[œÙ\[ˆXÝ[ÛˆY˜[˜ÙH\›‹ˆŠNÂˆÛÛœÝÛÛX˜]HØ[YK˜ÛÛX˜]ÂˆYˆ
+XÛÛX˜]ËœÝ\Y
+H™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š”Ý\ÛÛX˜]™Y›Ü™H[œÙ\[™È[ˆXÝ[ÛˆY˜[˜ÙH\›‹ˆŠNÂˆYˆ
+Ý]K˜XÝ[ÛY˜[˜Ù\Ëš\ÊÛÛX˜]šY
+JH™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š‘š[š\ÚHÝ\œ™[XÝ[ÛˆY˜[˜ÙH\›ˆš\œÝˆŠNÂˆÛÛœÝÛÝ\˜ÙHHÛÛX˜]˜ÛÛX˜][Ë™Ù]
+ÛÛX˜][Y
+NÂˆYˆ
+\ÛÝ\˜ÙH\Ñ[][ÛXÝ[ÛÛÛX˜][
+ÛÝ\˜ÙJJH™]\›ˆZK››ÝYšXØ][ÛœËØ\›ŠÚÛÜÙHHÚ\˜XÝ\‹[™[^KÜˆZH[œÝ[[ˆ[š]X]]™KˆŠNÂˆÛÛœÝY˜[˜ÙPZOZ\ÐZPÛÛX˜][
+ÛÝ\˜ÙJNÂˆÛÛœÝ[\œ\YHÛÛX˜]˜ÛÛX˜][ÂˆYŠY˜[˜ÙPZJ^ÂˆYŠ[\œ\YËšYOO\ÛÝ\˜ÙKšY
+\™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š’]\È[™XYHZH[œÝ[	ÜÈ\›‹ˆŠNÂˆÛÛœÝ[™^XÛÛX˜]\›œË™š[™[™^
+[žOO™[žKšYOO\ÛÝ\˜ÙKšY
+NÂˆYŠ[™^
+\™]\›ˆZK››ÝYšXØ][ÛœËØ\›ŠZH[œÝ[\È›Ý]˜Z[X›H[ˆHÝ\œ™[\›ˆÜ™\‹ˆŠNÂˆÝ]K˜XÝ[ÛY˜[˜Ù\ËœÙ]
+ÛÛX˜]šYØÛÛX˜][YœÛÝ\˜ÙKšY™\Ý[YPÛÛX˜][Yš[\œ\YËšYÏÛ[™\Ý[YT›Ý[™˜ÛÛX˜]œ›Ý[™ZNYK™]\ÙTÛÝ\˜ÙNY_JNÂˆÝ]K›\Ý[][Û”Ù\]Y[˜ÙRÙ^OHˆŽÂˆ]ØZ]ÛÛX˜]\]JÝ\›Žš[™^JNÂˆZK››ÝYšXØ][ÛœËš[™›ÊZH[œÝ[™XÙZ]™\È[ˆXÝ[ÛˆY˜[˜ÙH\›‹ˆŠNÂˆ™]\›ˆYNÂˆBˆÛÛœÝÝ\œ™[[š]X]]™HH[X™\Š[\œ\YËš[š]X]]™HÏÈ
+NÂˆÛÛœÝ™^HÛÛX˜]\›œÖÓ[X™\ŠÛÛX˜]\›ˆÏÈ
+H
+ÈWNÂˆ][š]X]]™HH™^È
+Ý\œ™[[š]X]]™H
+È[X™\Š™^š[š]X]]™HÏÈÝ\œ™[[š]X]]™HHJJHÈˆˆÝ\œ™[[š]X]]™HHŒNÂˆYˆ
+S[X™\‹š\Ñš[š]J[š]X]]™JJH[š]X]]™HHÝ\œ™[[š]X]]™HHŒNÂˆÛÛœÝÝ[\Ü˜\žWHH]ØZ]ÛÛX˜]˜Ü™X]Q[X™YYØÝ[Y[ÊÛÛX˜][‹ÞÂˆ˜[YNˆPÕSÓˆQSÑH8 %	ÜÛÝ\˜ÙK›˜[Y_XˆXÝÜ’YˆÛÝ\˜ÙK˜XÝÜ’YˆÚÙ[’Yˆ[ˆØÙ[™RYˆ[ˆ[š]X]]™Kˆ[YÎˆÛÝ\˜ÙKš[YÈÏÈÛÝ\˜ÙK˜XÝÜËš[YÈÏÈšXÛÛœËÜÝ™ËÛ^\Ý\žK[X[‹œÝ™È‹ˆ›YÜÎˆÖÓSÑSWÒQNˆØXÝ[ÛY˜[˜ÙNˆYKÛÝ\˜ÙPÛÛX˜][YˆÛÝ\˜ÙKšY™\Ý[YPÛÛX˜][Yˆ[\œ\YËšYÏÈ[™\Ý[YT›Ý[™ˆÛÛX˜]œ›Ý[™_BˆWJNÂˆYˆ
+][\Ü˜\žJH™]\›ŽÂˆÝ]K˜XÝ[ÛY˜[˜Ù\ËœÙ]
+ÛÛX˜]šYØÛÛX˜][Yˆ[\Ü˜\žKšY™\Ý[YPÛÛX˜][Yˆ[\œ\YËšYÏÈ[™\Ý[YT›Ý[™ˆÛÛX˜]œ›Ý[™ZN˜Y˜[˜ÙPZ_JNÂˆÛÛœÝ[™^HÛÛX˜]\›œË™š[™[™^
+[žHOˆ[žKšYOOH[\Ü˜\žKšY
+NÂˆYˆ
+[™^H
+H]ØZ]ÛÛX˜]\]JÝ\›Žˆ[™^JNÂˆZK››ÝYšXØ][ÛœËš[™›Ê	ÜÛÝ\˜ÙK›˜[Y_H™XÙZ]™\È[ˆXÝ[ÛˆY˜[˜ÙH\›‹˜
+NÂŸB‚˜\Þ[˜È[˜Ý[Ûˆš[š\ÚXÝ[ÛY˜[˜ÙJÛÛX˜]Y˜[˜ÙJHÂˆYˆ
+Z\Ð]]Üš]J
+HXÛÛX˜]XY˜[˜ÙJH™]\›ŽÂˆÝ]K˜XÝ[ÛY˜[˜Ù\Ë™[]JÛÛX˜]šY
+NÂˆÛÛœÝ[\Ü˜\žHHÛÛX˜]˜ÛÛX˜][Ë™Ù]
+Y˜[˜ÙK˜ÛÛX˜][Y
+NÂˆYˆ
+[\Ü˜\žJH]ØZ]\Ü]Ú[[]™[
+\›‘[™‹ØÛÛX˜]ÛÛX˜][ˆ[\Ü˜\žKÛÝ\˜ÙPXÝÜŽˆ[\Ü˜\žK˜XÝÜˆÏÈ[KXÝ[Û‹XY˜[˜ÙN‰Ý[\Ü˜\žKšYX
+NÂˆÝ]KœÝ\™\ÜÐÛÛX˜]ÛÚÈHYNÂˆžHÂˆYˆ
+XY˜[˜ÙKœ™]\ÙTÛÝ\˜ÙH	‰ˆÛÛX˜]˜ÛÛX˜][Ëš\ÊY˜[˜ÙK˜ÛÛX˜][Y
+JH]ØZ]ÛÛX˜]™[]Q[X™YYØÝ[Y[ÊÛÛX˜][‹ØY˜[˜ÙK˜ÛÛX˜][YJNÂˆÛÛœÝ™\Ý[YR[™^HÛÛX˜]\›œË™š[™[™^
+[žHOˆ[žKšYOOHY˜[˜ÙKœ™\Ý[YPÛÛX˜][Y
+NÂˆYˆ
+™\Ý[YR[™^H
+HÂˆ]ØZ]ÛÛX˜]\]JÜ›Ý[™ˆY˜[˜ÙKœ™\Ý[YT›Ý[™\›Žˆ™\Ý[YR[™^JNÂˆÛÛœÝ™\Ý[YYHÛÛX˜]˜ÛÛX˜][Ë™Ù]
+Y˜[˜ÙKœ™\Ý[YPÛÛX˜][Y
+NÂˆYˆ
+™\Ý[YY
+HÝ]K›\Ý[[\›œËœÙ]
+ÛÛX˜]šYÚÙ^Nˆ	ØÛÛX˜]šYN‰ØY˜[˜ÙKœ™\Ý[YT›Ý[™N‰Ü™\Ý[YYšYXÛÛX˜][Yˆ™\Ý[YYšYXÝÜ’Yˆ™\Ý[YY˜XÝÜËšYÏÈ[JNÂˆBˆHš[˜[HÈÝ]KœÝ\™\ÜÐÛÛX˜]ÛÚÈH˜[ÙNÈBŸB‚˜Û\ÜÈÝ\”˜Z[ÓT[™[^[™È›Ü›P\XØ][ÛˆÂˆÝ]XÈÙ]Y˜][Ü[ÛœÊ
+HÂˆ™]\›ˆ›Ý[™žK][Ë›Y\™ÙSØš™XÝ
+Ý\\‹™Y˜][Ü[ÛœËÂˆYˆÜKYÛK\[™[‹ˆ]Nˆ”Ý\ˆ˜Z[ÓH[™[‹ˆ[\]Nˆ[Ù[\ËÉÓSÑSWÒQKÝ[\]\ËÙÛK\[™[šœØˆÚYˆŒˆZYÚˆÌŒˆZ[•ÚYˆÍˆZ[’ZYÚˆÌˆ™\Ú^˜X›NˆYKˆÛÜÙSÛ”ÝX›Z]ˆ˜[ÙBˆJNÂˆBˆÙ]]J
+HÂˆÛÛœÝÛÛ\ÙYØ\™ÈHØ[YKœÙ][™ÜË™Ù]
+SÑSWÒQ™ÛT[™[ÛÛ\ÙYØ\™ÈŠHÏÈßNÂˆÛÛœÝØ[˜\ÐÚ\˜XÝ\’YÈH™]ÈÙ]
+
+Ø[˜\ÏËÚÙ[œÏËœXÙXX›\ÈÏÈ×JK™š[\ŠÚÙ[ˆOˆÚÙ[‹˜XÝÜË\HOOH˜Ú\˜XÝ\ˆŠK›X\
+ÚÙ[ˆOˆÚÙ[‹˜XÝÜ‹šY
+JNÂˆÛÛœÝÚ\˜XÝ\œÈHØ[YK˜XÝÜœÂˆ™š[\ŠXÝÜˆOˆXÝÜ‹\HOOH˜Ú\˜XÝ\ˆˆ	‰ˆ
+Ù]ÛÛ™šYÊXÝÜŠK›XZ[”\HØ[˜\ÐÚ\˜XÝ\’YËš\ÊXÝÜ‹šY
+JJBˆ›X\
+XÝÜˆOˆÂˆÛÛœÝ\Ô^Y\“ÝÛ™\YØ[YK\Ù\œËœÛÛYJ\Ù\Oˆ]\Ù\‹š\ÑÓH	‰ˆXÝÜ‹\Ý\Ù\”\›Z\ÜÚ[ÛŠ\Ù\‹“ÕÓ‘TˆŠJNÂˆ™]\›ˆØXÝÜ‹ÛÛ™šYÎ™Ù]ÛÛ™šYÊXÝÜŠK\Ô^Y\“ÝÛ™\‹\ÑÓTÎˆZ\Ô^Y\“ÝÛ™\‹[[Ý\œ™[ˆÝ\œ™[[[Ú[ÊXÝÜŠK[[[YÚX›Nˆ›ÛÛX[Š[[ÛÛX˜]›ÜXÝÜŠXÝÜŠJK[ÙYšY\ŽˆÚYÛ™Y[X™\Š™YÙ[“[ÙYšY\ŠÙ]ÛÛ™šYÊXÝÜŠJJKÛÛ\ÙYˆ›ÛÛX[ŠÛÛ\ÙYØ\™ÖØÚ\˜XÝ\Ž‰ØXÝÜ‹šYXJ_NÂˆJNÂˆÛÛœÝ›Ü›X[ÛÛX˜][ÈHØ[YK˜ÛÛX˜]Ë˜ÛÛX˜][ÏË™š[\Š[žHOˆZ\ÐZPÛÛX˜][
+[žJH	‰ˆZ\Ñ[][ÛXÝ[ÛÛÛX˜][
+[žJH	‰ˆY[žK™Ù]›YÊSÑSWÒQ[\Ü˜\žU[[X]HŠH	‰ˆY[žK™Ù]›YÊSÑSWÒQ˜XÝ[ÛY˜[˜ÙHŠJHÏÈ×NÂˆÛÛœÝXÝ[ÛY˜[˜ÙPÛÛX˜][ÈHØ[YK˜ÛÛX˜]Ë˜ÛÛX˜][ÏË™š[\Š[žHOˆZ\Ñ[][ÛXÝ[ÛÛÛX˜][
+[žJH	‰ˆY[žK™Ù]›YÊSÑSWÒQ[\Ü˜\žU[[X]HŠH	‰ˆY[žK™Ù]›YÊSÑSWÒQ˜XÝ[ÛY˜[˜ÙHŠJHÏÈ×NÂˆÛÛœÝÛÛX˜][ÈHØ[YK˜ÛÛX˜]ËœÝ\YÈXÝ[ÛY˜[˜ÙPÛÛX˜][Ë›X\
+[žHOˆ
+ÚYˆ[žKšY˜[YNˆ[žK›˜[YK[š]X]]™Nˆ[žKš[š]X]]™K[YÎˆ[žKš[YßJJHˆ×NÂˆÛÛœÝ[š]X]]™UÚÙ[’YÈH™]ÈÙ]
+›Ü›X[ÛÛX˜][Ë›X\
+[žHOˆ[žKÚÙ[’Y
+K™š[\Š›ÛÛX[ŠJNÂˆÛÛœÝ[š]X]]™PXÝÜ•]ZYÈH™]ÈÙ]
+›Ü›X[ÛÛX˜][Ë›X\
+[žHOˆ[žK˜XÝÜË]ZY
+K™š[\Š›ÛÛX[ŠJNÂˆÛÛœÝ[[Y[ÈHÙ][[Y[Ê
+NÂˆÛÛœÝ\™Ù]YYÈH™]ÈÙ]
+Ë‹‹ŠØ[YK\Ù\Ë\™Ù]ÈÏÈ×JK‹‹ŠØ[˜\ÏËÚÙ[œÏË˜ÛÛ›ÛYÏÈ×JWK›X\
+ÚÙ[ˆOˆÚÙ[‹šY
+JNÂˆÛÛœÝØÙ[™Q[™[ZY\ÈH
+Ø[˜\ÏËÚÙ[œÏËœXÙXX›\ÈÏÈ×JK™š[\ŠÚÙ[ˆOˆÚÙ[‹˜XÝÜË\HOOH›œÈˆ	‰ˆ
+[š]X]]™UÚÙ[’YËš\ÊÚÙ[‹šY
+H[š]X]]™PXÝÜ•]ZYËš\ÊÚÙ[‹˜XÝÜ‹]ZY
+JJK›X\
+ÚÙ[ˆOˆÂˆÛÛœÝXÝÜˆHÚÙ[‹˜XÝÜŽÂˆÛÛœÝÛÛ™šYÈHÙ]ÝYÚ™\ÜÊXÝÜŠNÂˆÛÛœÝ[\Ü˜\žHH[\Ü˜\žUÝYÚ™\ÜÕÙXZÛ™\ÜÙ\ÊÚÙ[ŠNÂˆÛÛœÝÙXZÛ™\ÜÓ[ÙHHÝYÚ™\ÜÕÙXZÛ™\ÜÓ[ÙJÚÙ[ŠNÂˆ™]\›ˆÂˆXÝÜ‹ÚÙ[‹ÚÙ[’YˆÚÙ[‹šYÚÙ[•]ZYˆÚÙ[‹™ØÝ[Y[]ZY\™Ù]Yˆ\™Ù]YYËš\ÊÚÙ[‹šY
+KÙXZÛ™\ÜÓ[ÙKˆÛÛ\ÙYˆ›ÛÛX[ŠÛÛ\ÙYØ\™ÖØœÎ‰ÝÚÙ[‹™ØÝ[Y[]ZYXJKˆ[ÙXZÛ™\ÜÙ\ÎˆÙXZÛ™\ÜÓ[ÙHOOH˜[‹›ÕÙXZÛ™\ÜÙ\ÎˆÙXZÛ™\ÜÓ[ÙHOOH››Û™H‹ˆ[[Y[Îˆ[[Y[Ë›X\
+[[Y[Oˆ
+Ë‹‹™[[Y[\›X[™[ˆÛÛ™šYËÙXZÛ™\ÜÙ\Ëš[˜ÛY\Ê[[Y[šY
+K[\Ü˜\žNˆÙXZÛ™\ÜÓ[ÙHOOH˜[ˆ[\Ü˜\žKš[˜ÛY\Ê[[Y[šY
+_JJBˆNÂˆJNÂˆÛÛœÝXÝ[ÛÚ\˜XÝ\œÈHØ[YK˜XÝÜœË™š[\ŠXÝÜˆOˆXÝÜ‹\HOOH˜Ú\˜XÝ\ˆŠKœÛÜ
+
+YšYÚ
+HOˆY›˜[YK›ØØ[PÛÛ\\™JšYÚ›˜[YJJK›X\
+XÝÜˆOˆ
+ÚYˆXÝÜ‹šY˜[YNˆXÝÜ‹›˜[Y_JJNÂˆ™]\›ˆØÚ\˜XÝ\œËXÝ[ÛÚ\˜XÝ\œËØÙ[™Q[™[ZY\Ë[˜Ú[™NˆÝ\œ™[[˜Ú[™J
+K[˜Ú[™SÝ™\œšYNˆ[˜Ú[™SÝ™\œšYQ[˜X›Y
+
+KÚÚ[Ú[ÎˆÝ\œ™[ÚÚ[Ú[Ê
+KÚÚ[Ú[X^ˆÙ]ÚÚ[Ú[ÛÛ™šYÊ
+K›X^[][KÛÛX˜][Ë\ÐÛÛX˜]ˆ›ÛÛX[ŠØ[YK˜ÛÛX˜]ËœÝ\Y
+K[š]X]]™PØ\›Ý\Ù[™Ù][š]X]]™PØ\›Ý\Ù[ÛÛ™šYÊ
+KÚÝÔØÙ[™S˜]šYØ][ÛŽ™Ø[YKœÙ][™ÜË™Ù]
+SÑSWÒQœÚÝÔØÙ[™S˜]šYØ][ÛˆŠ_NÂˆBˆXÝ]˜]S\Ý[™\œÊ[
+HÂˆÝ\\‹˜XÝ]˜]S\Ý[™\œÊ[
+NÂˆ[™š[™
+–Ù]KXÛÛ\ÙK]ÙÙÛWHŠK›ÛŠ˜ÛXÚÈ‹\Þ[˜È]™[OˆÂˆÛÛœÝ]ÛˆH]™[˜Ý\œ™[\™Ù]ÂˆÛÛœÝÙ^HH]Û‹™]\Ù]˜ÛÛ\ÙUÙÙÛNÂˆÛÛœÝØ\™H]Û‹˜ÛÜÙ\Ý
+‹ÜKYÛKXÛÛ\ÚX›HŠNÂˆYˆ
+ZÙ^HXØ\™
+H™]\›ŽÂˆÛÛœÝÛÛ\ÙYHXØ\™˜Û\ÜÓ\Ý˜ÛÛZ[œÊ˜ÛÛ\ÙYŠNÂˆØ\™˜Û\ÜÓ\ÝÙÙÛJ˜ÛÛ\ÙY‹ÛÛ\ÙY
+NÂˆ]Û‹œÙ]]šX]J˜\šXKY^[™Y‹Ýš[™ÊXÛÛ\ÙY
+JNÂˆÛÛœÝØ]™YH›Ý[™žK][Ë™Y\ÛÛ™JØ[YKœÙ][™ÜË™Ù]
+SÑSWÒQ™ÛT[™[ÛÛ\ÙYØ\™ÈŠHÏÈßJNÂˆØ]™YÚÙ^WHHÛÛ\ÙYÂˆ]ØZ]Ø[YKœÙ][™ÜËœÙ]
+SÑSWÒQ™ÛT[™[ÛÛ\ÙYØ\™È‹Ø]™Y
+NÂˆJNÂˆ[™š[™
+–Ù]K\™\ÛÝ\˜ÙKXXÝ[Û—HŠK›ÛŠ˜ÛXÚÈ‹\Þ[˜È]™[OˆÂˆÛÛœÝXÝ[ÛˆH]™[˜Ý\œ™[\™Ù]™]\Ù]œ™\ÛÝ\˜ÙPXÝ[ÛŽÂˆÛÛœÝ[HH[X™\Š]™[˜Ý\œ™[\™Ù]™]\Ù]™[JHÂˆYˆ
+XÝ[ÛˆOOHœ[˜Ú[™HŠH]ØZ]Ù][˜Ú[™JÝ\œ™[[˜Ú[™J
+H
+È[JNÂˆYˆ
+XÝ[ÛˆOOHœÚÚ[Ú[ÈŠH]ØZ]Ù]ÚÚ[Ú[ÊÝ\œ™[ÚÚ[Ú[Ê
+H
+È[JNÂˆ\Ëœ™Yœ™\Ú]™U˜[Y\Ê
+NÂˆJNÂˆ[™š[™
+–Ù]K\™\ÛÝ\˜ÙKZ[œ]HŠK›ÛŠ˜Ú[™ÙH‹\Þ[˜È]™[OˆÂˆYˆ
+]™[˜Ý\œ™[\™Ù]™]\Ù]œ™\ÛÝ\˜ÙR[œ]OOHœ[˜Ú[™HŠH]ØZ]Ù][˜Ú[™J]™[˜Ý\œ™[\™Ù]˜[YJNÂˆYˆ
+]™[˜Ý\œ™[\™Ù]™]\Ù]œ™\ÛÝ\˜ÙR[œ]OOHœÚÚ[Ú[ÈŠH]ØZ]Ù]ÚÚ[Ú[Ê]™[˜Ý\œ™[\™Ù]˜[YJNÂˆ\Ëœ™Yœ™\Ú]™U˜[Y\Ê
+NÂˆJNÂˆ[™š[™
+	ÖÛ˜[YOHœ[˜Ú[™SÝ™\œšYH—IÊK›ÛŠ˜Ú[™ÙH‹\Þ[˜È]™[OˆÂˆ]ØZ]Ø[YKœÙ][™ÜËœÙ]
+SÑSWÒQœ[˜Ú[™SÝ™\œšYH‹›ÛÛX[Š]™[˜Ý\œ™[\™Ù]˜ÚXÚÙY
+JNÂˆ™Yœ™\Ú[˜Ú[™RQ
+
+NÂˆ\Ëœ™Yœ™\Ú]™U˜[Y\Ê
+NÂˆJNÂˆ[™š[™
+–Ù]KXXÝÜ‹YšY[HŠK›ÛŠ˜Ú[™ÙH‹\Þ[˜È]™[OˆÂˆÛÛœÝ[œ]H]™[˜Ý\œ™[\™Ù]ÂˆÛÛœÝXÝÜˆHØ[YK˜XÝÜœË™Ù]
+[œ]™]\Ù]˜XÝÜ’Y
+NÂˆÛÛœÝšY[H[œ]™]\Ù]˜XÝÜ‘šY[ÂˆYˆ
+XXÝÜˆVÈ˜Ý\œ™[‹›X^‹œ™YÙ[”ØÛÜ™H‹˜]XÚÑØZ[ˆ‹˜]XÚÙYØZ[ˆ‹œ[˜Ú[™QØZ[ˆ‹[[Ú[ÐÝ\œ™[‹[[Ú[ÓX^‹›XZ[”\H‹œ\QÓSÝ™\œšYH‹œ™XÙZ]™\Ô™]Ø\™È‹›ØÚÑ[™\™ÞPY\•[[X]H—Kš[˜ÛY\ÊšY[
+JH™]\›ŽÂˆYˆ
+È›XZ[”\H‹œ\QÓSÝ™\œšYH‹œ™XÙZ]™\Ô™]Ø\™È‹›ØÚÑ[™\™ÞPY\•[[X]H—Kš[˜ÛY\ÊšY[
+JHÂˆ]ØZ]XÝÜ‹\]JÖØ›YÜË‰ÓSÑSWÒQK[[X]K‰ÙšY[XNˆ[œ]˜ÚXÚÙYJNÂˆ™]\›ˆ\Ëœ™Yœ™\Ú]™U˜[Y\Ê
+NÂˆBˆ]˜[YHH[X™\Š[œ]˜[YJNÂˆYˆ
+S[X™\‹š\Ñš[š]J˜[YJJH˜[YHHÂˆ˜[YHHX]™›ÛÜŠ˜[YJNÂˆÛÛœÝÛÛ™šYÈHÙ]ÛÛ™šYÊXÝÜŠNÂˆYˆ
+šY[OOH›X^ŠHÂˆ˜[YHHX]›X^
+K˜[YJNÂˆ]ØZ]XÝÜ‹\]JÖØ›YÜË‰ÓSÑSWÒQK[[X]K›X^Nˆ˜[YKØ›YÜË‰ÓSÑSWÒQK[[X]K˜Ý\œ™[NˆÛ[\
+ÛÛ™šYË˜Ý\œ™[˜[YJ_JNÂˆH[ÙHYˆ
+šY[OOH˜Ý\œ™[ŠHÂˆÛÛœÝ\YYH]ØZ]Ù][™\™ÞJXÝÜ‹˜[YKÛÝ™\œšYSØÚÎˆY_JNÂˆ[œ]˜[YHH\YYÏÈÙ]ÛÛ™šYÊXÝÜŠK˜Ý\œ™[ÂˆBˆ[ÙHYˆ
+šY[OOHœ™YÙ[”ØÛÜ™HŠH]ØZ]XÝÜ‹\]JÖØ›YÜË‰ÓSÑSWÒQK[[X]Kœ™YÙ[”ØÛÜ™XNˆÛ[\
+˜[YKKÌ
+_JNÂˆ[ÙHYˆ
+šY[OOH[[Ú[ÓX^ŠHÂˆ˜[YHHX]›X^
+˜[YJNÂˆÛÛœÝÝ™\˜Ø\HX]›X^
+˜[YK[X™\ŠÛÛ™šYË[[Ú[ÓÝ™\˜Ø\X^
+H˜[YJNÂˆ]ØZ]XÝÜ‹\]JÖØ›YÜË‰ÓSÑSWÒQK[[X]K[[Ú[ÓX^Nˆ˜[YKØ›YÜË‰ÓSÑSWÒQK[[X]K[[Ú[ÓÝ™\˜Ø\X^N›Ý™\˜Ø\Ø›YÜË‰ÓSÑSWÒQK[[X]K[[Ú[ÐÝ\œ™[NˆÛ[\
+ÛÛ™šYË[[Ú[ÐÝ\œ™[Ý™\˜Ø\
+_JNÂˆH[ÙHYˆ
+šY[OOH[[Ú[ÐÝ\œ™[ŠHÂˆYˆ
+][[ÛÛX˜]›ÜXÝÜŠXÝÜŠJHZK››ÝYšXØ][ÛœËØ\›Š•[[Ú[ÈØ[ˆÛ›H™H˜XÚÙY\š[™ÈÛÛX˜]›ÜˆÚ\˜XÝ\œÈÚ]ÚÙ[œÈÛˆH˜]YšY[ˆŠNÂˆ[ÙH]ØZ]Ù][[Ú[ÊXÝÜ‹˜[YJNÂˆBˆ[ÙH]ØZ]XÝÜ‹\]JÖØ›YÜË‰ÓSÑSWÒQK[[X]K‰ÙšY[XNˆX]›X^
+˜[YJ_JNÂˆ\Ëœ™Yœ™\Ú]™U˜[Y\Ê
+NÂˆJNÂˆ[™š[™
+–Ù]KXXÝ[ÛIØXÝ[Û‹XY˜[˜ÙI×HŠK›ÛŠ˜ÛXÚÈ‹\Þ[˜È
+
+HOˆÂˆÛÛœÝYH[™š[™
+	ÖÛ˜[YOH˜XÝ[ÛY˜[˜ÙPÛÛX˜][—IÊK˜[
+
+NÂˆYˆ
+ZY
+H™]\›ˆZK››ÝYšXØ][ÛœËØ\›ŠÚÛÜÙHHÛÛX˜][š\œÝˆŠNÂˆ]ØZ][œÙ\XÝ[ÛY˜[˜ÙU\›ŠY
+NÂˆ\Ëœ™[™\Š˜[ÙJNÂˆJNÂˆ[™š[™
+–Ù]KXXÝ[ÛIÜÚÝË\\ÙKXÛÛ›ÛÉ×HŠK›ÛŠ˜ÛXÚÈ‹
+
+HOˆÚÝÐ›ÜÜÔ\ÙPÛÛ›Û
+
+JNÂˆ[™š[™
+–Ù]KXXÝ[ÛIÜØ]™KZ[š]X]]™KXØ\›Ý\Ù[	×HŠK›ÛŠ˜ÛXÚÈ‹\Þ[˜Ê
+OOžÂˆÛÛœÝ]O^Ù[˜X›Y›ÛÛX[Š[™š[™
+	ÖÛ˜[YOHš[š]X]]™PØ\›Ý\Ù[[˜X›Y—IÊKœ›Ü
+˜ÚXÚÙYŠJK[ÝÓ[™Ý™\Ú^™N›ÛÛX[Š[™š[™
+	ÖÛ˜[YOHš[š]X]]™PØ\›Ý\Ù[[ÝÓ[™Ý™\Ú^™H—IÊKœ›Ü
+˜ÚXÚÙYŠJKX^[][UÚY˜Û[\
+[™š[™
+	ÖÛ˜[YOHš[š]X]]™PØ\›Ý\Ù[X^[][UÚY—IÊK˜[
+
+KNLŒ
+KX^[][RZYÚ˜Û[\
+[™š[™
+	ÖÛ˜[YOHš[š]X]]™PØ\›Ý\Ù[X^[][RZYÚ—IÊK˜[
+
+KŒLŒ
+_NÂˆ]ØZ]Ø[YKœÙ][™ÜËœÙ]
+SÑSWÒQš[š]X]]™PØ\›Ý\Ù[ÛÛ™šYÈ‹]JNÜ™Yœ™\Ú[š]X]]™PØ\›Ý\Ù[
+
+NÝZK››ÝYšXØ][ÛœËš[™›Ê’Ôˆ[š]X]]™HØ\›Ý\Ù[Ù][™ÜÈØ]™YˆŠNÝ\Ëœ™[™\Š˜[ÙJNÂˆJNÂˆ[™š[™
+	ÖÛ˜[YOHœÚÝÔØÙ[™S˜]šYØ][Ûˆ—IÊK›ÛŠ˜Ú[™ÙH‹\Þ[˜È]™[OžØ]ØZ]Ø[YKœÙ][™ÜËœÙ]
+SÑSWÒQœÚÝÔØÙ[™S˜]šYØ][Ûˆ‹›ÛÛX[Š]™[˜Ý\œ™[\™Ù]˜ÚXÚÙY
+JNØ\TØÙ[™S˜]šYØ][Û•š\ÚXš[]J
+NßJNÂˆ[™š[™
+–Ù]KXXÝ[ÛIÜXÙKXXÝ[Û‹X]Û‰×HŠK›ÛŠ˜ÛXÚÈ‹\Þ[˜È
+
+HOˆÂˆÛÛœÝXÝÜˆHØ[YK˜XÝÜœË™Ù]
+[™š[™
+	ÖÛ˜[YOH˜XÝ[Û]ÛXÝÜˆ—IÊK˜[
+
+JNÂˆÛÛœÝXÝ[ÛˆH[™š[™
+	ÖÛ˜[YOH˜XÝ[Û]Û•\H—IÊK˜[
+
+NÂˆ]ØZ]XÙQÓPXÝ[Û]ÛŠXÝÜ‹XÝ[ÛŠNÂˆJNÂˆ[™š[™
+–Ù]KXXÝ[ÛIÜ™\Ù]XØ[˜\Ë]ÝYÚ™\ÜÉ×HŠK›ÛŠ˜ÛXÚÈ‹™\Ù]Ø[˜\ÕÝYÚ™\ÜÊNÂˆ[™š[™
+–Ù]KXXÝ[ÛIÜØ]™K][\Ü˜\žK]ÙXZÛ™\ÜÙ\É×HŠK›ÛŠ˜ÛXÚÈ‹\Þ[˜È]™[OˆÂˆÛÛœÝ›ÝÈH]™[˜Ý\œ™[\™Ù]˜ÛÜÙ\Ý
+–Ù]K]ÝYÚ™\ÜËXXÝÜ—HŠNÂˆÛÛœÝÚÙ[‘ØÝ[Y[H›ÝÏË™]\Ù]ÝYÚ™\ÜÐXÝÜˆÈ]ØZ]œ›ÛU]ZY
+›ÝË™]\Ù]ÝYÚ™\ÜÐXÝÜŠK˜Ø]Ú
+
+
+HOˆ[
+Hˆ[ÂˆÛÛœÝÙ[XÝYHË‹‹Š›ÝÏËœ]Y\žTÙ[XÝÜ[
+š[œ]Ù]K][\Ü˜\žKY[[Y[N˜ÚXÚÙYŠHÏÈ×JWK›X\
+[œ]Oˆ[œ]˜[YJNÂˆYˆ
+]ØZ]Ù][\Ü˜\žUÝYÚ™\ÜÕÙXZÛ™\ÜÙ\ÊÚÙ[‘ØÝ[Y[Ù[XÝY
+JHÂˆZK››ÝYšXØ][ÛœËš[™›Ê[\Ü˜\žHÙXZÛ™\ÜÙ\ÈØ]™Y›Üˆ	ÝÚÙ[‘ØÝ[Y[Ë›˜[YHÏÈ™[™[^HŸK˜
+NÂˆ\Ëœ™[™\Š˜[ÙJNÂˆBˆJNÂˆ[™š[™
+–Ù]KXXÝ[ÛIÜ™\Ù]][\Ü˜\žK]ÙXZÛ™\ÜÙ\É×HŠK›ÛŠ˜ÛXÚÈ‹\Þ[˜È]™[OˆÂˆÛÛœÝÚÙ[•]ZYH]™[˜Ý\œ™[\™Ù]˜ÛÜÙ\Ý
+–Ù]K]ÝYÚ™\ÜËXXÝÜ—HŠOË™]\Ù]ÝYÚ™\ÜÐXÝÜŽÂˆÛÛœÝÚÙ[‘ØÝ[Y[HÚÙ[•]ZYÈ]ØZ]œ›ÛU]ZY
+ÚÙ[•]ZY
+K˜Ø]Ú
+
+
+HOˆ[
+Hˆ[ÂˆÛÛœÝ™\Ù]H]ØZ]™\Ù][\Ü˜\žUÝYÚ™\ÜÕÙXZÛ™\ÜÙ\ÊÚÙ[‘ØÝ[Y[
+NÂˆZK››ÝYšXØ][ÛœËš[™›Ê™\Ù]ÈÙXZÛ™\ÜÙ\È™\Ù]È	ÝÚÙ[‘ØÝ[Y[Ë›˜[YHÏÈ™[™[^HŸIÜÈXZ[ˆÚY]Ù[XÝ[ÛœË˜ˆ“›È[\Ü˜\žHÙXZÛ™\ÜÙ\È™YYY™\Ù][™ËˆŠNÂˆ\Ëœ™[™\Š˜[ÙJNÂˆJNÂˆ[™š[™
+–Ù]KXXÝ[ÛIÜÙ]]ÙXZÛ™\ÜË[[ÙI×HŠK›ÛŠ˜ÛXÚÈ‹\Þ[˜È]™[OˆÂˆÛÛœÝ›ÝÈH]™[˜Ý\œ™[\™Ù]˜ÛÜÙ\Ý
+–Ù]K]ÝYÚ™\ÜËXXÝÜ—HŠNÂˆÛÛœÝÚÙ[‘ØÝ[Y[H›ÝÏË™]\Ù]ÝYÚ™\ÜÐXÝÜˆÈ]ØZ]œ›ÛU]ZY
+›ÝË™]\Ù]ÝYÚ™\ÜÐXÝÜŠK˜Ø]Ú
+
+
+HOˆ[
+Hˆ[ÂˆÛÛœÝ[ÙHH]™[˜Ý\œ™[\™Ù]™]\Ù]›[ÙNÂˆYˆ
+]ØZ]Ù]ÝYÚ™\ÜÕÙXZÛ™\ÜÓ[ÙJÚÙ[‘ØÝ[Y[[ÙJJHÂˆZK››ÝYšXØ][ÛœËš[™›Ê	ÝÚÙ[‘ØÝ[Y[Ë›˜[YHÏÈ‘[™[^HŸH›ÝÈ\È	Û[ÙHOOH˜[ˆÈ˜[ÝYÚ™\ÜÈÙXZÛ™\ÜÙ\Èˆˆ•ÝYÚ™\ÜÈÙXZÛ™\ÜÈ\ØX›YŸK˜
+NÂˆ\Ëœ™[™\Š˜[ÙJNÂˆBˆJNÂˆ[™š[™
+–Ù]KXXÝ[ÛIÜ™\Ù]X[][\Ü˜\žK]ÙXZÛ™\ÜÙ\É×HŠK›ÛŠ˜ÛXÚÈ‹\Þ[˜È
+
+HOˆÂˆÛÛœÝ™\Ù]H]ØZ]™\Ù][\Ü˜\žUÝYÚ™\ÜÕÙXZÛ™\ÜÙ\Ê
+NÂˆZK››ÝYšXØ][ÛœËš[™›Ê™\Ù][\Ü˜\žHÙXZÛ™\ÜÙ\È›Üˆ	Ü™\Ù]H[™[IÜ™\Ù]OOHHÈžHˆˆšY\ÈŸK˜
+NÂˆ\Ëœ™[™\Š˜[ÙJNÂˆJNÂˆ[™š[™
+–Ù]KXXÝ[ÛIØ[Ë]ÙXZÛ™\ÜË[[ÙI×HŠK›ÛŠ˜ÛXÚÈ‹\Þ[˜È]™[OˆÂˆÛÛœÝ[ÙHH]™[˜Ý\œ™[\™Ù]™]\Ù]›[ÙNÂˆÛÛœÝ\™Ù]ÈH
+Ø[˜\ÏËÚÙ[œÏËœXÙXX›\ÈÏÈ×JK™š[\ŠÚÙ[ˆOˆÚÙ[‹˜XÝÜË\HOOH›œÈŠK›X\
+ÚÙ[ˆOˆÚÙ[‹™ØÝ[Y[
+NÂˆ›Üˆ
+ÛÛœÝ\™Ù]Ùˆ\™Ù]ÊH]ØZ]Ù]ÝYÚ™\ÜÕÙXZÛ™\ÜÓ[ÙJ\™Ù][ÙJNÂˆZK››ÝYšXØ][ÛœËš[™›Ê\]YÝYÚ™\ÜÈÙXZÛ™\ÜÈ[ÙH›Üˆ	Ý\™Ù]Ë›[™ÝHØÙ[™H[™[IÝ\™Ù]Ë›[™ÝOOHHÈžHˆˆšY\ÈŸK˜
+NÂˆ\Ëœ™[™\Š˜[ÙJNÂˆJNÂˆ[™š[™
+–Ù]KXXÝ[ÛIØ[ËY[˜X›K]ÝYÚ™\ÜÉ×HŠK›ÛŠ˜ÛXÚÈ‹\Þ[˜È
+
+HOˆÂˆÛÛœÝXÝÜœÈHË‹‹›™]ÈX\
+
+Ø[˜\ÏËÚÙ[œÏËœXÙXX›\ÈÏÈ×JK™š[\ŠÚÙ[ˆOˆÚÙ[‹˜XÝÜË\HOOH›œÈŠK›X\
+ÚÙ[ˆOˆÝÚÙ[‹˜XÝÜ‹šYÚÙ[‹˜XÝÜ—JJK˜[Y\Ê
+WNÂˆYˆ
+XÝÜœË›[™Ý
+H]ØZ]XÝÜ‹\]QØÝ[Y[ÊXÝÜœË›X\
+XÝÜˆOˆ
+×ÚYˆXÝÜ‹šYØ›YÜË‰ÓSÑSWÒQKÝYÚ™\ÜË™[˜X›YNˆY_JJJNÂˆ™Yœ™\ÚÝYÚ™\ÜÐ˜\œÊ
+NÂˆZK››ÝYšXØ][ÛœËš[™›Ê[˜X›YÝYÚ™\ÜÈ›Üˆ	ØXÝÜœË›[™ÝHØÙ[™H[™[^HXÝÜ‰ØXÝÜœË›[™ÝOOHHÈˆˆˆœÈŸK˜
+NÂˆ\Ëœ™[™\Š˜[ÙJNÂˆJNÂˆ[™š[™
+–Ù]K[Ü[‹XÛÛ™šY×HŠK›ÛŠ˜ÛXÚÈ‹]™[OˆÂˆÛÛœÝ\™Ù]H]™[˜Ý\œ™[\™Ù]™]\Ù]›Ü[ÛÛ™šYÎÂˆYˆ
+\™Ù]OOH˜ZHŠH™]ÈZPÛÛ™šYÊ
+Kœ™[™\ŠYJNÂˆYˆ
+\™Ù]OOHœÚÚ[ÈŠH™]ÈÚÚ[Ú[ÛÛ™šYÊ
+Kœ™[™\ŠYJNÂˆYˆ
+\™Ù]OOH™[[Y[ÈŠH™]È[[Y[X[˜YÙ\Š
+Kœ™[™\ŠYJNÂˆYˆ
+\™Ù]OOHœ]ÈŠH™]È]X[˜YÙ\Š
+Kœ™[™\ŠYJNÂˆYˆ
+\™Ù]OOHœ™XÚ\\ÈŠH™]È™XÚ\SX[˜YÙ\Š
+Kœ™[™\ŠYJNÂˆYˆ
+\™Ù]OOH™ZYÛÛœÈŠH™]ÈZYÛÛ\X\˜[˜ÙPÛÛ™šYÊ
+Kœ™[™\ŠYJNÂˆJNÂˆBˆ™Yœ™\Ú]™U˜[Y\Ê
+HÂˆÛÛœÝ›ÛÝH\Ë™[[Y[Ëšœ]Y\žHÈ\Ë™[[Y[ˆ	
+\Ë™[[Y[
+NÂˆYˆ
+\›ÛÝË›[™Ý
+H™]\›ŽÂˆ›ÛÝ™š[™
+	ÖÙ]K\™\ÛÝ\˜ÙKZ[œ]Hœ[˜Ú[™H—IÊK˜[
+Ý\œ™[[˜Ú[™J
+JNÂˆ›ÛÝ™š[™
+	ÖÛ˜[YOHœ[˜Ú[™SÝ™\œšYH—IÊKœ›Ü
+˜ÚXÚÙY‹[˜Ú[™SÝ™\œšYQ[˜X›Y
+
+JNÂˆ›ÛÝ™š[™
+	ÖÙ]K\™\ÛÝ\˜ÙKZ[œ]HœÚÚ[Ú[È—IÊK˜[
+Ý\œ™[ÚÚ[Ú[Ê
+JNÂˆ›Üˆ
+ÛÛœÝXÝÜˆÙˆØ[YK˜XÝÜœË™š[\Š[žHOˆ[žK\HOOH˜Ú\˜XÝ\ˆŠJHÂˆÛÛœÝÛÛ™šYÈHÙ]ÛÛ™šYÊXÝÜŠNÂˆ›ÛÝ™š[™
+Ù]KXXÝÜ‹ZYH‰ØXÝÜ‹šYH—VÙ]KXXÝÜ‹YšY[H˜Ý\œ™[—X
+K˜[
+ÛÛ™šYË˜Ý\œ™[
+NÂˆ›ÛÝ™š[™
+Ù]KXXÝÜ‹ZYH‰ØXÝÜ‹šYH—VÙ]KXXÝÜ‹YšY[H›X^—X
+K˜[
+ÛÛ™šYË›X^
+NÂˆ›ÛÝ™š[™
+Ù]KXXÝÜ‹ZYH‰ØXÝÜ‹šYH—VÙ]KXXÝÜ‹YšY[H[[Ú[ÐÝ\œ™[—X
+K˜[
+Ý\œ™[[[Ú[ÊXÝÜŠJKœ›Ü
+™\ØX›Y‹][[ÛÛX˜]›ÜXÝÜŠXÝÜŠJNÂˆ›ÛÝ™š[™
+Ù]KXXÝÜ‹ZYH‰ØXÝÜ‹šYH—VÙ]KXXÝÜ‹YšY[H[[Ú[ÓX^—X
+K˜[
+ÛÛ™šYË[[Ú[ÓX^
+NÂˆ›ÛÝ™š[™
+Ù]KXXÝÜ‹ZYH‰ØXÝÜ‹šYH—VÙ]KXXÝÜ‹YšY[H›XZ[”\H—X
+Kœ›Ü
+˜ÚXÚÙY‹ÛÛ™šYË›XZ[”\JNÂˆ›ÛÝ™š[™
+Ù]KXXÝÜ‹ZYH‰ØXÝÜ‹šYH—VÙ]KXXÝÜ‹YšY[Hœ\QÓSÝ™\œšYH—X
+Kœ›Ü
+˜ÚXÚÙY‹ÛÛ™šYËœ\QÓSÝ™\œšYJNÂˆ›ÛÝ™š[™
+Ù]KXXÝÜ‹ZYH‰ØXÝÜ‹šYH—VÙ]KXXÝÜ‹YšY[Hœ™XÙZ]™\Ô™]Ø\™È—X
+Kœ›Ü
+˜ÚXÚÙY‹ÛÛ™šYËœ™XÙZ]™\Ô™]Ø\™ÊNÂˆ›ÛÝ™š[™
+Ù]KXXÝÜ‹ZYH‰ØXÝÜ‹šYH—VÙ]KXXÝÜ‹YšY[H›ØÚÑ[™\™ÞPY\•[[X]H—X
+Kœ›Ü
+˜ÚXÚÙY‹ÛÛ™šYË›ØÚÑ[™\™ÞPY\•[[X]JNÂˆ›ÛÝ™š[™
+Ù]K\™YÙ[‹[[ÙYšY\H‰ØXÝÜ‹šYH—X
+K^
+ÚYÛ™Y[X™\Š™YÙ[“[ÙYšY\ŠÛÛ™šYÊJJNÂˆBˆBˆ™Yœ™\Ú\™Ù]YÚYÚÊ
+HÂˆÛÛœÝ›ÛÝH\Ë™[[Y[Ëšœ]Y\žHÈ\Ë™[[Y[ˆ	
+\Ë™[[Y[
+NÂˆYˆ
+\›ÛÝË›[™Ý
+H™]\›ŽÂˆÛÛœÝ\™Ù]YH™]ÈÙ]
+Ë‹‹ŠØ[YK\Ù\Ë\™Ù]ÈÏÈ×JK‹‹ŠØ[˜\ÏËÚÙ[œÏË˜ÛÛ›ÛYÏÈ×JWK›X\
+ÚÙ[ˆOˆÚÙ[‹šY
+JNÂˆ›ÛÝ™š[™
+–Ù]K]ÝYÚ™\ÜË]ÚÙ[—HŠK™XXÚ
+
+Ú[™^›ÝÊHOˆÂˆÛÛœÝXÝ]™HH\™Ù]Yš\Ê›ÝË™]\Ù]ÝYÚ™\ÜÕÚÙ[ŠNÂˆ›ÝË˜Û\ÜÓ\ÝÙÙÛJ\™Ù]Y‹XÝ]™JNÂˆ	
+›ÝÊK™š[™
+‹ÜK]\™Ù]YX˜YÙHŠKÙÙÛJXÝ]™JNÂˆJNÂˆBˆ\Þ[˜ÈÛÜÙJ‹‹˜\™ÜÊHÂˆYˆ
+Ý]K™ÛT[™[OOH\ÊHÝ]K™ÛT[™[H[Âˆ™]\›ˆÝ\\‹˜ÛÜÙJ‹‹˜\™ÜÊNÂˆBˆ\Þ[˜ÈÝ\]SØš™XÝ
+
+HßBŸB‚™[˜Ý[ÛˆÜ[”Ý\”˜Z[ÓT[™[
+
+HÂˆYˆ
+YØ[YK\Ù\‹š\ÑÓJH™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š“Û›HHÓHØ[ˆÜ[ˆHÝ\ˆ˜Z[ÓH[™[ˆŠNÂˆYˆ
+ÛUÛÛ˜\“Ü[š[™ÊH™]\›ŽÂˆÛUÛÛ˜\“Ü[š[™ÈHYNÂˆÚ[™ÝËœÙ][Y[Ý]
+
+
+HOˆÈÛUÛÛ˜\“Ü[š[™ÈH˜[ÙNÈKÍL
+NÂˆžHÂˆYˆ
+\Ý]K™ÛT[™[
+HÝ]K™ÛT[™[H™]ÈÝ\”˜Z[ÓT[™[
+
+NÂˆÝ]K™ÛT[™[œ™[™\ŠYJNÂˆHØ]Ú
+\œ›ÜŠHÂˆÛÛœÛÛK™\œ›ÜŠ	ÓSÑSWÒQHÛÝ[›ÝÜ[ˆÝ\ˆ˜Z[ÓH[™[\œ›ÜŠNÂˆZK››ÝYšXØ][ÛœË™\œ›ÜŠÛÝ[›ÝÜ[ˆHÝ\ˆ˜Z[ÓH[™[ˆ	Ù\œ›Ü‹›Y\ÜØYÙ_X
+NÂˆBŸB‚™[˜Ý[Ûˆ™YÚ\Ý\”Ù][™ÜÊ
+HÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQ™[[Y[È‹ÜØÛÜNˆÛÜ›‹ÛÛ™šYÎˆ˜[ÙK\Nˆ\œ˜^KY˜][ˆ×_JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQœ]È‹ÜØÛÜNˆÛÜ›‹ÛÛ™šYÎˆ˜[ÙK\Nˆ\œ˜^KY˜][ˆQUSÔUË›X\
+]Oˆ
+Ë‹‹œ]JJ_JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQ˜Ü˜Y[™Ô™XÚ\\È‹ÜØÛÜNˆÛÜ›‹ÛÛ™šYÎ™˜[ÙK\N\œ˜^KY˜][–×_JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQ™[[Y[Ñ˜Y‹ÜØÛÜNˆ˜ÛY[‹ÛÛ™šYÎˆ˜[ÙK\Nˆ\œ˜^KY˜][ˆ×_JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQ›Ü˜“^[Ý]È‹ÜØÛÜNˆ˜ÛY[‹ÛÛ™šYÎˆ˜[ÙK\NˆØš™XÝY˜][ˆß_JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQœÙ[XÝYXZ[Ú\˜XÝ\’Y‹ÜØÛÜNˆ˜ÛY[‹ÛÛ™šYÎˆ˜[ÙK\NˆÝš[™ËY˜][ˆˆŸJNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQ˜ÛÛX˜]\RY^[Ý]‹ÜØÛÜNˆ˜ÛY[‹ÛÛ™šYÎˆ˜[ÙK\NˆØš™XÝY˜][ˆÜØØ[NˆKZ[š[Z^™Yˆ˜[ÙKˆ[Nˆ[_JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQ˜›ÜÜÒY^[Ý]‹ÜØÛÜNˆ˜ÛY[‹ÛÛ™šYÎˆ˜[ÙK\NˆØš™XÝY˜][ˆÞˆ[NˆM_JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQš[š]X]]™PØ\›Ý\Ù[ÛÛ™šYÈ‹ÜØÛÜNˆÛÜ›‹ÛÛ™šYÎ™˜[ÙK\N“Øš™XÝY˜][™›Ý[™žK][Ë™Y\ÛÛ™JQUSÒS’UPUU‘WÐÐT“ÕTÑSÐÓÓ‘’QÊ_JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQš[š]X]]™Qœ˜[YPÛÛÜœÈ‹ÜØÛÜNˆÛÜ›‹ÛÛ™šYÎ™˜[ÙK\N\œ˜^KY˜][™›Ý[™žK][Ë™Y\ÛÛ™JQUSÒS’UPUU‘WÑ”SQWÐÓÓÔ”Ê_JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQš[š]X]]™PØ\›Ý\Ù[^[Ý]‹ÜØÛÜNˆ˜ÛY[‹ÛÛ™šYÎ™˜[ÙK\N“Øš™XÝY˜][žÞŒNŽ‹ÚY›[ZYÚLŒ_JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQœÚÝÔØÙ[™S˜]šYØ][Ûˆ‹ÜØÛÜNˆÛÜ›‹ÛÛ™šYÎ™˜[ÙK\N›ÛÛX[‹Y˜][YKÛÚ[™ÙN˜\TØÙ[™S˜]šYØ][Û•š\ÚXš[]_JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQ˜ÛÛX˜]Y\ÚYÛˆ‹ÜØÛÜNˆÛÜ›‹ÛÛ™šYÎˆ˜[ÙK\NˆØš™XÝY˜][ˆ›Ý[™žK][Ë™Y\ÛÛ™JQUSÐÓÓPUÒQÑTÒQÓŠ_JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQ˜ZPÛÛ™šYÈ‹ÜØÛÜNˆÛÜ›‹ÛÛ™šYÎˆ˜[ÙK\NˆØš™XÝY˜][ˆ›Ý[™žK][Ë™Y\ÛÛ™JQUSÐRWÐÓÓ‘’QÊ_JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQ˜ZS^[Ý]‹ÜØÛÜNˆ˜ÛY[‹ÛÛ™šYÎˆ˜[ÙK\NˆØš™XÝY˜][ˆÞˆŒŒNˆNÚ^™NˆLŽš\ÚX›Nˆ˜[Ù__JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQœ[˜Ú[™H‹ÜØÛÜNˆÛÜ›‹ÛÛ™šYÎˆ˜[ÙK\Nˆ[X™\‹Y˜][ˆJNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQœ[˜Ú[™SÝ™\œšYH‹ÜØÛÜNˆÛÜ›‹ÛÛ™šYÎˆ˜[ÙK\Nˆ›ÛÛX[‹Y˜][ˆ˜[Ù_JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQœ[˜Ú[™S^[Ý]‹ÜØÛÜNˆ˜ÛY[‹ÛÛ™šYÎˆ˜[ÙK\NˆØš™XÝY˜][ˆÞˆNNˆMKÚ^™NˆMš\ÚX›NˆY__JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQXÚš\]YTÚ[ÛÛ™šYÈ‹ÜØÛÜNˆÛÜ›‹ÛÛ™šYÎˆ˜[ÙK\NˆØš™XÝY˜][ˆ›Ý[™žK][Ë™Y\ÛÛ™JQUSÕPÒ’TUQWÔÒS•ÐÓÓ‘’QÊ_JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQXÚš\]YTÚ[È‹ÜØÛÜNˆÛÜ›‹ÛÛ™šYÎˆ˜[ÙK\Nˆ[X™\‹Y˜][ˆQUSÕPÒ’TUQWÔÒS•ÐÓÓ‘’QËœÝ\[™ßJNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQ[[Y^[Ý]‹ÜØÛÜNˆ˜ÛY[‹ÛÛ™šYÎˆ˜[ÙK\NˆØš™XÝY˜][ˆÞˆNˆN_JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQ[[Ú[ÛÛ™šYÈ‹ÜØÛÜNˆÛÜ›‹ÛÛ™šYÎ™˜[ÙK\N“Øš™XÝY˜][™›Ý[™žK][Ë™Y\ÛÛ™JQUSÕSS•ÔÒS•ÐÓÓ‘’QÊ_JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQ[[]Û“^[Ý]È‹ÜØÛÜNˆ˜ÛY[‹ÛÛ™šYÎˆ˜[ÙK\NˆØš™XÝY˜][ˆß_JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQXÚš\]YP]Û“^[Ý]È‹ÜØÛÜNˆ˜ÛY[‹ÛÛ™šYÎˆ˜[ÙK\NˆØš™XÝY˜][ˆß_JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQXÚš\]YRY^[Ý]‹ÜØÛÜNˆ˜ÛY[‹ÛÛ™šYÎˆ˜[ÙK\NˆØš™XÝY˜][ˆÞˆNˆŒ_JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQœÚÚ[Ú[ÛÛ™šYÈ‹ÜØÛÜNˆÛÜ›‹ÛÛ™šYÎˆ˜[ÙK\NˆØš™XÝY˜][ˆ›Ý[™žK][Ë™Y\ÛÛ™JQUSÔÒÒSÔÒS•ÐÓÓ‘’QÊ_JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQœÚÚ[Ú[È‹ÜØÛÜNˆÛÜ›‹ÛÛ™šYÎˆ˜[ÙK\Nˆ[X™\‹Y˜][ˆQUSÔÒÒSÔÒS•ÐÓÓ‘’QËœÝ\[™ßJNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQœÚÚ[Y]\“^[Ý]‹ÜØÛÜNˆ˜ÛY[‹ÛÛ™šYÎˆ˜[ÙK\NˆØš™XÝY˜][ˆÞˆŒNˆÚ^™Nˆ‹š\ÚX›NˆY__JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQœÚÚ[]Û“^[Ý]È‹ÜØÛÜNˆ˜ÛY[‹ÛÛ™šYÎˆ˜[ÙK\NˆØš™XÝY˜][ˆß_JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQ™ZYÛÛÛÛ™šYÈ‹ÜØÛÜNˆÛÜ›‹ÛÛ™šYÎˆ˜[ÙK\NˆØš™XÝY˜][ˆ›Ý[™žK][Ë™Y\ÛÛ™JQUSÑRQÓÓ—ÐÓÓ‘’QÊ_JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQ™ÛT[™[ÛÛ\ÙYØ\™È‹ÜØÛÜNˆ˜ÛY[‹ÛÛ™šYÎˆ˜[ÙK\NˆØš™XÝY˜][ˆß_JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQ[[X]TÙXÝ[Û”Ý]\È‹ÜØÛÜNˆ˜ÛY[‹ÛÛ™šYÎˆ˜[ÙK\NˆØš™XÝY˜][ˆß_JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\ŠSÑSWÒQ˜œ™XZÑ›ÛÈ‹ÜØÛÜNˆÛÜ›‹ÛÛ™šYÎ™˜[ÙK\N“Øš™XÝY˜][žØœ™XZÑ›Ûš[Nˆˆ‹Ý\\œ™XZÑ›Ûš[NˆˆŸ_JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\“Y[JSÑSWÒQ˜œ™XZÐ\X\˜[˜ÙH‹Û˜[YNˆ‘[XYÙH\Ü^H\X\˜[˜ÙH‹X™[ˆÛÛ™šYÝ\™H[XYÙH\Ü^H‹[ˆ”™]šY]È[™ÛÛ™šYÝ\™H™YÝ[\ˆ[XYÙKœ™XZË[™Ý\\ˆœ™XZÈ›ÛËÚ^™\ËÙZYÚË[™[[Y[Ü˜YY[Ëˆ‹XÛÛŽˆ™˜\È˜KX\œÝ‹\Nœ™XZÐ\X\˜[˜ÙPÛÛ™šYË™\ÝšXÝYY_JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\“Y[JSÑSWÒQ™[[Y[X[˜YÙ\ˆ‹Âˆ˜[YNˆ“X[˜YÙH[[Y[È‹ˆX™[ˆ“Ü[ˆ[[Y[X[˜YÙ\ˆ‹ˆ[ˆÜ™X]H[[Y[˜[Y\ËXÛÛœË[™ÛÛÜœÈ›Üˆ\ÜÚYÛ›Y[ÛˆÚ\˜XÝ\ˆÚY]Ëˆ‹ˆXÛÛŽˆ™˜\È˜K\Ü\šÛ\È‹ˆ\Nˆ[[Y[Y[Kˆ™\ÝšXÝYˆYBˆJNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\“Y[JSÑSWÒQš[š]X]]™Qœ˜[YPÛÛÜœÓY[H‹Û˜[YNˆ’[š]X]]™H˜XÚÙ\ˆœ˜[YHÛÛÜœÈ‹X™[ˆÛÛ™šYÝ\™Hœ˜[YHÛÛÜœÈ‹[ˆÜ™X]H™]\ØX›HÛØ˜[œ˜[YHÛÛÜœË[ˆÙ[XÝÛ™Hœ›ÛHXXÚÚ\˜XÝ\‰ÜÈ[[X]HÙ][™ÜËˆ‹XÛÛŽˆ™˜\È˜K\[]H‹\N’[š]X]]™Qœ˜[YPÛÛÜ“X[˜YÙ\‹™\ÝšXÝYY_JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\“Y[JSÑSWÒQœ]X[˜YÙ\ˆ‹Âˆ˜[YNˆ“X[˜YÙH]È‹ˆX™[ˆ“Ü[ˆ]X[˜YÙ\ˆ‹ˆ[ˆÜ™X]H]˜[Y\È[™˜YËX[™Y›ÜÜˆœ›ÝÜÙH›ÜˆZ\ˆÚ\˜XÝ\‹\ÚY]XÛÛœËˆ‹ˆXÛÛŽˆ™˜\È˜K\›Ý]H‹ˆ\Nˆ]Y[Kˆ™\ÝšXÝYˆYBˆJNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\“Y[JSÑSWÒQœ™XÚ\SX[˜YÙ\ˆ‹Û˜[YNˆ“X[˜YÙHÜ˜Y[™È™XÚ\\È‹X™[ˆ“Ü[ˆ™XÚ\HX[˜YÙ\ˆ‹[ˆÜ™X]H˜YËX[™Y›Ü™XÚ\\ËÝ]]Ë[™™YY[XX›H™XÚ\HØ\™Ëˆ‹XÛÛŽˆ™˜\È˜KZ[[Y\ˆ‹\N”™XÚ\SY[K™\ÝšXÝYY_JNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\“Y[JSÑSWÒQ˜ZR[œÝ[‹Âˆ˜[YNˆZH[œÝ[ÛÛ™šYÝ\˜][Ûˆ‹ˆX™[ˆÛÛ™šYÝ\™HZH[œÝ[‹ˆ[ˆÚÛÜÙHHÓK[Û›H›Ø][™È]Ûˆ\ÛÜšËÛÛÜ‹[™ÙX“HÚÝÛˆÈÛÛ›™XÝY^Y\œËˆ‹ˆXÛÛŽˆ™˜\È˜K[X\ÚÜË]X]\ˆ‹ˆ\NˆZSY[Kˆ™\ÝšXÝYˆYBˆJNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\“Y[JSÑSWÒQXÚš\]YTÚ[ÓY[H‹Âˆ˜[YNˆ•XÚš\]YHÚ[ÛÛ™šYÝ\˜][Ûˆ‹ˆX™[ˆÛÛ™šYÝ\™HXÚš\]YHÚ[È‹ˆ[ˆÛÛ™šYÝ\™HHÚ\™YÝ][Ù‹XÛÛX˜]XÚš\]YHÚ[ÛÛˆ‹ˆXÛÛŽˆ™˜\È˜KX›Û‹ˆ\NˆXÚš\]YTÚ[Y[Kˆ™\ÝšXÝYˆYBˆJNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\“Y[JSÑSWÒQœÚÚ[Ú[ÓY[H‹Âˆ˜[YNˆ”ÚÚ[Ú[ÛÛ™šYÝ\˜][Ûˆ‹ˆX™[ˆÛÛ™šYÝ\™HÚÚ[Ú[È‹ˆ[ˆÛÛ™šYÝ\™HHÚ\™Y\HÛÛÝ\[™ÈÚ[Ë^[Ý][™š[YÙ[\HÚ[\ÛÜšËˆ‹ˆXÛÛŽˆ™˜\È˜KYX[[Û™‹ˆ\NˆÚÚ[Ú[Y[Kˆ™\ÝšXÝYˆYBˆJNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\“Y[JSÑSWÒQ[[Ú[ÓY[H‹Âˆ˜[YNˆ•[[Ú[ÛÛ™šYÝ\˜][Ûˆ‹ˆX™[ˆÛÛ™šYÝ\™H[[Ú[È‹ˆ[ˆÚÛÜÙHH[š]™\œØ[[X™\ˆ›Û\ÙYžH[[Ú[È[ˆH›Ø][™È[™[[™ÛÛX˜]\HQˆ‹ˆXÛÛŽˆ™˜\È˜K\Ý\ˆ‹ˆ\N•[[Ú[Y[Kˆ™\ÝšXÝYYBˆJNÂˆØ[YKœÙ][™ÜËœ™YÚ\Ý\“Y[JSÑSWÒQ™ZYÛÛ\X\˜[˜ÙH‹Âˆ˜[YNˆ‘ZYÛÛˆ[\™˜XÙHÛÛ™šYÝ\˜][Ûˆ‹ˆX™[ˆÛÛ™šYÝ\™HZYÛÛˆ^Y\œÈ‹ˆ[ˆÚÛÜÙHH˜XÚÙÜ›Ý[™š]™K\Ú\™Û\ÜËLÈÛ\ÜË™Y™\™[˜ÙH\ÛÜšË[™]H›Û\ÙYžH]™\žHÚ\˜XÝ\‰ÜÈZYÛÛˆ[\™˜XÙKˆ‹ˆXÛÛŽˆ™˜\È˜KYÙ[H‹ˆ\NˆZYÛÛ\X\˜[˜ÙSY[Kˆ™\ÝšXÝYˆYBˆJNÂŸB‚˜\Þ[˜È[˜Ý[Ûˆ[š™XÝ[[X]UXŠ\[
+HÂˆÛÛœÝXÝÜˆH\˜XÝÜˆÏÈ\™ØÝ[Y[ÂˆYˆ
+YØ[YK\Ù\‹š\ÑÓHXÝÜË\HOOH˜Ú\˜XÝ\ˆŠH™]\›ŽÂˆÛÛœÝ›ÛÝ[[Y[H™\ÛÛ™PXÝÜ”ÚY]›ÛÝ
+\[
+NÂˆYˆ
+\›ÛÝ[[Y[
+H™]\›ŽÂˆÛÛœÝ›ÛÝH	
+›ÛÝ[[Y[
+NÂˆÛÛœÝ^\Ý[™ÐÛÛ›ÛH›ÛÝ™š[™
+	Û˜]ˆÙ]K]XHÜK][[X]H—IÊNÂˆÛÛœÝ^\Ý[™ÕXˆH›ÛÝ™š[™
+	ËÜK\ÚY]]X–Ù]K]XHÜK][[X]H—IÊNÂˆYˆ
+^\Ý[™ÐÛÛ›Û›[™Ý	‰ˆ^\Ý[™ÕX‹›[™Ý
+H™]\›ŽÂˆ^\Ý[™ÐÛÛ›Ûœ™[[Ý™J
+NÂˆ^\Ý[™ÕX‹œ™[[Ý™J
+NÂˆYˆ
+›ÛÝ˜]Š™]K]ÜK][[X]KZ[š™XÝ[™ÈŠHOOHYHŠH™]\›ŽÂˆ›ÛÝ˜]Š™]K]ÜK][[X]KZ[š™XÝ[™È‹YHŠNÂˆÛÛœÝ˜]ˆH›ÛÝ™š[™
+	Û˜]‹XœÖÙ]KYÜ›Ý\Hœš[X\žH—K˜]‹œÚY]]XœÖÙ]KYÜ›Ý\Hœš[X\žH—KXœË\šYÚ˜]‹XœÉÊK™š\œÝ
+
+NÂˆ]›ÙHH›ÛÝ™š[™
+	ËX‹X›ÙIÊK™š\œÝ
+
+NÂˆYˆ
+X›ÙK›[™Ý
+H›ÙHH›ÛÝ™š[™
+	ËœÚY]X›ÙIÊK™š\œÝ
+
+NÂˆYˆ
+X›ÙK›[™Ý
+H›ÙHH›ÛÝ™š[™
+	ÖÙ]KX\XØ][Û‹\\H˜›ÙH—IÊK™š\œÝ
+
+NÂˆYˆ
+[˜]‹›[™ÝX›ÙK›[™Ý
+HÂˆ›ÛÝœ™[[Ý™P]Š™]K]ÜK][[X]KZ[š™XÝ[™ÈŠNÂˆYÚY]ÛÛ™šYÑ˜[˜XÚÊ\›ÛÝXÝÜŠNÂˆ™]\›ŽÂˆBˆ˜]‹˜\[™
+HÛ\ÜÏHš][HÛÛ›ÛÜK]X‹XÛÛ›Ûˆ]KXXÝ[ÛHXˆˆ]K]XHÜK][[X]Hˆ]KYÜ›Ý\Hœš[X\žHˆ]K]ÛÛ\H•[[X]HÛÛ™šYÝ\˜][Ûˆˆ\šXK[X™[H•[[X]HÛÛ™šYÝ\˜][ÛˆHÛ\ÜÏH™˜\È˜KX\œÝÚOÜ[ˆÛ\ÜÏHÜK]X‹[X™[•[[X]OÜÜ[ØO˜
+NÂˆÛÛœÝÛÛ™šYÈHÙ]ÛÛ™šYÊXÝÜŠNÂˆÛÛœÝ[[Y[ÈHÙ][[Y[Ê
+K›X\
+[žHOˆ
+Ë‹‹™[žKÙ[XÝYˆ[žKšYOOHÛÛ™šYË™[[Y[YJJNÂˆÛÛœÝ]ÈHÙ]]Ê
+K›X\
+[žHOˆ
+Ë‹‹™[žKÙ[XÝYˆ[žKšYOOHÛÛ™šYËœ]YJJNÂˆÛÛœÝÛÛ[H]ØZ]™[™\•[\]J[Ù[\ËÉÓSÑSWÒQKÝ[\]\ËÝ[[X]K]X‹šœØÂˆXÝÜ‹ÛÛ™šYË[[Y[Ë]Ëœ˜[YPÛÛÜœÎš[š]X]]™Qœ˜[YPÛÛÜ“Ü[ÛœÊÛÛ™šYÊKˆ[][Û‘[˜X›YˆÙ]ZPÛÛ™šYÊ
+K™[][Û‘[˜X›YˆÙ[XÝY[[Y[ˆ[[Y[Ë™š[™
+[žHOˆ[žKœÙ[XÝY
+KˆÙ[XÝY]ˆ]Ë™š[™
+[žHOˆ[žKœÙ[XÝY
+Kˆ]P[YÛ“YˆÛÛ™šYË]P[YÛˆOOH›Y‹ˆ]P[YÛÙ[\ŽˆÛÛ™šYË]P[YÛˆOOH˜Ù[\ˆ‹ˆ]P[YÛ”šYÚˆÛÛ™šYË]P[YÛˆOOHœšYÚ‹ˆ[ÙYšY\”ÚYÛ™YˆÚYÛ™Y[X™\Š™YÙ[“[ÙYšY\ŠÛÛ™šYÊJKˆœ™XZÓ[ÙYšY\”ÚYÛ™YˆÚYÛ™Y[X™\Šœ™XZÑY™™XÝ[ÙYšY\ŠÛÛ™šYÊJKˆ[[X]P]Û\ÛÜšÎˆÛÛ™šYË[[X]P]Û’[XYÙHÛÛ™šYË›Ü˜’[XYÙHˆ‹ˆœ™XZÑXÙSÜ[ÛœÎˆ\œ˜^K™œ›ÛJÛ[™ÝˆŒK
+Ý˜[YK[™^
+HOˆ
+Ý˜[YNˆ[™^
+ÈKÙ[XÝYˆÛÛ™šYË˜œ™XZÑ[XYÙQXÙHOOH[™^
+È_JJKˆœ™XZÑYSÜ[ÛœÎˆÍ‹LL‹ŒK›X\
+˜[YHOˆ
+Ý˜[YKÙ[XÝYˆÛÛ™šYË˜œ™XZÑ[XYÙQYHOOH˜[Y_JJKˆ[ÙR]ˆÛÛ™šYË˜]XÚÙY[ÙHOOHš]‹ˆ[ÙU\™Ù]YˆÛÛ™šYË˜]XÚÙY[ÙHOOH\™Ù]Y‹ˆ›ÜÜÔ\ÙLNˆÛÛ™šYË˜›ÜÜÔ\ÙPÛÝ[OOHKˆ›ÜÜÔ\ÙLŽˆÛÛ™šYË˜›ÜÜÔ\ÙPÛÝ[OOH‹ˆ›ÜÜÔ\ÙLÎˆÛÛ™šYË˜›ÜÜÔ\ÙPÛÝ[OOHÂˆJNÂˆ›ÙK˜\[™
+ÛÛ[
+NÂˆÛÛœÝXˆH›ÙK™š[™
+	ËÜK\ÚY]]X‰ÊNÂˆXÝ]˜]PÛÛ™šYÓ\Ý[™\œÊXÝÜ‹X‹\
+NÂˆÛÛœÝ[[X]PÛÛ›ÛH˜]‹™š[™
+	ÖÙ]K]XHÜK][[X]H—IÊNÂˆ[[X]PÛÛ›Û›ÛŠ˜ÛXÚËÜH‹]™[OˆÂˆ]™[œ™]™[Y˜][
+
+NÂˆ]™[œÝÜ[[YYX]T›ÜYØ][ÛŠ
+NÂˆ˜]‹™š[™
+	ÖÙ]K]X—IÊKœ™[[Ý™PÛ\ÜÊ˜XÝ]™HŠNÂˆ[[X]PÛÛ›Û˜YÛ\ÜÊ˜XÝ]™HŠNÂˆ›ÛÝ™š[™
+	ËX–Ù]KYÜ›Ý\Hœš[X\žH—IÊKœ™[[Ý™PÛ\ÜÊ˜XÝ]™HŠNÂˆX‹˜YÛ\ÜÊ˜XÝ]™HŠNÂˆ›ÛÝ˜YÛ\ÜÊÜK]X‹[Ü[ˆŠNÂˆYˆ
+\X‘Ü›Ý\ÊH\X‘Ü›Ý\Ëœš[X\žHHÜK][[X]HŽÂˆJNÂˆ˜]‹™š[™
+	ÖÙ]K]X—IÊK››Ý
+	ÖÙ]K]XHÜK][[X]H—IÊK›ÛŠ˜ÛXÚËÜKZYH‹
+
+HOˆÂˆX‹œ™[[Ý™PÛ\ÜÊ˜XÝ]™HŠNÂˆ›ÛÝœ™[[Ý™PÛ\ÜÊÜK]X‹[Ü[ˆŠNÂˆJNÂˆ›ÛÝœ™[[Ý™P]Š™]K]ÜK][[X]KZ[š™XÝ[™ÈŠNÂˆYˆ
+\X‘Ü›Ý\ÏËœš[X\žHOOHÜK][[X]HŠH[[X]PÛÛ›ÛšYÙÙ\Š˜ÛXÚÈŠNÂŸB‚™[˜Ý[ÛˆYÚY]ÛÛ™šYÑ˜[˜XÚÊ\›ÛÝXÝÜŠHÂˆYˆ
+›ÛÝ™š[™
+‹ÜKXÛÛ™šYËY˜[˜XÚÈŠK›[™Ý
+H™]\›ŽÂˆÛÛœÝXY\ˆH›ÛÝ˜ÛÜÙ\Ý
+‹Ú[™ÝËX\ŠK™š[™
+‹Ú[™ÝËZXY\ˆŠK™š\œÝ
+
+K›[™ÝˆÈ›ÛÝ˜ÛÜÙ\Ý
+‹Ú[™ÝËX\ŠK™š[™
+‹Ú[™ÝËZXY\ˆŠK™š\œÝ
+
+Bˆˆ›ÛÝ™š[™
+‹Ú[™ÝËZXY\ˆŠK™š\œÝ
+
+NÂˆYˆ
+ZXY\‹›[™Ý
+H™]\›ˆÛÛœÛÛKØ\›Š	ÓSÑSWÒQHÛÝ[›ÝY[[X]HXˆÜˆ˜[˜XÚÈ]ÛˆØ\
+NÂˆÛÛœÝ]ÛˆH	
+]Ûˆ\OH˜]ÛˆˆÛ\ÜÏHšXY\‹XÛÛ›ÛXÛÛˆÜKXÛÛ™šYËY˜[˜XÚÈˆ]K]ÛÛ\H•[[X]HÛÛ™šYÝ\˜][Ûˆˆ\šXK[X™[H•[[X]HÛÛ™šYÝ\˜][ÛˆHÛ\ÜÏH™˜\È˜KX\œÝÚOØ]Û˜
+NÂˆXY\‹™š[™
+‹Ú[™ÝËXÛÛ›ÛÈŠKœ™\[™
+]ÛŠNÂˆ]Û‹›ÛŠ˜ÛXÚÈ‹
+
+HOˆÜ[•[[X]PÛÛ™šYÊXÝÜ‹\
+JNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆÜ[•[[X]PÛÛ™šYÊXÝÜ‹ÚY]\H[
+HÂˆÛÛœÝÛÛ™šYÈHÙ]ÛÛ™šYÊXÝÜŠNÂˆÛÛœÝ[[Y[ÈHÙ][[Y[Ê
+K›X\
+[žHOˆ
+Ë‹‹™[žKÙ[XÝYˆ[žKšYOOHÛÛ™šYË™[[Y[YJJNÂˆÛÛœÝ]ÈHÙ]]Ê
+K›X\
+[žHOˆ
+Ë‹‹™[žKÙ[XÝYˆ[žKšYOOHÛÛ™šYËœ]YJJNÂˆÛÛœÝÛÛ[H]ØZ]™[™\•[\]J[Ù[\ËÉÓSÑSWÒQKÝ[\]\ËÝ[[X]K]X‹šœØÂˆXÝÜ‹ÛÛ™šYË[[Y[Ë]Ëœ˜[YPÛÛÜœÎš[š]X]]™Qœ˜[YPÛÛÜ“Ü[ÛœÊÛÛ™šYÊKˆ[][Û‘[˜X›YˆÙ]ZPÛÛ™šYÊ
+K™[][Û‘[˜X›YˆÙ[XÝY[[Y[ˆ[[Y[Ë™š[™
+[žHOˆ[žKœÙ[XÝY
+KˆÙ[XÝY]ˆ]Ë™š[™
+[žHOˆ[žKœÙ[XÝY
+Kˆ]P[YÛ“YˆÛÛ™šYË]P[YÛˆOOH›Y‹ˆ]P[YÛÙ[\ŽˆÛÛ™šYË]P[YÛˆOOH˜Ù[\ˆ‹ˆ]P[YÛ”šYÚˆÛÛ™šYË]P[YÛˆOOHœšYÚ‹ˆ[ÙYšY\”ÚYÛ™YˆÚYÛ™Y[X™\Š™YÙ[“[ÙYšY\ŠÛÛ™šYÊJKˆœ™XZÓ[ÙYšY\”ÚYÛ™YˆÚYÛ™Y[X™\Šœ™XZÑY™™XÝ[ÙYšY\ŠÛÛ™šYÊJKˆ[[X]P]Û\ÛÜšÎˆÛÛ™šYË[[X]P]Û’[XYÙHÛÛ™šYË›Ü˜’[XYÙHˆ‹ˆœ™XZÑXÙSÜ[ÛœÎˆ\œ˜^K™œ›ÛJÛ[™ÝˆŒK
+Ý˜[YK[™^
+HOˆ
+Ý˜[YNˆ[™^
+ÈKÙ[XÝYˆÛÛ™šYË˜œ™XZÑ[XYÙQXÙHOOH[™^
+È_JJKˆœ™XZÑYSÜ[ÛœÎˆÍ‹LL‹ŒK›X\
+˜[YHOˆ
+Ý˜[YKÙ[XÝYˆÛÛ™šYË˜œ™XZÑ[XYÙQYHOOH˜[Y_JJKˆ[ÙR]ˆÛÛ™šYË˜]XÚÙY[ÙHOOHš]‹ˆ[ÙU\™Ù]YˆÛÛ™šYË˜]XÚÙY[ÙHOOH\™Ù]Y‹ˆ›ÜÜÔ\ÙLNˆÛÛ™šYË˜›ÜÜÔ\ÙPÛÝ[OOHKˆ›ÜÜÔ\ÙLŽˆÛÛ™šYË˜›ÜÜÔ\ÙPÛÝ[OOH‹ˆ›ÜÜÔ\ÙLÎˆÛÛ™šYË˜›ÜÜÔ\ÙPÛÝ[OOHÂˆJNÂˆÛÛœÝX[ÙÈH™]ÈX[ÙÊÝ]Nˆ	ØXÝÜ‹›˜[Y_H8 %[[X]HÛÛ™šYÝ\˜][Û˜ÛÛ[]ÛœÎˆØÛÜÙNˆÛX™[ˆÛÜÙHŸ__KÝÚYˆŒŒZYÚˆÍŒ™\Ú^˜X›NˆYKÛ\ÜÙ\ÎˆÈÜKXÛÛ™šYËYX[ÙÈ—_JNÂˆÛÚÜË›Û˜ÙJœ™[™\‘X[ÙÈ‹™[™\™YOˆÂˆYˆ
+™[™\™YOOHX[ÙÊH™]\›ŽÂˆÛÛœÝ›ÛÝH™[™\™Y™[[Y[™š[™
+‹ÜK\ÚY]]XˆŠK˜YÛ\ÜÊ˜XÝ]™HŠNÂˆXÝ]˜]PÛÛ™šYÓ\Ý[™\œÊXÝÜ‹›ÛÝÚY]\ÏÈ™[™\™Y
+NÂˆJNÂˆX[ÙËœ™[™\ŠYJNÂŸB‚™[˜Ý[Ûˆ[[X]TÙXÝ[Û”Ý]RÙ^JÙXÝ[Û‹[™^
+HÂˆÛÛœÝ]HHÙXÝ[Û‹œ]Y\žTÙ[XÝÜŠŽœØÛÜHˆÈŠOË^ÛÛ[Ëš[J
+OËÓÝÙ\Ø\ÙJ
+Kœ™\XÙJÖ×˜K^ŒNWJËÙË‹HŠKœ™\XÙJ×‹_IÙËˆŠHœÙXÝ[ÛˆŽÂˆ™]\›ˆ	Ú[™^KIÝ]_XÂŸB‚˜\Þ[˜È[˜Ý[ÛˆØ]™U[[X]TÙXÝ[Û”Ý]\ÊXÝÜ’YÝ]\ÊHÂˆÛÛœÝ[Ý]\ÈH›Ý[™žK][Ë™Y\ÛÛ™JØ[YKœÙ][™ÜË™Ù]
+SÑSWÒQ[[X]TÙXÝ[Û”Ý]\ÈŠHÏÈßJNÂˆ[Ý]\ÖØXÝÜ’YHHÝ]\ÎÂˆ]ØZ]Ø[YKœÙ][™ÜËœÙ]
+SÑSWÒQ[[X]TÙXÝ[Û”Ý]\È‹[Ý]\ÊNÂŸB‚™[˜Ý[Ûˆ[š]X[^™PÛÛ\ÚX›U[[X]TÙXÝ[ÛœÊXÝÜ‹XŠHÂˆÛÛœÝ›ÛÝHXËšœ]Y\žHÈX–ÌHˆXŽÂˆYˆ
+J›ÛÝ[œÝ[˜Ù[ÙˆS[[Y[
+JH™]\›ŽÂˆÛÛœÝ[Ý]\ÈHØ[YKœÙ][™ÜË™Ù]
+SÑSWÒQ[[X]TÙXÝ[Û”Ý]\ÈŠHÏÈßNÂˆÛÛœÝXÝÜ”Ý]\ÈH›Ý[™žK][Ë™Y\ÛÛ™J[Ý]\ÖØXÝÜ‹šYHÏÈßJNÂˆÛÛœÝÙXÝ[ÛœÈHË‹‹œ›ÛÝœ]Y\žTÙ[XÝÜ[
+‹ÜKXÛÛ™šYË\ÙXÝ[ÛˆŠWNÂ‚ˆ]ÛÛ˜\ˆH›ÛÝœ]Y\žTÙ[XÝÜŠŽœØÛÜHˆÜKXÛÛ™šYË\™]™X[]ÛÛ˜\ˆŠNÂˆYˆ
+]ÛÛ˜\ŠHÂˆÛÛ˜\ˆHØÝ[Y[˜Ü™X]Q[[Y[
+™]ˆŠNÂˆÛÛ˜\‹˜Û\ÜÓ˜[YHHÜKXÛÛ™šYË\™]™X[]ÛÛ˜\ˆŽÂˆÛÛ˜\‹š[›™\’SH	Ï]Ûˆ\OH˜]Ûˆˆ]KXXÝ[ÛHœ™]™X[X[XÛÛ™šYÈHÛ\ÜÏH™˜\È˜KY^YHÚOˆ™]™X[[Ø]Û‰ÎÂˆ›ÛÝœ™\[™
+ÛÛ˜\ŠNÂˆB‚ˆ›Üˆ
+ÛÛœÝÚ[™^ÙXÝ[Û—HÙˆÙXÝ[ÛœË™[šY\Ê
+JHÂˆÛÛœÝXY[™ÈHÙXÝ[Û‹œ]Y\žTÙ[XÝÜŠŽœØÛÜHˆÈŠNÂˆYˆ
+ZXY[™ÊHÛÛ[YNÂˆÛÛœÝÙ^HH[[X]TÙXÝ[Û”Ý]RÙ^JÙXÝ[Û‹[™^
+NÂˆÙXÝ[Û‹™]\Ù]ÜTÙXÝ[Û’Ù^HHÙ^NÂˆ]ÛÛ[HÙXÝ[Û‹œ]Y\žTÙ[XÝÜŠŽœØÛÜHˆÜKXÛÛ\ÚX›KXÛÛ[ŠNÂˆYˆ
+XÛÛ[
+HÂˆÛÛ[HØÝ[Y[˜Ü™X]Q[[Y[
+™]ˆŠNÂˆÛÛ[˜Û\ÜÓ˜[YHHÜKXÛÛ\ÚX›KXÛÛ[ŽÂˆ›Üˆ
+ÛÛœÝÚ[ÙˆË‹‹œÙXÝ[Û‹˜Ú[™[—JHYˆ
+Ú[OOHXY[™ÊHÛÛ[˜\[™Ú[
+Ú[
+NÂˆÙXÝ[Û‹˜\[™Ú[
+ÛÛ[
+NÂˆBˆ]ÙÙÛHHXY[™Ëœ]Y\žTÙ[XÝÜŠŽœØÛÜHˆÜK\ÙXÝ[Û‹]ÙÙÛHŠNÂˆYˆ
+]ÙÙÛJHÂˆÙÙÛHHØÝ[Y[˜Ü™X]Q[[Y[
+˜]ÛˆŠNÂˆÙÙÛK\HH˜]ÛˆŽÂˆÙÙÛK˜Û\ÜÓ˜[YHHÜK\ÙXÝ[Û‹]ÙÙÛHŽÂˆÙÙÛKš[›™\’SH	ÏHÛ\ÜÏH™˜\È˜KXÚ]œ›Û‹]\ˆ\šXKZY[HYHÚO‰ÎÂˆÙÙÛKœÙ]]šX]J˜\šXK[X™[‹ÛÛ\ÙHÙXÝ[ÛˆŠNÂˆXY[™Ë˜\[™Ú[
+ÙÙÛJNÂˆBˆÛÛœÝ\TÝ]HHÛÛ\ÙYOˆÂˆÙXÝ[Û‹˜Û\ÜÓ\ÝÙÙÛJš\ËXÛÛ\ÙY‹ÛÛ\ÙY
+NÂˆÙÙÛKœÙ]]šX]J˜\šXKY^[™Y‹Ýš[™ÊXÛÛ\ÙY
+JNÂˆÙÙÛK]HHÛÛ\ÙYÈ”™]™X[\ÈÙXÝ[Ûˆˆˆ“Z[š[Z^™H\ÈÙXÝ[ÛˆŽÂˆÙÙÛKœÙ]]šX]J˜\šXK[X™[‹ÛÛ\ÙYÈ”™]™X[ÙXÝ[Ûˆˆˆ“Z[š[Z^™HÙXÝ[ÛˆŠNÂˆÙÙÛKœ]Y\žTÙ[XÝÜŠšHŠK˜Û\ÜÓ˜[YHHÛÛ\ÙYÈ™˜\È˜KXÚ]œ›Û‹YÝÛˆˆˆ™˜\È˜KXÚ]œ›Û‹]\ŽÂˆNÂˆ\TÝ]J›ÛÛX[ŠXÝÜ”Ý]\ÖÚÙ^WJJNÂˆÙÙÛK˜Y]™[\Ý[™\Š˜ÛXÚÈ‹\Þ[˜È]™[OˆÂˆ]™[œ™]™[Y˜][
+
+NÂˆ]™[œÝÜ›ÜYØ][ÛŠ
+NÂˆXÝÜ”Ý]\ÖÚÙ^WHH\ÙXÝ[Û‹˜Û\ÜÓ\Ý˜ÛÛZ[œÊš\ËXÛÛ\ÙYŠNÂˆ\TÝ]JXÝÜ”Ý]\ÖÚÙ^WJNÂˆ]ØZ]Ø]™U[[X]TÙXÝ[Û”Ý]\ÊXÝÜ‹šYXÝÜ”Ý]\ÊNÂˆJNÂˆB‚ˆÛÛ˜\‹œ]Y\žTÙ[XÝÜŠ–Ù]KXXÝ[ÛIÜ™]™X[X[XÛÛ™šYÉ×HŠK›Û˜ÛXÚÈH\Þ[˜È]™[OˆÂˆ]™[œ™]™[Y˜][
+
+NÂˆ]™[œÝÜ›ÜYØ][ÛŠ
+NÂˆ›Üˆ
+ÛÛœÝÙXÝ[ÛˆÙˆÙXÝ[ÛœÊHÂˆÛÛœÝÙ^HHÙXÝ[Û‹™]\Ù]ÜTÙXÝ[Û’Ù^NÂˆYˆ
+Ù^JHXÝÜ”Ý]\ÖÚÙ^WHH˜[ÙNÂˆÙXÝ[Û‹˜Û\ÜÓ\Ýœ™[[Ý™Jš\ËXÛÛ\ÙYŠNÂˆÛÛœÝÙÙÛHHÙXÝ[Û‹œ]Y\žTÙ[XÝÜŠŽœØÛÜHˆÈˆÜK\ÙXÝ[Û‹]ÙÙÛHŠNÂˆYˆ
+ÙÙÛJHÂˆÙÙÛKœÙ]]šX]J˜\šXKY^[™Y‹YHŠNÂˆÙÙÛK]HH“Z[š[Z^™H\ÈÙXÝ[ÛˆŽÂˆÙÙÛKœÙ]]šX]J˜\šXK[X™[‹“Z[š[Z^™HÙXÝ[ÛˆŠNÂˆÙÙÛKœ]Y\žTÙ[XÝÜŠšHŠK˜Û\ÜÓ˜[YHH™˜\È˜KXÚ]œ›Û‹]\ŽÂˆBˆBˆ]ØZ]Ø]™U[[X]TÙXÝ[Û”Ý]\ÊXÝÜ‹šYXÝÜ”Ý]\ÊNÂˆNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆØ]™U[[X]PÛÛ™šYÑœ›ÛUXŠXÝÜ‹X‹Û›ÝYžHH˜[ÙK™[™\\H˜[ÙK\H[HHßJHÂˆÛÛœÝ]HH›Ý[™žK][Ë™Y\ÛÛ™JÙ]ÛÛ™šYÊXÝÜŠJNÂˆX‹™š[™
+–Û˜[YWHŠK™XXÚ
+
+Ú[™^šY[
+HOˆÂˆ]VÙšY[›˜[YWHHšY[\HOOH˜ÚXÚØ›ÞˆÈšY[˜ÚXÚÙYˆšY[˜[YNÂˆJNÂˆ›Üˆ
+ÛÛœÝÙ^HÙˆÈ˜Ý\œ™[‹›X^‹œ™YÙ[”ØÛÜ™H‹˜œ™XZÑY™™XÝØÛÜ™H‹˜œ™XZÑ[XYÙQXÙH‹˜œ™XZÑ[XYÙQYH‹˜]XÚÑØZ[ˆ‹˜]XÚÙYØZ[ˆ‹œÚÚ[Ú[ÛÜÝ‹[[Ú[ÐÝ\œ™[‹[[Ú[ÓX^‹[[Ú[ÓÝ™\˜Ø\X^‹œ[˜Ú[™QØZ[ˆ‹œÜ\Ú\˜][Ûˆ‹œÜ\Ú‹œÜ\ÚH‹œÜ\ÚØØ[H‹]V‹]VH‹]TÚ^™H‹˜ÛÛX˜]YÜ˜Z]‹˜ÛÛX˜]YÜ˜Z]H‹˜ÛÛX˜]YÜ˜Z]ØØ[H‹[[X]P]Û–‹[[X]P]Û–H‹[[X]P]Û”ØØ[H‹˜›ÜÜÔ\ÙPÛÝ[‹˜›ÜÜÔ\ÙL•ÚÙ[•ÚY‹˜›ÜÜÔ\ÙL•ÚÙ[’ZYÚ‹˜›ÜÜÔ\ÙLÕÚÙ[•ÚY‹˜›ÜÜÔ\ÙLÕÚÙ[’ZYÚ‹˜›ÜÜÒYÜ˜Z]‹˜›ÜÜÒYÜ˜Z]H‹˜›ÜÜÒYÜ˜Z]ØØ[H‹˜›ÜÜÒYÚY‹˜›ÜÜÒYX[ZYÚ‹˜›ÜÜÒYÝYÚ™\ÜÒZYÚ—JH]VÚÙ^WHH[X™\Š]VÚÙ^WJNÂˆ›Üˆ
+ÛÛœÝÙ^HÙˆÈ™[˜X›Y‹œÚÝÔ\˜Ù[‹œÚÝÒY\˜Ù[‹œÚÚ[[˜X›Y‹XÚš\]YQ[˜X›Y‹›XZ[”\H‹šX[Ú\˜XÝ\ˆ‹˜ÛÛX˜]YÜ˜Z]›\‹[[X]P]ÛY\Ý[˜X›Y‹œ\QÓSÝ™\œšYH‹œ™XÙZ]™\Ô™]Ø\™È‹›ØÚÑ[™\™ÞPY\•[[X]H‹˜œ™XZÐÚ\˜XÝ\ˆ‹œÝ\\œ™XZÐÚ\˜XÝ\ˆ‹š\Ð›ÜÜÈ‹˜›ÜÜÒ[š\š]ÓXZ[”\ÙPÛÝ[‹˜Ø\›Ý\Ù[œ˜[YPÛÛÜ“Ý™\œšYH—JH]VÚÙ^WHH›ÛÛX[Š]VÚÙ^WJNÂˆ]K›X^HX]›X^
+K]K›X^L
+NÂˆ]K˜Ý\œ™[HÛ[\
+]K˜Ý\œ™[]K›X^
+NÂˆÛÛœÝØ]™YÛÛ™šYÈHÙ]ÛÛ™šYÊXÝÜŠNÂˆYˆ
+\Ñ[™\™ÞSØÚÙY
+XÝÜŠH	‰ˆ]K˜Ý\œ™[ˆØ]™YÛÛ™šYË˜Ý\œ™[
+HÂˆ]K˜Ý\œ™[HØ]™YÛÛ™šYË˜Ý\œ™[ÂˆYˆ
+›ÝYžJHZK››ÝYšXØ][ÛœËØ\›Š	ØXÝÜ‹›˜[Y_HØ[››Ý™YØZ[ˆ[™\™ÞH[[H™^›Ý[™˜
+NÂˆBˆ]K[[Ú[ÓX^HX]›X^
+X]™›ÛÜŠ]K[[Ú[ÓX^
+JNÂˆ]K[[Ú[ÓÝ™\˜Ø\X^HX]›X^
+]K[[Ú[ÓX^X]™›ÛÜŠ]K[[Ú[ÓÝ™\˜Ø\X^]K[[Ú[ÓX^
+JNÂˆ]K[[Ú[ÐÝ\œ™[H[[ÛÛX˜]›ÜXÝÜŠXÝÜŠHÈÛ[\
+X]™›ÛÜŠ]K[[Ú[ÐÝ\œ™[
+K]K[[Ú[ÓÝ™\˜Ø\X^
+HˆÂˆ]KœÚÚ[Ú[ÛÜÝHX]›X^
+X]™›ÛÜŠ]KœÚÚ[Ú[ÛÜÝ
+JNÂˆ]K˜›ÜÜÔ\ÙPÛÝ[HÛ[\
+X]™›ÛÜŠ]K˜›ÜÜÔ\ÙPÛÝ[JKKÊNÂˆ›ÜŠÛÛœÝÙ^HÙˆÈ˜›ÜÜÔ\ÙL•ÚÙ[•ÚY‹˜›ÜÜÔ\ÙL•ÚÙ[’ZYÚ‹˜›ÜÜÔ\ÙLÕÚÙ[•ÚY‹˜›ÜÜÔ\ÙLÕÚÙ[’ZYÚ—JY]VÚÙ^WOXÛ[\
+]VÚÙ^WKŒ
+NÂˆ]K˜›ÜÜÒYÜ˜Z]XÛ[\
+]K˜›ÜÜÒYÜ˜Z]L
+NÙ]K˜›ÜÜÒYÜ˜Z]OXÛ[\
+]K˜›ÜÜÒYÜ˜Z]KL
+NÙ]K˜›ÜÜÒYÜ˜Z]ØØ[OXÛ[\
+]K˜›ÜÜÒYÜ˜Z]ØØ[KL
+NÙ]K˜›ÜÜÒYÚYXÛ[\
+]K˜›ÜÜÒYÚYŒM
+NÙ]K˜›ÜÜÒYX[ZYÚXÛ[\
+]K˜›ÜÜÒYX[ZYÚL‹
+NÙ]K˜›ÜÜÒYÝYÚ™\ÜÒZYÚXÛ[\
+]K˜›ÜÜÒYÝYÚ™\ÜÒZYÚ
+NÂˆ]K˜Ø\›Ý\Ù[œ˜[YPÛÛÜK×ˆÖÌNXKY—^ÍŸIÚK\Ý
+Ýš[™Ê]K˜Ø\›Ý\Ù[œ˜[YPÛÛÜÏÈˆŠJOÔÝš[™Ê]K˜Ø\›Ý\Ù[œ˜[YPÛÛÜŠNˆˆÍN™YHŽÂˆ]K˜Ø\›Ý\Ù[œ˜[YPÛÛÜ”™\Ù]TÝš[™Ê]K˜Ø\›Ý\Ù[œ˜[YPÛÛÜ”™\Ù]ˆŠNÂˆ]K[[ÛÛX˜]YH[[ÛÛX˜]›ÜXÝÜŠXÝÜŠOËšYÏÈˆŽÂˆ]ØZ]XÝÜ‹\]JÖØ›YÜË‰ÓSÑSWÒQK[[X]XNˆ]_KÝÜP]]ÜØ]™Nˆ[›ÝYžK™[™\Žˆ˜[Ù_JNÂˆ™Yœ™\ÚÜ˜ŠXÝÜŠNÂˆ™Yœ™\ÚÚÚ[RJ
+NÂˆ™Yœ™\Ú™\ÛÝ\˜ÙRYÊ
+NÂˆ™Yœ™\ÚÛÛX˜]\RY
+
+NÂˆ™Yœ™\Ú›ÜÜÒY
+
+NÂˆ™Yœ™\Ú[š]X]]™PØ\›Ý\Ù[
+
+NÂˆØÚÔØÙ[™PÛÛ›ÛÐ™\ÚYPØ\›Ý\Ù[
+
+NÂˆYˆ
+›ÝYžJHZK››ÝYšXØ][ÛœËš[™›Ê	ØXÝÜ‹›˜[Y_IÜÈ[[X]HÛÛ™šYÝ\˜][ÛˆØ]™Y˜
+NÂˆYˆ
+™[™\\	‰ˆ\Ëœ™[™\ŠH\œ™[™\Š˜[ÙJNÂˆ™]\›ˆ]NÂŸB‚™[˜Ý[ÛˆXÝ]˜]PÛÛ™šYÓ\Ý[™\œÊXÝÜ‹X‹\
+HÂˆX‹™š[™
+š[œ]Ù[XÝ^\™XK]ÛˆŠKœ›Ü
+™\ØX›Y‹˜[ÙJNÂˆ[š]X[^™PÛÛ\ÚX›U[[X]TÙXÝ[ÛœÊXÝÜ‹XŠNÂˆX‹™š[™
+š[œ]››Ý
+Ü™XYÛ›WJHŠKœ›Ü
+œ™XYÛ›H‹˜[ÙJNÂˆXÝ]˜]R[XYÙQ›ÜÊXŠNÂˆX‹™š[™
+‹ÜKY›ÜXXÝÜˆŠK›ÛŠ™˜YÛÝ™\‹ÜKX›ÜÜÈ‹]™[OžÙ]™[œ™]™[Y˜][
+
+NÉ
+]™[˜Ý\œ™[\™Ù]
+K˜YÛ\ÜÊš\ËY˜YÛÝ™\ˆŠNßJNÂˆX‹™š[™
+‹ÜKY›ÜXXÝÜˆŠK›ÛŠ™˜YÛX]™KÜKX›ÜÜÈ‹]™[O‰
+]™[˜Ý\œ™[\™Ù]
+Kœ™[[Ý™PÛ\ÜÊš\ËY˜YÛÝ™\ˆŠJNÂˆX‹™š[™
+‹ÜKY›ÜXXÝÜˆŠK›ÛŠ™›ÜÜKX›ÜÜÈ‹]™[OžÂˆ]™[œ™]™[Y˜][
+
+NÂˆÛÛœÝ[œ]I
+]™[˜Ý\œ™[\™Ù]
+Kœ™[[Ý™PÛ\ÜÊš\ËY˜YÛÝ™\ˆŠNÂˆÛÛœÝ]OU^Y]Ü‹™Ù]˜YÑ]™[]J]™[›ÜšYÚ[˜[]™[ÏÙ]™[
+NÂˆÛÛœÝ]ZYTÝš[™Ê]OË]ZY
+]OË\OOOHXÝÜˆˆ	‰ˆ]OËšYÈXÝÜ‹‰Ù]KšYXˆˆŠJNÂˆYŠ]]ZY
+\™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š‘›Ü[ˆXÝÜˆœ›ÛHHXÝÜœÈ\™XÝÜžH[È\ÈšY[ˆŠNÂˆœ›ÛU]ZY
+]ZY
+K[ŠØÝ[Y[OžÚYŠØÝ[Y[Ë™ØÝ[Y[˜[YHOOHXÝÜˆˆØÝ[Y[œXÚÊ\™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š‘›ÜHÛÜ›XÝÜˆœ›ÛHHXÝÜœÈ\™XÝÜžK›ÝHÛÛ\[™][H[žKˆŠNÚ[œ]˜[
+ØÝ[Y[]ZY
+KšYÙÙ\Š˜Ú[™ÙHŠNßJNÂˆJNÂˆX‹™š[™
+–Ù]KXÛX\‹X›ÜÜË\\ÙWHŠK›ÛŠ˜ÛXÚËÜKX›ÜÜÈ‹]™[OžÙ]™[œ™]™[Y˜][
+
+NÝX‹™š[™
+Û˜[YOH‰Ù]™[˜Ý\œ™[\™Ù]™]\Ù]˜ÛX\›ÜÜÔ\Ù_H—X
+K˜[
+ˆŠKšYÙÙ\Š˜Ú[™ÙHŠNßJNÂˆX‹™š[™
+–Ù]KXXÝ[ÛIÜÚÝËX›ÜÜË\\ÙKXÛÛ›Û	×HŠK›ÛŠ˜ÛXÚËÜKX›ÜÜÈ‹]™[OžÙ]™[œ™]™[Y˜][
+
+NÜÚÝÐ›ÜÜÔ\ÙPÛÛ›Û
+XÝÜŠNßJNÂˆX‹›ÛŠš[œ]ÜHÚ[™ÙKÜH‹š[œ]Ù[XÝ^\™XH‹]™[Oˆ]™[œÝÜ›ÜYØ][ÛŠ
+JNÂˆÛÛœÝ™Yœ™\ÚÛÛX˜]Ü˜Z]™]šY]ÈH
+
+HOˆÂˆÛÛœÝ™]šY]ÈHX‹™š[™
+–Ù]K]ÜKXÛÛX˜]ZY\™]šY]×HŠNÂˆYˆ
+\™]šY]Ë›[™Ý
+H™]\›ŽÂˆÛÛœÝ˜YHË‹‹™Ù]ÛÛ™šYÊXÝÜŠKÛÛX˜]YÜ˜Z]”Ýš[™ÊX‹™š[™
+–Û˜[YOIØÛÛX˜]YÜ˜Z]	×HŠK˜[
+
+HˆŠKÛÛX˜]YÜ˜Z]“[X™\ŠX‹™š[™
+–Û˜[YOIØÛÛX˜]YÜ˜Z]	×HŠK˜[
+
+JKÛÛX˜]YÜ˜Z]N“[X™\ŠX‹™š[™
+–Û˜[YOIØÛÛX˜]YÜ˜Z]I×HŠK˜[
+
+JKÛÛX˜]YÜ˜Z]ØØ[N“[X™\ŠX‹™š[™
+–Û˜[YOIØÛÛX˜]YÜ˜Z]ØØ[I×HŠK˜[
+
+JKÛÛX˜]YÜ˜Z]›\›ÛÛX[ŠX‹™š[™
+–Û˜[YOIØÛÛX˜]YÜ˜Z]›\	×HŠKœ›Ü
+˜ÚXÚÙYŠJK[[XÛÛŽ”Ýš[™ÊX‹™š[™
+–Û˜[YOIÝ[[XÛÛ‰×HŠK˜[
+
+HˆŠK[[X]P]Û’[XYÙN”Ýš[™ÊX‹™š[™
+–Û˜[YOIÝ[[X]P]Û’[XYÙI×HŠK˜[
+
+HˆŠK[[X]P]ÛY\Ý[˜X›Y›ÛÛX[ŠX‹™š[™
+–Û˜[YOIÝ[[X]P]ÛY\Ý[˜X›Y	×HŠKœ›Ü
+˜ÚXÚÙYŠJK[[X]P]Û–“[X™\ŠX‹™š[™
+–Û˜[YOIÝ[[X]P]Û–	×HŠK˜[
+
+JK[[X]P]Û–N“[X™\ŠX‹™š[™
+–Û˜[YOIÝ[[X]P]Û–I×HŠK˜[
+
+JK[[X]P]Û”ØØ[N“[X™\ŠX‹™š[™
+–Û˜[YOIÝ[[X]P]Û”ØØ[I×HŠK˜[
+
+J_NÂˆ™]šY]Ëš[
+ÛÛX˜]Y\ÚYÛ™\”™]šY]ÊXÝÜ‹˜Y
+JNÂˆNÂˆÛÛœÝ™Yœ™\Ú[[X]T™]šY]ÈH
+
+HOˆÂˆÛÛœÝ™]šY]ÈHX‹™š[™
+–Ù]K]ÜK][[X]K\™]šY]×HŠNÂˆYˆ
+\™]šY]Ë›[™Ý
+H™]\›ŽÂˆÛÛœÝ[˜X›YH›ÛÛX[ŠX‹™š[™
+–Û˜[YOIÝ[[X]P]ÛY\Ý[˜X›Y	×HŠKœ›Ü
+˜ÚXÚÙYŠJNÂˆÛÛœÝH[˜X›YÈÛ[\
+[X™\ŠX‹™š[™
+–Û˜[YOIÝ[[X]P]Û–	×HŠK˜[
+
+JKL
+HˆLÂˆÛÛœÝHH[˜X›YÈÛ[\
+[X™\ŠX‹™š[™
+–Û˜[YOIÝ[[X]P]Û–I×HŠK˜[
+
+JKL
+HˆLÂˆÛÛœÝØØ[HH[˜X›YÈÛ[\
+[X™\ŠX‹™š[™
+–Û˜[YOIÝ[[X]P]Û”ØØ[I×HŠK˜[
+
+JKL
+HˆLÂˆ™]šY]ËÙÙÛPÛ\ÜÊš\ËY\ØX›Y‹Y[˜X›Y
+K˜ÜÜÊÈ‹K]ÜK][[X]K^Ž˜	ÞIX‹K]ÜK][[X]K^HŽ˜	Þ_IX‹K]ÜK][[X]K\ØØ[HŽ”Ýš[™ÊØØ[HÈL
+_JNÂˆ™]šY]Ë™š[™
+š[YÈŠK˜]ŠœÜ˜È‹Ýš[™ÊX‹™š[™
+–Û˜[YOIÝ[[X]P]Û’[XYÙI×HŠK˜[
+
+HXÝÜ‹š[YÈšXÛÛœËÜÝ™ËÛ^\Ý\žK[X[‹œÝ™ÈŠJNÂˆX‹™š[™
+‹ÜK][[X]KXY\ÝXÛÛ›ÛÈ[œ]ŠKœ›Ü
+™\ØX›Y‹Y[˜X›Y
+NÂˆNÂˆX‹›ÛŠš[œ]ÜK\™]šY]ÈÚ[™ÙKÜK\™]šY]È‹–Û˜[YOIØÛÛX˜]YÜ˜Z]	×KÛ˜[YOIØÛÛX˜]YÜ˜Z]	×KÛ˜[YOIØÛÛX˜]YÜ˜Z]I×KÛ˜[YOIØÛÛX˜]YÜ˜Z]ØØ[I×KÛ˜[YOIØÛÛX˜]YÜ˜Z]›\	×KÛ˜[YOIÝ[[XÛÛ‰×KÛ˜[YOIÝ[[X]P]Û’[XYÙI×KÛ˜[YOIÝ[[X]P]ÛY\Ý[˜X›Y	×KÛ˜[YOIÝ[[X]P]Û–	×KÛ˜[YOIÝ[[X]P]Û–I×KÛ˜[YOIÝ[[X]P]Û”ØØ[I×H‹
+
+HOˆÈ™Yœ™\ÚÛÛX˜]Ü˜Z]™]šY]Ê
+NÈ™Yœ™\Ú[[X]T™]šY]Ê
+NÈJNÂˆ™Yœ™\ÚÛÛX˜]Ü˜Z]™]šY]Ê
+NÂˆ™Yœ™\Ú[[X]T™]šY]Ê
+NÂˆÛÛœÝ™Yœ™\Ú›ÜÜÔ™]šY]ÏX\Þ[˜Ê
+OOžØÛÛœÝ™]šY]Ï]X‹™š[™
+–Ù]K]ÜKX›ÜÜË\™]šY]×HŠNÚYŠ\™]šY]Ë›[™Ý
+\™]\›ŽØÛÛœÝ˜Y^Ë‹‹™Ù]ÛÛ™šYÊXÝÜŠ_NÙ›ÜŠÛÛœÝÙ^HÙˆÈ˜›ÜÜÒYÜ˜Z]‹˜›ÜÜÒYÜ˜Z]‹˜›ÜÜÒYÜ˜Z]H‹˜›ÜÜÒYÜ˜Z]ØØ[H‹˜›ÜÜÒYÚY‹˜›ÜÜÒYX[ZYÚ‹˜›ÜÜÒYÝYÚ™\ÜÒZYÚ‹˜›ÜÜÔ\ÙL•ÚÙ[•ÚY‹˜›ÜÜÔ\ÙL•ÚÙ[’ZYÚ‹˜›ÜÜÔ\ÙLÕÚÙ[•ÚY‹˜›ÜÜÔ\ÙLÕÚÙ[’ZYÚ—J^ØÛÛœÝšY[]X‹™š[™
+Û˜[YOIÉÚÙ^_I×X
+VÌNÙ˜YÚÙ^WOYšY[Ë\OOOH›[X™\ˆÓ[X™\ŠšY[˜[YJN”Ýš[™ÊšY[Ë˜[Y_ˆŠNßXÛÛœÝ\Ù\ÏVØXÝÜ—NÙ›ÜŠÛÛœÝ˜[YHÙˆÈ˜›ÜÜÔ\ÙLXÝÜ•]ZY‹˜›ÜÜÔ\ÙLÐXÝÜ•]ZY—J^ØÛÛœÝ]ZYTÝš[™ÊX‹™š[™
+Û˜[YOIÉÛ˜[Y_I×X
+K˜[
+
+_ˆŠNÚYŠ]ZY
+^ØÛÛœÝ\ÙOX]ØZ]›ÜÜÐXÝÜ‘œ›ÛU]ZY
+]ZY
+NÚYŠ\ÙJ\\Ù\Ëœ\Ú
+\ÙJNß_\™]šY]Ëš[
+\Ù\Ë›X\
+
+\ÙK[™^
+OOžØÛÛœÝ\ÙS[X™\Z[™^
+ÌKÚ^™O\\ÙS[X™\OOLOÈ“ÜšYÚ[˜[ÚÙ[ˆÚ^™HŽ˜	Ó[X™\Š˜YØ›ÜÜÔ\ÙIÜ\ÙS[X™\ŸUÚÙ[•ÚYJ_\ÙKœ›ÝÝ\UÚÙ[ËÚY_H0åÈ	Ó[X™\Š˜YØ›ÜÜÔ\ÙIÜ\ÙS[X™\ŸUÚÙ[’ZYÚJ_\ÙKœ›ÝÝ\UÚÙ[ËšZYÚ_HÜšY[š]ØÜ™]\›ˆ]ˆÛ\ÜÏHÜKX›ÜÜË\\ÙK\™]šY]È”\ÙH	Ü\ÙS[X™\ŸNˆ	Ù\ØØ\RS
+\ÙK›˜[YJ_HÛX[Š	ÜÚ^™_JOÜÛX[Ø‰Ø›ÜÜÑ\ÚYÛ™\”™]šY]Ê\ÙK[™^OOLÙ˜YžË‹‹™Ù]ÛÛ™šYÊ\ÙJK›ÜÜÒYÚY™˜Y˜›ÜÜÒYÚY›ÜÜÒYX[ZYÚ™˜Y˜›ÜÜÒYX[ZYÚ›ÜÜÒYÝYÚ™\ÜÒZYÚ™˜Y˜›ÜÜÒYÝYÚ™\ÜÒZYÚJ_OÙ]˜ßJKš›Ú[ŠˆŠJNßNÂˆX‹›ÛŠš[œ]ÜKX›ÜÜË\™]šY]ÈÚ[™ÙKÜKX›ÜÜË\™]šY]È‹–Û˜[YOIØ›ÜÜÒYÜ˜Z]	×KÛ˜[YOIØ›ÜÜÒYÜ˜Z]	×KÛ˜[YOIØ›ÜÜÒYÜ˜Z]I×KÛ˜[YOIØ›ÜÜÒYÜ˜Z]ØØ[I×KÛ˜[YOIØ›ÜÜÒYÚY	×KÛ˜[YOIØ›ÜÜÒYX[ZYÚ	×KÛ˜[YOIØ›ÜÜÒYÝYÚ™\ÜÒZYÚ	×KÛ˜[YOIØ›ÜÜÔ\ÙLXÝÜ•]ZY	×KÛ˜[YOIØ›ÜÜÔ\ÙLÐXÝÜ•]ZY	×KÛ˜[YOIØ›ÜÜÔ\ÙL•ÚÙ[•ÚY	×KÛ˜[YOIØ›ÜÜÔ\ÙL•ÚÙ[’ZYÚ	×KÛ˜[YOIØ›ÜÜÔ\ÙLÕÚÙ[•ÚY	×KÛ˜[YOIØ›ÜÜÔ\ÙLÕÚÙ[’ZYÚ	×H‹™Yœ™\Ú›ÜÜÔ™]šY]ÊNÂˆ™Yœ™\Ú›ÜÜÔ™]šY]Ê
+NÂˆÛÛœÝ›ÜÜÔ™]šY]Ï]X‹™š[™
+–Ù]K]ÜKX›ÜÜË\™]šY]×HŠNÛ]›ÜÜÐÜ›Ü˜YÏ[[Âˆ›ÜÜÔ™]šY]Ë›ÛŠ™˜YÛÝ™\‹ÜKX›ÜÜËXÜ›Ü‹]™[OžÙ]™[œ™]™[Y˜][
+
+NØ›ÜÜÔ™]šY]Ë˜YÛ\ÜÊš\ËY˜YÛÝ™\ˆŠNßJK›ÛŠ™˜YÛX]™KÜKX›ÜÜËXÜ›Ü‹
+
+OO˜›ÜÜÔ™]šY]Ëœ™[[Ý™PÛ\ÜÊš\ËY˜YÛÝ™\ˆŠJK›ÛŠ™›ÜÜKX›ÜÜËXÜ›Ü‹]™[OžÙ]™[œ™]™[Y˜][
+
+NØ›ÜÜÔ™]šY]Ëœ™[[Ý™PÛ\ÜÊš\ËY˜YÛÝ™\ˆŠNØÛÛœÝ]Y›ÜY\ÜÙ]]
+]™[
+NÚYŠ]
+]X‹™š[™
+–Û˜[YOIØ›ÜÜÒYÜ˜Z]	×HŠK˜[
+]
+KšYÙÙ\Š˜Ú[™ÙHŠNßJNÂˆ›ÜÜÔ™]šY]Ë›ÛŠœÚ[\™ÝÛ‹ÜKX›ÜÜËXÜ›Ü‹‹ÜKX›ÜÜË\Ü˜Z]‹]™[OžÚYŠ]™[˜]ÛˆOOL
+\™]\›ŽÙ]™[œ™]™[Y˜][
+
+NØ›ÜÜÐÜ›Ü˜YÏ^Þ™]™[˜ÛY[N™]™[˜ÛY[KÝ\“[X™\ŠX‹™š[™
+–Û˜[YOIØ›ÜÜÒYÜ˜Z]	×HŠK˜[
+
+J_LÝ\N“[X™\ŠX‹™š[™
+–Û˜[YOIØ›ÜÜÒYÜ˜Z]I×HŠK˜[
+
+J_LNßJNÂˆ	
+ØÝ[Y[
+K›Ù™ŠÜKX›ÜÜËXÜ›ÜIØXÝÜ‹šYX
+K›ÛŠÚ[\›[Ý™KÜKX›ÜÜËXÜ›ÜIØXÝÜ‹šYX]™[OžÚYŠX›ÜÜÐÜ›Ü˜YÊ\™]\›ŽØÛÛœÝ™XÝX›ÜÜÔ™]šY]ÖÌK™Ù]›Ý[™[™ÐÛY[™XÝ
+
+NØ›ÜÜÐÜ›Ü˜YË›™^XÛ[\
+›ÜÜÐÜ›Ü˜YËœÝ\
+Ê]™[˜ÛY[X›ÜÜÐÜ›Ü˜YËž
+KÓX]›X^
+K™XÝÚY
+JŒLL
+NØ›ÜÜÐÜ›Ü˜YË›™^OXÛ[\
+›ÜÜÐÜ›Ü˜YËœÝ\JÊ]™[˜ÛY[KX›ÜÜÐÜ›Ü˜YËžJKÓX]›X^
+K™XÝšZYÚ
+JŒLL
+NÝX‹™š[™
+–Û˜[YOIØ›ÜÜÒYÜ˜Z]	×HŠK˜[
+X]œ›Ý[™
+›ÜÜÐÜ›Ü˜YË›™^
+JNÝX‹™š[™
+–Û˜[YOIØ›ÜÜÒYÜ˜Z]I×HŠK˜[
+X]œ›Ý[™
+›ÜÜÐÜ›Ü˜YË›™^JJKšYÙÙ\Šš[œ]ŠNßJK›ÛŠÚ[\\ÜKX›ÜÜËXÜ›ÜIØXÝÜ‹šYHÚ[\˜Ø[˜Ù[ÜKX›ÜÜËXÜ›ÜIØXÝÜ‹šYX
+
+OOžØ›ÜÜÐÜ›Ü˜YÏ[[ßJNÂˆ›ÜÜÔ™]šY]Ë›ÛŠÚY[ÜKX›ÜÜËXÜ›Ü‹‹ÜKX›ÜÜË\Ü˜Z]‹]™[OžÙ]™[œ™]™[Y˜][
+
+NØÛÛœÝ[œ]]X‹™š[™
+–Û˜[YOIØ›ÜÜÒYÜ˜Z]ØØ[I×HŠK™^XÛ[\
+
+[X™\Š[œ]˜[
+
+J_L
+JÊ]™[›ÜšYÚ[˜[]™[™[VOÍN‹MJKL
+NÚ[œ]˜[
+™^
+KšYÙÙ\Šš[œ]ŠNßJNÂˆÛÛœÝÜ›Ü™]šY]ÈHX‹™š[™
+–Ù]K]ÜKXÛÛX˜]ZY\™]šY]×HŠNÂˆÜ›Ü™]šY]Ë›ÛŠ™˜YÛÝ™\‹ÜKXÜ›Ü‹]™[OˆÈ]™[œ™]™[Y˜][
+
+NÈÜ›Ü™]šY]Ë˜YÛ\ÜÊš\ËY˜YÛÝ™\ˆŠNÈJNÂˆÜ›Ü™]šY]Ë›ÛŠ™˜YÛX]™KÜKXÜ›Ü‹
+
+HOˆÜ›Ü™]šY]Ëœ™[[Ý™PÛ\ÜÊš\ËY˜YÛÝ™\ˆŠJNÂˆÜ›Ü™]šY]Ë›ÛŠ™›ÜÜKXÜ›Ü‹]™[OˆÂˆ]™[œ™]™[Y˜][
+
+NÈÜ›Ü™]šY]Ëœ™[[Ý™PÛ\ÜÊš\ËY˜YÛÝ™\ˆŠNÂˆÛÛœÝ]H›ÜY\ÜÙ]]
+]™[
+NÂˆYˆ
+]
+HX‹™š[™
+–Û˜[YOIØÛÛX˜]YÜ˜Z]	×HŠK˜[
+]
+KšYÙÙ\Š˜Ú[™ÙHŠNÂˆJNÂˆ]Ü›Ü˜YÈH[ÂˆÜ›Ü™]šY]Ë›ÛŠœÚ[\™ÝÛ‹ÜKXÜ›Ü‹‹ÜKXÛÛX˜]\\K\Ü˜Z]‹]™[OˆÂˆYˆ
+]™[˜]ÛˆOOH
+H™]\›ŽÂˆ]™[œ™]™[Y˜][
+
+NÂˆÜ›Ü˜YÈHÞ™]™[˜ÛY[N™]™[˜ÛY[KÝ\“[X™\ŠX‹™š[™
+–Û˜[YOIØÛÛX˜]YÜ˜Z]	×HŠK˜[
+
+J_LÝ\N“[X™\ŠX‹™š[™
+–Û˜[YOIØÛÛX˜]YÜ˜Z]I×HŠK˜[
+
+J_L[XYÙN‰
+]™[˜Ý\œ™[\™Ù]
+K™š[™
+š[YÈŠ_NÂˆJNÂˆ	
+ØÝ[Y[
+K›Ù™ŠÜKXÜ›ÜIØXÝÜ‹šYX
+K›ÛŠÚ[\›[Ý™KÜKXÜ›ÜIØXÝÜ‹šYX]™[OˆÂˆYˆ
+XÜ›Ü˜YÊH™]\›ŽÂˆÛÛœÝ™XÝXÜ›Ü™]šY]ÖÌK™Ù]›Ý[™[™ÐÛY[™XÝ
+
+NÂˆÛÛœÝXÛ[\
+Ü›Ü˜YËœÝ\
+Ê]™[˜ÛY[XÜ›Ü˜YËž
+KÓX]›X^
+K™XÝÚY
+JŒLL
+KOXÛ[\
+Ü›Ü˜YËœÝ\JÊ]™[˜ÛY[KXÜ›Ü˜YËžJKÓX]›X^
+K™XÝšZYÚ
+JŒLL
+NÂˆÜ›Ü˜YË›™^^ÈÜ›Ü˜YË›™^O^NÈÜ›Ü˜YËš[XYÙK˜ÜÜÊÛØš™XÝÜÚ][ÛŽ˜	ÞIH	Þ_IX˜[œÙ›Ü›SÜšYÚ[Ž˜	ÞIH	Þ_IXJNÂˆJNÂˆ	
+ØÝ[Y[
+K›ÛŠÚ[\\ÜKXÜ›ÜIØXÝÜ‹šYX
+
+HOˆÂˆYˆ
+XÜ›Ü˜YÊH™]\›ŽÂˆX‹™š[™
+–Û˜[YOIØÛÛX˜]YÜ˜Z]	×HŠK˜[
+X]œ›Ý[™
+Ü›Ü˜YË›™^ÏÈÜ›Ü˜YËœÝ\
+JNÂˆX‹™š[™
+–Û˜[YOIØÛÛX˜]YÜ˜Z]I×HŠK˜[
+X]œ›Ý[™
+Ü›Ü˜YË›™^HÏÈÜ›Ü˜YËœÝ\JJKšYÙÙ\Š˜Ú[™ÙHŠNÂˆÜ›Ü˜YÏ[[ÂˆJNÂˆÜ›Ü™]šY]Ë›ÛŠÚY[ÜKXÜ›Ü‹‹ÜKXÛÛX˜]\\K\Ü˜Z]‹]™[OˆÂˆ]™[œ™]™[Y˜][
+
+NÂˆÛÛœÝ[œ]]X‹™š[™
+–Û˜[YOIØÛÛX˜]YÜ˜Z]ØØ[I×HŠK™^XÛ[\
+
+[X™\Š[œ]˜[
+
+J_L
+JÊ]™[›ÜšYÚ[˜[]™[™[VOÍN‹MJKLÌ
+NÂˆ[œ]˜[
+™^
+KšYÙÙ\Šš[œ]ŠNÂˆJNÂˆX‹™š[™
+–Ù]KXXÝ[ÛIÛÜ[‹Z[š]X]]™K\Ü˜Z]YY]Ü‰×HŠK›ÛŠ˜ÛXÚËÜKZ[š]X]]™K\™]šY]È‹]™[OžÙ]™[œ™]™[Y˜][
+
+NÛÜ[’[š]X]]™TÜ˜Z]Y]ÜŠXÝÜŠNßJNÂˆÛÛœÝ[[X]T™]šY]ÈHX‹™š[™
+–Ù]K]ÜK][[X]K\™]šY]×HŠNÂˆ][[X]Q˜YÈH[Âˆ[[X]T™]šY]Ë›ÛŠœÚ[\™ÝÛ‹ÜK][[X]KXÜ›Ü‹˜]Ûˆ‹]™[OˆÂˆYˆ
+]™[˜]ÛˆOOH]X‹™š[™
+–Û˜[YOIÝ[[X]P]ÛY\Ý[˜X›Y	×HŠKœ›Ü
+˜ÚXÚÙYŠJH™]\›ŽÂˆ]™[œ™]™[Y˜][
+
+NÂˆ[[X]Q˜YÈHÞ™]™[˜ÛY[N™]™[˜ÛY[KÝ\“[X™\ŠX‹™š[™
+–Û˜[YOIÝ[[X]P]Û–	×HŠK˜[
+
+J_LÝ\N“[X™\ŠX‹™š[™
+–Û˜[YOIÝ[[X]P]Û–I×HŠK˜[
+
+J_LNÂˆJNÂˆ	
+ØÝ[Y[
+K›Ù™ŠÜK][[X]KXÜ›ÜIØXÝÜ‹šYX
+K›ÛŠÚ[\›[Ý™KÜK][[X]KXÜ›ÜIØXÝÜ‹šYX]™[OˆÂˆYˆ
+][[X]Q˜YÊH™]\›ŽÂˆÛÛœÝ™XÝ][[X]T™]šY]ÖÌK™Ù]›Ý[™[™ÐÛY[™XÝ
+
+NÂˆ[[X]Q˜YË›™^XÛ[\
+[[X]Q˜YËœÝ\
+Ê]™[˜ÛY[][[X]Q˜YËž
+KÓX]›X^
+K™XÝÚY
+JŒLL
+NÂˆ[[X]Q˜YË›™^OXÛ[\
+[[X]Q˜YËœÝ\JÊ]™[˜ÛY[K][[X]Q˜YËžJKÓX]›X^
+K™XÝšZYÚ
+JŒLL
+NÂˆX‹™š[™
+–Û˜[YOIÝ[[X]P]Û–	×HŠK˜[
+X]œ›Ý[™
+[[X]Q˜YË›™^
+JNÂˆX‹™š[™
+–Û˜[YOIÝ[[X]P]Û–I×HŠK˜[
+X]œ›Ý[™
+[[X]Q˜YË›™^JJKšYÙÙ\Šš[œ]ŠNÂˆJK›ÛŠÚ[\\ÜK][[X]KXÜ›ÜIØXÝÜ‹šYHÚ[\˜Ø[˜Ù[ÜK][[X]KXÜ›ÜIØXÝÜ‹šYX
+
+HOˆÈ[[X]Q˜YÏ[[ÈJNÂˆ[[X]T™]šY]Ë›ÛŠÚY[ÜK][[X]KXÜ›Ü‹˜]Ûˆ‹]™[OˆÂˆYˆ
+]X‹™š[™
+–Û˜[YOIÝ[[X]P]ÛY\Ý[˜X›Y	×HŠKœ›Ü
+˜ÚXÚÙYŠJH™]\›ŽÂˆ]™[œ™]™[Y˜][
+
+NÂˆÛÛœÝ[œ]]X‹™š[™
+–Û˜[YOIÝ[[X]P]Û”ØØ[I×HŠK™^XÛ[\
+
+[X™\Š[œ]˜[
+
+J_L
+JÊ]™[›ÜšYÚ[˜[]™[™[VOÍN‹MJKL
+NÂˆ[œ]˜[
+™^
+KšYÙÙ\Šš[œ]ŠNÂˆJNÂˆÛÛœÝÜ\Ú\ÚYÛ™\ˆHX‹™š[™
+–Ù]K]ÜK\Ü\ÚY\ÚYÛ™\—HŠNÂˆ]Ü\Ú™]šY]ÔÙ\]Y[˜ÙHHÂˆÛÛœÝ™Yœ™\ÚÜ\Ú\ÚYÛ™\ˆH\Þ[˜È
+
+HOˆÂˆYˆ
+\Ü\Ú\ÚYÛ™\‹›[™Ý
+H™]\›ŽÂˆÛÛœÝÙ\]Y[˜ÙHH
+ÊÜÜ\Ú™]šY]ÔÙ\]Y[˜ÙNÂˆÛÛœÝ[XYÙHHÝš[™ÊX‹™š[™
+–Û˜[YOIÜÜ\Ú[XYÙI×HŠK˜[
+
+HˆŠNÂˆÛÛœÝHÛ[\
+[X™\ŠX‹™š[™
+–Û˜[YOIÜÜ\Ú	×HŠK˜[
+
+JKL
+NÂˆÛÛœÝHHÛ[\
+[X™\ŠX‹™š[™
+–Û˜[YOIÜÜ\ÚI×HŠK˜[
+
+JKL
+NÂˆÛÛœÝØØ[HHÛ[\
+[X™\ŠX‹™š[™
+–Û˜[YOIÜÜ\ÚØØ[I×HŠK˜[
+
+JKKL
+NÂˆÛÛœÝ]VHÛ[\
+[X™\ŠX‹™š[™
+–Û˜[YOIÝ]V	×HŠK˜[
+
+JKL
+NÂˆÛÛœÝ]VHHÛ[\
+[X™\ŠX‹™š[™
+–Û˜[YOIÝ]VI×HŠK˜[
+
+JKL
+NÂˆÛÛœÝ]TÚ^™HHÛ[\
+[X™\ŠX‹™š[™
+–Û˜[YOIÝ]TÚ^™I×HŠK˜[
+
+JKM‹M
+NÂˆÛÛœÝ[YÛˆHÈ›Y‹˜Ù[\ˆ‹œšYÚ—Kš[˜ÛY\ÊX‹™š[™
+–Û˜[YOIÝ]P[YÛ‰×HŠK˜[
+
+JHÈX‹™š[™
+–Û˜[YOIÝ]P[YÛ‰×HŠK˜[
+
+Hˆ›YŽÂˆÛÛœÝ[[Y[HÙ][[Y[Ê
+K™š[™
+[žHOˆ[žKšYOOHX‹™š[™
+–Û˜[YOIÙ[[Y[Y	×HŠK˜[
+
+JNÂˆÜ\Ú\ÚYÛ™\‹˜ÜÜÊÈ‹K]ÜK\Ü\Ú^Ž˜	ÞIX‹K]ÜK\Ü\Ú^HŽ˜	Þ_IX‹K]ÜK\Ü\Ú\ØØ[HŽ”Ýš[™ÊØØ[KÌL
+K‹K]ÜK]]K^Ž˜	Ý]VIX‹K]ÜK]]K^HŽ˜	Ý]V_IX‹K]ÜK]]K\Ú^™HŽ˜	Ý]TÚ^™_\‹K]ÜKXXØÙ[Ž™[[Y[Ë˜Ú\™ÙPÛÛÜŸQUSÐÓÓ‘’QË˜Ú\™ÙPÛÛÜŸJNÂˆÛÛœÝYYXHHÜ\Ú\ÚYÛ™\‹™š[™
+‹ÜK\Ü\ÚY\ÚYÛ™\‹[YYXHŠNÂˆÛÛœÝ\ÕšY[ÈH×ŠÙX›_\MŠJËŠŠOÉÚK\Ý
+[XYÙJNÂˆÛÛœÝÝ\œ™[HYYXK˜Ú[™[Š
+K™š\œÝ
+
+NÂˆYˆ
+Z[XYÙJHYYXK™[\J
+NÂˆ[ÙHYˆ
+XÝ\œ™[›[™ÝÝ\œ™[˜]ŠœÜ˜ÈŠHOOH[XYÙHÝ\œ™[š\ÊšY[ÈŠHOOH\ÕšY[ÊHYYXKš[
+\ÕšY[ÈÈšY[ÈÜ˜ÏH‰Ù\ØØ\RS
+[XYÙJ_Hˆ]]Ü^H]]YÛÜ^\Ú[›[™OÝšY[Ï˜ˆ[YÈÜ˜ÏH‰Ù\ØØ\RS
+[XYÙJ_Hˆ[H‰Ù\ØØ\RS
+XÝÜ‹›˜[YJ_H[[X]H™]šY]È˜
+NÂˆÛÛœÝØ\™HÜ\Ú\ÚYÛ™\‹™š[™
+‹ÜK]]KXØ\™ŠKœ™[[Ý™PÛ\ÜÊÜKX[YÛ‹[YÜKX[YÛ‹XÙ[\ˆÜKX[YÛ‹\šYÚŠK˜YÛ\ÜÊÜKX[YÛ‹IØ[YÛŸX
+NÂˆØ\™™š[™
+‹ÜK]]K[˜[YHŠK^
+X‹™š[™
+–Û˜[YOIÝ[[X]S˜[YI×HŠK˜[
+
+HXÝÜ‹›˜[YH•[[X]HŠNÂˆØ\™™š[™
+‹ÜK]]K\ÝX]HŠK^
+X‹™š[™
+–Û˜[YOIÝ[[X]TÝX]I×HŠK˜[
+
+HˆŠNÂˆžHÂˆÛÛœÝÙ›ÛÝX]Q›ÛHH]ØZ]›ÛZ\ÙK˜[
+ÛØYÜ\Ú›Û
+X‹™š[™
+–Û˜[YOIÙ›Ûš[I×HŠK˜[
+
+JKØYÜ\Ú›Û
+X‹™š[™
+–Û˜[YOIÜÝX]Q›Ûš[I×HŠK˜[
+
+_X‹™š[™
+–Û˜[YOIÙ›Ûš[I×HŠK˜[
+
+JWJNÂˆYˆ
+Ù\]Y[˜ÙHOOHÜ\Ú™]šY]ÔÙ\]Y[˜ÙJHÜ\Ú\ÚYÛ™\‹˜ÜÜÊÈ‹K]ÜK]]KY›ÛŽ™›Û‹K]ÜK\ÝX]KY›ÛŽœÝX]Q›ÛJNÂˆHØ]Ú
+\œ›ÜŠHÈÛÛœÛÛKØ\›Š	ÓSÑSWÒQHÛÝ[›ÝØYÜ\Ú\ÚYÛ™\ˆ›Û\œ›ÜŠNÈBˆNÂˆX‹›ÛŠš[œ]ÜK\Ü\Ú\™]šY]ÈÚ[™ÙKÜK\Ü\Ú\™]šY]È‹–Û˜[YOIÜÜ\Ú[XYÙI×KÛ˜[YOIÜÜ\Ú	×KÛ˜[YOIÜÜ\ÚI×KÛ˜[YOIÜÜ\ÚØØ[I×KÛ˜[YOIÝ[[X]S˜[YI×KÛ˜[YOIÝ[[X]TÝX]I×KÛ˜[YOIÝ]V	×KÛ˜[YOIÝ]VI×KÛ˜[YOIÝ]TÚ^™I×KÛ˜[YOIÝ]P[YÛ‰×KÛ˜[YOIÙ›Ûš[I×KÛ˜[YOIÜÝX]Q›Ûš[I×KÛ˜[YOIÙ[[Y[Y	×H‹™Yœ™\ÚÜ\Ú\ÚYÛ™\ŠNÂˆ™Yœ™\ÚÜ\Ú\ÚYÛ™\Š
+NÂˆÜ\Ú\ÚYÛ™\‹›ÛŠ™˜YÛÝ™\‹ÜK\Ü\ÚY›Ü‹]™[OˆÈ]™[œ™]™[Y˜][
+
+NÈÜ\Ú\ÚYÛ™\‹˜YÛ\ÜÊš\ËY˜YÛÝ™\ˆŠNÈJNÂˆÜ\Ú\ÚYÛ™\‹›ÛŠ™˜YÛX]™KÜK\Ü\ÚY›Ü‹
+
+HOˆÜ\Ú\ÚYÛ™\‹œ™[[Ý™PÛ\ÜÊš\ËY˜YÛÝ™\ˆŠJNÂˆÜ\Ú\ÚYÛ™\‹›ÛŠ™›ÜÜK\Ü\ÚY›Ü‹]™[OˆÂˆ]™[œ™]™[Y˜][
+
+NÈÜ\Ú\ÚYÛ™\‹œ™[[Ý™PÛ\ÜÊš\ËY˜YÛÝ™\ˆŠNÂˆÛÛœÝ]H›ÜY\ÜÙ]]
+]™[
+NÂˆYˆ
+]
+HX‹™š[™
+–Û˜[YOIÜÜ\Ú[XYÙI×HŠK˜[
+]
+KšYÙÙ\Š˜Ú[™ÙHŠNÂˆJNÂˆ]Ü\Ú˜YÈH[ÂˆÜ\Ú\ÚYÛ™\‹›ÛŠœÚ[\™ÝÛ‹ÜK\Ü\ÚY˜YÈ‹]™[OˆÂˆYˆ
+]™[˜]ÛˆOOH
+H™]\›ŽÂˆ]™[œ™]™[Y˜][
+
+NÂˆÜ\Ú˜YÈHÞ™]™[˜ÛY[N™]™[˜ÛY[KÝ\“[X™\ŠX‹™š[™
+–Û˜[YOIÜÜ\Ú	×HŠK˜[
+
+J_LÝ\N“[X™\ŠX‹™š[™
+–Û˜[YOIÜÜ\ÚI×HŠK˜[
+
+J_LNÂˆJNÂˆ	
+ØÝ[Y[
+K›Ù™ŠÜK\Ü\ÚY˜YËIØXÝÜ‹šYX
+K›ÛŠÚ[\›[Ý™KÜK\Ü\ÚY˜YËIØXÝÜ‹šYX]™[OˆÂˆYˆ
+\Ü\Ú˜YÊH™]\›ŽÂˆÛÛœÝ™XÝ\Ü\Ú\ÚYÛ™\–ÌK™Ù]›Ý[™[™ÐÛY[™XÝ
+
+NÂˆÜ\Ú˜YË›™^XÛ[\
+Ü\Ú˜YËœÝ\
+Ê]™[˜ÛY[\Ü\Ú˜YËž
+KÓX]›X^
+K™XÝÚY
+JŒLL
+NÂˆÜ\Ú˜YË›™^OXÛ[\
+Ü\Ú˜YËœÝ\JÊ]™[˜ÛY[K\Ü\Ú˜YËžJKÓX]›X^
+K™XÝšZYÚ
+JŒLL
+NÂˆX‹™š[™
+–Û˜[YOIÜÜ\Ú	×HŠK˜[
+X]œ›Ý[™
+Ü\Ú˜YË›™^
+JNÂˆX‹™š[™
+–Û˜[YOIÜÜ\ÚI×HŠK˜[
+X]œ›Ý[™
+Ü\Ú˜YË›™^JJKšYÙÙ\Šš[œ]ŠNÂˆJK›ÛŠÚ[\\ÜK\Ü\ÚY˜YËIØXÝÜ‹šYHÚ[\˜Ø[˜Ù[ÜK\Ü\ÚY˜YËIØXÝÜ‹šYX
+
+HOˆÈÜ\Ú˜YÏ[[ÈJNÂˆÜ\Ú\ÚYÛ™\‹›ÛŠÚY[ÜK\Ü\Ú^›ÛÛH‹]™[OˆÂˆ]™[œ™]™[Y˜][
+
+NÂˆÛÛœÝ[œ]]X‹™š[™
+–Û˜[YOIÜÜ\ÚØØ[I×HŠK™^XÛ[\
+
+[X™\Š[œ]˜[
+
+J_L
+JÊ]™[›ÜšYÚ[˜[]™[™[VOÍN‹MJKKL
+NÂˆ[œ]˜[
+™^
+KšYÙÙ\Šš[œ]ŠNÂˆJNÂˆ]]]ÜØ]™U[Y\ˆH[Âˆ]]]ÜØ]™T[›š[™ÈH˜[ÙNÂˆ]]]ÜØ]™T]Y]YYH˜[ÙNÂˆÛÛœÝ[]]ÜØ]™HH\Þ[˜È
+
+HOˆÂˆYˆ
+]]ÜØ]™T[›š[™ÊHÈ]]ÜØ]™T]Y]YYHYNÈ™]\›ŽÈBˆ]]ÜØ]™T[›š[™ÈHYNÂˆžHÂˆ]ØZ]Ø]™U[[X]PÛÛ™šYÑœ›ÛUXŠXÝÜ‹XŠNÂˆX‹˜YÛ\ÜÊÜKX]]ÜØ]™K\Ø]™YŠNÂˆÚ[™ÝËœÙ][Y[Ý]
+
+
+HOˆX‹œ™[[Ý™PÛ\ÜÊÜKX]]ÜØ]™K\Ø]™YŠKL
+NÂˆHØ]Ú
+\œ›ÜŠHÂˆÛÛœÛÛK™\œ›ÜŠ	ÓSÑSWÒQH[[X]H]]ÜØ]™H˜Z[Y\œ›ÜŠNÂˆZK››ÝYšXØ][ÛœË™\œ›ÜŠÛÝ[›Ý]]ÜØ]™H	ØXÝÜ‹›˜[Y_IÜÈ[[X]HÛÛ™šYÝ\˜][Û‹˜
+NÂˆHš[˜[HÂˆ]]ÜØ]™T[›š[™ÈH˜[ÙNÂˆYˆ
+]]ÜØ]™T]Y]YY
+HÈ]]ÜØ]™T]Y]YYH˜[ÙNÈ[]]ÜØ]™J
+NÈBˆBˆNÂˆÛÛœÝØÚY[P]]ÜØ]™HH[[YYX]HOˆÂˆÚ[™ÝË˜ÛX\•[Y[Ý]
+]]ÜØ]™U[Y\ŠNÂˆ]]ÜØ]™U[Y\ˆHÚ[™ÝËœÙ][Y[Ý]
+[]]ÜØ]™K[[YYX]HÈˆML
+NÂˆNÂˆX‹›ÛŠš[œ]ÜKX]]ÜØ]™HÚ[™ÙKÜKX]]ÜØ]™H‹–Û˜[YWH‹]™[OˆÂˆYˆ
+	
+]™[\™Ù]
+K˜ÛÜÙ\Ý
+‹ÜKY[™\™ÞK[Ý™\œšYHŠK›[™Ý
+H™]\›ŽÂˆØÚY[P]]ÜØ]™J]™[\HOOH˜Ú[™ÙHˆ	‰ˆÈ˜ÚXÚØ›Þ‹œÙ[XÝ[Û™H‹œ˜Y[È—Kš[˜ÛY\Ê]™[\™Ù]\JJNÂˆJNÂˆX‹™š[™
+–Ù]KXXÝ[ÛIÜØ]™KXÛÛ™šYÉ×HŠK›ÛŠ˜ÛXÚÈ‹\Þ[˜È]™[OˆÂˆ]™[œ™]™[Y˜][
+
+NÂˆ]™[œÝÜ›ÜYØ][ÛŠ
+NÂˆÚ[™ÝË˜ÛX\•[Y[Ý]
+]]ÜØ]™U[Y\ŠNÂˆ]ØZ]Ø]™U[[X]PÛÛ™šYÑœ›ÛUXŠXÝÜ‹X‹Û›ÝYžNˆYK™[™\\ˆYK\JNÂˆJNÂˆX‹™š[™
+‹™š[K\XÚÙ\ˆŠK›ÛŠ˜ÛXÚÈ‹]™[OˆÂˆÛÛœÝ]ÛˆH]™[˜Ý\œ™[\™Ù]ÂˆÛÛœÝ\™Ù]H]Û‹™]\Ù]\™Ù]Âˆ™]Èš[TXÚÙ\ŠÝ\Nˆ]Û‹™]\Ù]\Hš[XYÙH‹Ý\œ™[ˆX‹™š[™
+Û˜[YOH‰Ý\™Ù]H—X
+K˜[
+
+KØ[˜XÚÎˆ]OˆX‹™š[™
+Û˜[YOH‰Ý\™Ù]H—X
+K˜[
+]
+KšYÙÙ\Š˜Ú[™ÙHŠ_JK˜œ›ÝÜÙJ
+NÂˆJNÂˆX‹™š[™
+š[œ]Ù]KXÛÛÜ‹Y›Ü—HŠK›ÛŠ˜Ú[™ÙH‹]™[OˆX‹™š[™
+Û˜[YOH‰Ù]™[˜Ý\œ™[\™Ù]™]\Ù]˜ÛÛÜ‘›ÜŸH—X
+K˜[
+]™[˜Ý\œ™[\™Ù]˜[YJKšYÙÙ\Š˜Ú[™ÙHŠJNÂˆX‹™š[™
+–Ù]KXXÝ[ÛIÜ™]šY]Ë\Ü\Ú	×HŠK›ÛŠ˜ÛXÚÈ‹
+
+HOˆÂˆÛÛœÝ[[Y[HÙ][[Y[Ê
+K™š[™
+[žHOˆ[žKšYOOHX‹™š[™
+–Û˜[YOIÙ[[Y[Y	×HŠK˜[
+
+JNÂˆÚÝÔÜ\Ú
+ØXÝÜ“˜[YNˆXÝÜ‹›˜[YK[XYÙNˆX‹™š[™
+–Û˜[YOIÜÜ\Ú[XYÙI×HŠK˜[
+
+K\˜][ÛŽˆ[X™\ŠX‹™š[™
+–Û˜[YOIÜÜ\Ú\˜][Û‰×HŠK˜[
+
+JHKÜ\Ú“[X™\ŠX‹™š[™
+–Û˜[YOIÜÜ\Ú	×HŠK˜[
+
+JKÜ\ÚN“[X™\ŠX‹™š[™
+–Û˜[YOIÜÜ\ÚI×HŠK˜[
+
+JKÜ\ÚØØ[N“[X™\ŠX‹™š[™
+–Û˜[YOIÜÜ\ÚØØ[I×HŠK˜[
+
+JK[[X]S˜[YNˆX‹™š[™
+–Û˜[YOIÝ[[X]S˜[YI×HŠK˜[
+
+K[[X]TÝX]NˆX‹™š[™
+–Û˜[YOIÝ[[X]TÝX]I×HŠK˜[
+
+K]Vˆ[X™\ŠX‹™š[™
+–Û˜[YOIÝ]V	×HŠK˜[
+
+JK]VNˆ[X™\ŠX‹™š[™
+–Û˜[YOIÝ]VI×HŠK˜[
+
+JK]TÚ^™Nˆ[X™\ŠX‹™š[™
+–Û˜[YOIÝ]TÚ^™I×HŠK˜[
+
+JK]P[YÛŽˆX‹™š[™
+–Û˜[YOIÝ]P[YÛ‰×HŠK˜[
+
+K›Ûš[NˆX‹™š[™
+–Û˜[YOIÙ›Ûš[I×HŠK˜[
+
+KÝX]Q›Ûš[NˆX‹™š[™
+–Û˜[YOIÜÝX]Q›Ûš[I×HŠK˜[
+
+KÛÛÜŽˆ[[Y[Ë˜Ú\™ÙPÛÛÜˆQUSÐÓÓ‘’QË˜Ú\™ÙPÛÛÜŸJNÂˆJNÂˆX‹™š[™
+–Ù]KXXÝ[ÛIÜÙ]Y[™\™ÞI×HŠK›ÛŠ˜ÛXÚÈ‹\Þ[˜È]™[OˆÂˆ]™[œ™]™[Y˜][
+
+NÂˆ]™[œÝÜ›ÜYØ][ÛŠ
+NÂˆÛÛœÝÛÛ™šYÈHÙ]ÛÛ™šYÊXÝÜŠNÂˆÛÛœÝ˜[YHHÛ[\
+X‹™š[™
+‹ÜKY[™\™ÞK[Ý™\œšYK]˜[YHŠK˜[
+
+KÛÛ™šYË›X^
+NÂˆÛÛœÝ\YYH]ØZ]Ù][™\™ÞJXÝÜ‹˜[YKÛÝ™\œšYSØÚÎˆY_JNÂˆX‹™š[™
+–Û˜[YOIØÝ\œ™[	×HŠK˜[
+\YY
+NÂˆX‹™š[™
+‹ÜKY[™\™ÞK[Ý™\œšYK]˜[YHŠK˜[
+\YY
+NÂˆ™Yœ™\ÚÜ˜ŠXÝÜŠNÂˆZK››ÝYšXØ][ÛœËš[™›Ê	ØXÝÜ‹›˜[Y_IÜÈ[™\™ÞHØ\ÈÙ]È	Ø\YYKÉØÛÛ™šYË›X^K˜
+NÂˆJNÂˆX‹™š[™
+–Ù]KXXÝ[ÛIÜ™\Ù]Y[™\™ÞI×HŠK›ÛŠ˜ÛXÚÈ‹\Þ[˜È
+
+HOˆÈ]ØZ]Ù][™\™ÞJXÝÜ‹ÛÝ™\œšYSØÚÎˆY_JNÈ\œ™[™\Š˜[ÙJNÈJNÂˆX‹™š[™
+–Ù]KXXÝ[ÛIÙš[Y[™\™ÞI×HŠK›ÛŠ˜ÛXÚÈ‹\Þ[˜È
+
+HOˆÈ]ØZ]Ù][™\™ÞJXÝÜ‹Ù]ÛÛ™šYÊXÝÜŠK›X^ÛÝ™\œšYSØÚÎˆY_JNÈ\œ™[™\Š˜[ÙJNÈJNÂˆX‹™š[™
+–Ù]KXXÝ[ÛIÜÚÝË[Ü˜‰×HŠK›ÛŠ˜ÛXÚÈ‹
+
+HOˆÚÝÓÜ˜ŠXÝÜŠJNÂˆX‹™š[™
+–Ù]KXXÝ[ÛIÜÚÝË\ÚÚ[X]Û‰×HŠK›ÛŠ˜ÛXÚÈ‹\Þ[˜È
+
+HOˆÈ]ØZ]Ø]™TÚÚ[]Û“^[Ý]
+XÝÜ‹šYÝš\ÚX›NˆY_JNÈ™Yœ™\ÚÚÚ[RJ
+NÈJNÂˆX‹™š[™
+–Û˜[YOIÜ™YÙ[”ØÛÜ™I×HŠK›ÛŠš[œ]‹]™[OˆX‹™š[™
+‹ÜK[[ÙYšY\ˆŠK^
+[ÙYšY\Žˆ	ÜÚYÛ™Y[X™\ŠX]™›ÛÜŠ
+
+[X™\Š]™[˜Ý\œ™[\™Ù]˜[YJHL
+HHL
+HÈŠJ_X
+JNÂˆX‹™š[™
+–Û˜[YOIØœ™XZÑY™™XÝØÛÜ™I×HŠK›ÛŠš[œ]‹]™[OˆX‹™š[™
+‹ÜKXœ™XZË[[ÙYšY\ˆŠK^
+[ÙYšY\Žˆ	ÜÚYÛ™Y[X™\ŠX]™›ÛÜŠ
+
+[X™\Š]™[˜Ý\œ™[\™Ù]˜[YJHL
+HHL
+HÈŠJ_X
+JNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆZYÛÛ•X‘]JXÝÜŠHÂˆÛÛœÝ]HHÙ]ZYÛÛœÊXÝÜŠNÂˆÛÛœÝ[\™˜XÙPÛÛ™šYÈHÙ]ZYÛÛÛÛ™šYÊ
+NÂˆÛÛœÝš\œÝØÚÙYH]KœÛÝË™š[™
+ÛÝOˆ\ÛÝ˜XÝ]™JOË›[X™\ˆÏÈÎÂˆ™]\›ˆÂˆ[\™˜XÙNˆ[\™˜XÙPÛÛ™šYËˆÝ\œ™[˜ÞU]ZYˆ]K˜Ý\œ™[˜ÞU]ZYˆ\ÑÓNˆ›ÛÛX[ŠØ[YK\Ù\‹š\ÑÓJKˆÛÝÎˆ]KœÛÝË›X\
+ÛÝOˆ
+Âˆ‹‹œÛÝˆ\ÑLÎˆÛÝ›[X™\ˆOOHËˆX\ÚÎˆ[\™˜XÙPÛÛ™šYÖØX\ÚÉÜÛÝ›[X™\ŸXHÈ››Û™HˆˆRQÓÓ—ÓPTÒÔÖÜÛÝ›[X™\—KˆX\ÚÒ[XYÙNˆ™\ÛÛ™P\ÜÙ]\›
+[\™˜XÙPÛÛ™šYÖØX\ÚÉÜÛÝ›[X™\ŸXJKˆ\Ü^P\ÛÜšÎˆÛÝ˜\ÛÜšÈˆ‹ˆØØ[T\˜Ù[ˆÛÝœØØ[HÈLˆØ[XÝ]˜]NˆÛÝ›[X™\ˆOOHš\œÝØÚÙY	‰ˆ
+Ø[YK\Ù\‹š\ÑÓHXÝÜ‹š\ÓÝÛ™\ŠKˆØ[ÛÛ™šYÝ\™Nˆ›ÛÛX[ŠØ[YK\Ù\‹š\ÑÓJBˆJJBˆNÂŸB‚˜\Þ[˜È[˜Ý[Ûˆš[™ZYÛÛÝ\œ™[˜ÞJXÝÜ‹Ý\œ™[˜ÞU]ZY
+HÂˆYˆ
+XÝ\œ™[˜ÞU]ZY
+H™]\›ˆ[ÂˆÛÛœÝÛÝ\˜ÙHH]ØZ]œ›ÛU]ZY
+Ý\œ™[˜ÞU]ZY
+K˜Ø]Ú
+
+
+HOˆ[
+NÂˆ™]\›ˆXÝÜ‹š][\ÏË™š[™
+][HOˆ][K]ZYOOHÝ\œ™[˜ÞU]ZY][K™Ù]›YÊ˜ÛÜ™H‹œÛÝ\˜ÙRYŠHOOHÝ\œ™[˜ÞU]ZY
+ÛÝ\˜ÙH	‰ˆ][K›˜[YHOOHÛÝ\˜ÙK›˜[YH	‰ˆ][K\HOOHÛÝ\˜ÙK\JJHÏÈ[ÂŸB‚˜\Þ[˜È[˜Ý[ÛˆXÝ]˜]QZYÛÛŠXÝÜ‹[X™\ŠHÂˆYˆ
+JØ[YK\Ù\‹š\ÑÓHXÝÜ‹š\ÓÝÛ™\ŠJH™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š–[ÝHÈ›ÝÝÛˆ\ÈÚ\˜XÝ\‹ˆŠNÂˆÛÛœÝ]HHÙ]ZYÛÛœÊXÝÜŠNÂˆÛÛœÝ™^H]KœÛÝË™š[™
+ÛÝOˆ\ÛÝ˜XÝ]™JOË›[X™\ŽÂˆYˆ
+[X™\ˆOOH™^
+H™]\›ˆZK››ÝYšXØ][ÛœËØ\›ŠIÛ™^ÏÈŸH]\Ý™HXÝ]˜]Y™^˜
+NÂˆÛÛœÝÝ\œ™[˜ÞHH]ØZ]š[™ZYÛÛÝ\œ™[˜ÞJXÝÜ‹]K˜Ý\œ™[˜ÞU]ZY
+NÂˆÛÛœÝ]X[]HH[X™\ŠÝ\œ™[˜ÞOËœÞ\Ý[OËœ]X[]HÏÈ
+NÂˆYˆ
+YØ[YK\Ù\‹š\ÑÓH	‰ˆ
+XÝ\œ™[˜ÞH]X[]HJJH™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š•\ÈÚ\˜XÝ\ˆÙ\È›Ý]™HHÛÛ™šYÝ\™YZYÛÛˆÝ\œ™[˜ÞKˆŠNÂˆYˆ
+Ý\œ™[˜ÞH	‰ˆ]X[]Hˆ
+HÂˆYˆ
+]X[]HOOHJH]ØZ]Ý\œ™[˜ÞK™[]J
+NÂˆ[ÙH]ØZ]Ý\œ™[˜ÞK\]JÈœÞ\Ý[Kœ]X[]HŽˆ]X[]HH_JNÂˆH[ÙHYˆ
+YØ[YK\Ù\‹š\ÑÓJH™]\›ŽÂˆ]KœÛÝÖÛ[X™\ˆHWK˜XÝ]™HHYNÂˆ]ØZ]XÝÜ‹œÙ]›YÊSÑSWÒQ™ZYÛÛœÈ‹]JNÂˆZK››ÝYšXØ][ÛœËš[™›Ê	ØXÝÜ‹›˜[Y_HXÝ]˜]YZYÛÛˆ	Û[X™\ŸK˜
+NÂˆ›Üˆ
+ÛÛœÝ\ÙˆØš™XÝ˜[Y\ÊZKÚ[™ÝÜÈÏÈßJJHYˆ
+
+\˜XÝÜˆÏÈ\™ØÝ[Y[
+OËšYOOHXÝÜ‹šY
+H\œ™[™\Š˜[ÙJNÂŸB‚™[˜Ý[Ûˆ™Yœ™\ÚZYÛÛ”™]šY]ÊX‹[X™\ŠHÂˆÛÛœÝY]ÜˆHX‹™š[™
+Ù]KYZYÛÛ‹YY]ÜH‰Û[X™\ŸH—X
+NÂˆÛÛœÝ\HX‹™š[™
+Ù]KYZYÛÛ‹\™]šY]ËX\H‰Û[X™\ŸH—X
+NÂˆYˆ
+YY]Ü‹›[™ÝX\›[™Ý
+H™]\›ŽÂˆÛÛœÝ\ÛÜšÈHY]Ü‹™š[™
+Û˜[YOH™ZYÛÛ‹‰Û[X™\ŸK˜\ÛÜšÈ—X
+K˜[
+
+NÂˆÛÛœÝH[X™\ŠY]Ü‹™š[™
+Û˜[YOH™ZYÛÛ‹‰Û[X™\ŸK›Ù™œÙ]—X
+K˜[
+
+JHÂˆÛÛœÝHH[X™\ŠY]Ü‹™š[™
+Û˜[YOH™ZYÛÛ‹‰Û[X™\ŸK›Ù™œÙ]H—X
+K˜[
+
+JHÂˆÛÛœÝØØ[HH[X™\ŠY]Ü‹™š[™
+Û˜[YOH™ZYÛÛ‹‰Û[X™\ŸKœØØ[H—X
+K˜[
+
+JHLÂˆ\™š[™
+š[YÈŠK˜]ŠœÜ˜È‹\ÛÜšÈˆŠNÂˆ\˜ÜÜÊ‹KX\^‹	ÞIX
+K˜ÜÜÊ‹KX\^H‹	Þ_IX
+K˜ÜÜÊ‹KX\\ØØ[H‹Ýš[™ÊØØ[HÈL
+JNÂˆY]Ü‹™š[™
+Û˜[YOH™ZYÛÛ‹‰Û[X™\ŸK›Ù™œÙ]—X
+K›™^
+›Ý]]ŠK^
+	ÞIX
+NÂˆY]Ü‹™š[™
+Û˜[YOH™ZYÛÛ‹‰Û[X™\ŸK›Ù™œÙ]H—X
+K›™^
+›Ý]]ŠK^
+	Þ_IX
+NÂˆY]Ü‹™š[™
+Û˜[YOH™ZYÛÛ‹‰Û[X™\ŸKœØØ[H—X
+K›™^
+›Ý]]ŠK^
+	ÜØØ[_IX
+NÂŸB‚™[˜Ý[Ûˆ™Yœ™\ÚZYÛÛ”ÝYÙTÛÝ
+X‹[X™\‹ÛÝ
+HÂˆYˆ
+]XË›[™Ý\ÛÝ
+H™]\›ŽÂˆÛÛœÝ\HX‹™š[™
+Ù]KYZYÛÛ‹X\H‰Û[X™\ŸH—X
+NÂˆ\˜]Š™]KY˜[˜XÚËX\‹ÛÝ˜\ÛÜšÈˆŠKÙÙÛPÛ\ÜÊ›ØÚÙY‹\ÛÝ˜XÝ]™JNÂˆ\™š[™
+š[YÈŠK˜]ŠœÜ˜È‹ÛÝ˜\ÛÜšÈˆŠNÂˆ\˜ÜÜÊ‹KX\^‹	ÜÛÝ›Ù™œÙ]IX
+K˜ÜÜÊ‹KX\^H‹	ÜÛÝ›Ù™œÙ]_IX
+K˜ÜÜÊ‹KX\\ØØ[H‹Ýš[™ÊÛÝœØØ[HÈL
+JNÂˆÛÛœÝ]HHX‹™š[™
+Ù]KYZYÛÛ‹]]OH‰Û[X™\ŸH—X
+NÂˆ]KÙÙÛPÛ\ÜÊ›ØÚÙY‹\ÛÝ˜XÝ]™JK™š[™
+œÜ[ˆŠK^
+ÛÝ]HZYÛÛˆ	Û[X™\ŸX
+NÂŸB‚™[˜Ý[Ûˆ™Yœ™\ÚZYÛÛ•X‘\Ü^JXÝÜ‹XŠHÂˆÛÛœÝ]HHÙ]ZYÛÛœÊXÝÜŠNÂˆ›Üˆ
+ÛÛœÝÛÝÙˆ]KœÛÝÊH™Yœ™\ÚZYÛÛ”ÝYÙTÛÝ
+X‹ÛÝ›[X™\‹ÛÝ
+NÂŸB‚™[˜Ý[Ûˆ™Yœ™\ÚZYÛÛ”ÝYÙQ˜Y
+X‹Y]Ü‹[X™\ŠHÂˆYˆ
+YY]ÜË›[™Ý
+H™]\›ŽÂˆ™Yœ™\ÚZYÛÛ”ÝYÙTÛÝ
+X‹[X™\‹Âˆ\ÛÜšÎˆÝš[™ÊY]Ü‹™š[™
+Û˜[YOH™ZYÛÛ‹‰Û[X™\ŸK˜\ÛÜšÈ—X
+K˜[
+
+HˆŠKˆ]NˆÝš[™ÊY]Ü‹™š[™
+Û˜[YOH™ZYÛÛ‹‰Û[X™\ŸK]H—X
+K˜[
+
+HZYÛÛˆ	Û[X™\ŸX
+KˆÙ™œÙ]ˆÛ[\
+Y]Ü‹™š[™
+Û˜[YOH™ZYÛÛ‹‰Û[X™\ŸK›Ù™œÙ]—X
+K˜[
+
+KLLL
+KˆÙ™œÙ]NˆÛ[\
+Y]Ü‹™š[™
+Û˜[YOH™ZYÛÛ‹‰Û[X™\ŸK›Ù™œÙ]H—X
+K˜[
+
+KLLL
+KˆØØ[NˆÛ[\
+Y]Ü‹™š[™
+Û˜[YOH™ZYÛÛ‹‰Û[X™\ŸKœØØ[H—X
+K˜[
+
+KK
+KˆXÝ]™NˆY]Ü‹™š[™
+Û˜[YOH™ZYÛÛ‹‰Û[X™\ŸK˜XÝ]™H—X
+Kœ›Ü
+˜ÚXÚÙYŠBˆJNÂŸB‚™[˜Ý[ÛˆÜ[]QZYÛÛ‘Y]ÜŠXÝÜ‹X‹[X™\ŠHÂˆÛÛœÝÛÝHÙ]ZYÛÛœÊXÝÜŠKœÛÝÖÛ[X™\ˆHWNÂˆÛÛœÝY]ÜˆHX‹™š[™
+Ù]KYZYÛÛ‹YY]ÜH‰Û[X™\ŸH—X
+NÂˆYˆ
+\ÛÝYY]Ü‹›[™Ý
+H™]\›ŽÂˆY]Ü‹™š[™
+Û˜[YOH™ZYÛÛ‹‰Û[X™\ŸK]H—X
+K˜[
+ÛÝ]JNÂˆY]Ü‹™š[™
+Û˜[YOH™ZYÛÛ‹‰Û[X™\ŸK˜\ÛÜšÈ—X
+K˜[
+ÛÝ˜\ÛÜšÊNÂˆY]Ü‹™š[™
+Û˜[YOH™ZYÛÛ‹‰Û[X™\ŸK›Ù™œÙ]—X
+K˜[
+ÛÝ›Ù™œÙ]
+NÂˆY]Ü‹™š[™
+Û˜[YOH™ZYÛÛ‹‰Û[X™\ŸK›Ù™œÙ]H—X
+K˜[
+ÛÝ›Ù™œÙ]JNÂˆY]Ü‹™š[™
+Û˜[YOH™ZYÛÛ‹‰Û[X™\ŸKœØØ[H—X
+K˜[
+ÛÝœØØ[JNÂˆY]Ü‹™š[™
+Û˜[YOH™ZYÛÛ‹‰Û[X™\ŸK˜XÝ]™H—X
+Kœ›Ü
+˜ÚXÚÙY‹ÛÝ˜XÝ]™JNÂˆ™Yœ™\ÚZYÛÛ”™]šY]ÊX‹[X™\ŠNÂŸB‚˜\Þ[˜È[˜Ý[ÛˆØ]™QZYÛÛÝ\œ™[˜ÞQœ›ÛUXŠXÝÜ‹X‹Û›ÝYžHH˜[Ù_HHßJHÂˆÛÛœÝ]HHÙ]ZYÛÛœÊXÝÜŠNÂˆ]K˜Ý\œ™[˜ÞU]ZYHÝš[™ÊX‹™š[™
+	ÖÛ˜[YOH™ZYÛÛÝ\œ™[˜ÞU]ZY—IÊK˜[
+
+HˆŠKš[J
+NÂˆ]ØZ]XÝÜ‹\]JÖØ›YÜË‰ÓSÑSWÒQK™ZYÛÛœØNˆ]_KÝÜP]]ÜØ]™Nˆ[›ÝYžK™[™\Žˆ˜[Ù_JNÂˆYˆ
+›ÝYžJHZK››ÝYšXØ][ÛœËš[™›Ê	ØXÝÜ‹›˜[Y_IÜÈZYÛÛˆXÝ]˜][ÛˆÝ\œ™[˜ÞHØ\ÈØ]™Y˜
+NÂŸB‚˜\Þ[˜È[˜Ý[ÛˆØ]™QZYÛÛ”ÛÝœ›ÛQY]ÜŠXÝÜ‹ØÛÜK[X™\‹Û›ÝYžHH˜[Ù_HHßJHÂˆÛÛœÝ]HHÙ]ZYÛÛœÊXÝÜŠNÂˆÛÛœÝÛÝH]KœÛÝÖÛ[X™\ˆHWNÂˆÛÛœÝY]ÜˆHØÛÜK™š[™
+Ù]KYZYÛÛ‹YY]ÜH‰Û[X™\ŸH—X
+NÂˆYˆ
+\ÛÝYY]Ü‹›[™Ý
+H™]\›ŽÂˆÛÝ]HHÝš[™ÊY]Ü‹™š[™
+Û˜[YOH™ZYÛÛ‹‰Û[X™\ŸK]H—X
+K˜[
+
+HZYÛÛˆ	Û[X™\ŸX
+NÂˆÛÝ˜\ÛÜšÈHÝš[™ÊY]Ü‹™š[™
+Û˜[YOH™ZYÛÛ‹‰Û[X™\ŸK˜\ÛÜšÈ—X
+K˜[
+
+HˆŠNÂˆÛÝ›Ù™œÙ]HÛ[\
+Y]Ü‹™š[™
+Û˜[YOH™ZYÛÛ‹‰Û[X™\ŸK›Ù™œÙ]—X
+K˜[
+
+KLLL
+NÂˆÛÝ›Ù™œÙ]HHÛ[\
+Y]Ü‹™š[™
+Û˜[YOH™ZYÛÛ‹‰Û[X™\ŸK›Ù™œÙ]H—X
+K˜[
+
+KLLL
+NÂˆÛÝœØØ[HHÛ[\
+Y]Ü‹™š[™
+Û˜[YOH™ZYÛÛ‹‰Û[X™\ŸKœØØ[H—X
+K˜[
+
+KK
+NÂˆÛÝ˜XÝ]™HHY]Ü‹™š[™
+Û˜[YOH™ZYÛÛ‹‰Û[X™\ŸK˜XÝ]™H—X
+Kœ›Ü
+˜ÚXÚÙYŠNÂˆ]ØZ]XÝÜ‹\]JÖØ›YÜË‰ÓSÑSWÒQK™ZYÛÛœØNˆ]_KÝÜP]]ÜØ]™Nˆ[›ÝYžK™[™\Žˆ˜[Ù_JNÂˆYˆ
+›ÝYžJHZK››ÝYšXØ][ÛœËš[™›Ê	ØXÝÜ‹›˜[Y_IÜÈIÛ[X™\ŸH\X\˜[˜ÙHØ\ÈØ]™Y˜
+NÂŸB‚˜\Þ[˜È[˜Ý[ÛˆÙ[XÝ^\Ý[™ÑZYÛÛœÊXÝÜŠHÂˆYˆ
+YØ[YK\Ù\‹š\ÑÓJH™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š“Û›HHÓHØ[ˆ[\Ü^\Ý[™ÈZYÛÛœËˆŠNÂˆÛÛœÝÛÝ\˜Ù\ÈH\œ˜^K™œ›ÛJØ[YK˜XÝÜœÈÏÈ×JBˆ™š[\ŠÛÝ\˜ÙHOˆÛÝ\˜ÙK\HOOH˜Ú\˜XÝ\ˆˆ	‰ˆÛÝ\˜ÙKšYOOHXÝÜ‹šY
+BˆœÛÜ
+
+KŠHOˆÝš[™ÊK›˜[YJK›ØØ[PÛÛ\\™JÝš[™Ê‹›˜[YJJJNÂˆYˆ
+\ÛÝ\˜Ù\Ë›[™Ý
+H™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š•\™H\™H›ÈÝ\ˆ^Y\‹XÚ\˜XÝ\ˆÚY]ÈÈ[\ÜZYÛÛœÈœ›ÛKˆŠNÂ‚ˆÛÛœÝÜ[ÛœÈHÛÝ\˜Ù\Ë›X\
+ÛÝ\˜ÙHOˆÜ[Ûˆ˜[YOH‰Ù\ØØ\RS
+ÛÝ\˜ÙKšY
+_H‰Ù\ØØ\RS
+ÛÝ\˜ÙK›˜[YJ_OÛÜ[Û˜
+Kš›Ú[ŠˆŠNÂˆÛÛœÝÛÛ[H›Ü›HÛ\ÜÏHÜKYZYÛÛ‹Z[\Ü]ˆÛ\ÜÏH™›Ü›KYÜ›Ý\X™[”Ù[XÝÚ\˜XÝ\ÛX™[]ˆÛ\ÜÏH™›Ü›KYšY[ÈÙ[XÝ˜[YOHœÛÝ\˜ÙPXÝÜ’Y‰ÛÜ[ÛœßOÜÙ[XÝÙ]Ù]Û\ÜÏH››Ý\ÈÛÜY\È[Ú^ZYÛÛˆ]\Ë\ÛÜšËÜ›ÜÜÚ][ÛœËØØ[K[™XÝ]˜][ÛˆÝ]KˆH\Ý[˜][ÛˆÚY]	ÜÈXÝ]˜][ÛˆÝ\œ™[˜ÞH\È™\Ù\™YÜÙ›Ü›O˜Âˆ™]ÈX[ÙÊÂˆ]NˆÙ[XÝ^\Ý[™ÈZYÛÛœÈ8 %	ØXÝÜ‹›˜[Y_XˆÛÛ[ˆ]ÛœÎˆÂˆÚÎˆÂˆXÛÛŽˆ	ÏHÛ\ÜÏH™˜\È˜KXÚXÚÈÚO‰ËˆX™[ˆ“ÒÈ‹ˆØ[˜XÚÎˆ\Þ[˜È[OˆÂˆÛÛœÝÛÝ\˜ÙRYHÝš[™Ê[™š[™
+	ÖÛ˜[YOHœÛÝ\˜ÙPXÝÜ’Y—IÊK˜[
+
+HˆŠNÂˆÛÛœÝÛÝ\˜ÙHHØ[YK˜XÝÜœË™Ù]
+ÛÝ\˜ÙRY
+NÂˆYˆ
+\ÛÝ\˜ÙJH™]\›ˆZK››ÝYšXØ][ÛœË™\œ›ÜŠ•HÙ[XÝYÚ\˜XÝ\ˆÚY]ÛÝ[›Ý™H›Ý[™ˆŠNÂˆÛÛœÝÛÝ\˜ÙQ]HHÙ]ZYÛÛœÊÛÝ\˜ÙJNÂˆÛÛœÝ\Ý[˜][Û‘]HHÙ]ZYÛÛœÊXÝÜŠNÂˆ\Ý[˜][Û‘]KœÛÝÈHÛÝ\˜ÙQ]KœÛÝË›X\
+
+ÛÝ[™^
+HOˆ
+Âˆ[X™\Žˆ[™^
+ÈKˆXÝ]™Nˆ›ÛÛX[ŠÛÝ˜XÝ]™JKˆ]NˆÝš[™ÊÛÝ]HZYÛÛˆ	Ú[™^
+È_X
+Kˆ\ÛÜšÎˆÝš[™ÊÛÝ˜\ÛÜšÈˆŠKˆÙ™œÙ]ˆÛ[\
+ÛÝ›Ù™œÙ]LLL
+KˆÙ™œÙ]NˆÛ[\
+ÛÝ›Ù™œÙ]KLLL
+KˆØØ[NˆÛ[\
+ÛÝœØØ[KK
+BˆJJNÂˆ]ØZ]XÝÜ‹\]JÖØ›YÜË‰ÓSÑSWÒQK™ZYÛÛœØNˆ\Ý[˜][Û‘]_JNÂˆZK››ÝYšXØ][ÛœËš[™›Ê[\ÜYZYÛÛœÈœ›ÛH	ÜÛÝ\˜ÙK›˜[Y_HÈ	ØXÝÜ‹›˜[Y_K˜
+NÂˆ›Üˆ
+ÛÛœÝÚY]ÙˆØš™XÝ˜[Y\ÊZKÚ[™ÝÜÈÏÈßJJHÂˆYˆ
+
+ÚY]˜XÝÜˆÏÈÚY]™ØÝ[Y[
+OËšYOOHXÝÜ‹šY
+HÚY]œ™[™\Š˜[ÙJNÂˆBˆBˆKˆØ[˜Ù[ˆÚXÛÛŽˆ	ÏHÛ\ÜÏH™˜\È˜K][Y\ÈÚO‰ËX™[ˆØ[˜Ù[ŸBˆKˆY˜][ˆ›ÚÈ‚ˆJKœ™[™\ŠYJNÂŸB‚™[˜Ý[ÛˆXÝ]˜]QZYÛÛ“\Ý[™\œÊXÝÜ‹X‹\
+HÂˆX‹™š[™
+–Ù]KXXÝ[ÛIØXÝ]˜]KYZYÛÛ‰×HŠK›ÛŠ˜ÛXÚÈ‹\Þ[˜È]™[OˆXÝ]˜]QZYÛÛŠXÝÜ‹[X™\Š]™[˜Ý\œ™[\™Ù]™]\Ù]™ZYÛÛŠJJNÂˆYˆ
+YØ[YK\Ù\‹š\ÑÓJH™]\›ŽÂ‚ˆX‹™š[™
+–Ù]KXXÝ[ÛIÜÙ[XÝY^\Ý[™ËYZYÛÛœÉ×HŠK›ÛŠ˜ÛXÚÈ‹
+
+HOˆÙ[XÝ^\Ý[™ÑZYÛÛœÊXÝÜŠJNÂ‚ˆÛÛœÝÛÝ[Y\œÈH™]ÈX\
+
+NÂˆÛÛœÝÛÝ[›š[™ÈH™]ÈÙ]
+
+NÂˆÛÛœÝÛÝ]Y]YYH™]ÈÙ]
+
+NÂˆÛÛœÝ[”ÛÝ]]ÜØ]™HH\Þ[˜È
+[X™\‹ØÛÜJHOˆÂˆYˆ
+ÛÝ[›š[™Ëš\Ê[X™\ŠJHÈÛÝ]Y]YY˜Y
+[X™\ŠNÈ™]\›ŽÈBˆÛÝ[›š[™Ë˜Y
+[X™\ŠNÂˆžHÂˆ]ØZ]Ø]™QZYÛÛ”ÛÝœ›ÛQY]ÜŠXÝÜ‹ØÛÜK[X™\ŠNÂˆØÛÜK˜YÛ\ÜÊÜKX]]ÜØ]™K\Ø]™YŠNÂˆÚ[™ÝËœÙ][Y[Ý]
+
+
+HOˆØÛÜKœ™[[Ý™PÛ\ÜÊÜKX]]ÜØ]™K\Ø]™YŠKL
+NÂˆHØ]Ú
+\œ›ÜŠHÂˆÛÛœÛÛK™\œ›ÜŠ	ÓSÑSWÒQHZYÛÛˆ]]ÜØ]™H˜Z[Y\œ›ÜŠNÂˆZK››ÝYšXØ][ÛœË™\œ›ÜŠÛÝ[›Ý]]ÜØ]™H	ØXÝÜ‹›˜[Y_IÜÈIÛ[X™\ŸHÛÛ™šYÝ\˜][Û‹˜
+NÂˆHš[˜[HÂˆÛÝ[›š[™Ë™[]J[X™\ŠNÂˆYˆ
+ÛÝ]Y]YY™[]J[X™\ŠJH[”ÛÝ]]ÜØ]™J[X™\‹ØÛÜJNÂˆBˆNÂˆÛÛœÝØÚY[TÛÝ]]ÜØ]™HH
+[X™\‹ØÛÜK[[YYX]HH˜[ÙJHOˆÂˆÚ[™ÝË˜ÛX\•[Y[Ý]
+ÛÝ[Y\œË™Ù]
+[X™\ŠJNÂˆÛÝ[Y\œËœÙ]
+[X™\‹Ú[™ÝËœÙ][Y[Ý]
+
+
+HOˆ[”ÛÝ]]ÜØ]™J[X™\‹ØÛÜJK[[YYX]HÈˆML
+JNÂˆNÂˆ]Ý\œ™[˜ÞU[Y\ˆH[ÂˆÛÛœÝØÚY[PÝ\œ™[˜ÞP]]ÜØ]™HH[[YYX]HOˆÂˆÚ[™ÝË˜ÛX\•[Y[Ý]
+Ý\œ™[˜ÞU[Y\ŠNÂˆÝ\œ™[˜ÞU[Y\ˆHÚ[™ÝËœÙ][Y[Ý]
+
+
+HOˆØ]™QZYÛÛÝ\œ™[˜ÞQœ›ÛUXŠXÝÜ‹XŠK˜Ø]Ú
+\œ›ÜˆOˆÂˆÛÛœÛÛK™\œ›ÜŠ	ÓSÑSWÒQHZYÛÛˆÝ\œ™[˜ÞH]]ÜØ]™H˜Z[Y\œ›ÜŠNÂˆZK››ÝYšXØ][ÛœË™\œ›ÜŠÛÝ[›Ý]]ÜØ]™H	ØXÝÜ‹›˜[Y_IÜÈZYÛÛˆÝ\œ™[˜ÞK˜
+NÂˆJK[[YYX]HÈˆML
+NÂˆNÂ‚ˆX‹™š[™
+–Ù]KXXÝ[ÛIØÛÛ™šYÝ\™KYZYÛÛ‰×HŠK›ÛŠ˜ÛXÚÈ‹]™[OˆÂˆÛÛœÝ[X™\ˆH[X™\Š]™[˜Ý\œ™[\™Ù]™]\Ù]™ZYÛÛŠNÂˆÜ[]QZYÛÛ‘Y]ÜŠXÝÜ‹X‹[X™\ŠNÂˆÛÛœÝÜÝ]HX‹™š[™
+Ù]KYZYÛÛ‹\ÜÝ]H‰Û[X™\ŸH—X
+NÂˆÜÝ]™]JÜK\™]\›‹\\™[‹ÜÝ]œ\™[
+
+VÌJNÂˆÜÝ]œ›Ü
+šY[ˆ‹˜[ÙJK˜YÛ\ÜÊ›Ü[ˆŠK˜\[™ÊØÝ[Y[˜›ÙJNÂˆJNÂˆX‹™š[™
+–Ù]KXXÝ[ÛIØÛÜÙKYZYÛÛ‹XÛÛ™šYÉ×HŠK›ÛŠ˜ÛXÚÈ‹]™[OˆÂˆÛÛœÝÜÝ]H	
+]™[˜Ý\œ™[\™Ù]
+K˜ÛÜÙ\Ý
+–Ù]KYZYÛÛ‹\ÜÝ]HŠNÂˆÛÛœÝ™]\›”\™[HÜÝ]™]JÜK\™]\›‹\\™[ŠNÂˆÜÝ]œ›Ü
+šY[ˆ‹YJKœ™[[Ý™PÛ\ÜÊ›Ü[ˆŠNÂˆYˆ
+™]\›”\™[Ëš\ÐÛÛ›™XÝY
+HÜÝ]˜\[™Ê™]\›”\™[
+NÂˆ[ÙHÜÝ]œ™[[Ý™J
+NÂˆJNÂˆX‹™š[™
+‹™š[K\XÚÙ\ˆŠK›ÛŠ˜ÛXÚÈ‹]™[OˆÂˆÛÛœÝ\™Ù]H]™[˜Ý\œ™[\™Ù]™]\Ù]\™Ù]ÂˆÛÛœÝØÛÜHH	
+]™[˜Ý\œ™[\™Ù]
+K˜ÛÜÙ\Ý
+–Ù]KYZYÛÛ‹\ÜÝ]HŠK›[™ÝÈ	
+]™[˜Ý\œ™[\™Ù]
+K˜ÛÜÙ\Ý
+–Ù]KYZYÛÛ‹\ÜÝ]HŠHˆXŽÂˆÛÛœÝÜÝ]HØÛÜKš\Ê–Ù]KYZYÛÛ‹\ÜÝ]HŠHÈØÛÜHˆ	
+
+NÂˆ]™\ÝÜ™YH˜[ÙNÂˆÛÛœÝ™\ÝÜ™TÜÝ]H
+
+HOˆÂˆYˆ
+™\ÝÜ™Y\ÜÝ]›[™Ý
+H™]\›ŽÂˆ™\ÝÜ™YHYNÂˆÜÝ]œ›Ü
+šY[ˆ‹˜[ÙJK˜YÛ\ÜÊ›Ü[ˆŠNÂˆNÂˆÛÛœÝXÚÙ\ˆH™]Èš[TXÚÙ\ŠÂˆ\Nˆ]™[˜Ý\œ™[\™Ù]™]\Ù]\Hš[XYÙH‹ˆÝ\œ™[ˆØÛÜK™š[™
+Û˜[YOH‰Ý\™Ù]H—X
+K˜[
+
+KˆØ[˜XÚÎˆ]OˆÂˆØÛÜK™š[™
+Û˜[YOH‰Ý\™Ù]H—X
+K˜[
+]
+KšYÙÙ\Šš[œ]ŠKšYÙÙ\Š˜Ú[™ÙHŠNÂˆ™\ÝÜ™TÜÝ]
+
+NÂˆBˆJNÂˆÛÛœÝÜšYÚ[˜[ÛÜÙHHXÚÙ\‹˜ÛÜÙK˜š[™
+XÚÙ\ŠNÂˆXÚÙ\‹˜ÛÜÙHH\Þ[˜È
+‹‹˜\™ÜÊHOˆÂˆžHÈ™]\›ˆ]ØZ]ÜšYÚ[˜[ÛÜÙJ‹‹˜\™ÜÊNÈBˆš[˜[HÈ™\ÝÜ™TÜÝ]
+
+NÈBˆNÂˆYˆ
+ÜÝ]›[™Ý
+HÜÝ]œ›Ü
+šY[ˆ‹YJNÂˆ›ÛZ\ÙKœ™\ÛÛ™JXÚÙ\‹˜œ›ÝÜÙJ
+JK˜Ø]Ú
+\œ›ÜˆOˆÂˆ™\ÝÜ™TÜÝ]
+
+NÂˆÛÛœÛÛK™\œ›ÜŠ	ÓSÑSWÒQHÛÝ[›ÝÜ[ˆZYÛÛˆ\ÛÜšÈœ›ÝÜÙ\˜\œ›ÜŠNÂˆJNÂˆJNÂˆX‹™š[™
+–Ù]KYZYÛÛ‹YY]Ü—H[œ]ŠK›ÛŠš[œ]Ú[™ÙH‹]™[OˆÂˆÛÛœÝY]Ü‘[[Y[H]™[˜Ý\œ™[\™Ù]˜ÛÜÙ\Ý
+–Ù]KYZYÛÛ‹YY]Ü—HŠNÂˆÛÛœÝ[X™\ˆH[X™\ŠY]Ü‘[[Y[™]\Ù]™ZYÛÛ‘Y]ÜŠNÂˆÛÛœÝÜÝ]H	
+]™[˜Ý\œ™[\™Ù]
+K˜ÛÜÙ\Ý
+–Ù]KYZYÛÛ‹\ÜÝ]HŠNÂˆ™Yœ™\ÚZYÛÛ”™]šY]ÊÜÝ][X™\ŠNÂˆ™Yœ™\ÚZYÛÛ”ÝYÙQ˜Y
+X‹	
+Y]Ü‘[[Y[
+K[X™\ŠNÂˆØÚY[TÛÝ]]ÜØ]™J[X™\‹ÜÝ]]™[\HOOH˜Ú[™ÙHˆ	‰ˆÈ˜ÚXÚØ›Þ‹œ˜Y[È—Kš[˜ÛY\Ê]™[˜Ý\œ™[\™Ù]\JJNÂˆJNÂˆX‹™š[™
+–Ù]KYZYÛÛ‹\™]šY]ËX\HŠK›ÛŠœÚ[\™ÝÛˆ‹]™[OˆÂˆÛÛœÝÛÝH[X™\Š]™[˜Ý\œ™[\™Ù]™]\Ù]™ZYÛÛ”™]šY]Ð\
+NÂˆÛÛœÝÜÝ]H	
+]™[˜Ý\œ™[\™Ù]
+K˜ÛÜÙ\Ý
+–Ù]KYZYÛÛ‹\ÜÝ]HŠNÂˆÛÛœÝY]ÜˆHÜÝ]™š[™
+Ù]KYZYÛÛ‹YY]ÜH‰ÜÛÝH—X
+NÂˆÛÛœÝ[œ]HY]Ü‹™š[™
+Û˜[YOH™ZYÛÛ‹‰ÜÛÝK›Ù™œÙ]—X
+NÂˆÛÛœÝR[œ]HY]Ü‹™š[™
+Û˜[YOH™ZYÛÛ‹‰ÜÛÝK›Ù™œÙ]H—X
+NÂˆÛÛœÝÝ\H]™[˜ÛY[ÂˆÛÛœÝÝ\HH]™[˜ÛY[NÂˆÛÛœÝ[š]X[H[X™\Š[œ]˜[
+
+JHÂˆÛÛœÝ[š]X[HH[X™\ŠR[œ]˜[
+
+JHÂˆÛÛœÝ™]šY]ÈH]™[˜Ý\œ™[\™Ù]˜ÛÜÙ\Ý
+‹ÜKYZYÛÛ‹\ÜÝ]\™]šY]ÈŠNÂˆÛÛœÝ™XÝH™]šY]Ë™Ù]›Ý[™[™ÐÛY[™XÝ
+
+NÂˆ]™[˜Ý\œ™[\™Ù]œÙ]Ú[\Ø\\™J]™[œÚ[\’Y
+NÂˆÛÛœÝ[Ý™HH[Ý™Q]™[OˆÂˆ[œ]˜[
+Û[\
+[š]X[
+È
+
+[Ý™Q]™[˜ÛY[HÝ\
+HÈ™XÝÚY
+H
+ˆLLLL
+JNÂˆR[œ]˜[
+Û[\
+[š]X[H
+È
+
+[Ý™Q]™[˜ÛY[HHÝ\JHÈ™XÝšZYÚ
+H
+ˆLLLL
+JNÂˆ™Yœ™\ÚZYÛÛ”™]šY]ÊÜÝ]ÛÝ
+NÂˆNÂˆÛÛœÝš[š\ÚH
+
+HOˆÂˆ]™[˜Ý\œ™[\™Ù]œ™[[Ý™Q]™[\Ý[™\ŠœÚ[\›[Ý™H‹[Ý™JNÂˆ]™[˜Ý\œ™[\™Ù]œ™[[Ý™Q]™[\Ý[™\ŠœÚ[\\‹š[š\Ú
+NÂˆ]™[˜Ý\œ™[\™Ù]œ™[[Ý™Q]™[\Ý[™\ŠœÚ[\˜Ø[˜Ù[‹š[š\Ú
+NÂˆØÚY[TÛÝ]]ÜØ]™JÛÝÜÝ]YJNÂˆNÂˆ]™[˜Ý\œ™[\™Ù]˜Y]™[\Ý[™\ŠœÚ[\›[Ý™H‹[Ý™JNÂˆ]™[˜Ý\œ™[\™Ù]˜Y]™[\Ý[™\ŠœÚ[\\‹š[š\Ú
+NÂˆ]™[˜Ý\œ™[\™Ù]˜Y]™[\Ý[™\ŠœÚ[\˜Ø[˜Ù[‹š[š\Ú
+NÂˆJNÂˆX‹™š[™
+	ÖÛ˜[YOH™ZYÛÛÝ\œ™[˜ÞU]ZY—IÊK›ÛŠš[œ]Ú[™ÙH‹]™[OˆØÚY[PÝ\œ™[˜ÞP]]ÜØ]™J]™[\HOOH˜Ú[™ÙHŠJNÂˆX‹™š[™
+	ÖÛ˜[YOH™ZYÛÛÝ\œ™[˜ÞU]ZY—IÊK›ÛŠ™›Ü‹]™[OˆÂˆ]™[œ™]™[Y˜][
+
+NÂˆžHÂˆÛÛœÝ›ÜYH”ÓÓ‹œ\œÙJ]™[›ÜšYÚ[˜[]™[Ë™]U˜[œÙ™\Ë™Ù]]J^ÜZ[ˆŠHžßHŠNÂˆYˆ
+›ÜY\HOOH’][Hˆ	‰ˆ›ÜY]ZY
+HÂˆ]™[˜Ý\œ™[\™Ù]˜[YHH›ÜY]ZYÂˆ	
+]™[˜Ý\œ™[\™Ù]
+KšYÙÙ\Š˜Ú[™ÙHŠNÂˆBˆHØ]Ú
+Ù\œ›ÜŠHßBˆJNÂˆX‹™š[™
+–Ù]KXXÝ[ÛIÜØ]™KYZYÛÛ‹XÝ\œ™[˜ÞI×HŠK›ÛŠ˜ÛXÚÈ‹\Þ[˜È
+
+HOˆÂˆÚ[™ÝË˜ÛX\•[Y[Ý]
+Ý\œ™[˜ÞU[Y\ŠNÂˆ]ØZ]Ø]™QZYÛÛÝ\œ™[˜ÞQœ›ÛUXŠXÝÜ‹X‹Û›ÝYžNˆY_JNÂˆJNÂˆX‹™š[™
+–Ù]KXXÝ[ÛIÜØ]™KYZYÛÛ‰×HŠK›ÛŠ˜ÛXÚÈ‹\Þ[˜È]™[OˆÂˆÛÛœÝ[X™\ˆH[X™\Š]™[˜Ý\œ™[\™Ù]™]\Ù]™ZYÛÛŠNÂˆÚ[™ÝË˜ÛX\•[Y[Ý]
+ÛÝ[Y\œË™Ù]
+[X™\ŠJNÂˆÛÛœÝÜÝ]H	
+]™[˜Ý\œ™[\™Ù]
+K˜ÛÜÙ\Ý
+–Ù]KYZYÛÛ‹\ÜÝ]HŠNÂˆ]ØZ]Ø]™QZYÛÛ”ÛÝœ›ÛQY]ÜŠXÝÜ‹ÜÝ][X™\‹Û›ÝYžNˆY_JNÂˆÛÛœÝ™]\›”\™[HÜÝ]™]JÜK\™]\›‹\\™[ŠNÂˆÜÝ]œ›Ü
+šY[ˆ‹YJKœ™[[Ý™PÛ\ÜÊ›Ü[ˆŠNÂˆYˆ
+™]\›”\™[Ëš\ÐÛÛ›™XÝY
+HÜÝ]˜\[™Ê™]\›”\™[
+NÂˆ[ÙHÜÝ]œ™[[Ý™J
+NÂˆJNÂŸB‚˜\Þ[˜È[˜Ý[Ûˆ[š™XÝZYÛÛ•XŠ\[
+HÂˆÛÛœÝXÝÜˆH\˜XÝÜˆÏÈ\™ØÝ[Y[ÂˆYˆ
+XÝÜË™ØÝ[Y[˜[YHOOHXÝÜˆˆXÝÜ‹\HOOH˜Ú\˜XÝ\ˆŠH™]\›ŽÂˆÛÛœÝ›ÛÝ[[Y[H™\ÛÛ™PXÝÜ”ÚY]›ÛÝ
+\[
+NÂˆYˆ
+\›ÛÝ[[Y[
+H™]\›ŽÂˆÛÛœÝ›ÛÝH	
+›ÛÝ[[Y[
+NÂˆÛÛœÝ^\Ý[™ÐÛÛ›ÛH›ÛÝ™š[™
+	Û˜]ˆÙ]K]XHÜKYZYÛÛœÈ—IÊNÂˆÛÛœÝ^\Ý[™ÕXˆH›ÛÝ™š[™
+	ËÜKYZYÛÛ‹]X–Ù]K]XHÜKYZYÛÛœÈ—IÊNÂˆYˆ
+^\Ý[™ÐÛÛ›Û›[™Ý	‰ˆ^\Ý[™ÕX‹›[™Ý
+HÂˆ™Yœ™\ÚZYÛÛ•X‘\Ü^JXÝÜ‹^\Ý[™ÕXŠNÂˆ™]\›ŽÂˆBˆ^\Ý[™ÐÛÛ›Ûœ™[[Ý™J
+NÂˆ^\Ý[™ÕX‹œ™[[Ý™J
+NÂˆYˆ
+›ÛÝ˜]Š™]K]ÜKYZYÛÛœËZ[š™XÝ[™ÈŠHOOHYHŠH™]\›ŽÂˆ›ÛÝ˜]Š™]K]ÜKYZYÛÛœËZ[š™XÝ[™È‹YHŠNÂˆÛÛœÝ˜]ˆH›ÛÝ™š[™
+	Û˜]‹XœÖÙ]KYÜ›Ý\Hœš[X\žH—K˜]‹œÚY]]XœÖÙ]KYÜ›Ý\Hœš[X\žH—KXœË\šYÚ˜]‹XœÉÊK™š\œÝ
+
+NÂˆ]›ÙHH›ÛÝ™š[™
+	ËX‹X›ÙIÊK™š\œÝ
+
+NÂˆYˆ
+X›ÙK›[™Ý
+H›ÙHH›ÛÝ™š[™
+	ËœÚY]X›ÙIÊK™š\œÝ
+
+NÂˆYˆ
+X›ÙK›[™Ý
+H›ÙHH›ÛÝ™š[™
+	ÖÙ]KX\XØ][Û‹\\H˜›ÙH—IÊK™š\œÝ
+
+NÂˆYˆ
+[˜]‹›[™ÝX›ÙK›[™Ý
+HÈ›ÛÝœ™[[Ý™P]Š™]K]ÜKYZYÛÛœËZ[š™XÝ[™ÈŠNÈ™]\›ŽÈBˆ˜]‹˜\[™
+HÛ\ÜÏHš][HÛÛ›ÛÜK]X‹XÛÛ›Ûˆ]KXXÝ[ÛHXˆˆ]K]XHÜKYZYÛÛœÈˆ]KYÜ›Ý\Hœš[X\žHˆ]K]ÛÛ\H‘ZYÛÛˆ™\ÛÛ˜[˜ÙHˆ\šXK[X™[H‘ZYÛÛˆ™\ÛÛ˜[˜ÙHHÛ\ÜÏH™˜\È˜KYÙ[HÚOÜ[ˆÛ\ÜÏHÜK]X‹[X™[‘ZYÛÛœÏÜÜ[ØO˜
+NÂˆ›ÙK˜\[™
+]ØZ]™[™\•[\]J[Ù[\ËÉÓSÑSWÒQKÝ[\]\ËÙZYÛÛ‹]X‹šœØ]ØZ]ZYÛÛ•X‘]JXÝÜŠJJNÂˆÛÛœÝXˆH›ÙK™š[™
+	ËÜKYZYÛÛ‹]X‰ÊNÂˆÛÛœÝÛÛ›ÛH˜]‹™š[™
+	ÖÙ]K]XHÜKYZYÛÛœÈ—IÊNÂˆÛÛœÝ›Ûš[HHÙ]ZYÛÛÛÛ™šYÊ
+K]Q›Ûš[NÂˆYˆ
+›Ûš[JHØYÜ\Ú›Û
+›Ûš[JK[Š›ÛOˆX‹˜ÜÜÊ‹K]ÜKYZYÛÛ‹Y›Û‹›Û
+JK˜Ø]Ú
+\œ›ÜˆOˆÛÛœÛÛKØ\›Š	ÓSÑSWÒQHÛÝ[›ÝØYZYÛÛˆ]H›Û\œ›ÜŠJNÂˆXÝ]˜]QZYÛÛ“\Ý[™\œÊXÝÜ‹X‹\
+NÂˆÛÛ›Û›ÛŠ˜ÛXÚËÜH‹]™[OˆÂˆ]™[œ™]™[Y˜][
+
+NÈ]™[œÝÜ[[YYX]T›ÜYØ][ÛŠ
+NÂˆ˜]‹™š[™
+	ÖÙ]K]X—IÊKœ™[[Ý™PÛ\ÜÊ˜XÝ]™HŠNÈÛÛ›Û˜YÛ\ÜÊ˜XÝ]™HŠNÂˆ›ÛÝ™š[™
+	ËX–Ù]KYÜ›Ý\Hœš[X\žH—IÊKœ™[[Ý™PÛ\ÜÊ˜XÝ]™HŠNÈX‹˜YÛ\ÜÊ˜XÝ]™HŠNÂˆ›ÛÝ˜YÛ\ÜÊÜKYZYÛÛ‹]X‹[Ü[ˆŠNÂˆYˆ
+\X‘Ü›Ý\ÊH\X‘Ü›Ý\Ëœš[X\žHHÜKYZYÛÛœÈŽÂˆJNÂˆ˜]‹™š[™
+	ÖÙ]K]X—IÊK››Ý
+	ÖÙ]K]XHÜKYZYÛÛœÈ—IÊK›ÛŠ˜ÛXÚËÜKYZYÛÛ‹ZYH‹
+
+HOˆÂˆX‹œ™[[Ý™PÛ\ÜÊ˜XÝ]™HŠNÂˆ›ÛÝœ™[[Ý™PÛ\ÜÊÜKYZYÛÛ‹]X‹[Ü[ˆŠNÂˆJNÂˆ›ÛÝœ™[[Ý™P]Š™]K]ÜKYZYÛÛœËZ[š™XÝ[™ÈŠNÂˆYˆ
+\X‘Ü›Ý\ÏËœš[X\žHOOHÜKYZYÛÛœÈŠHÛÛ›ÛšYÙÙ\Š˜ÛXÚÈŠNÂŸB‚™[˜Ý[ÛˆØœÙ\™PÚ\˜XÝ\”ÚY]XœÊ\
+HÂˆÛÛœÝXÝÜˆH\˜XÝÜˆÏÈ\™ØÝ[Y[ÂˆYˆ
+XÝÜË™ØÝ[Y[˜[YHOOHXÝÜˆˆXÝÜ‹\HOOH˜Ú\˜XÝ\ˆŠH™]\›ŽÂˆÛÛœÝ˜]Ñ[[Y[H\™[[Y[ÂˆÛÛœÝ›ÛÝH˜]Ñ[[Y[Ëšœ]Y\žHÈ˜]Ñ[[Y[ÌHˆ˜]Ñ[[Y[Ë–ÌH[œÝ[˜Ù[ÙˆS[[Y[È˜]Ñ[[Y[ÌHˆ˜]Ñ[[Y[ÂˆYˆ
+J›ÛÝ[œÝ[˜Ù[ÙˆS[[Y[
+JH™]\›ŽÂˆÛÛœÝ™]š[Ý\ÈHÝ]KœÚY]ØœÙ\™\œË™Ù]
+\
+NÂˆYˆ
+™]š[Ý\ÏËœ›ÛÝOOH›ÛÝ
+H™]\›ŽÂˆ™]š[Ý\ÏË›ØœÙ\™\Ë™\ØÛÛ›™XÝ
+
+NÂˆYˆ
+™]š[Ý\ÏË[Y\ŠHÛX\•[Y[Ý]
+™]š[Ý\Ë[Y\ŠNÂˆÛÛœÝ[žHHÜ›ÛÝØœÙ\™\Žˆ[[Y\Žˆ[NÂˆÛÛœÝ[œÝ\™UXœÈH
+
+HOˆÂˆYˆ
+\›ÛÝš\ÐÛÛ›™XÝY
+H™]\›ŽÂˆ[š™XÝ[[X]UXŠ\›ÛÝ
+NÂˆ[š™XÝZYÛÛ•XŠ\›ÛÝ
+NÂˆNÂˆÛÛœÝØœÙ\™\ˆH™]È]]][Û“ØœÙ\™\Š
+
+HOˆÂˆÛX\•[Y[Ý]
+[žK[Y\ŠNÂˆ[žK[Y\ˆHÙ][Y[Ý]
+[œÝ\™UXœË
+NÂˆJNÂˆ[žK›ØœÙ\™\ˆHØœÙ\™\ŽÂˆØœÙ\™\‹›ØœÙ\™J›ÛÝØÚ[\ÝˆYKÝX™YNˆY_JNÂˆÝ]KœÚY]ØœÙ\™\œËœÙ]
+\[žJNÂˆÙ][Y[Ý]
+[œÝ\™UXœË
+NÂˆÙ][Y[Ý]
+[œÝ\™UXœËL
+NÂˆÙ][Y[Ý]
+[œÝ\™UXœËÌ
+NÂŸB‚™[˜Ý[ÛˆÜ[•ÝYÚ™\ÜÐÛÛ™šYÊXÝÜŠHÂˆÛÛœÝÛÛ™šYÈHÙ]ÝYÚ™\ÜÊXÝÜŠNÂˆÛÛœÝØ\›Ý\Ù[HÙ]ÛÛ™šYÊXÝÜŠNÂˆÛÛœÝ[[Y[ÈHÙ][[Y[Ê
+NÂˆÛÛœÝÙXZÛ™\ÜÔ›ÝÜÈH[[Y[Ë›X\
+[[Y[OˆX™[Û\ÜÏHÜK]ÙXZÛ™\ÜËXÚÚXÙH[œ]\OH˜ÚXÚØ›Þˆ˜[YOHÙXZÛ™\ÜÈˆ˜[YOH‰Ù\ØØ\RS
+[[Y[šY
+_Hˆ	ØÛÛ™šYËÙXZÛ™\ÜÙ\Ëš[˜ÛY\Ê[[Y[šY
+HÈ˜ÚXÚÙYˆˆˆŸO[YÈÜ˜ÏH‰Ù\ØØ\RS
+[[Y[šXÛÛˆšXÛÛœËÜÝ™ËØ]\˜KœÝ™ÈŠ_HÜ[‰Ù\ØØ\RS
+[[Y[›˜[YJ_OÜÜ[ÛX™[˜
+Kš›Ú[ŠˆŠNÂˆÛÛœÝÛÛ[H›Ü›HÛ\ÜÏHÜK]ÝYÚ™\ÜËY›Ü›H‚ˆÛÛ™šYÝ\™H\ÈXÝÜ‰ÜÈÝ\ˆ˜Z[ÝYÚ™\ÜÈ[™[[Y[[ÙXZÛ™\ÜÙ\Ëˆ\ÙHÛÛ›ÛÈ\™HÓK[Û›KÜ‚ˆX™[Û\ÜÏHÜK]ÝYÚ™\ÜË]ÙÙÛHÜ[Ý›Û™Ï‘[˜X›HÝYÚ™\ÜÏÜÝ›Û™ÏÛX[”ÚÝÈ[™]]ÛX]XØ[H›ØÙ\ÜÈÝYÚ™\ÜÈÚ[H\ÈXÝÜˆ\È[ˆÛÛX˜]ÜÛX[ÜÜ[[œ]\OH˜ÚXÚØ›Þˆ˜[YOH™[˜X›Yˆ	ØÛÛ™šYË™[˜X›YÈ˜ÚXÚÙYˆˆˆŸOÛX™[‚ˆ]ˆÛ\ÜÏHÜK]ÝYÚ™\ÜË[[X™\œÈX™[Ý›Û™ÏÝ\œ™[ÜÝ›Û™Ï[œ]\OH›[X™\ˆˆ˜[YOH˜Ý\œ™[ˆZ[HŒˆ˜[YOH‰ØÛÛ™šYË˜Ý\œ™[HÛX™[X™[Ý›Û™Ï“X^[][OÜÝ›Û™Ï[œ]\OH›[X™\ˆˆ˜[YOH›X^ˆZ[HŒHˆ˜[YOH‰ØÛÛ™šYË›X^HÛX™[Ù]‚ˆšY[Ù]YÙ[™‘[[Y[[ÙXZÛ™\ÜÙ\ÏÛYÙ[™]ˆÛ\ÜÏHÜK]ÙXZÛ™\ÜËYÜšY‰ÝÙXZÛ™\ÜÔ›ÝÜÈ[OÜ™X]H[[Y[È[ˆ[Ù[HÙ][™ÜÈš\œÝÙ[OˆŸOÙ]ÙšY[Ù]‚ˆ	ØXÝÜ‹\OOOH›œÈØšY[Ù]Û\ÜÏHÜKXØ\›Ý\Ù[X\XÛÛ™šYÈYÙ[™’[š]X]]™HØ\›Ý\Ù[\ÛÜšÏÛYÙ[™X™[Ý›Û™Ï“”ÈØ\›Ý\Ù[\ÜÝ›Û™ÏÛX[•\ÙYžHHÔˆ[š]X]]™HØ\›Ý\Ù[[œÝXYÙˆHÚÙ[ˆÜ˜Z]ÜÛX[]ˆÛ\ÜÏHÜKYš[KXÛÛ›Û[œ]\OH^ˆ˜[YOH˜Ø\›Ý\Ù[[XYÙHˆ˜[YOH‰Ù\ØØ\RS
+Ø\›Ý\Ù[˜Ø\›Ý\Ù[[XYÙJ_HˆXÙZÛ\H•\ÙHÛÛX˜][ÜˆXÝÜˆ[XYÙH]Ûˆ\OH˜]Ûˆˆ]KXØ\›Ý\Ù[\XÚÙ\ˆ]OHœ›ÝÜÙHš[\ÈHÛ\ÜÏH™˜\È˜KYš[KZ[\ÜÚOØ]ÛÙ]ÛX™[]ˆÛ\ÜÏHÜK]ÝYÚ™\ÜË[[X™\œÈX™[Ý›Û™Ï\ÜÝ›Û™Ï[œ]\OH›[X™\ˆˆ˜[YOH˜Ø\›Ý\Ù[[XYÙVˆZ[HŒˆX^HŒLˆ˜[YOH‰ØØ\›Ý\Ù[˜Ø\›Ý\Ù[[XYÙVHÛX™[X™[Ý›Û™Ï\OÜÝ›Û™Ï[œ]\OH›[X™\ˆˆ˜[YOH˜Ø\›Ý\Ù[[XYÙVHˆZ[HŒˆX^HŒLˆ˜[YOH‰ØØ\›Ý\Ù[˜Ø\›Ý\Ù[[XYÙV_HÛX™[X™[Ý›Û™Ï–›ÛÛH	OÜÝ›Û™Ï[œ]\OH›[X™\ˆˆ˜[YOH˜Ø\›Ý\Ù[[XYÙTØØ[HˆZ[HLˆX^Hˆ˜[YOH‰ØØ\›Ý\Ù[˜Ø\›Ý\Ù[[XYÙTØØ[_HÛX™[Ù]ÙšY[Ù]˜ˆˆŸBˆÙ›Ü›O˜ÂˆÛÛœÝX[ÙÈH™]ÈX[ÙÊÝ]Nˆ	ØXÝÜ‹›˜[Y_H8 %ÝYÚ™\ÜØÛÛ[]ÛœÎˆÂˆØ]™NˆÚXÛÛŽˆ	ÏHÛ\ÜÏH™˜\È˜K\Ø]™HÚO‰ËX™[ˆ”Ø]™H‹Ø[˜XÚÎˆ\Þ[˜È[OˆÂˆÛÛœÝX^HX]›X^
+K[X™\Š[™š[™
+	ÖÛ˜[YOH›X^—IÊK˜[
+
+JHL
+NÂˆÛÛœÝ]HHÙ[˜X›Yˆ[™š[™
+	ÖÛ˜[YOH™[˜X›Y—IÊKœ›Ü
+˜ÚXÚÙYŠKX^Ý\œ™[ˆÛ[\
+[™š[™
+	ÖÛ˜[YOH˜Ý\œ™[—IÊK˜[
+
+KX^
+KÙXZÛ™\ÜÙ\Îˆ[™š[™
+	ÖÛ˜[YOHÙXZÛ™\ÜÈ—N˜ÚXÚÙY	ÊK›X\
+
+ÚKšY[
+HOˆšY[˜[YJK™Ù]
+
+K[\Ü˜\žUÙXZÛ™\ÜÙ\ÎˆÛÛ™šYË[\Ü˜\žUÙXZÛ™\ÜÙ\Ë\ØÛÝ™\™YÙXZÛ™\ÜÙ\ÎˆÛÛ™šYË™\ØÛÝ™\™YÙXZÛ™\ÜÙ\ßNÂˆ]ØZ]XÝÜ‹œÙ]›YÊSÑSWÒQÝYÚ™\ÜÈ‹]JNÂˆYŠXÝÜ‹\OOOH›œÈŠX]ØZ]XÝÜ‹\]JÖØ›YÜË‰ÓSÑSWÒQK[[X]K˜Ø\›Ý\Ù[[XYÙXN”Ýš[™Ê[™š[™
+	ÖÛ˜[YOH˜Ø\›Ý\Ù[[XYÙH—IÊK˜[
+
+_ˆŠKØ›YÜË‰ÓSÑSWÒQK[[X]K˜Ø\›Ý\Ù[[XYÙVN˜Û[\
+[™š[™
+	ÖÛ˜[YOH˜Ø\›Ý\Ù[[XYÙV—IÊK˜[
+
+KL
+KØ›YÜË‰ÓSÑSWÒQK[[X]K˜Ø\›Ý\Ù[[XYÙVXN˜Û[\
+[™š[™
+	ÖÛ˜[YOH˜Ø\›Ý\Ù[[XYÙVH—IÊK˜[
+
+KL
+KØ›YÜË‰ÓSÑSWÒQK[[X]K˜Ø\›Ý\Ù[[XYÙTØØ[XN˜Û[\
+[™š[™
+	ÖÛ˜[YOH˜Ø\›Ý\Ù[[XYÙTØØ[H—IÊK˜[
+
+KL
+_JNÂˆ™Yœ™\ÚÝYÚ™\ÜÐ˜\œÊ
+NÂˆ™Yœ™\Ú[š]X]]™PØ\›Ý\Ù[
+
+NÂˆ_Kˆ™Yš[ˆÚXÛÛŽˆ	ÏHÛ\ÜÏH™˜\È˜K\ÚY[ÚO‰ËX™[ˆ”™Yš[‹Ø[˜XÚÎˆ\Þ[˜È[OˆÂˆÛÛœÝX^HX]›X^
+K[X™\Š[™š[™
+	ÖÛ˜[YOH›X^—IÊK˜[
+
+JHÛÛ™šYË›X^
+NÂˆ]ØZ]XÝÜ‹œÙ]›YÊSÑSWÒQÝYÚ™\ÜÈ‹Ë‹‹˜ÛÛ™šYËÝ\œ™[ˆX^X^JNÂˆ™Yœ™\ÚÝYÚ™\ÜÐ˜\œÊ
+NÂˆ_KˆYUÙXZÛ™\ÜÙ\ÎˆÚXÛÛŽˆ	ÏHÛ\ÜÏH™˜\È˜KY^YK\Û\ÚÚO‰ËX™[ˆ”™\Ù]\ØÛÝ™\šY\È‹Ø[˜XÚÎˆ\Þ[˜È
+
+HOˆÂˆ]ØZ]XÝÜ‹\]JÖØ›YÜË‰ÓSÑSWÒQKÝYÚ™\ÜË™\ØÛÝ™\™YÙXZÛ™\ÜÙ\ØNˆ×_JNÂˆ™Yœ™\ÚÝYÚ™\ÜÐ˜\œÊ
+NÂˆ_BˆKY˜][ˆœØ]™HŸKÝÚYˆMÛ\ÜÙ\ÎˆÈÜK]ÝYÚ™\ÜËYX[ÙÈ—_JNÂˆÛÚÜË›Û˜ÙJœ™[™\‘X[ÙÈ‹™[™\™YOžÚYŠ™[™\™YOOYX[ÙÊ\™]\›ŽÜ™[™\™Y™[[Y[™š[™
+–Ù]KXØ\›Ý\Ù[\XÚÙ\—HŠK›ÛŠ˜ÛXÚÈ‹]™[OžÙ]™[œ™]™[Y˜][
+
+NØÛÛœÝ[œ]\™[™\™Y™[[Y[™š[™
+	ÖÛ˜[YOH˜Ø\›Ý\Ù[[XYÙH—IÊNÛ™]Èš[TXÚÙ\ŠÝ\Nˆš[XYÙH‹Ý\œ™[š[œ]˜[
+
+KØ[˜XÚÎœ]Oš[œ]˜[
+]
+KšYÙÙ\Š˜Ú[™ÙHŠ_JK˜œ›ÝÜÙJ
+NßJNßJNÂˆX[ÙËœ™[™\ŠYJNÂŸB‚™[˜Ý[Ûˆ˜]ÕÝYÚ™\ÜÔ™XÝ
+Ü˜\XÜËKÚYZYÚÛÛÜ‹[HHK˜Y]\ÈH
+HÂˆYˆ
+\[ÙˆÜ˜\XÜËœ›Ý[™™XÝOOH™[˜Ý[Ûˆˆ	‰ˆ\[ÙˆÜ˜\XÜË™š[OOH™[˜Ý[ÛˆŠHÂˆÜ˜\XÜËœ›Ý[™™XÝ
+KÚYZYÚ˜Y]\ÊK™š[
+ØÛÛÜ‹[_JNÂˆH[ÙHÂˆÜ˜\XÜË˜™YÚ[‘š[
+ÛÛÜ‹[JNÂˆ˜Y]\ÈÈÜ˜\XÜË™˜]Ô›Ý[™Y™XÝ
+KÚYZYÚ˜Y]\ÊHˆÜ˜\XÜË™˜]Ô™XÝ
+KÚYZYÚ
+NÂˆÜ˜\XÜË™[™š[
+
+NÂˆBŸB‚™[˜Ý[Ûˆ™[™\•ÝYÚ™\ÜÐ˜\ŠÚÙ[ŠHÂˆÚÙ[Ë˜Ú[™[Ë™š[\ËŠÚ[OˆÚ[›˜[YHOOHÜK]ÝYÚ™\ÜËX˜\ˆŠK™›Ü‘XXÚ
+Ú[OˆÚ[™\Ý›ÞJØÚ[™[ŽˆY_JJNÂˆYˆ
+]ÚÙ[Ë˜XÝÜˆVÈ›œÈ‹˜Ú\˜XÝ\ˆ—Kš[˜ÛY\ÊÚÙ[‹˜XÝÜ‹\JHYØ[YK˜ÛÛX˜]Ë˜ÛÛX˜][ÏËœÛÛYJÈOˆËÚÙ[’YOOHÚÙ[‹™ØÝ[Y[šY
+JH™]\›ŽÂˆÛÛœÝÛÛ™šYÈHÙ]ÝYÚ™\ÜÊÚÙ[‹˜XÝÜŠNÂˆYˆ
+XÛÛ™šYË™[˜X›Y
+H™]\›ŽÂˆÛÛœÝVT™YˆHÛØ˜[\Ë”VNÂˆYˆ
+TVT™YËÛÛZ[™\ˆTVT™YË‘Ü˜\XÜÊH™]\›ŽÂˆÛÛœÝÛÛZ[™\ˆH™]ÈVT™Y‹ÛÛZ[™\Š
+NÂˆÛÛZ[™\‹›˜[YHHÜK]ÝYÚ™\ÜËX˜\ˆŽÂˆÛÛZ[™\‹™]™[[ÙHH››Û™HŽÂˆÛÛœÝÜ˜\XÜÈH™]ÈVT™Y‹‘Ü˜\XÜÊ
+NÂˆÛÛœÝÚYHX]›X^
+MÚÙ[‹È
+ˆŽŠNÂˆÛÛœÝZYÚHX]›X^
+ËX]›Z[ŠL‹ÚÙ[‹š
+ˆŒMJJNÂˆÛÛœÝH
+ÚÙ[‹ÈHÚY
+HÈŽÂˆÛÛœÝHHÚÙ[‹šHZYÚHMNÂˆ˜]ÕÝYÚ™\ÜÔ™XÝ
+Ü˜\XÜËH‹HH‹ÚY
+ÈZYÚ
+ÈLLLÌNŽL‹ÊNÂˆ˜]ÕÝYÚ™\ÜÔ™XÝ
+Ü˜\XÜËKÚYZYÚØÍMKKŠNÂˆÛÛœÝš[HÚY
+ˆÛ[\
+ÛÛ™šYË˜Ý\œ™[ÈÛÛ™šYË›X^JNÂˆYˆ
+š[ˆ
+H˜]ÕÝYÚ™\ÜÔ™XÝ
+Ü˜\XÜËKš[ZYÚYX™KŠNÂˆÛÛZ[™\‹˜YÚ[
+Ü˜\XÜÊNÂˆÛÛœÝY™™XÝ]™UÙXZÛ™\ÜÙ\ÈHY™™XÝ]™UÝYÚ™\ÜÕÙXZÛ™\ÜÙ\ÊÚÙ[ŠNÂˆÛÛœÝÙXZÛ™\ÜÓ[ÙHHÝYÚ™\ÜÕÙXZÛ™\ÜÓ[ÙJÚÙ[ŠNÂˆÛÛœÝš\ÚX›UÙXZÛ™\ÜÙ\ÈHÙXZÛ™\ÜÓ[ÙHOOH››Û™HˆÈ×HˆÙXZÛ™\ÜÓ[ÙHOOH˜[ˆÈY™™XÝ]™UÙXZÛ™\ÜÙ\ÈˆØ[YK\Ù\Ëš\ÑÓBˆÈY™™XÝ]™UÙXZÛ™\ÜÙ\ÂˆˆË‹‹›™]ÈÙ]
+Ë‹‹˜ÛÛ™šYË™\ØÛÝ™\™YÙXZÛ™\ÜÙ\Ë™š[\ŠYOˆY™™XÝ]™UÙXZÛ™\ÜÙ\Ëš[˜ÛY\ÊY
+JK‹‹[\Ü˜\žUÝYÚ™\ÜÕÙXZÛ™\ÜÙ\ÊÚÙ[ŠWJWNÂˆÛÛœÝÙXZÛ™\ÜÙ\ÈHÙ][[Y[Ê
+K™š[\Š[[Y[Oˆš\ÚX›UÙXZÛ™\ÜÙ\Ëš[˜ÛY\Ê[[Y[šY
+JNÂˆÛÛœÝÝÚ^™HHX]›X^
+ËX]›Z[ŠLKÚÙ[‹È
+ˆŒMJJNÂˆÙXZÛ™\ÜÙ\Ë™›Ü‘XXÚ
+
+[[Y[[™^
+HOˆÂˆÛÛœÝÝH™]ÈVT™Y‹‘Ü˜\XÜÊ
+NÂˆÛÛœÝ^H[X™\‹œ\œÙR[
+Ýš[™Ê[[Y[œ™XYPÛÛÜˆ[[Y[˜ÛÛÜˆˆÙ™™™™™ˆŠKœ™\XÙJˆÈ‹ˆŠKMŠH™™™™™ŽÂˆÛÛœÝH
+È[™^
+ˆ
+ÝÚ^™H
+ÈÊNÂˆYˆ
+\[ÙˆÝ˜Ú\˜ÛHOOH™[˜Ý[Ûˆˆ	‰ˆ\[ÙˆÝ™š[OOH™[˜Ý[ÛˆŠHÝ˜Ú\˜ÛJ
+ÈÝÚ^™HÈ‹HHÝÚ^™HÈˆHÝÚ^™HÈŠK™š[
+ØÛÛÜŽˆ^JNÂˆ[ÙHÈÝ˜™YÚ[‘š[
+^
+NÈÝ™˜]ÐÚ\˜ÛJ
+ÈÝÚ^™HÈ‹HHÝÚ^™HÈˆHÝÚ^™HÈŠNÈÝ™[™š[
+
+NÈBˆÛÛZ[™\‹˜YÚ[
+Ý
+NÂˆJNÂˆÚÙ[‹˜YÚ[
+ÛÛZ[™\ŠNÂŸB‚™[˜Ý[Ûˆ™Yœ™\ÚÝYÚ™\ÜÐ˜\œÊ
+HÂˆ›Üˆ
+ÛÛœÝÚÙ[ˆÙˆØ[˜\ÏËÚÙ[œÏËœXÙXX›\ÈÏÈ×JH™[™\•ÝYÚ™\ÜÐ˜\ŠÚÙ[ŠNÂŸB‚™[˜Ý[Ûˆ[š™XÝÝYÚ™\ÜÒXY\]ÛŠ\[
+HÂˆÛÛœÝXÝÜˆH\˜XÝÜˆÏÈ\™ØÝ[Y[ÂˆYˆ
+YØ[YK\Ù\Ëš\ÑÓHXÝÜË™ØÝ[Y[˜[YHOOHXÝÜˆˆVÈ›œÈ‹˜Ú\˜XÝ\ˆ—Kš[˜ÛY\ÊXÝÜ‹\JJH™]\›ŽÂˆÛÛœÝ\[[Y[H\™[[Y[Ëšœ]Y\žHÈ\™[[Y[ˆ	
+\™[[Y[ÏÈ[
+NÂˆÛÛœÝ™[™\™Y[[Y[H[Ëšœ]Y\žHÈ[ˆ	
+[
+NÂˆÛÛœÝ›ÛÝH\[[Y[›[™ÝÈ\[[Y[ˆ™[™\™Y[[Y[ÂˆYˆ
+\›ÛÝ›[™Ý
+H™]\›ŽÂˆÛÛœÝXY\ˆH›ÛÝ™š[™
+‹Ú[™ÝËZXY\ˆŠK™š\œÝ
+
+NÂˆYˆ
+ZXY\‹›[™Ý
+H™]\›ŽÂˆÛÛœÝÛÛ›ÛÈHXY\‹™š[™
+‹Ú[™ÝËXÛÛ›ÛÈŠK™š\œÝ
+
+NÂˆÛÛœÝY]ÛJ]Û‹Ø[˜XÚÊOOžÚYŠÛÛ›ÛË›[™Ý
+XÛÛ›ÛËœ™\[™
+]ÛŠNÙ[ÙHXY\‹™š[™
+˜]Û‹˜ÛÜÙKÙ]KXXÝ[ÛIØÛÜÙI×HŠK™š\œÝ
+
+K˜™Y›Ü™J]ÛŠNØ]Û‹›ÛŠ˜ÛXÚËÜH‹]™[OžÙ]™[œ™]™[Y˜][
+
+NÙ]™[œÝÜ›ÜYØ][ÛŠ
+NØØ[˜XÚÊ
+NßJNßNÂˆYŠ\›ÛÝ™š[™
+‹ÜK[Ü[‹]ÝYÚ™\ÜÈŠK›[™Ý
+XY]ÛŠ	
+]Ûˆ\OH˜]ÛˆˆÛ\ÜÏHšXY\‹XÛÛ›ÛXÛÛˆÜK[Ü[‹]ÝYÚ™\ÜÈˆ]K]ÛÛ\HÛÛ™šYÝ\™HÝYÚ™\ÜÈˆ\šXK[X™[HÛÛ™šYÝ\™HÝYÚ™\ÜÈHÛ\ÜÏH™˜\È˜K\ÚY[Z[™YÚOØ]Û˜
+K
+
+OO›Ü[•ÝYÚ™\ÜÐÛÛ™šYÊXÝÜŠJNÂˆYŠ\›ÛÝ™š[™
+‹ÜK[Ü[‹X›ÜÜËXÛÛ™šYÈŠK›[™Ý
+XY]ÛŠ	
+]Ûˆ\OH˜]ÛˆˆÛ\ÜÏHšXY\‹XÛÛ›ÛXÛÛˆÜK[Ü[‹X›ÜÜËXÛÛ™šYÈˆ]K]ÛÛ\HÛÛ™šYÝ\™H›ÜÜÈ[˜ÛÝ[\ˆˆ\šXK[X™[HÛÛ™šYÝ\™H›ÜÜÈ[˜ÛÝ[\ˆHÛ\ÜÏH™˜\È˜K\ÚÝ[ÚOØ]Û˜
+K
+
+OO›Ü[•[[X]PÛÛ™šYÊXÝÜ‹\
+JNÂŸB‚™[˜Ý[ÛˆYXÝÜ’XY\]ÛŠ\]ÛœÊHÂˆYˆ
+YØ[YK\Ù\‹š\ÑÓJH™]\›ŽÂˆYˆ
+\˜XÝÜË\HOOH›œÈŠHÂˆ]ÛœË[œÚY
+ÛX™[ˆ•ÝYÚ™\ÜÈ‹Û\ÜÎˆÜK[Ü[‹]ÝYÚ™\ÜÈ‹XÛÛŽˆ™˜\È˜K\ÚY[Z[™Y‹Û˜ÛXÚÎˆ
+
+HOˆÜ[•ÝYÚ™\ÜÐÛÛ™šYÊ\˜XÝÜŠ_JNÂˆ]ÛœË[œÚY
+ÛX™[ˆ›ÜÜÈ‹Û\ÜÎˆÜK[Ü[‹X›ÜÜËXÛÛ™šYÈ‹XÛÛŽˆ™˜\È˜K\ÚÝ[‹Û˜ÛXÚÎˆ
+
+HOˆÜ[•[[X]PÛÛ™šYÊ\˜XÝÜ‹\
+_JNÂˆ™]\›ŽÂˆBˆYˆ
+\˜XÝÜË\HOOH˜Ú\˜XÝ\ˆŠH™]\›ŽÂˆ]ÛœË[œÚY
+ÛX™[ˆ•ÝYÚ™\ÜÈ‹Û\ÜÎˆÜK[Ü[‹]ÝYÚ™\ÜÈ‹XÛÛŽˆ™˜\È˜K\ÚY[Z[™Y‹Û˜ÛXÚÎˆ
+
+HOˆÜ[•ÝYÚ™\ÜÐÛÛ™šYÊ\˜XÝÜŠ_JNÂˆ]ÛœË[œÚY
+ÂˆX™[ˆ•[[X]H‹ˆÛ\ÜÎˆÜK[Ü[‹XÛÛ™šYÈ‹ˆXÛÛŽˆ™˜\È˜KX\œÝ‹ˆÛ˜ÛXÚÎˆ
+
+HOˆÂˆÛÛœÝX“[šÈH\™[[Y[™š[™ËŠ	ÖÙ]K]XHÜK][[X]H—IÊNÂˆYˆ
+X“[šÏË›[™Ý
+HX“[šËšYÙÙ\Š˜ÛXÚÈŠNÂˆ[ÙHZK››ÝYšXØ][ÛœËØ\›Š“Ü[ˆH[Ú\˜XÝ\ˆÚY]ÈXØÙ\ÜÈH[[X]HX‹ˆŠNÂˆBˆJNÂŸB‚™[˜Ý[ÛˆYYÛÛ
+ÛÛ›ÛÊHÂˆÛÛœÝÚÙ[ˆHÛÛ›ÛË™š[™ËŠÛÛ›ÛOˆÛÛ›Û›˜[YHOOHÚÙ[ˆŠHÏÈÛÛ›ÛËÚÙ[œÈÏÈÛÛ›ÛËÚÙ[ŽÂˆYˆ
+]ÚÙ[ŠH™]\›ŽÂˆÛÛœÝÛÛHÂˆ˜[YNˆÜK[Ü˜œÈ‹ˆ]Nˆ”ÚÝÈÛÛX˜]\HQ‹ˆXÛÛŽˆ™˜\È˜K]\Ù\œÈ‹ˆÜ™\ŽˆLˆ]ÛŽˆYKˆš\ÚX›NˆØ[YK\Ù\‹š\ÑÓKˆÛÛXÚÎˆ
+
+HOˆÚÝÐÛÛX˜]\RY
+
+KˆÛÚ[™ÙNˆ
+
+HOˆÚÝÐÛÛX˜]\RY
+
+BˆNÂˆYˆ
+\œ˜^Kš\Ð\œ˜^JÚÙ[‹ÛÛÊJHÚÙ[‹ÛÛËœ\Ú
+ÛÛ
+NÂˆ[ÙHÚÙ[‹ÛÛËÜSÜ˜œÈHÛÛÂˆÛÛœÝÚÚ[ÛÛHÂˆ˜[YNˆÜK\ÚÚ[È‹ˆ]Nˆ”ÚÝÈÚÚ[Ú[È	ˆÚÚ[È‹ˆXÛÛŽˆ™˜\È˜KZ[™\Ü\šÛ\È‹ˆÜ™\ŽˆLKˆ]ÛŽˆYKˆš\ÚX›NˆYKˆÛÛXÚÎˆÚÝÔÚÚ[RKˆÛÚ[™ÙNˆÚÝÔÚÚ[RBˆNÂˆYˆ
+\œ˜^Kš\Ð\œ˜^JÚÙ[‹ÛÛÊJHÚÙ[‹ÛÛËœ\Ú
+ÚÚ[ÛÛ
+NÂˆ[ÙHÚÙ[‹ÛÛËÜTÚÚ[ÈHÚÚ[ÛÛÂˆÛÛœÝZUÛÛHÂˆ˜[YNˆÜKXZKZ[œÝ[‹ˆ]NˆZH[œÝ[‹ˆXÛÛŽˆ™˜\È˜K[X\ÚÜË]X]\ˆ‹ˆÜ™\ŽˆL‹ˆ]ÛŽˆYKˆš\ÚX›NˆØ[YK\Ù\‹š\ÑÓKˆÛÛXÚÎˆÜ[ZR[œÝ[ÛÛ›ÛËˆÛÚ[™ÙNˆÜ[ZR[œÝ[ÛÛ›ÛÂˆNÂˆYˆ
+\œ˜^Kš\Ð\œ˜^JÚÙ[‹ÛÛÊJHÚÙ[‹ÛÛËœ\Ú
+ZUÛÛ
+NÂˆ[ÙHÚÙ[‹ÛÛËÜPZR[œÝ[HZUÛÛÂˆÛÛœÝÛUÛÛHÂˆ˜[YNˆÜKYÛK\[™[‹ˆ]Nˆ”Ý\ˆ˜Z[ÓH[™[‹ˆXÛÛŽˆ™˜\È˜K\ÛY\œÈ‹ˆÜ™\ŽˆLËˆ]ÛŽˆYKˆš\ÚX›NˆØ[YK\Ù\‹š\ÑÓKˆÛÛXÚÎˆÜ[”Ý\”˜Z[ÓT[™[ˆÛÚ[™ÙNˆÜ[”Ý\”˜Z[ÓT[™[ˆNÂˆYˆ
+\œ˜^Kš\Ð\œ˜^JÚÙ[‹ÛÛÊJHÚÙ[‹ÛÛËœ\Ú
+ÛUÛÛ
+NÂˆ[ÙHÚÙ[‹ÛÛËÜQÛT[™[HÛUÛÛÂˆÛÛœÝÜ˜Y[™ÕÛÛ^Û˜[YNˆÜKXÜ˜Y[™È‹]Nˆ”\HÜ˜Y[™È‹XÛÛŽˆ™˜\È˜KZ[[Y\ˆ‹Ü™\ŽŽM]ÛŽYKš\ÚX›NYKÛÛXÚÎ›Ü[Ü˜Y[™ËÛÚ[™ÙN›Ü[Ü˜Y[™ßNÂˆYŠ\œ˜^Kš\Ð\œ˜^JÚÙ[‹ÛÛÊJ]ÚÙ[‹ÛÛËœ\Ú
+Ü˜Y[™ÕÛÛ
+NÙ[ÙHÚÙ[‹ÛÛËÜPÜ˜Y[™ÏXÜ˜Y[™ÕÛÛÂŸB‚™[˜Ý[Ûˆ™YÚ\Ý\\J
+HÂˆØ[YK›[Ù[\Ë™Ù]
+SÑSWÒQ
+K˜\HHÂˆÙ]ÛÛ™šYËˆÙ][™\™ÞKˆY[™\™ÞNˆ\Þ[˜È
+XÝÜ‹[[Ý[™X\ÛÛˆH˜\HŠHOˆÂˆYˆ
+YØ[YK\Ù\‹š\ÑÓJH›ÝÈ™]È\œ›ÜŠ“Û›HHÓHØ[ˆÚ[™ÙH[™\™ÞH›ÝYÚHTKˆŠNÂˆ™]\›ˆY[™\™ÞJXÝÜ‹[[Ý[™X\ÛÛŠNÂˆKˆ™\]Y\Ý[[X]Kˆ™\]Y\ÝÚÚ[ˆ™\]Y\ÝXÚš\]YKˆÚÝÕ[[Ü\ˆÙ]XÚš\]YTÚ[ÎˆÝ\œ™[XÚš\]YTÚ[ËˆÙ]XÚš\]YTÚ[ËˆÙ]ÚÚ[Ú[ÎˆÝ\œ™[ÚÚ[Ú[ËˆÙ]ÚÚ[Ú[ËˆÙ][[Ú[ÎˆÝ\œ™[[[Ú[ËˆÙ][[Ú[Ëˆ™\Ù]Ø[˜\ÕÝYÚ™\ÜËˆÙ][\Ü˜\žUÝYÚ™\ÜÕÙXZÛ™\ÜÙ\ËˆY[\Ü˜\žUÝYÚ™\ÜÕÙXZÛ™\ÜËˆ™\Ù][\Ü˜\žUÝYÚ™\ÜÕÙXZÛ™\ÜÙ\Ëˆ[œÙ\XÝ[ÛY˜[˜ÙU\›‹ˆÜ[‘ÓT[™[ˆÜ[”Ý\”˜Z[ÓT[™[ˆÜ[ZPÛÛ™šYÎˆ
+
+HOˆ™]ÈZPÛÛ™šYÊ
+Kœ™[™\ŠYJKˆÜ[”ÚÚ[Ú[ÛÛ™šYÎˆ
+
+HOˆ™]ÈÚÚ[Ú[ÛÛ™šYÊ
+Kœ™[™\ŠYJKˆÜ[•[[Ú[ÛÛ™šYÎˆ
+
+HOˆ™]È[[Ú[ÛÛ™šYÊ
+Kœ™[™\ŠYJKˆÜ[•XÚš\]YTÚ[ÛÛ™šYÎˆ
+
+HOˆ™]ÈXÚš\]YTÚ[ÛÛ™šYÊ
+Kœ™[™\ŠYJKˆÜ[‘ZYÛÛÛÛ™šYÎˆ
+
+HOˆ™]ÈZYÛÛ\X\˜[˜ÙPÛÛ™šYÊ
+Kœ™[™\ŠYJKˆÜ[“YÚÛÛ™QÙ[™\˜]Ü‹ˆÜ[Ü˜Y[™ËˆÜ[”™XÚ\SX[˜YÙ\ŽŠ
+OO›™]È™XÚ\SX[˜YÙ\Š
+Kœ™[™\ŠYJKˆÜ[ÛÛX˜]Y\ÚYÛ™\‹ˆšYÙÙ\”ÜXÚX[ZKˆÚÝÔÚÚ[RKˆÚÝÕ[[RKˆÚÝÐ[Xš[]PX˜›\ËˆÙ]ØØ[XZ[Ú\˜XÝ\‹ˆ™Yœ™\Ú™\ÛÝ\˜ÙRYËˆÙ][˜Ú[™NˆÝ\œ™[[˜Ú[™KˆÙ][˜Ú[™KˆY[˜Ú[™KˆÜ[™[˜Ú[™KˆÚÝÔÜ\Úˆ™Yœ™\ÚÜ˜œÎˆ™Yœ™\Ú[Ü˜œËˆÚÝÓÜ˜‹ˆÚÝÐÛÛX˜]\RYˆÚÝÐZP]Û‹ˆšYÙÙ\ZR[œÝ[ˆÜ[‘[[Y[X[˜YÙ\Žˆ
+
+HOˆ™]È[[Y[X[˜YÙ\Š
+Kœ™[™\ŠYJKˆÜ[”]X[˜YÙ\Žˆ
+
+HOˆ™]È]X[˜YÙ\Š
+Kœ™[™\ŠYJKˆÙÙÛPZSÜ˜Žˆ\Þ[˜È
+
+HOˆÂˆÛÛœÝ^[Ý]HZS^[Ý]
+
+NÂˆ]ØZ]Ø]™PZS^[Ý]
+Ýš\ÚX›Nˆ[^[Ý]š\ÚX›_JNÂˆ™Yœ™\ÚZP]ÛŠ
+NÂˆ™]\›ˆ[^[Ý]š\ÚX›NÂˆKˆÚÝÕ[[X]URNˆ
+
+HOˆÚÝÐÛÛX˜]\RY
+Û›ÝYžNˆ˜[Ù_JBˆNÂŸB‚’ÛÚÜË›Û˜ÙJš[š]‹
+
+HOˆÂˆ™YÚ\Ý\”Ù][™ÜÊ
+NÂˆ[™X˜\œËœ™YÚ\Ý\’[\Š˜Y‹
+KŠHOˆ[X™\ŠJH
+È[X™\ŠŠJNÂˆÛÛœÛÛK›ÙÊ	ÓSÑSWÒQH[š]X[^™Y
+NÂŸJNÂ‚’ÛÚÜË›Û˜ÙJœ™XYH‹\Þ[˜È
+
+HOˆÂˆ]ØZ][œÝ\™QY˜][]Ê
+NÂˆØ[YKœÛØÚÙ]›ÛŠÓÐÒÑUÛ”ÛØÚÙ]
+NÂˆ™YÚ\Ý\\J
+NÂˆ\TØÙ[™S˜]šYØ][Û•š\ÚXš[]J
+NÂˆ]ÛÛ›ÛÑØÚÔ]Y]YYY˜[ÙNÂˆ™]È]]][Û“ØœÙ\™\Š
+
+OOžÚYŠÛÛ›ÛÑØÚÔ]Y]YY
+\™]\›ŽØÛÛ›ÛÑØÚÔ]Y]YY]YNÜ™\]Y\Ý[š[X][Û‘œ˜[YJ
+
+OOžØÛÛ›ÛÑØÚÔ]Y]YYY˜[ÙNÙØÚÔØÙ[™PÛÛ›ÛÐ™\ÚYPØ\›Ý\Ù[
+
+NØ\TØÙ[™S˜]šYØ][Û•š\ÚXš[]J
+NßJNßJK›ØœÙ\™JØÝ[Y[˜›ÙKØÚ[\ÝYKÝX™YNY_JNÂˆÚ[™ÝË˜Y]™[\Ý[™\Šœ™\Ú^™H‹
+
+OOœ™\]Y\Ý[š[X][Û‘œ˜[YJ
+
+OO™ØÚÔØÙ[™PÛÛ›ÛÐ™\ÚYPØ\›Ý\Ù[
+
+JJNÂˆ™Yœ™\Ú[Ü˜œÊ
+NÂˆ™Yœ™\ÚZP]ÛŠ
+NÂˆ™Yœ™\Ú[˜Ú[™RQ
+
+NÂˆ™Yœ™\ÚXÚš\]YP]ÛœÊ
+NÂˆ™Yœ™\ÚÚÚ[RJ
+NÂˆ™Yœ™\Ú™\ÛÝ\˜ÙRYÊ
+NÂˆ™Yœ™\ÚXÚš\]YP]ÛœÊ
+NÂˆ™Yœ™\Ú›ÜÜÒY
+
+NÂˆ™Yœ™\Ú[š]X]]™PØ\›Ý\Ù[
+
+NÂˆYŠ\Ð]]Üš]J
+JY[œÝ\™P›ÜÜÑ[˜ÛÝ[\œÊØ[YK˜ÛÛX˜]
+K˜Ø]Ú
+\œ›ÜO˜ÛÛœÛÛK™\œ›ÜŠ	ÓSÑSWÒQH›ÜÜÈ[˜ÛÝ[\ˆ[š]X[^˜][Ûˆ˜Z[Y\œ›ÜŠJNÂˆ™Yœ™\Ú[[Ú[›Û
+
+NÂˆ™[ØYZUšY[Ê
+NÂˆ™YÚ\Ý\ZUÛÛ˜\‘˜[˜XÚÊ
+NÂˆYˆ
+Ø[YK›[Ù[\Ë™Ù]
+›ZYK\[ÛŠOË˜XÝ]™JHÛÚÜË›ÛŠ›ZYK\[Û”›ÛÛÛ\]H‹›ØÙ\ÜÓZYUÛÜšÙ›ÝÊNÂˆYˆ
+Ø[YK›[Ù[\Ë™Ù]
+›ZYK\[ÛŠOË˜XÝ]™JHÛÚÜË›ÛŠ›ZYK\[Û™[XYÙT›ÛÛÛ\]H‹›ØÙ\ÜÓZYUÛÜšÙ›ÝÊNÂˆÛÚÜË›ÛŠ™™YKœ›Û[XYÙUŒˆ‹›ØÙ\ÜÑ™YQ[XYÙT›ÛÊNÂˆÛÚÜË›ÛŠ™™YK˜\Q[XYÙH‹
+‹‹˜\™ÜÊHOˆ›ØÙ\ÜÑ™YP\YY[XYÙJ‹‹˜\™ÜÊJNÂˆ[œÝ[[XYÙTØÜ›Û[™Õ^Ý™\œšYJ
+NÂˆ™\Z\”Ù[XÝYYÚÛÛ™P][™[Y[Ê
+K˜Ø]Ú
+\œ›ÜˆOˆÛÛœÛÛK™\œ›ÜŠ	ÓSÑSWÒQH˜Z[YÈ™\Z\ˆYÚÛÛ™H][™[Y[\œ›ÜŠJNÂˆ™Yœ™\ÚÛÛX˜]\RY
+
+NÂŸJNÂ‚’ÛÚÜË›ÛŠ™™YKœ™\\™TÚY]ÛÛ^‹™\\™SYÚÛÛ™P][™[Y[ÛÛ^
+NÂ‚’ÛÚÜË›ÛŠ˜Ø[˜\Ô™XYH‹[œÝ[[XYÙTØÜ›Û[™Õ^Ý™\œšYJNÂ‚’ÛÚÜË›ÛŠœ™PÜ™X]PXÝÜˆ‹XÝÜˆOˆÂˆYˆ
+XÝÜ‹\HOOH˜Ú\˜XÝ\ˆˆ›Ý[™žK][Ëš\Ô›Ü\JXÝÜ‹—ÜÛÝ\˜ÙK›YÜË‰ÓSÑSWÒQK™ZYÛÛœØ
+JH™]\›ŽÂˆXÝÜ‹\]TÛÝ\˜ÙJÖØ›YÜË‰ÓSÑSWÒQK™ZYÛÛœØNˆZYÛÛ‘]QY˜][Ê
+_JNÂŸJNÂ‚’ÛÚÜË›ÛŠœ™[™\XÝÜ”ÚY]‹[š™XÝ[[X]UXŠNÂ’ÛÚÜË›ÛŠœ™[™\Ú\˜XÝ\XÝÜ”ÚY]‹[š™XÝ[[X]UXŠNÂ’ÛÚÜË›ÛŠœ™[™\XÝÜ”ÚY]‹[š™XÝZYÛÛ•XŠNÂ’ÛÚÜË›ÛŠœ™[™\Ú\˜XÝ\XÝÜ”ÚY]‹[š™XÝZYÛÛ•XŠNÂ’ÛÚÜË›ÛŠœ™[™\XÝÜ”ÚY]‹ØœÙ\™PÚ\˜XÝ\”ÚY]XœÊNÂ’ÛÚÜË›ÛŠœ™[™\Ú\˜XÝ\XÝÜ”ÚY]‹ØœÙ\™PÚ\˜XÝ\”ÚY]XœÊNÂ’ÛÚÜË›ÛŠœ™[™\XÝÜ”ÚY]‹[š™XÝÝYÚ™\ÜÒXY\]ÛŠNÂ’ÛÚÜË›ÛŠœ™[™\\XØ][Û•Œˆ‹
+\[
+HOˆÂˆÛÛœÝXÝÜˆH\˜XÝÜˆÏÈ\™ØÝ[Y[ÂˆYˆ
+XÝÜË™ØÝ[Y[˜[YHOOHXÝÜˆˆ	‰ˆXÝÜ‹\HOOH˜Ú\˜XÝ\ˆŠHÂˆ[š™XÝ[[X]UXŠ\[
+NÂˆ[š™XÝZYÛÛ•XŠ\[
+NÂˆ[š™XÝ[™\™ÞPXš[]J\[
+NÂˆ[š™XÝÚ\˜XÝ\˜YÙ\Ê\[
+NÂˆ[š™XÝYÚÛÛ™TÚY][™[
+\[
+NÂˆXÝ]˜]SYÚÛÛ™R[™[ÜžPÛÛ^
+\[
+NÂˆØœÙ\™PÚ\˜XÝ\”ÚY]XœÊ\
+NÂˆ™\]Y\Ý[š[X][Û‘œ˜[YJ
+
+HOˆÂˆÛÛœÝ›ÛÝH\™[[Y[Ëšœ]Y\žHÈ\™[[Y[ˆ	
+\™[[Y[
+NÂˆ[š™XÝ[[X]UXŠ\›ÛÝ
+NÂˆ[š™XÝZYÛÛ•XŠ\›ÛÝ
+NÂˆ[š™XÝ[™\™ÞPXš[]J\›ÛÝ
+NÂˆ[š™XÝÚ\˜XÝ\˜YÙ\Ê\›ÛÝ
+NÂˆ[š™XÝYÚÛÛ™TÚY][™[
+\›ÛÝ
+NÂˆXÝ]˜]SYÚÛÛ™R[™[ÜžPÛÛ^
+\›ÛÝ
+NÂˆJNÂˆBˆYˆ
+XÝÜË™ØÝ[Y[˜[YHOOHXÝÜˆˆ	‰ˆÈ›œÈ‹˜Ú\˜XÝ\ˆ—Kš[˜ÛY\ÊXÝÜ‹\JJH[š™XÝÝYÚ™\ÜÒXY\]ÛŠ\[
+NÂŸJNÂ’ÛÚÜË›ÛŠœ™[™\XÝÜ”ÚY]‹[š™XÝ[™\™ÞPXš[]JNÂ’ÛÚÜË›ÛŠœ™[™\Ú\˜XÝ\XÝÜ”ÚY]‹[š™XÝ[™\™ÞPXš[]JNÂ’ÛÚÜË›ÛŠœ™[™\XÝÜ”ÚY]‹[š™XÝÚ\˜XÝ\˜YÙ\ÊNÂ’ÛÚÜË›ÛŠœ™[™\Ú\˜XÝ\XÝÜ”ÚY]‹[š™XÝÚ\˜XÝ\˜YÙ\ÊNÂ’ÛÚÜË›ÛŠœ™[™\XÝÜ”ÚY]‹[š™XÝYÚÛÛ™TÚY][™[
+NÂ’ÛÚÜË›ÛŠœ™[™\Ú\˜XÝ\XÝÜ”ÚY]‹[š™XÝYÚÛÛ™TÚY][™[
+NÂ’ÛÚÜË›ÛŠœ™[™\XÝÜ”ÚY]‹XÝ]˜]SYÚÛÛ™R[™[ÜžPÛÛ^
+NÂ’ÛÚÜË›ÛŠœ™[™\Ú\˜XÝ\XÝÜ”ÚY]‹XÝ]˜]SYÚÛÛ™R[™[ÜžPÛÛ^
+NÂ’ÛÚÜË›ÛŠ™Ù]XÝÜ”ÚY]XY\]ÛœÈ‹YXÝÜ’XY\]ÛŠNÂ’ÛÚÜË›ÛŠ™Ù]ØÙ[™PÛÛ›Û]ÛœÈ‹YYÛÛ
+NÂ’ÛÚÜË›ÛŠœ™[™\”ØÙ[™PÛÛ›ÛÈ‹
+
+HOˆ™\]Y\Ý[š[X][Û‘œ˜[YJØÚÔØÙ[™PÛÛ›ÛÐ™\ÚYPØ\›Ý\Ù[
+JNÂ’ÛÚÜË›ÛŠœ™[™\”ØÙ[™PÛÛ›ÛÕŒˆ‹
+
+HOˆ™\]Y\Ý[š[X][Û‘œ˜[YJØÚÔØÙ[™PÛÛ›ÛÐ™\ÚYPØ\›Ý\Ù[
+JNÂ’ÛÚÜË›ÛŠšÝ˜\‘›Ü‹
+Ø˜\‹]KÛÝ
+HOˆÂˆYˆ
+]OË\HOOH•Ô•PXÝ[ÛˆŠH™]\›ˆYNÂˆÜ™X]TÝ\”˜Z[XÝ[Û“XXÜ›Ê]KÛÝ
+K˜Ø]Ú
+\œ›ÜˆOˆÈÛÛœÛÛK™\œ›ÜŠ	ÓSÑSWÒQHÛÝ[›ÝÜ™X]HXÝ[ÛˆXXÜ›Ø\œ›ÜŠNÈZK››ÝYšXØ][ÛœË™\œ›ÜŠÛÝ[›ÝÜ™X]HÝ\ˆ˜Z[XXÜ›Îˆ	Ù\œ›Ü‹›Y\ÜØYÙ_X
+NÈJNÂˆ™]\›ˆ˜[ÙNÂŸJNÂ’ÛÚÜË›ÛŠœ™[™\’Ý˜\ˆ‹
+
+HOˆ™\]Y\Ý[š[X][Û‘œ˜[YJ™Yœ™\Ú[[X]RÝ˜\“XXÜ›ÜÊJNÂ’ÛÚÜË›ÛŠ˜Ü™X]SXXÜ›È‹
+
+HOˆ™\]Y\Ý[š[X][Û‘œ˜[YJ™Yœ™\Ú[[X]RÝ˜\“XXÜ›ÜÊJNÂ’ÛÚÜË›ÛŠ\]SXXÜ›È‹
+
+HOˆ™\]Y\Ý[š[X][Û‘œ˜[YJ™Yœ™\Ú[[X]RÝ˜\“XXÜ›ÜÊJNÂ’ÛÚÜË›ÛŠ™[]SXXÜ›È‹
+
+HOˆ™\]Y\Ý[š[X][Û‘œ˜[YJ™Yœ™\Ú[[X]RÝ˜\“XXÜ›ÜÊJNÂ’ÛÚÜË›ÛŠ˜Ü™X]PÚ]Y\ÜØYÙH‹›ØÙ\ÜÐÛÜ™P]XÚÓY\ÜØYÙJNÂ‚™[˜Ý[Ûˆ™[™\“X[X[[XYÙPÛÛ›Û
+ÛÛ›Û[[Y[Y\ÜØYÙKÝ\YY\XØ][ÛœÈH[Ý\YYÛ™HH[
+HÂˆYˆ
+XÛÛ›Û[[Y[[Y\ÜØYÙJH™]\›ŽÂˆÛÛœÝÛÛ›ÛH	
+ÛÛ›Û[[Y[
+NÂˆÛÛœÝ[[Ý[HX[X[Ú][XYÙP[[Ý[
+Y\ÜØYÙJNÂˆÛÛœÝœ™XZÑ[XYÙT›ÛH›ÛÛX[ŠY\ÜØYÙK™Ù]›YÊSÑSWÒQ˜œ™XZÑ[XYÙT›ÛŠJNÂˆÛÛœÝÝ\\œ™XZÑ[XYÙT›ÛH›ÛÛX[ŠY\ÜØYÙK™Ù]›YÊSÑSWÒQœÝ\\œ™XZÑ[XYÙT›ÛŠJNÂˆÛÛœÝ\Q[XYÙSX™[Hœ™XZÑ[XYÙT›ÛÈ\H	Ø[[Ý[H	ÜÝ\\œ™XZÑ[XYÙT›ÛÈ”Ý\\ˆœ™XZÈˆˆœ™XZÈŸH\È[XYÙXˆ\H	Ø[[Ý[H\È[XYÙXÂˆÛÛœÝ\XØ][ÛœÈH\œ˜^Kš\Ð\œ˜^JÝ\YY\XØ][ÛœÊHÈÝ\YY\XØ][ÛœÈˆX[X[[XYÙP\XØ][ÛœÊY\ÜØYÙJNÂˆÛÛœÝÛ™HHÝ\YYÛ™HÏÈ›ÛÛX[ŠY\ÜØYÙK™Ù]›YÊSÑSWÒQ›X[X[[XYÙQÛ™HŠJNÂˆÛÛ›Û™[\J
+NÂˆ›Üˆ
+ÛÛœÝ\XØ][ÛˆÙˆ\XØ][ÛœÊHÂˆÛÛ›Û˜\[™
+]Ûˆ\OH˜]ÛˆˆÛ\ÜÏHÜKXÚ]Y[XYÙKX\YYˆ\ØX›YHÛ\ÜÏH™˜\È˜KXÚXÚÈÚOÜ[\YY	Ø\XØ][Û‹Ý[ÏÈ[[Ý[HÈ	Ù\ØØ\RS
+\XØ][Û‹\™Ù]˜[YHÏÈ\™Ù]Š_OÜÜ[Ø]Û˜
+NÂˆBˆYˆ
+Û™JHÂˆÛÛ›Û˜\[™
+	Ï]ˆÛ\ÜÏHÜKXÚ]Y[XYÙKYš[š\ÚYHÛ\ÜÏH™˜\È˜KY›YËXÚXÚÙ\™YÚOÜ[‘Û™H\Z[™È[XYÙOÜÜ[Ù]‰ÊNÂˆ™]\›ŽÂˆBˆÛÛœÝ\P]ÛˆH	
+]Ûˆ\OH˜]ÛˆˆÛ\ÜÏHÜKXÚ]Y[XYÙKX\HHÛ\ÜÏH™˜\È˜KXÜ›ÜÜÚZ\œÈÚOÜ[‰Ø\Q[XYÙSX™[OÜÜ[Ø]Û˜
+NÂˆÛÛœÝÛ™P]ÛˆH	
+	Ï]Ûˆ\OH˜]ÛˆˆÛ\ÜÏHÜKXÚ]Y[XYÙKYÛ™HHÛ\ÜÏH™˜\È˜KY›YËXÚXÚÙ\™YÚOÜ[‘Û™H\Z[™È[XYÙOÜÜ[Ø]Û‰ÊNÂˆÛÛ›Û˜\[™
+\P]Û‹Û™P]ÛŠNÂˆ\P]Û‹›ÛŠ˜ÛXÚËÜH‹\Þ[˜È]™[OˆÂˆÛÛœÝ]ÛˆH]™[˜Ý\œ™[\™Ù]ÂˆÛÛœÝ\™Ù]ÈHË‹‹ŠØ[YK\Ù\‹\™Ù]ÈÏÈ×JWNÂˆYˆ
+\™Ù]Ë›[™ÝOOHJH™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š•\™Ù]^XÝHÛ™HÜ™X]\™H™Y›Ü™H\Z[™È\È›Û\È[XYÙKˆŠNÂˆÛÛœÝ\™Ù]H\™Ù]ÖÌNÂˆÛÛœÝ\™Ù]]ZYH\™Ù]™ØÝ[Y[Ë]ZYÏÈ\™Ù]˜XÝÜË]ZYÂˆYˆ
+]\™Ù]]ZY
+H™]\›ˆZK››ÝYšXØ][ÛœË™\œ›ÜŠ•H\™Ù]YÜ™X]\™HÛÝ[›Ý™H™\ÛÛ™YˆŠNÂˆÛÛœÝ\XØ][Û’YH›Ý[™žK][Ëœ˜[™ÛRQ
+
+NÂˆ]Û‹™\ØX›YHYNÂˆ]Û‹š[›™\’SH	ÏHÛ\ÜÏH™˜\È˜K\Ü[›™\ˆ˜K\Ü[ˆÚOÜ[\Z[™È[XYÙx )ÜÜ[‰ÎÂˆYˆ
+\Ð]]Üš]J
+JHÂˆÛÛœÝ™\Ý[H]ØZ]\PÚ]›Û\Ñ[XYÙJY\ÜØYÙK\™Ù]™ØÝ[Y[ÏÈ\™Ù]Ø[YK\Ù\‹\XØ][Û’Y
+NÂˆÛÛœÝ›ÝYžHH™\Ý[›ÚÈÈZK››ÝYšXØ][ÛœËš[™›ÈˆZK››ÝYšXØ][ÛœË™\œ›ÜŽÂˆ›ÝYžK˜Ø[
+ZK››ÝYšXØ][ÛœË™\Ý[›Y\ÜØYÙJNÂˆ™[™\“X[X[[XYÙPÛÛ›Û
+ÛÛ›Û[[Y[Y\ÜØYÙK™\Ý[˜\XØ][ÛœË™\Ý[™Û™JNÂˆH[ÙHÂˆØ[YKœÛØÚÙ]™[Z]
+ÓÐÒÑUÝ\Nˆ˜\SX[X[Ú][XYÙH‹ÛÝ\˜ÙU\Ù\’YˆØ[YK\Ù\‹šYY\ÜØYÙRYˆY\ÜØYÙKšY\™Ù]]ZY\XØ][Û’YJNÂˆÚ[™ÝËœÙ][Y[Ý]
+
+
+HOˆÂˆYˆ
+]Û‹š\ÐÛÛ›™XÝY	‰ˆ]Û‹™\ØX›Y
+HÂˆ]Û‹™\ØX›YH˜[ÙNÂˆ]Û‹š[›™\’SHHÛ\ÜÏH™˜\È˜KXÜ›ÜÜÚZ\œÈÚOÜ[‰Ø\Q[XYÙSX™[OÜÜ[˜ÂˆBˆKL
+NÂˆBˆJNÂˆÛ™P]Û‹›ÛŠ˜ÛXÚËÜH‹\Þ[˜È]™[OˆÂˆ]™[˜Ý\œ™[\™Ù]™\ØX›YHYNÂˆYˆ
+\Ð]]Üš]J
+JHÂˆÛÛœÝ™\Ý[H]ØZ]š[š\ÚX[X[Ú][XYÙJY\ÜØYÙKØ[YK\Ù\ŠNÂˆÛÛœÝ›ÝYžHH™\Ý[›ÚÈÈZK››ÝYšXØ][ÛœËš[™›ÈˆZK››ÝYšXØ][ÛœË™\œ›ÜŽÂˆ›ÝYžK˜Ø[
+ZK››ÝYšXØ][ÛœË™\Ý[›Y\ÜØYÙJNÂˆ™[™\“X[X[[XYÙPÛÛ›Û
+ÛÛ›Û[[Y[Y\ÜØYÙK™\Ý[˜\XØ][ÛœË™\Ý[™Û™JNÂˆH[ÙHØ[YKœÛØÚÙ]™[Z]
+ÓÐÒÑUÝ\Nˆ™š[š\ÚX[X[Ú][XYÙH‹ÛÝ\˜ÙU\Ù\’YˆØ[YK\Ù\‹šYY\ÜØYÙRYˆY\ÜØYÙKšYJNÂˆJNÂŸB‚’ÛÚÜË›ÛŠœ™[™\Ú]Y\ÜØYÙH‹
+Y\ÜØYÙK[
+HOˆÂˆÛÛœÝ›ÛÝH[Ëšœ]Y\žHÈ[ˆ	
+[
+NÂˆÛÛœÝYÚÛÛ™PXÝÜˆHXÝÜ‘œ›ÛPÚ]Y\ÜØYÙJY\ÜØYÙJNÂˆÛÛœÝYÚÛÛ™HH\œ˜^Kš\Ð\œ˜^JY\ÜØYÙKœ›ÛÊH	‰ˆY\ÜØYÙKœ›ÛË›[™Ý	‰ˆYÚÛÛ™PXÝÜˆÈ\]Z\YYÚÛÛ™JYÚÛÛ™PXÝÜŠHˆ[ÂˆYˆ
+YÚÛÛ™H	‰ˆ\›ÛÝ™š[™
+–Ù]K]ÜK[YÚXÛÛ™KZ[™›×HŠK›[™Ý
+HÂˆÛÛœÝ[™›ÈH	
+]Z[ÈÛ\ÜÏHÜK[YÚXÛÛ™K\›ÛZ[™›Èˆ]K]ÜK[YÚXÛÛ™KZ[™›ÏÝ[[X\žOHÛ\ÜÏH™˜\È˜KZYXØ\™ÚOˆYÚÛÛ™H[™›ÏÜÝ[[X\žO]Ûˆ\OH˜]Ûˆ[YÈÜ˜ÏH‰Ù\ØØ\RS
+Ù]YÚÛÛ™Q]JYÚÛÛ™JKš[XYÙJ_HÜ[”ÜÝ	Ù\ØØ\RS
+YÚÛÛ™K›˜[YJ_HÈÚ]ÜÜ[Ø]ÛÙ]Z[Ï˜
+NÂˆÛÛœÝ\Ý[˜][ÛˆH›ÛÝ™š[™
+‹›Y\ÜØYÙKXÛÛ[ŠK›\Ý
+
+NÂˆ
+\Ý[˜][Û‹›[™ÝÈ\Ý[˜][Ûˆˆ›ÛÝ
+K˜\[™
+[™›ÊNÂˆ[™›Ë™š[™
+˜]ÛˆŠK›ÛŠ˜ÛXÚËÜH‹
+
+HOˆÜÝYÚÛÛ™UÐÚ]
+YÚÛÛ™KYÚÛÛ™PXÝÜŠJNÂˆBˆÛÛœÝ›Û\ˆHXÝÜ‘œ›ÛPÚ]Y\ÜØYÙJY\ÜØYÙJNÂˆYˆ
+X[X[Ú][XYÙP[[Ý[
+Y\ÜØYÙJHˆ	‰ˆ›Û\ˆ	‰ˆ
+Ø[YK\Ù\‹š\ÑÓH›Û\‹š\ÓÝÛ™\ŠH	‰ˆ\›ÛÝ™š[™
+–Ù]K]ÜK][\Z[Y\ÜØYÙWHŠK›[™Ý
+HÂˆÛÛœÝ[\ÛÛ›ÛH	
+	Ï]ˆÛ\ÜÏHÜKXÚ]][\ZXÛÛ›ÛÙ]‰ÊNÂˆÛÛœÝ[\]ÛˆH	
+]Ûˆ\OH˜]Ûˆˆ]K]ÜK][\Z[Y\ÜØYÙOH‰Ù\ØØ\RS
+Y\ÜØYÙKšY
+_HHÛ\ÜÏH™˜\È˜K\ÚY[Z[™YÚOÜ[Y\È[\ÜÜ[Ø]Û˜
+NÂˆ[\ÛÛ›Û˜\[™
+[\]ÛŠNÂˆÛÛœÝ\Ý[˜][ÛˆH›ÛÝ™š[™
+‹›Y\ÜØYÙKXÛÛ[ŠK›\Ý
+
+NÂˆ
+\Ý[˜][Û‹›[™ÝÈ\Ý[˜][Ûˆˆ›ÛÝ
+K˜\[™
+[\ÛÛ›Û
+NÂˆ[\]Û‹›ÛŠ˜ÛXÚËÜH‹\Þ[˜È]™[OˆÂˆÛÛœÝ]ÛˆH]™[˜Ý\œ™[\™Ù]ÂˆÛÛœÝ\™Ù]ÈHË‹‹ŠØ[YK\Ù\‹\™Ù]ÈÏÈ×JWNÂˆYˆ
+\™Ù]Ë›[™ÝOOHJH™]\›ˆZK››ÝYšXØ][ÛœËØ\›Š•\™Ù]^XÝHÛ™HÜ™X]\™H™Y›Ü™HY[™È\È›Û\È[\Ü˜\žHˆŠNÂˆÛÛœÝ\™Ù]H\™Ù]ÖÌNÂˆÛÛœÝ\™Ù]]ZYH\™Ù]™ØÝ[Y[Ë]ZYÏÈ\™Ù]˜XÝÜË]ZYÂˆYˆ
+]\™Ù]]ZY
+H™]\›ˆZK››ÝYšXØ][ÛœË™\œ›ÜŠ•H\™Ù]YÜ™X]\™HÛÝ[›Ý™H™\ÛÛ™YˆŠNÂˆ]Û‹™\ØX›YHYNÂˆ]Û‹š[›™\’SH	ÏHÛ\ÜÏH™˜\È˜K\Ü[›™\ˆ˜K\Ü[ˆÚOÜ[Y[™È[\8 )ÜÜ[‰ÎÂˆYˆ
+\Ð]]Üš]J
+JHÂˆÛÛœÝ™\Ý[H]ØZ]\PÚ]›Û\Õ[\
+Y\ÜØYÙK\™Ù]™ØÝ[Y[ÏÈ\™Ù]Ø[YK\Ù\ŠNÂˆÛÛœÝ›ÝYžHH™\Ý[›ÚÈÈZK››ÝYšXØ][ÛœËš[™›ÈˆZK››ÝYšXØ][ÛœË™\œ›ÜŽÂˆ›ÝYžK˜Ø[
+ZK››ÝYšXØ][ÛœË™\Ý[›Y\ÜØYÙJNÂˆ]Û‹™\ØX›YH˜[ÙNÂˆ]Û‹š[›™\’SH	ÏHÛ\ÜÏH™˜\È˜K\ÚY[Z[™YÚOÜ[Y\È[\ÜÜ[‰ÎÂˆH[ÙHYˆ
+XÝ]™QÓJ
+JHÂˆØ[YKœÛØÚÙ]™[Z]
+ÓÐÒÑUÝ\Nˆ˜\PÚ][\‹ÛÝ\˜ÙU\Ù\’YˆØ[YK\Ù\‹šYY\ÜØYÙRYˆY\ÜØYÙKšY\™Ù]]ZYJNÂˆÚ[™ÝËœÙ][Y[Ý]
+
+
+HOˆÂˆYˆ
+]Û‹š\ÐÛÛ›™XÝY	‰ˆ]Û‹™\ØX›Y
+HÂˆ]Û‹™\ØX›YH˜[ÙNÂˆ]Û‹š[›™\’SH	ÏHÛ\ÜÏH™˜\È˜K\ÚY[Z[™YÚOÜ[Y\È[\ÜÜ[‰ÎÂˆBˆKL
+NÂˆH[ÙHÂˆZK››ÝYšXØ][ÛœË™\œ›ÜŠHÓH]\Ý™HÛÛ›™XÝYÈY[\Ü˜\žHˆŠNÂˆ]Û‹™\ØX›YH˜[ÙNÂˆ]Û‹š[›™\’SH	ÏHÛ\ÜÏH™˜\È˜K\ÚY[Z[™YÚOÜ[Y\È[\ÜÜ[‰ÎÂˆBˆJNÂˆBˆYˆ
+\ÓX[X[Ú][XYÙQ[YÚX›JY\ÜØYÙJH	‰ˆ
+Ø[YK\Ù\‹š\ÑÓH›Û\Ëš\ÓÝÛ™\ŠJHÂˆÛÛœÝÛÛ›ÛH	
+]ˆÛ\ÜÏHÜKXÚ]Y[XYÙKXÛÛ›Ûˆ]K]ÜKXÚ]Y[XYÙKXÛÛ›ÛH‰Ù\ØØ\RS
+Y\ÜØYÙKšY
+_HÙ]˜
+NÂˆÛÛœÝ\Ý[˜][ÛˆH›ÛÝ™š[™
+‹›Y\ÜØYÙKXÛÛ[ŠK›\Ý
+
+NÂˆ
+\Ý[˜][Û‹›[™ÝÈ\Ý[˜][Ûˆˆ›ÛÝ
+K˜\[™
+ÛÛ›Û
+NÂˆ™[™\“X[X[[XYÙPÛÛ›Û
+ÛÛ›ÛÌKY\ÜØYÙJNÂˆBˆ›ÛÝ™š[™
+–Ù]K]ÜKXÛÛ\]K][[X]WHŠK™XXÚ
+
+Ú[™^[[Y[
+HOˆÂˆÛÛœÝXÝÜˆHØ[YK˜XÝÜœË™Ù]
+[[Y[™]\Ù]ÜPÛÛ\]U[[X]JNÂˆYˆ
+YØ[YK\Ù\‹š\ÑÓH	‰ˆXXÝÜËš\ÓÝÛ™\ŠH[[Y[œ™[[Ý™J
+NÂˆJNÂˆ›ÛÝ™š[™
+–Ù]K]ÜKXÛÛ\]K][[X]WHŠK›ÛŠ˜ÛXÚËÜH‹\Þ[˜È]™[OˆÂˆÛÛœÝ]ÛˆH]™[˜Ý\œ™[\™Ù]ÂˆÛÛœÝXÝÜ’YH]Û‹™]\Ù]ÜPÛÛ\]U[[X]NÂˆ]Û‹™\ØX›YHYNÂˆ]Û‹š[›™\’SH	ÏHÛ\ÜÏH™˜\È˜K\Ü[›™\ˆ˜K\Ü[ˆÚOˆÛÛ\][™È[[X]x )‰ÎÂˆYˆ
+\Ð]]Üš]J
+JH]ØZ]ÛÛ\]U[[X]JXÝÜ’Y
+NÂˆ[ÙHØ[YKœÛØÚÙ]™[Z]
+ÓÐÒÑUÝ\Nˆ[[X]PÛÛ\]H‹XÝÜ’Y\Ù\’YˆØ[YK\Ù\‹šYJNÂˆJNÂˆ›ÛÝ™š[™
+–Ù]K]ÜKXÛÛ\]KY[][Û—HŠK›ÛŠ˜ÛXÚËÜH‹\Þ[˜È]™[OˆÂˆÛÛœÝ]ÛˆH]™[˜Ý\œ™[\™Ù]ÂˆÛÛœÝÛÛX˜][YH]Û‹™]\Ù]ÜPÛÛ\]Q[][ÛŽÂˆ]Û‹™\ØX›YHYNÂˆYˆ
+\Ð]]Üš]J
+JH]ØZ]ÛÛ\]Q[][ÛXÝ[ÛŠÛÛX˜][YØ[YK\Ù\‹šY
+NÂˆ[ÙHØ[YKœÛØÚÙ]™[Z]
+ÓÐÒÑUÝ\Nˆ™[][ÛXÝ[ÛÛÛ\]H‹ÛÛX˜][Y\Ù\’YˆØ[YK\Ù\‹šYJNÂˆJNÂŸJNÂ’ÛÚÜË›ÛŠÜQ[™\™ÞPÚ[™ÙY‹
+XÝÜ‹™Y›Ü™KY\‹™X\ÛÛŠHOˆ\Ü]Ú[[]™[
+™[™\™ÞPÚ[™ÙY‹ÜÛÝ\˜ÙPXÝÜŽˆXÝÜ‹™Y›Ü™KY\‹[[Ý[ˆY\ˆH™Y›Ü™K™X\ÛÛŸJJNÂ’ÛÚÜË›ÛŠÜT[˜Ú[™PÚ[™ÙY‹˜[YHOˆÈÝ]K™ÛT[™[Ëœ™Yœ™\Ú]™U˜[Y\Ê
+NÈ\Ü]Ú[[]™[
+œ[˜Ú[™PÚ[™ÙY‹Ý˜[Y_JNÈJNÂ’ÛÚÜË›ÛŠÜTÚÚ[Ú[ÐÚ[™ÙY‹˜[YHOˆÈÝ]K™ÛT[™[Ëœ™Yœ™\Ú]™U˜[Y\Ê
+NÈ\Ü]Ú[[]™[
+œÚÚ[Ú[ÐÚ[™ÙY‹Ý˜[Y_JNÈJNÂ’ÛÚÜË›ÛŠÜU[[Ú[ÐÚ[™ÙY‹
+XÝÜ‹™Y›Ü™KY\ŠHOˆÈ™Yœ™\Ú[[ÛÝ[\ŠXÝÜŠNÈ\Ü]Ú[[]™[
+[[Ú[ÐÚ[™ÙY‹ÜÛÝ\˜ÙPXÝÜŽˆXÝÜ‹™Y›Ü™KY\‹[[Ý[ˆY\ˆH™Y›Ü™_JNÈJNÂ’ÛÚÜË›ÛŠ\]PXÝÜˆ‹
+XÝÜ‹Ú[™Ù\ËÜ[ÛœÊHOˆÂˆ™Yœ™\ÚÜ˜ŠXÝÜŠNÂˆ™Yœ™\ÚÚÚ[RJ
+NÂˆ™Yœ™\Ú[[ÛÝ[\ŠXÝÜŠNÂˆ™Yœ™\Ú™\ÛÝ\˜ÙRYÊ
+NÂˆ™Yœ™\ÚÝYÚ™\ÜÐ˜\œÊ
+NÂˆÝ]K™ÛT[™[Ëœ™Yœ™\Ú]™U˜[Y\Ê
+NÂˆ™Yœ™\ÚÛÛX˜]\RY
+
+NÂˆ™Yœ™\Ú[[X]RÝ˜\“XXÜ›ÜÊ
+NÂˆ™Yœ™\Ú[˜Ú[™RQ
+
+NÂˆ™Yœ™\Ú›ÜÜÒY
+
+NÂˆ™Yœ™\Ú[š]X]]™PØ\›Ý\Ù[
+
+NÂˆYŠ\Ð]]Üš]J
+JZ[™P›ÜÜÔ\ÙQY™X]
+XÝÜŠK˜Ø]Ú
+\œ›ÜO˜ÛÛœÛÛK™\œ›ÜŠ	ÓSÑSWÒQH›ÜÜÈ\ÙHÚXÚÈ˜Z[Y\œ›ÜŠJNÂˆÛÛœÝ[[Ú[™Ù\ÈH›Ý[™žK][Ë™Ù]›Ü\JÚ[™Ù\Ë›YÜË‰ÓSÑSWÒQK[[X]X
+NÂˆYˆ
+\Ð]]Üš]J
+H	‰ˆXÝÜ‹\HOOH˜Ú\˜XÝ\ˆˆ	‰ˆ[[Ú[™Ù\È	‰ˆ
+ˆØš™XÝš\ÓÝÛŠ[[Ú[™Ù\Ë[[Ú[ÐÝ\œ™[ŠHˆØš™XÝš\ÓÝÛŠ[[Ú[™Ù\Ë[[Ú[ÓX^ŠHˆØš™XÝš\ÓÝÛŠ[[Ú[™Ù\Ë[[Ú[ÓÝ™\˜Ø\X^ŠHˆØš™XÝš\ÓÝÛŠ[[Ú[™Ù\Ë[[ÛÛX˜]YŠBˆ
+JHÂˆÛÛœÝÛÛX˜]H[[ÛÛX˜]›ÜXÝÜŠXÝÜŠNÂˆYˆ
+ÛÛX˜]
+HÂˆÛÛœÝÛÛ™šYÈHÙ]ÛÛ™šYÊXÝÜŠNÂˆYˆ
+ÛÛ™šYË[[ÛÛX˜]YOOHÛÛX˜]šY
+HÂˆXÝÜ‹\]JÖØ›YÜË‰ÓSÑSWÒQK[[X]K[[ÛÛX˜]YNˆÛÛX˜]šYJK˜Ø]Ú
+\œ›ÜˆO‚ˆÛÛœÛÛK™\œ›ÜŠ	ÓSÑSWÒQHÛÝ[›Ýš[™	ØXÝÜ‹›˜[Y_IÜÈ[[Ú[ÈÈÛÛX˜]\œ›ÜŠBˆ
+NÂˆH[ÙHYˆ
+[[Ú[[Z]ÊXÝÜŠKšYÙÙ\ˆˆ	‰ˆÝ\œ™[[[Ú[ÊXÝÜŠHH[[Ú[[Z]ÊXÝÜŠKšYÙÙ\ŠHÂˆ]Y]YU[[\›ŠXÝÜ‹ÛÛX˜]
+NÂˆÚ[™ÝËœÙ][Y[Ý]
+
+
+HOˆ›ØÙ\ÜÕ[[\›”]Y]YJÛÛX˜]
+K˜Ø]Ú
+\œ›ÜˆOˆÂˆÛÛœÛÛK™\œ›ÜŠ	ÓSÑSWÒQHÛÝ[›Ý™XÛÛ˜Ú[H	ØXÝÜ‹›˜[Y_IÜÈ™XYH[[\›˜\œ›ÜŠNÂˆZK››ÝYšXØ][ÛœË™\œ›ÜŠÛÝ[›Ý[œÙ\	ØXÝÜ‹›˜[Y_IÜÈ[[\›Žˆ	Ù\œ›Ü‹›Y\ÜØYÙ_X
+NÂˆJK
+NÂˆBˆBˆBˆYˆ
+\Ð]]Üš]J
+H	‰ˆXÝÜ‹\HOOH˜Ú\˜XÝ\ˆˆ	‰ˆØ[YK˜ÛÛX˜]
+HX^X™Q[œÝ\™PZPÛÛX˜][
+Ø[YK˜ÛÛX˜]
+NÂˆYˆ
+[Ü[ÛœÏËÜP]]ÜØ]™H	‰ˆ›Ý[™žK][Ëš\Ô›Ü\JÚ[™Ù\Ë›YÜË‰ÓSÑSWÒQK™ZYÛÛœØ
+JHÂˆ›Üˆ
+ÛÛœÝ\ÙˆØš™XÝ˜[Y\ÊZKÚ[™ÝÜÈÏÈßJJHYˆ
+
+\˜XÝÜˆÏÈ\™ØÝ[Y[
+OËšYOOHXÝÜ‹šY
+H\œ™[™\Š˜[ÙJNÂˆBˆYˆ
+XÝÜ‹\HOOH˜Ú\˜XÝ\ˆˆ	‰ˆ[X™\ŠÙ]ÛÛ™šYÊXÝÜŠK˜Ý\œ™[
+HH[X™\ŠÙ]ÛÛ™šYÊXÝÜŠK›X^
+H	‰ˆÝ]K[[X]SØÚÜËš\ÊXÝÜ‹šY
+JHÂˆ™XÛÛ˜Ú[U[[X]SØÚÊXÝÜ‹šY
+NÂˆBŸJNÂ’ÛÚÜË›ÛŠ\]UÚÙ[ˆ‹ÚÙ[ˆOˆÈ™Yœ™\ÚÝYÚ™\ÜÐ˜\œÊ
+NÈ™Yœ™\Ú™\ÛÝ\˜ÙRYÊ
+NÈ™Yœ™\Ú›ÜÜÒY
+
+NÈ™Yœ™\Ú[š]X]]™PØ\›Ý\Ù[
+
+NÈYŠ\Ð]]Üš]J
+I‰ÚÙ[‹˜XÝÜŠZ[™P›ÜÜÔ\ÙQY™X]
+ÚÙ[‹˜XÝÜŠK˜Ø]Ú
+\œ›ÜO˜ÛÛœÛÛK™\œ›ÜŠ	ÓSÑSWÒQH›ÜÜÈÚÙ[ˆ\ÙHÚXÚÈ˜Z[Y\œ›ÜŠJNÈÝ]K™ÛT[™[Ëœ™[™\Š˜[ÙJNÈJNÂ’ÛÚÜË›ÛŠ\™Ù]ÚÙ[ˆ‹\Ù\ˆOˆÈYˆ
+\Ù\‹šYOOHØ[YK\Ù\‹šY
+HÝ]K™ÛT[™[Ëœ™Yœ™\Ú\™Ù]YÚYÚÊ
+NÈJNÂ’ÛÚÜË›ÛŠ˜ÛÛ›ÛÚÙ[ˆ‹
+
+HOˆÝ]K™ÛT[™[Ëœ™Yœ™\Ú\™Ù]YÚYÚÊ
+JNÂ’ÛÚÜË›ÛŠ™[]PXÝÜˆ‹XÝÜˆOˆÈÝ]K›Ü˜œË™Ù]
+XÝÜ‹šY
+OË™\Ý›ÞJ
+NÈÝ]KœÚÚ[]ÛœË™Ù]
+XÝÜ‹šY
+OË™\Ý›ÞJ
+NÈÝ]K[[]ÛœË™Ù]
+XÝÜ‹šY
+OË™\Ý›ÞJ
+NÈÝ]KXÚš\]YP]ÛœË™Ù]
+XÝÜ‹šY
+OË™\Ý›ÞJ
+NÈ™Yœ™\Ú™\ÛÝ\˜ÙRYÊ
+NÈJNÂ™›ÜŠÛÛœÝÛÚÈÙˆÈ˜Ü™X]R][H‹\]R][H‹™[]R][H—JRÛÚÜË›ÛŠÛÚË
+
+OOœÝ]K˜Ü˜Y[™Ð\Ëœ™[™\Š˜[ÙJJNÂ’ÛÚÜË›ÛŠ\]U\Ù\ˆ‹\Ù\ˆOˆÈYˆ
+\Ù\‹šYOOHØ[YK\Ù\‹šY
+HÈ™Yœ™\Ú[Ü˜œÊ
+NÈ™Yœ™\ÚÚÚ[RJ
+NÈ™Yœ™\Ú™\ÛÝ\˜ÙRYÊ
+NÈ™Yœ™\ÚÛÛX˜]\RY
+
+NÈ™Yœ™\Ú[š]X]]™PØ\›Ý\Ù[
+
+NÈHJNÂ’ÛÚÜË›ÛŠ\]TÙ][™È‹Ù][™ÈOˆÂˆYˆ
+Ù][™ÏËšÙ^OËœÝ\ÕÚ]
+	ÓSÑSWÒQKœÚÚ[Ú[
+JH™Yœ™\ÚÚÚ[RJ
+NÂˆYˆ
+Ù][™ÏËšÙ^HOOH	ÓSÑSWÒQK[[Ú[ÛÛ™šYØ
+HÂˆ™Yœ™\Ú[[Ú[›Û
+
+NÂˆ™Yœ™\Ú™\ÛÝ\˜ÙRYÊ
+NÂˆ™Yœ™\ÚÛÛX˜]\RY
+
+NÂˆBˆYˆ
+Ù][™ÏËšÙ^OËœÝ\ÕÚ]
+	ÓSÑSWÒQKXÚš\]YTÚ[
+JH™Yœ™\Ú™\ÛÝ\˜ÙRYÊ
+NÂˆYˆ
+Ù][™ÏËšÙ^HOOH	ÓSÑSWÒQK™[[Y[Ø
+HÂˆ™Yœ™\Ú[Ü˜œÊ
+NÂˆ™Yœ™\ÚÛÛX˜]\RY
+
+NÂˆ™Yœ™\Ú[[X]RÝ˜\“XXÜ›ÜÊ
+NÂˆBˆYˆ
+Ù][™ÏËšÙ^HOOH	ÓSÑSWÒQKœ]Ø
+H™Yœ™\ÚÛÛX˜]\RY
+
+NÂˆYŠÙ][™ÏËšÙ^OOOX	ÓSÑSWÒQK˜Ü˜Y[™Ô™XÚ\\Ø
+\Ý]K˜Ü˜Y[™Ð\Ëœ™[™\Š˜[ÙJNÂˆYˆ
+Ù][™ÏËšÙ^HOOH	ÓSÑSWÒQKœ\TÙ[XÝ[ÛœØ
+HÈ™Yœ™\ÚÛÛX˜]\RY
+
+NÈ™Yœ™\Ú[[]ÛœÊ
+NÈBˆYˆ
+Ù][™ÏËšÙ^HOOH	ÓSÑSWÒQK˜ÛÛX˜]Y\ÚYÛ˜
+HÂˆ™Yœ™\ÚÛÛX˜]\RY
+
+NÂˆ›Üˆ
+ÛÛœÝ\ÙˆØš™XÝ˜[Y\ÊZKÚ[™ÝÜÈÏÈßJJHYˆ
+
+\˜XÝÜˆÏÈ\™ØÝ[Y[
+OË\HOOH˜Ú\˜XÝ\ˆŠH\œ™[™\Š˜[ÙJNÂˆBˆYˆ
+Ù][™ÏËšÙ^HOOH	ÓSÑSWÒQK˜ZPÛÛ™šYØÙ][™ÏËšÙ^HOOH	ÓSÑSWÒQKœ[˜Ú[™X
+HÂˆYˆ
+YÙ]ZPÛÛ™šYÊ
+K™[][Û‘[˜X›Y
+HØÝ[Y[œ]Y\žTÙ[XÝÜ[
+‹ÜKXZK[Ý™\›^HŠK™›Ü‘XXÚ
+[[Y[Oˆ[[Y[œ™[[Ý™J
+JNÂˆ™Yœ™\ÚZP]ÛŠ
+NÂˆ™Yœ™\Ú[˜Ú[™RQ
+
+NÂˆYˆ
+Ù][™ÏËšÙ^HOOH	ÓSÑSWÒQK˜ZPÛÛ™šYØ
+H™[ØYZUšY[Ê
+NÂˆBˆYˆ
+Ù][™ÏËšÙ^HOOH	ÓSÑSWÒQKœ[˜Ú[™SÝ™\œšYX
+H™Yœ™\Ú[˜Ú[™RQ
+
+NÂˆYŠÙ][™ÏËšÙ^OOOX	ÓSÑSWÒQKš[š]X]]™PØ\›Ý\Ù[ÛÛ™šYØ
+\™Yœ™\Ú[š]X]]™PØ\›Ý\Ù[
+
+NÂˆYŠÙ][™ÏËšÙ^OOOX	ÓSÑSWÒQKš[š]X]]™Qœ˜[YPÛÛÜœØ
+^Ü™Yœ™\Ú[š]X]]™PØ\›Ý\Ù[
+
+NÙ›ÜŠÛÛœÝ\ÙˆØš™XÝ˜[Y\ÊZKÚ[™ÝÜÏÏÞßJJZYŠ
+\˜XÝÜÏØ\™ØÝ[Y[
+OË\OOOH˜Ú\˜XÝ\ˆŠX\œ™[™\Š˜[ÙJNßBŸJNÂ’ÛÚÜË›ÛŠ˜Ø[˜\Ô™XYH‹
+
+HOˆÈ™Yœ™\Ú[Ü˜œÊ
+NÈ™Yœ™\ÚÚÚ[RJ
+NÈ™Yœ™\Ú[[]ÛœÊ
+NÈ™Yœ™\ÚXÚš\]YP]ÛœÊ
+NÈ™Yœ™\Ú[˜Ú[™RQ
+
+NÈ™Yœ™\ÚÝYÚ™\ÜÐ˜\œÊ
+NÈ™Yœ™\ÚÛÛX˜]\RY
+
+NÈ™Yœ™\Ú›ÜÜÒY
+
+NÈ™Yœ™\Ú[š]X]]™PØ\›Ý\Ù[
+
+NÈJNÂ’ÛÚÜË›ÛŠ˜Ø[˜\Ô™XYH‹™Yœ™\ÚZP]ÛŠNÂ‚’ÛÚÜË›ÛŠ™[]PÛÛX˜]‹\Þ[˜ÈÛÛX˜]OˆÂˆ™Yœ™\Ú™\ÛÝ\˜ÙRYÊ
+NÂˆÝ]Kœ\PÛÛX˜]YË™\Ý›ÞJ
+NÂˆÝ]K˜›ÜÜÒYË™\Ý›ÞJ
+NÂˆÝ]K˜›ÜÜÔ\ÙPÛÛ›ÛË™\Ý›ÞJ
+NÂˆÝ]Kš[š]X]]™PØ\›Ý\Ù[Ë™\Ý›ÞJ
+NÂˆÝ]K˜›ÜÜÕ˜[œÚ][Û“ØÚÜË˜ÛX\Š
+NÂˆÝ]Kœ[˜Ú[™SY]\Ë™\Ý›ÞJ
+NÂˆÝ]KœÚÚ[Y]\Ë™\Ý›ÞJ
+NÂˆ]ØZ]\Ü]Ú[[]™[
+˜ÛÛX˜][™‹ØÛÛX˜]KÛÛX˜]šY
+NÂˆÝ]K›\Ý[[\›œË™[]JÛÛX˜]šY
+NÂˆÝ]K›\ÝÛÛX˜]\›œË™[]JÛÛX˜]šY
+NÂˆÝ]K[[\›”]Y]Y\Ë™[]JÛÛX˜]šY
+NÂˆÝ]K[[\›”]Y]YSØÚÜË™[]JÛÛX˜]šY
+NÂˆYˆ
+Ý]KœÜXÚX[ZOË˜ÛÛX˜]YOOHÛÛX˜]šY
+HÝ]KœÜXÚX[ZHH[ÂˆÝ]K˜XÝ[ÛY˜[˜Ù\Ë™[]JÛÛX˜]šY
+NÂˆÝ]K[[X]SØÚÜË˜ÛX\Š
+NÂˆ›Üˆ
+ÛÛœÝ[™[™ÈÙˆÝ]KœÜ\Úœ›ØYØ\ÝË˜[Y\Ê
+JHYˆ
+[™[™ÏË[Y\ŠHÚ[™ÝË˜ÛX\•[Y[Ý]
+[™[™Ë[Y\ŠNÂˆÝ]KœÜ\Úœ›ØYØ\ÝË˜ÛX\Š
+NÂˆÝ]Kœ™XÙZ]™YÜ\ÚYË˜ÛX\Š
+NÂˆÛÛœÝ[[X]T]Y]YHHÝ]K[[X]T]Y]Y\Ë™Ù]
+ÛÛX˜]šY
+NÂˆYˆ
+[[X]T]Y]YOËœÝ\[Y\ŠHÚ[™ÝË˜ÛX\•[Y[Ý]
+[[X]T]Y]YKœÝ\[Y\ŠNÂˆÝ]K[[X]T]Y]Y\Ë™[]JÛÛX˜]šY
+NÂˆ›Üˆ
+ÛÛœÝ[™[™ÈÙˆÝ]Kœ[™[™Õ[[X]\Ë˜[Y\Ê
+JHYˆ
+[™[™ÏË[Y\ŠHÚ[™ÝË˜ÛX\•[Y[Ý]
+[™[™Ë[Y\ŠNÂˆÝ]Kœ[™[™Õ[[X]\Ë˜ÛX\Š
+NÂˆÝ]KœÚÚ[ØÚÜË˜ÛX\Š
+NÂˆ›Üˆ
+ÛÛœÝ[™[™ÈÙˆÝ]Kœ[™[™ÔÚÚ[Ë˜[Y\Ê
+JHYˆ
+[™[™ÏË[Y\ŠHÚ[™ÝË˜ÛX\•[Y[Ý]
+[™[™Ë[Y\ŠNÂˆÝ]Kœ[™[™ÔÚÚ[Ë˜ÛX\Š
+NÂˆ›Üˆ
+ÛÛœÝ[™[™ÈÙˆÝ]Kœ[™[™Ñ[][ÛXÝ[ÛœË˜[Y\Ê
+JHYˆ
+[™[™ÏË[Y\ŠHÚ[™ÝË˜ÛX\•[Y[Ý]
+[™[™Ë[Y\ŠNÂˆÝ]Kœ[™[™Ñ[][ÛXÝ[ÛœË˜ÛX\Š
+NÂˆÝ]K˜XÝ]™Q[][ÛXÝ[ÛœË˜ÛX\Š
+NÂˆÝ]K›\Ý[][Û”Ù\]Y[˜ÙRÙ^HHˆŽÂˆ›Üˆ
+ÛÛœÝÛÛX˜][ÙˆÛÛX˜]˜ÛÛX˜][ÈÏÈ×JHÂˆYˆ
+ÛÛX˜][™Ù]›YÊSÑSWÒQ[\Ü˜\žU[[X]HŠJHÝ]K[[X]SØÚÜË™[]JÛÛX˜][˜XÝÜ’Y
+NÂˆBˆ™Yœ™\Ú[Ü˜œÊ
+NÂˆ›Üˆ
+ÛÛœÝXÝÜˆÙˆØ[YK˜XÝÜœË™š[\Š[žHOˆ[žK\HOOH˜Ú\˜XÝ\ˆŠJH™Yœ™\Ú[[ÛÝ[\ŠXÝÜŠNÂˆÝ]K™ÛT[™[Ëœ™[™\Š˜[ÙJNÂŸJNÂ‚’ÛÚÜË›ÛŠ\]PÛÛX˜]‹\Þ[˜ÈÛÛX˜]OˆÂˆ™Yœ™\ÚÝYÚ™\ÜÐ˜\œÊ
+NÂˆ™Yœ™\Ú™\ÛÝ\˜ÙRYÊ
+NÂˆ™Yœ™\ÚÛÛX˜]\RY
+
+NÂˆ™Yœ™\Ú[˜Ú[™RQ
+
+NÂˆ™Yœ™\ÚÚÚ[RJ
+NÂˆ™Yœ™\Ú›ÜÜÒY
+
+NÂˆ™Yœ™\Ú[š]X]]™PØ\›Ý\Ù[
+
+NÂˆ›Üˆ
+ÛÛœÝXÝÜˆÙˆØ[YK˜XÝÜœË™š[\Š[žHOˆ[žK\HOOH˜Ú\˜XÝ\ˆŠJH™Yœ™\Ú[[ÛÝ[\ŠXÝÜŠNÂˆÝ]K™ÛT[™[Ëœ™[™\Š˜[ÙJNÂˆYˆ
+Z\Ð]]Üš]J
+JH™]\›ŽÂˆ]ØZ]ÛX\‘^\™Y[™\™ÞSØÚÜÊÛÛX˜]
+NÂˆÛÛœÝ™]š[Ý\Õ\›ˆHÝ]K›\ÝÛÛX˜]\›œË™Ù]
+ÛÛX˜]šY
+NÂˆÛÛœÝÝ\œ™[\›ˆHÛÛX˜]\›”Û˜\ÚÝ
+ÛÛX˜]
+NÂˆÝ]K›\ÝÛÛX˜]\›œËœÙ]
+ÛÛX˜]šYÝ\œ™[\›ŠNÂˆYˆ
+Ý]KœÝ\™\ÜÐÛÛX˜]ÛÚÊH™]\›ŽÂˆYˆ
+™]š[Ý\Õ\›ËšY	‰ˆ
+™]š[Ý\Õ\›‹šYOOHÝ\œ™[\›ËšY™]š[Ý\Õ\›‹œ›Ý[™OOHÛÛX˜]œ›Ý[™
+JHÂˆ]ØZ]™\ÝÜ™Pœ›ÚÙ[ÛÛX˜][
+ÛÛX˜]˜ÛÛX˜][Ë™Ù]
+™]š[Ý\Õ\›‹šY
+JNÂˆYˆ
+]ØZ]ÛX[\\\Y[\Ü˜\žU\›ŠÛÛX˜]™]š[Ý\Õ\›ŠJHÂˆ]ØZ]™[[Ý™SÜœ[™Y[\Ü˜\žU\›œÊÛÛX˜]
+NÂˆÝ]K›\ÝÛÛX˜]\›œËœÙ]
+ÛÛX˜]šYÛÛX˜]\›”Û˜\ÚÝ
+ÛÛX˜]
+JNÂˆÝ]K™ÛT[™[Ëœ™[™\Š˜[ÙJNÂˆ™]\›ŽÂˆBˆBˆ]ØZ]™[[Ý™SÜœ[™Y[\Ü˜\žU\›œÊÛÛX˜]
+NÂˆYˆ
+™]š[Ý\Õ\›ËšY	‰ˆ
+™]š[Ý\Õ\›‹šYOOHÝ\œ™[\›ËšY™]š[Ý\Õ\›‹œ›Ý[™OOHÛÛX˜]œ›Ý[™
+H	‰ˆ]ØZ]›ØÙ\ÜÕ[[\›”]Y]YJÛÛX˜]
+JH™]\›ŽÂˆYˆ
+]ØZ]ÚÚ\œ›ÚÙ[ÛÛX˜][\›ŠÛÛX˜]ÛÛX˜]˜ÛÛX˜][
+JH™]\›ŽÂˆÛÛœÝ[[X]T]Y]YHHÝ]K[[X]T]Y]Y\Ë™Ù]
+ÛÛX˜]šY
+NÂˆYˆ
+[[X]T]Y]YOËØZ]\›’Y	‰ˆÛÛX˜]˜ÛÛX˜][ËšYOOH[[X]T]Y]YKØZ]\›’Y
+HÂˆ[[X]T]Y]YKœ™\Ý[YPÛÛX˜][YHÛÛX˜]˜ÛÛX˜][ËšYÏÈ[Âˆ[[X]T]Y]YKœ™\Ý[YT›Ý[™HÛÛX˜]œ›Ý[™Âˆ[[X]T]Y]YKØZ]\›’YH[Âˆ]ØZ]›ØÙ\ÜÕ[[X]T]Y]YJÛÛX˜]šY
+NÂˆ™]\›ŽÂˆBˆÛÛœÝY˜[˜ÙHHÝ]K˜XÝ[ÛY˜[˜Ù\Ë™Ù]
+ÛÛX˜]šY
+NÂˆYˆ
+Y˜[˜ÙH	‰ˆÛÛX˜]˜ÛÛX˜][ËšYOOHY˜[˜ÙK˜ÛÛX˜][Y
+HÂˆYˆ
+JY˜[˜ÙK˜ZH	‰ˆ\Ñ[][ÛXÝ[ÛÛÛX˜][
+ÛÛX˜]˜ÛÛX˜][
+JJHÂˆ]ØZ]š[š\ÚXÝ[ÛY˜[˜ÙJÛÛX˜]Y˜[˜ÙJNÂˆÝ]K™ÛT[™[Ëœ™[™\Š˜[ÙJNÂˆ™]\›ŽÂˆBˆBˆYˆ
+XÛÛX˜]˜ÛÛX˜][Ë™š[™
+\ÐZPÛÛX˜][
+JH]ØZ]X^X™Q[œÝ\™PZPÛÛX˜][
+ÛÛX˜]
+NÂˆÛÛœÝÝ\œ™[HÛÛX˜]˜ÛÛX˜][Â‚ˆYˆ
+ÛÛX˜]œÝ\Y	‰ˆÝ\œ™[
+HÂˆÛÛœÝ\›’Ù^HH	ØÛÛX˜]šYN‰ØÛÛX˜]œ›Ý[™N‰ØÝ\œ™[šYXÂˆÛÛœÝ™]š[Ý\ÈHÝ]K›\Ý[[\›œË™Ù]
+ÛÛX˜]šY
+NÂˆYˆ
+™]š[Ý\ÏËšÙ^HOOH\›’Ù^JHÂˆYˆ
+™]š[Ý\ÊH]ØZ]\Ü]Ú[[]™[
+\›‘[™‹ØÛÛX˜]ÛÛX˜][ˆÛÛX˜]˜ÛÛX˜][Ë™Ù]
+™]š[Ý\Ë˜ÛÛX˜][Y
+HÏÈ[ÛÝ\˜ÙPXÝÜŽˆØ[YK˜XÝÜœË™Ù]
+™]š[Ý\Ë˜XÝÜ’Y
+HÏÈ[K™]š[Ý\ËšÙ^JNÂˆÝ]K›\Ý[[\›œËœÙ]
+ÛÛX˜]šYÚÙ^Nˆ\›’Ù^KÛÛX˜][YˆÝ\œ™[šYXÝÜ’YˆÝ\œ™[˜XÝÜËšYÏÈ[JNÂˆ]ØZ]\Ü]Ú[[]™[
+\›”Ý\‹ØÛÛX˜]ÛÛX˜][ˆÝ\œ™[ÛÝ\˜ÙPXÝÜŽˆÝ\œ™[˜XÝÜˆÏÈ[K\›’Ù^JNÂˆBˆBˆYˆ
+ÛÛX˜]œÝ\Y	‰ˆ\ÐZPÛÛX˜][
+Ý\œ™[
+JHÂˆÛÛœÝ\›’Ù^HH	ØÛÛX˜]šYN‰ØÛÛX˜]œ›Ý[™N‰ØÝ\œ™[šYXÂˆYˆ
+Ý]K›\ÝZU\›’Ù^HOOH\›’Ù^JHÂˆÝ]K›\ÝZU\›’Ù^HH\›’Ù^NÂˆšYÙÙ\ZR[œÝ[
+
+NÂˆBˆ]ØZ]Ü™X]Q[][ÛXÝ[Û•\›œÊÛÛX˜]
+NÂˆ™]\›ŽÂˆBˆYˆ
+\Ñ[][ÛXÝ[ÛÛÛX˜][
+Ý\œ™[
+JHÂˆ]ØZ]^XÝ]Q[][ÛXÝ[ÛŠÝ\œ™[
+NÂˆ™]\›ŽÂˆBˆYˆ
+\Õ[[\›ÛÛX˜][
+Ý\œ™[
+JHÂˆ]ØZ]™YÚ[•[[\›ŠÝ\œ™[
+NÂˆ™]\›ŽÂˆBˆÛÛœÝ[\Ü˜\žHHÝ\œ™[ÂˆYˆ
+][\Ü˜\žOË™Ù]›YÊSÑSWÒQ[\Ü˜\žU[[X]HŠJH™]\›ŽÂˆÛÛœÝXÝÜˆH[\Ü˜\žK˜XÝÜŽÂˆYˆ
+XXÝÜˆÝ]K[[X]SØÚÜËš\ÊXÝÜ‹šY
+JH™]\›ŽÂˆ]ØZ]™[[Ý™U[[X]U\›Š[\Ü˜\žJNÂŸJNÂ‚’ÛÚÜË›ÛŠ\]PÛÛX˜][‹\Þ[˜È
+ÛÛX˜][Ú[™ÙY
+HOˆÂˆ™Yœ™\Ú›ÜÜÒY
+
+NÂˆ™Yœ™\Ú[š]X]]™PØ\›Ý\Ù[
+
+NÂˆÝ]K˜›ÜÜÔ\ÙPÛÛ›ÛËœ™[™\Š
+NÂˆYŠ\Ð]]Üš]J
+JX]ØZ][œÝ\™P›ÜÜÑ[˜ÛÝ[\ŠÛÛX˜][
+NÂˆYˆ
+Z\Ð]]Üš]J
+H\ÐZPÛÛX˜][
+ÛÛX˜][
+H\Ñ[][ÛXÝ[ÛÛÛX˜][
+ÛÛX˜][
+H\Õ[[\›ÛÛX˜][
+ÛÛX˜][
+HJš[š]X]]™Hˆ[ˆÚ[™ÙY
+JH™]\›ŽÂˆ]ØZ]X^X™Q[œÝ\™PZPÛÛX˜][
+ÛÛX˜][œ\™[
+NÂŸJNÂ‚’ÛÚÜË›ÛŠ˜Ü™X]PÛÛX˜][‹ÛÛX˜][OˆÂˆÝ]K™ÛT[™[Ëœ™[™\Š˜[ÙJNÂˆÚ[™ÝËœÙ][Y[Ý]
+™Yœ™\ÚÝYÚ™\ÜÐ˜\œËML
+NÂˆÚ[™ÝËœÙ][Y[Ý]
+™Yœ™\ÚÛÛX˜]\RYML
+NÂˆÚ[™ÝËœÙ][Y[Ý]
+™Yœ™\Ú[š]X]]™PØ\›Ý\Ù[ML
+NÂˆÚ[™ÝËœÙ][Y[Ý]
+
+
+OO™[œÝ\™P›ÜÜÑ[˜ÛÝ[\ŠÛÛX˜][
+K˜Ø]Ú
+\œ›ÜO˜ÛÛœÛÛK™\œ›ÜŠ	ÓSÑSWÒQH›ÜÜÈÛÛX˜][[š]X[^˜][Ûˆ˜Z[Y\œ›ÜŠJKL
+NÂˆYˆ
+\ÐZPÛÛX˜][
+ÛÛX˜][
+H\Ñ[][ÛXÝ[ÛÛÛX˜][
+ÛÛX˜][
+H\Õ[[\›ÛÛX˜][
+ÛÛX˜][
+JH™]\›ŽÂˆÚ[™ÝËœÙ][Y[Ý]
+
+
+HOˆX^X™Q[œÝ\™PZPÛÛX˜][
+ÛÛX˜][œ\™[
+KL
+NÂŸJNÂ‚’ÛÚÜË›ÛŠ˜ÛÛX˜]Ý\‹\Þ[˜ÈÛÛX˜]OˆÂˆ™Yœ™\ÚÛÛX˜]\RY
+
+NÂˆ™Yœ™\Ú[˜Ú[™RQ
+
+NÂˆ™Yœ™\ÚÚÚ[RJ
+NÂˆ™Yœ™\Ú›ÜÜÒY
+
+NÂˆ™Yœ™\Ú[š]X]]™PØ\›Ý\Ù[
+
+NÂˆÝ]K›\ÝÛÛX˜]\›œËœÙ]
+ÛÛX˜]šYÛÛX˜]\›”Û˜\ÚÝ
+ÛÛX˜]
+JNÂˆYˆ
+\Ð]]Üš]J
+JHÂˆ]ØZ][œÝ\™P›ÜÜÑ[˜ÛÝ[\œÊÛÛX˜]
+NÂˆ]ØZ]Ù]ÚÚ[Ú[ÊÙ]ÚÚ[Ú[ÛÛ™šYÊ
+KœÝ\[™ÊNÂˆ›Üˆ
+ÛÛœÝXÝÜˆÙˆØ[YK˜XÝÜœË™š[\Š[žHOˆ[[ÛÛX˜]›ÜXÝÜŠ[žJJJH]ØZ]Ù][[Ú[ÊXÝÜ‹
+NÂˆ]ØZ]\Ü]Ú[[]™[
+˜ÛÛX˜]Ý\‹ØÛÛX˜]KÛÛX˜]šY
+NÂˆBˆ›Üˆ
+ÛÛœÝXÝÜˆÙˆØ[YK˜XÝÜœË™š[\Š[žHOˆ[žK\HOOH˜Ú\˜XÝ\ˆŠJH™Yœ™\Ú[[ÛÝ[\ŠXÝÜŠNÂˆ]ØZ]X^X™Q[œÝ\™PZPÛÛX˜][
+ÛÛX˜]Ù›Ü˜ÙNˆY_JNÂˆËÈ›Ý[™žHØ[ˆ[Z]ÛÛX˜]Ý\™Y›Ü™H]™\žHÛY[\ÈØœÙ\™YH\]YˆËÈÝ\YÝ]Kˆ™Yœ™\ÚYØZ[ˆÛˆH™^\ÚÈÛÈÛÛX˜][Û›HQÈÈ›ÝˆËÈ™[XZ[ˆY[ˆY\ˆ™Z[™È\Ý›ÞYY™]ÙY[ˆ[˜ÛÝ[\œË‚ˆÚ[™ÝËœÙ][Y[Ý]
+
+
+HOˆÂˆ™Yœ™\Ú™\ÛÝ\˜ÙRYÊ
+NÂˆ™Yœ™\ÚÛÛX˜]\RY
+
+NÂˆ™Yœ™\Ú[˜Ú[™RQ
+
+NÂˆ™Yœ™\ÚÚÚ[RJ
+NÂˆ™Yœ™\Ú[š]X]]™PØ\›Ý\Ù[
+
+NÂˆKL
+NÂŸJNÂ’ÛÚÜË›ÛŠ™[]PÛÛX˜][‹ÛÛX˜][OˆÂˆ™Yœ™\Ú›ÜÜÒY
+
+NÂˆ™Yœ™\Ú[š]X]]™PØ\›Ý\Ù[
+
+NÂˆÝ]K˜›ÜÜÔ\ÙPÛÛ›ÛËœ™[™\Š
+NÂˆÛÛœÝ˜XÚÙYHÝ]K›\ÝÛÛX˜]\›œË™Ù]
+ÛÛX˜][œ\™[ËšY
+NÂˆYˆ
+˜XÚÙYËšYOOHÛÛX˜][šY
+HÝ]K›\ÝÛÛX˜]\›œËœÙ]
+ÛÛX˜][œ\™[šYÛÛX˜]\›”Û˜\ÚÝ
+ÛÛX˜][œ\™[
+JNÂˆÝ]K™ÛT[™[Ëœ™[™\Š˜[ÙJNÂˆÛÛœÝY˜[˜ÙHHÝ]K˜XÝ[ÛY˜[˜Ù\Ë™Ù]
+ÛÛX˜][œ\™[ËšY
+NÂˆYˆ
+Y˜[˜ÙOË˜ÛÛX˜][YOOHÛÛX˜][šY
+HÝ]K˜XÝ[ÛY˜[˜Ù\Ë™[]JÛÛX˜][œ\™[šY
+NÂˆYˆ
+\Ñ[][ÛXÝ[ÛÛÛX˜][
+ÛÛX˜][
+JHÂˆÛÛœÝ[™[™ÈHÝ]Kœ[™[™Ñ[][ÛXÝ[ÛœË™Ù]
+ÛÛX˜][šY
+NÂˆYˆ
+[™[™ÏË[Y\ŠHÚ[™ÝË˜ÛX\•[Y[Ý]
+[™[™Ë[Y\ŠNÂˆÝ]Kœ[™[™Ñ[][ÛXÝ[ÛœË™[]JÛÛX˜][šY
+NÂˆÝ]K˜XÝ]™Q[][ÛXÝ[ÛœË™[]JÛÛX˜][šY
+NÂˆBˆÚ[™ÝËœÙ][Y[Ý]
+™Yœ™\ÚÝYÚ™\ÜÐ˜\œËL
+NÂˆÚ[™ÝËœÙ][Y[Ý]
+™Yœ™\ÚÛÛX˜]\RYL
+NÂˆÚ[™ÝËœÙ][Y[Ý]
+
+
+HOˆÂˆ™Yœ™\Ú[˜Ú[™RQ
+
+NÂˆYˆ
+\Ð]]Üš]J
+H	‰ˆÛÛX˜][œ\™[
+HX^X™Q[œÝ\™PZPÛÛX˜][
+ÛÛX˜][œ\™[
+NÂˆKL
+NÂŸJNÂ‚™›Üˆ
+ÛÛœÝÛÚÈÙˆÈ˜Ü™X]UÚÙ[ˆ‹™[]UÚÙ[ˆ—JHÛÚÜË›ÛŠÛÚËÚÙ[ˆOˆÂˆÛÛœÝXÝÜˆHÚÙ[‹˜XÝÜˆÏÈØ[YK˜XÝÜœË™Ù]
+ÚÙ[‹˜XÝÜ’Y
+NÂˆYˆ
+XÝÜË\HOOH˜Ú\˜XÝ\ˆŠH™Yœ™\Ú[[ÛÝ[\ŠXÝÜŠNÂˆÝ]K™ÛT[™[Ëœ™[™\Š˜[ÙJNÂŸJNÂ
