@@ -2850,15 +2850,18 @@ function carouselTurnKind(combatant) {
 }
 
 class HsrInitiativeCarousel {
-  constructor(){this.element=null;this.drag=null;this.resize=null;}
+  constructor(){this.element=null;this.drag=null;this.resize=null;this.scrollTop=0;this.currentCombatantId=null;}
   layout(){const saved=game.settings.get(MODULE_ID,"initiativeCarouselLayout")||{};return {x:Number.isFinite(Number(saved.x))?Number(saved.x):16,y:Number.isFinite(Number(saved.y))?Number(saved.y):86,height:clamp(saved.height??520,180,1200)};}
   async saveLayout(changes={}){const next={...this.layout(),...changes};await game.settings.set(MODULE_ID,"initiativeCarouselLayout",next);return next;}
   turnMarkup(combatant,{active=false,nextRound=false}={}){
     const portrait=carouselPortraitData(combatant),kind=carouselTurnKind(combatant);
     const inserted=kind!=="normal"&&kind!=="aha";
+    const disposition=Number(combatant?.token?.disposition);
+    const friendlyDisposition=Number(globalThis.CONST?.TOKEN_DISPOSITIONS?.FRIENDLY??1);
+    const allied=Number.isFinite(disposition)?disposition===friendlyDisposition:combatant?.actor?.type==="character";
     const labels={ultimate:"ULT",talent:"TALENT",advance:"ADV",elation:"ELATION",aha:"AHA"};
     const initiative=Number.isFinite(Number(combatant.initiative))?Number(combatant.initiative):"—";
-    return `<button type="button" class="tsru-hsr-turn ${active?"is-active":""} ${inserted?"is-inserted":""} is-${kind} ${nextRound?"is-next-round":""}" data-combatant-id="${combatant.id}" title="${escapeHTML(combatant.name)} — Initiative ${initiative}" style="--portrait-x:${portrait.x}%;--portrait-y:${portrait.y}%;--portrait-scale:${portrait.scale/100};--portrait-flip:${portrait.flip?-1:1}"><span class="tsru-hsr-turn-pointer"><i></i></span><span class="tsru-hsr-turn-card"><img src="${escapeHTML(portrait.image)}" alt="${escapeHTML(combatant.name)}"><b>${escapeHTML(combatant.name)}</b>${labels[kind]?`<em>${labels[kind]}</em>`:""}<small>${initiative}</small></span></button>`;
+    return `<button type="button" class="tsru-hsr-turn ${active?"is-active":""} ${inserted?"is-inserted":""} ${allied?"is-ally":"is-enemy"} is-${kind} ${nextRound?"is-next-round":""}" data-combatant-id="${combatant.id}" title="${escapeHTML(combatant.name)} — Initiative ${initiative}" style="--portrait-x:${portrait.x}%;--portrait-y:${portrait.y}%;--portrait-scale:${portrait.scale/100};--portrait-flip:${portrait.flip?-1:1}"><span class="tsru-hsr-turn-pointer"><i></i></span><span class="tsru-hsr-turn-card"><img src="${escapeHTML(portrait.image)}" alt="${escapeHTML(combatant.name)}"><b>${escapeHTML(combatant.name)}</b>${labels[kind]?`<em>${labels[kind]}</em>`:""}<small>${initiative}</small></span></button>`;
   }
   render(){
     const config=getInitiativeCarouselConfig(),combat=game.combat;
@@ -2873,9 +2876,11 @@ class HsrInitiativeCarousel {
       this.element.addEventListener("pointerdown",event=>{const handle=event.target.closest(".tsru-hsr-carousel-resize");if(!handle||!getInitiativeCarouselConfig().allowLengthResize)return;event.preventDefault();event.stopPropagation();const rect=this.element.getBoundingClientRect();this.resize={startY:event.clientY,startHeight:rect.height};handle.setPointerCapture(event.pointerId);});
       this.element.addEventListener("pointermove",event=>{if(!this.resize)return;const config=getInitiativeCarouselConfig();const viewportMaximum=Math.max(180,Math.min(config.maximumHeight,innerHeight-this.element.getBoundingClientRect().top-16));const height=clamp(this.resize.startHeight+event.clientY-this.resize.startY,180,viewportMaximum);this.element.style.height=`${height}px`;});
       this.element.addEventListener("pointerup",event=>{if(!this.resize)return;const height=Math.round(this.element.getBoundingClientRect().height);this.resize=null;event.target.releasePointerCapture?.(event.pointerId);this.saveLayout({height});});
+      this.element.addEventListener("wheel",event=>{const viewport=event.target.closest(".tsru-hsr-carousel-viewport");if(!viewport||viewport.scrollHeight<=viewport.clientHeight)return;event.preventDefault();event.stopPropagation();viewport.scrollTop+=event.deltaY;this.scrollTop=viewport.scrollTop;},{passive:false});
     }
     const layout=this.layout(),turns=[...combat.turns].filter(entry=>game.user.isGM||(!entry.hidden&&!entry.token?.hidden));
     const currentId=combat.combatant?.id,currentIndex=Math.max(0,turns.findIndex(entry=>entry.id===currentId));
+    if(this.currentCombatantId!==currentId){this.currentCombatantId=currentId;this.scrollTop=0;}
     let remaining=turns.slice(currentIndex),wrapped=turns.slice(0,currentIndex),activeRow=0;
     const current=combat.combatant,currentKind=carouselTurnKind(current),resumeId=current?.getFlag(MODULE_ID,"resumeCombatantId");
     if(currentKind!=="normal"&&currentKind!=="aha"&&resumeId){const resumed=turns.find(entry=>entry.id===resumeId);if(resumed){remaining=[resumed,current,...remaining.slice(1).filter(entry=>entry.id!==resumeId)];wrapped=wrapped.filter(entry=>entry.id!==resumeId);activeRow=1;}}
@@ -2888,7 +2893,8 @@ class HsrInitiativeCarousel {
     const height=clamp(layout.height,180,maximumHeight);
     this.element.style.left=`${clamp(layout.x,0,innerWidth-60)}px`;this.element.style.top=`${clamp(layout.y,0,innerHeight-60)}px`;this.element.style.width=`${config.maximumWidth}px`;this.element.style.height=`${height}px`;
     this.element.classList.toggle("is-length-resizable",config.allowLengthResize);
-    this.element.innerHTML=`<span class="tsru-hsr-carousel-drag" title="Move initiative carousel"><i class="fas fa-grip-lines"></i></span><header><strong>ROUND ${combat.round||0}</strong></header><div class="tsru-hsr-carousel-viewport"><div class="tsru-hsr-carousel-list">${rows.join("")}</div></div>${config.allowLengthResize?'<span class="tsru-hsr-carousel-resize" title="Resize carousel length"></span>':""}`;
+    this.element.innerHTML=`<span class="tsru-hsr-carousel-drag" title="Move initiative carousel"><i class="fas fa-grip-lines"></i></span><div class="tsru-hsr-carousel-viewport"><div class="tsru-hsr-carousel-list">${rows.join("")}</div></div>${config.allowLengthResize?'<span class="tsru-hsr-carousel-resize" title="Resize carousel length"></span>':""}`;
+    this.element.querySelector(".tsru-hsr-carousel-viewport").scrollTop=this.scrollTop;
     return this;
   }
   destroy(){this.element?.remove();this.element=null;document.body.classList.remove("tsru-hsr-carousel-active");if(state.initiativeCarousel===this)state.initiativeCarousel=null;}
