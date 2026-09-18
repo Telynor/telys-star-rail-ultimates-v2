@@ -4042,7 +4042,7 @@ async function onSocket(payload) {
     game.socket.emit(SOCKET,{type:"craftingResult",targetUserId:payload.requestingUserId,...result});return;
   }
   if(payload.type==="craftingResult"&&payload.targetUserId===game.user.id){
-    (payload.ok?ui.notifications.info:ui.notifications.error).call(ui.notifications,payload.message);state.craftingApp?.render(false);return;
+    (payload.ok?ui.notifications.info:ui.notifications.error).call(ui.notifications,payload.message);state.craftingApp?.render({force:false});return;
   }
   if (payload.type === "breakResult" || payload.type === "damageResult") { await showBreakResult(payload); return; }
   if (payload.type === "ahaConfigChanged") {
@@ -5223,7 +5223,7 @@ class RecipeManager extends FormApplication {
   static get defaultOptions(){return foundry.utils.mergeObject(super.defaultOptions,{id:"tsru-recipe-manager",title:"Tely's Star Rail Ultimates — Recipes",template:`modules/${MODULE_ID}/templates/recipe-manager.hbs`,width:720,height:760,resizable:true,closeOnSubmit:false});}
   getData(){return {recipes:foundry.utils.deepClone(this._recipesOverride??getCraftingRecipes()).map((recipe,recipeIndex)=>({...recipe,recipeIndex,ingredients:(recipe.ingredients??[]).map((ingredient,ingredientIndex)=>({...ingredient,recipeIndex,ingredientIndex}))}))};}
   recipes(){return this._recipesOverride??foundry.utils.deepClone(getCraftingRecipes());}
-  async save(){await game.settings.set(MODULE_ID,"craftingRecipes",this.recipes());ui.notifications.info("Crafting recipes saved.");state.craftingApp?.render(false);}
+  async save(){await game.settings.set(MODULE_ID,"craftingRecipes",this.recipes());ui.notifications.info("Crafting recipes saved.");state.craftingApp?.render({force:false});}
   activateListeners(html){
     super.activateListeners(html);
     html.find("[data-recipe-field]").on("change",event=>{const recipes=this.recipes(),recipe=recipes[Number(event.currentTarget.dataset.recipeIndex)];if(!recipe)return;const field=event.currentTarget.dataset.recipeField;recipe[field]=event.currentTarget.type==="number"?Math.max(1,Number(event.currentTarget.value)||1):event.currentTarget.value;this._recipesOverride=recipes;});
@@ -5241,32 +5241,36 @@ class RecipeManager extends FormApplication {
 
 class RecipeMenu extends FormApplication {render(){new RecipeManager().render(true);return this;}}
 
-class CraftingApplication extends FormApplication {
+class CraftingApplication extends foundry.applications.api.HandlebarsApplicationMixin(foundry.applications.api.ApplicationV2) {
   constructor(...args){super(...args);this.placed={};this.inventoryChecked=false;state.craftingApp=this;}
-  static get defaultOptions(){return foundry.utils.mergeObject(super.defaultOptions,{id:"tsru-crafting",title:"Party Crafting",template:`modules/${MODULE_ID}/templates/crafting.hbs`,width:760,height:720,resizable:true});}
-  getData(){
+  static DEFAULT_OPTIONS={id:"tsru-crafting",classes:["tsru-crafting-window"],window:{title:"Party Crafting",resizable:true},position:{width:760,height:720}};
+  static PARTS={main:{template:`modules/${MODULE_ID}/templates/crafting.hbs`}};
+  async _prepareContext(){
     const recipes=getCraftingRecipes(),userActors=craftingUserActors(),unlocked=new Set(userActors.flatMap(actor=>[...actorUnlockedRecipes(actor)]));
     const visible=(game.user.isGM?recipes:recipes.filter(recipe=>unlocked.has(recipe.id))).map(recipe=>({...recipe,placedReady:(recipe.ingredients??[]).every(ingredient=>(this.placed[recipe.id]?.[recipeItemKey(ingredient)]??0)>=Math.max(1,Number(ingredient.quantity)||1)),ingredients:(recipe.ingredients??[]).map(ingredient=>({...ingredient,key:recipeItemKey(ingredient),available:pooledQuantityFor(ingredient),placed:this.placed[recipe.id]?.[recipeItemKey(ingredient)]??0,enough:pooledQuantityFor(ingredient)>=Math.max(1,Number(ingredient.quantity)||1)}))}));
     const cards=[];for(const actor of userActors)for(const item of actor.items??[]){const recipeId=item.getFlag(MODULE_ID,"recipeCard")?.recipeId,recipe=recipes.find(entry=>entry.id===recipeId);if(recipe)cards.push({actorId:actor.id,itemId:item.id,actorName:actor.name,name:recipe.name,img:item.img,quantity:itemQuantity(item)});}
     return {recipes:visible,actors:userActors,cards,inventoryChecked:this.inventoryChecked,isGM:game.user.isGM};
   }
-  activateListeners(html){
-    super.activateListeners(html);
-    html.find("[data-action='check-reagents']").on("click",()=>{this.inventoryChecked=true;this.render(false);});
-    html.find("[data-action='auto-place']").on("click",event=>{const recipe=getCraftingRecipes().find(entry=>entry.id===event.currentTarget.dataset.recipeId);if(!recipe)return;this.placed[recipe.id]={};for(const ingredient of recipe.ingredients??[])this.placed[recipe.id][recipeItemKey(ingredient)]=Math.min(Math.max(1,Number(ingredient.quantity)||1),pooledQuantityFor(ingredient));this.inventoryChecked=true;this.render(false);});
-    html.find("[data-place-delta]").on("click",event=>{const recipeId=event.currentTarget.dataset.recipeId,key=event.currentTarget.dataset.ingredientKey,delta=Number(event.currentTarget.dataset.placeDelta)||0,recipe=getCraftingRecipes().find(entry=>entry.id===recipeId),ingredient=recipe?.ingredients?.find(entry=>recipeItemKey(entry)===key);if(!ingredient)return;this.placed[recipeId]??={};this.placed[recipeId][key]=clamp((this.placed[recipeId][key]??0)+delta,0,Math.min(Math.max(1,Number(ingredient.quantity)||1),pooledQuantityFor(ingredient)));this.render(false);});
-    html.find("[data-action='craft']").on("click",event=>{const recipeId=event.currentTarget.dataset.recipeId,actorId=html.find(`[data-recipe-recipient='${recipeId}']`).val();if(!actorId)return ui.notifications.warn("Choose a receiving character.");event.currentTarget.disabled=true;if(isAuthority())executeCraftRecipe(recipeId,actorId,game.user.id).then(result=>{(result.ok?ui.notifications.info:ui.notifications.error).call(ui.notifications,result.message);this.placed[recipeId]={};this.render(false);});else game.socket.emit(SOCKET,{type:"craftRecipe",recipeId,actorId,requestingUserId:game.user.id});});
-    html.find("[data-action='redeem-card']").on("click",event=>{const actorId=event.currentTarget.dataset.actorId,itemId=event.currentTarget.dataset.itemId;event.currentTarget.disabled=true;if(isAuthority())executeRedeemRecipeCard(actorId,itemId,game.user.id).then(result=>{(result.ok?ui.notifications.info:ui.notifications.error).call(ui.notifications,result.message);this.render(false);});else game.socket.emit(SOCKET,{type:"redeemRecipeCard",actorId,itemId,requestingUserId:game.user.id});});
+  _onRender(context,options){
+    super._onRender(context,options);
+    const html=this.element;
+    html.querySelector("[data-action='check-reagents']")?.addEventListener("click",()=>{this.inventoryChecked=true;this.render({force:false});});
+    for(const button of html.querySelectorAll("[data-action='auto-place']"))button.addEventListener("click",()=>{const recipe=getCraftingRecipes().find(entry=>entry.id===button.dataset.recipeId);if(!recipe)return;this.placed[recipe.id]={};for(const ingredient of recipe.ingredients??[])this.placed[recipe.id][recipeItemKey(ingredient)]=Math.min(Math.max(1,Number(ingredient.quantity)||1),pooledQuantityFor(ingredient));this.inventoryChecked=true;this.render({force:false});});
+    for(const button of html.querySelectorAll("[data-place-delta]"))button.addEventListener("click",()=>{const recipeId=button.dataset.recipeId,key=button.dataset.ingredientKey,delta=Number(button.dataset.placeDelta)||0,recipe=getCraftingRecipes().find(entry=>entry.id===recipeId),ingredient=recipe?.ingredients?.find(entry=>recipeItemKey(entry)===key);if(!ingredient)return;this.placed[recipeId]??={};this.placed[recipeId][key]=clamp((this.placed[recipeId][key]??0)+delta,0,Math.min(Math.max(1,Number(ingredient.quantity)||1),pooledQuantityFor(ingredient)));this.render({force:false});});
+    for(const button of html.querySelectorAll("[data-action='craft']"))button.addEventListener("click",async()=>{const recipeId=button.dataset.recipeId,actorId=html.querySelector(`[data-recipe-recipient='${recipeId}']`)?.value;if(!actorId)return ui.notifications.warn("Choose a receiving character.");button.disabled=true;if(isAuthority()){const result=await executeCraftRecipe(recipeId,actorId,game.user.id);(result.ok?ui.notifications.info:ui.notifications.error).call(ui.notifications,result.message);this.placed[recipeId]={};await this.render({force:false});}else game.socket.emit(SOCKET,{type:"craftRecipe",recipeId,actorId,requestingUserId:game.user.id});});
+    for(const button of html.querySelectorAll("[data-action='redeem-card']"))button.addEventListener("click",async()=>{const actorId=button.dataset.actorId,itemId=button.dataset.itemId;button.disabled=true;if(isAuthority()){const result=await executeRedeemRecipeCard(actorId,itemId,game.user.id);(result.ok?ui.notifications.info:ui.notifications.error).call(ui.notifications,result.message);await this.render({force:false});}else game.socket.emit(SOCKET,{type:"redeemRecipeCard",actorId,itemId,requestingUserId:game.user.id});});
   }
-  async _updateObject(){return undefined;}
-  close(...args){if(state.craftingApp===this)state.craftingApp=null;return super.close(...args);}
+  async close(options){if(state.craftingApp===this)state.craftingApp=null;return super.close(options);}
 }
 
-function openCrafting(){
+async function openCrafting(){
   try{
-    if(state.craftingApp?.rendered){state.craftingApp.bringToTop();return state.craftingApp;}
-    state.craftingApp?.close?.({force:true});
-    const app=new CraftingApplication();app.render(true);return app;
+    const existing=foundry.applications.instances.get("tsru-crafting");
+    if(existing){existing.bringToFront();return existing;}
+    if(state.craftingApp)await state.craftingApp.close?.({animate:false});
+    const app=new CraftingApplication();
+    await app.render({force:true});
+    return app;
   }catch(error){
     state.craftingApp=null;console.error(`${MODULE_ID} | Could not open Party Crafting`,error);ui.notifications.error(`Could not open Party Crafting: ${error.message}`);return null;
   }
@@ -7268,7 +7272,7 @@ Hooks.on("updateToken", token => { refreshToughnessBars(); refreshResourceHuds()
 Hooks.on("targetToken", user => { if (user.id === game.user.id) state.gmPanel?.refreshTargetHighlights(); });
 Hooks.on("controlToken", () => state.gmPanel?.refreshTargetHighlights());
 Hooks.on("deleteActor", actor => { state.orbs.get(actor.id)?.destroy(); state.skillButtons.get(actor.id)?.destroy(); state.talentButtons.get(actor.id)?.destroy(); state.techniqueButtons.get(actor.id)?.destroy(); refreshResourceHuds(); });
-for(const hook of ["createItem","updateItem","deleteItem"])Hooks.on(hook,()=>state.craftingApp?.render(false));
+for(const hook of ["createItem","updateItem","deleteItem"])Hooks.on(hook,()=>state.craftingApp?.render({force:false}));
 Hooks.on("updateUser", user => { if (user.id === game.user.id) { refreshAllOrbs(); refreshSkillUI(); refreshResourceHuds(); refreshCombatPartyHud(); refreshInitiativeCarousel(); } });
 Hooks.on("updateSetting", setting => {
   if (setting?.key?.startsWith(`${MODULE_ID}.skillPoint`)) refreshSkillUI();
@@ -7284,7 +7288,7 @@ Hooks.on("updateSetting", setting => {
     refreshUltimateHotbarMacros();
   }
   if (setting?.key === `${MODULE_ID}.paths`) refreshCombatPartyHud();
-  if(setting?.key===`${MODULE_ID}.craftingRecipes`)state.craftingApp?.render(false);
+  if(setting?.key===`${MODULE_ID}.craftingRecipes`)state.craftingApp?.render({force:false});
   if (setting?.key === `${MODULE_ID}.partySelections`) { refreshCombatPartyHud(); refreshTalentButtons(); }
   if (setting?.key === `${MODULE_ID}.combatHudDesign`) {
     refreshCombatPartyHud();
