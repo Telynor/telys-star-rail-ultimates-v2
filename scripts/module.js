@@ -6929,8 +6929,21 @@ function addHudTool(controls) {
   };
   if (Array.isArray(token.tools)) token.tools.push(gmTool);
   else token.tools.tsruGmPanel = gmTool;
-  const craftingTool={name:"tsru-crafting",title:"Party Crafting",icon:"fas fa-hammer",order:94,button:true,visible:true,onClick:openCrafting,onChange:openCrafting};
+  const craftingTool={name:"tsru-crafting",title:"Party Crafting",icon:"fas fa-hammer",order:94,button:true,visible:true,onChange:()=>{void openCrafting();}};
   if(Array.isArray(token.tools))token.tools.push(craftingTool);else token.tools.tsruCrafting=craftingTool;
+}
+
+function bindCraftingSceneControl(app,html){
+  const root=html?.querySelector?html:html?.[0]??app?.element??document;
+  const selector='[data-tool="tsru-crafting"], [data-action="tsru-crafting"], [data-control="tsru-crafting"], [data-tooltip="Party Crafting"]';
+  const button=root?.querySelector?.(selector)??document.querySelector(selector);
+  if(!button||button.dataset.tsruCraftingBound)return;
+  button.dataset.tsruCraftingBound="true";
+  button.addEventListener("click",event=>{
+    event.preventDefault();
+    event.stopPropagation();
+    void openCrafting();
+  });
 }
 
 function registerApi() {
@@ -7078,8 +7091,8 @@ Hooks.on("renderActorSheet", activateLightConeInventoryContext);
 Hooks.on("renderCharacterActorSheet", activateLightConeInventoryContext);
 Hooks.on("getActorSheetHeaderButtons", addActorHeaderButton);
 Hooks.on("getSceneControlButtons", addHudTool);
-Hooks.on("renderSceneControls", () => requestAnimationFrame(dockSceneControlsBesideCarousel));
-Hooks.on("renderSceneControlsV2", () => requestAnimationFrame(dockSceneControlsBesideCarousel));
+Hooks.on("renderSceneControls", (app,html) => requestAnimationFrame(()=>{dockSceneControlsBesideCarousel();bindCraftingSceneControl(app,html);}));
+Hooks.on("renderSceneControlsV2", (app,html) => requestAnimationFrame(()=>{dockSceneControlsBesideCarousel();bindCraftingSceneControl(app,html);}));
 Hooks.on("hotbarDrop", (_bar, data, slot) => {
   if (data?.type !== "TSRUAction") return true;
   createStarRailActionMacro(data, slot).catch(error => { console.error(`${MODULE_ID} | Could not create action macro`, error); ui.notifications.error(`Could not create Star Rail macro: ${error.message}`); });
