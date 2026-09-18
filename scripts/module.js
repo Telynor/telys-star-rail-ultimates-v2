@@ -190,7 +190,9 @@ const DEFAULT_COMBAT_HUD_DESIGN = Object.freeze({
 
 const DEFAULT_INITIATIVE_CAROUSEL_CONFIG = Object.freeze({
   enabled: true,
-  maximumWidth: 220
+  allowLengthResize: true,
+  maximumWidth: 220,
+  maximumHeight: 900
 });
 
 const DEFAULT_TOUGHNESS = Object.freeze({enabled: true, current: 100, max: 100, weaknesses: [], temporaryWeaknesses: [], discoveredWeaknesses: []});
@@ -323,7 +325,9 @@ function getInitiativeCarouselConfig() {
   const stored = game.settings.get(MODULE_ID, "initiativeCarouselConfig") ?? {};
   const config = foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_INITIATIVE_CAROUSEL_CONFIG), stored, {inplace:false, insertKeys:true, overwrite:true});
   config.enabled = Boolean(config.enabled);
+  config.allowLengthResize = config.allowLengthResize !== false;
   config.maximumWidth = clamp(config.maximumWidth, 140, 420);
+  config.maximumHeight = clamp(config.maximumHeight, 260, 1200);
   return config;
 }
 
@@ -2846,8 +2850,8 @@ function carouselTurnKind(combatant) {
 }
 
 class HsrInitiativeCarousel {
-  constructor(){this.element=null;this.drag=null;}
-  layout(){const saved=game.settings.get(MODULE_ID,"initiativeCarouselLayout")||{};return {x:Number.isFinite(Number(saved.x))?Number(saved.x):16,y:Number.isFinite(Number(saved.y))?Number(saved.y):86,scale:clamp(saved.scale??1,.6,2)};}
+  constructor(){this.element=null;this.drag=null;this.resize=null;}
+  layout(){const saved=game.settings.get(MODULE_ID,"initiativeCarouselLayout")||{};return {x:Number.isFinite(Number(saved.x))?Number(saved.x):16,y:Number.isFinite(Number(saved.y))?Number(saved.y):86,height:clamp(saved.height??520,180,1200)};}
   async saveLayout(changes={}){const next={...this.layout(),...changes};await game.settings.set(MODULE_ID,"initiativeCarouselLayout",next);return next;}
   turnMarkup(combatant,{active=false,nextRound=false}={}){
     const portrait=carouselPortraitData(combatant),kind=carouselTurnKind(combatant);
@@ -2862,10 +2866,13 @@ class HsrInitiativeCarousel {
     document.body.classList.add("tsru-hsr-carousel-active");
     if(!this.element){
       this.element=document.createElement("section");this.element.className="tsru-hsr-initiative-carousel";document.body.appendChild(this.element);
-      this.element.addEventListener("click",event=>{const control=event.target.closest("[data-carousel-control]");if(control){event.preventDefault();const layout=this.layout();if(control.dataset.carouselControl==="smaller")this.saveLayout({scale:clamp(layout.scale-.1,.6,2)}).then(()=>this.render());if(control.dataset.carouselControl==="larger")this.saveLayout({scale:clamp(layout.scale+.1,.6,2)}).then(()=>this.render());return;}const button=event.target.closest("[data-combatant-id]");if(!button)return;const entry=game.combat?.combatants.get(button.dataset.combatantId),token=entry?.token?.object;if(token){token.control({releaseOthers:true});canvas.animatePan(token.center);}});
+      this.element.addEventListener("click",event=>{const button=event.target.closest("[data-combatant-id]");if(!button)return;const entry=game.combat?.combatants.get(button.dataset.combatantId),token=entry?.token?.object;if(token){token.control({releaseOthers:true});canvas.animatePan(token.center);}});
       this.element.addEventListener("pointerdown",event=>{const handle=event.target.closest(".tsru-hsr-carousel-drag");if(!handle)return;event.preventDefault();const rect=this.element.getBoundingClientRect();this.drag={dx:event.clientX-rect.left,dy:event.clientY-rect.top};handle.setPointerCapture(event.pointerId);});
       this.element.addEventListener("pointermove",event=>{if(!this.drag)return;this.element.style.left=`${clamp(event.clientX-this.drag.dx,0,innerWidth-60)}px`;this.element.style.top=`${clamp(event.clientY-this.drag.dy,0,innerHeight-60)}px`;});
       this.element.addEventListener("pointerup",event=>{if(!this.drag)return;this.drag=null;event.target.releasePointerCapture?.(event.pointerId);const rect=this.element.getBoundingClientRect();this.saveLayout({x:Math.round(rect.left),y:Math.round(rect.top)});});
+      this.element.addEventListener("pointerdown",event=>{const handle=event.target.closest(".tsru-hsr-carousel-resize");if(!handle||!getInitiativeCarouselConfig().allowLengthResize)return;event.preventDefault();event.stopPropagation();const rect=this.element.getBoundingClientRect();this.resize={startY:event.clientY,startHeight:rect.height};handle.setPointerCapture(event.pointerId);});
+      this.element.addEventListener("pointermove",event=>{if(!this.resize)return;const config=getInitiativeCarouselConfig();const viewportMaximum=Math.max(180,Math.min(config.maximumHeight,innerHeight-this.element.getBoundingClientRect().top-16));const height=clamp(this.resize.startHeight+event.clientY-this.resize.startY,180,viewportMaximum);this.element.style.height=`${height}px`;});
+      this.element.addEventListener("pointerup",event=>{if(!this.resize)return;const height=Math.round(this.element.getBoundingClientRect().height);this.resize=null;event.target.releasePointerCapture?.(event.pointerId);this.saveLayout({height});});
     }
     const layout=this.layout(),turns=[...combat.turns].filter(entry=>game.user.isGM||(!entry.hidden&&!entry.token?.hidden));
     const currentId=combat.combatant?.id,currentIndex=Math.max(0,turns.findIndex(entry=>entry.id===currentId));
@@ -2877,8 +2884,11 @@ class HsrInitiativeCarousel {
     rows.push(`<div class="tsru-hsr-round-divider"><i></i><strong>ROUND ${Number(combat.round||0)+1}</strong><i></i></div>`);
     if(wrapped.length)wrapped.forEach(entry=>rows.push(this.turnMarkup(entry,{nextRound:true})));
     else if(turns[0])rows.push(this.turnMarkup(turns[0],{nextRound:true}));
-    this.element.style.left=`${clamp(layout.x,0,innerWidth-60)}px`;this.element.style.top=`${clamp(layout.y,0,innerHeight-60)}px`;this.element.style.width=`${config.maximumWidth}px`;this.element.style.setProperty("--carousel-scale",String(layout.scale));
-    this.element.innerHTML=`<header><span class="tsru-hsr-carousel-drag" title="Move initiative carousel"><i class="fas fa-grip-lines"></i></span><strong>ROUND ${combat.round||0}</strong><div><button type="button" data-carousel-control="smaller" title="Scale down"><i class="fas fa-minus"></i></button><span>${Math.round(layout.scale*100)}%</span><button type="button" data-carousel-control="larger" title="Scale up"><i class="fas fa-plus"></i></button></div></header><div class="tsru-hsr-carousel-viewport"><div class="tsru-hsr-carousel-list">${rows.join("")}</div></div>`;
+    const maximumHeight=Math.max(180,Math.min(config.maximumHeight,innerHeight-clamp(layout.y,0,innerHeight-60)-16));
+    const height=clamp(layout.height,180,maximumHeight);
+    this.element.style.left=`${clamp(layout.x,0,innerWidth-60)}px`;this.element.style.top=`${clamp(layout.y,0,innerHeight-60)}px`;this.element.style.width=`${config.maximumWidth}px`;this.element.style.height=`${height}px`;
+    this.element.classList.toggle("is-length-resizable",config.allowLengthResize);
+    this.element.innerHTML=`<span class="tsru-hsr-carousel-drag" title="Move initiative carousel"><i class="fas fa-grip-lines"></i></span><header><strong>ROUND ${combat.round||0}</strong></header><div class="tsru-hsr-carousel-viewport"><div class="tsru-hsr-carousel-list">${rows.join("")}</div></div>${config.allowLengthResize?'<span class="tsru-hsr-carousel-resize" title="Resize carousel length"></span>':""}`;
     return this;
   }
   destroy(){this.element?.remove();this.element=null;document.body.classList.remove("tsru-hsr-carousel-active");if(state.initiativeCarousel===this)state.initiativeCarousel=null;}
@@ -5347,7 +5357,7 @@ class StarRailGMPanel extends FormApplication {
       this.render(false);
     });
     html.find("[data-action='save-initiative-carousel']").on("click",async()=>{
-      const data={enabled:Boolean(html.find('[name="initiativeCarouselEnabled"]').prop("checked")),maximumWidth:clamp(html.find('[name="initiativeCarouselMaximumWidth"]').val(),140,420)};
+      const data={enabled:Boolean(html.find('[name="initiativeCarouselEnabled"]').prop("checked")),allowLengthResize:Boolean(html.find('[name="initiativeCarouselAllowLengthResize"]').prop("checked")),maximumWidth:clamp(html.find('[name="initiativeCarouselMaximumWidth"]').val(),140,420),maximumHeight:clamp(html.find('[name="initiativeCarouselMaximumHeight"]').val(),260,1200)};
       await game.settings.set(MODULE_ID,"initiativeCarouselConfig",data);refreshInitiativeCarousel();ui.notifications.info("HSR initiative carousel settings saved.");this.render(false);
     });
     html.find("[data-action='place-action-button']").on("click", async () => {
@@ -5468,7 +5478,7 @@ function registerSettings() {
   game.settings.register(MODULE_ID, "combatPartyHudLayout", {scope: "client", config: false, type: Object, default: {scale: 1, minimized: false, x: null, y: null}});
   game.settings.register(MODULE_ID, "bossHudLayout", {scope: "client", config: false, type: Object, default: {x: null, y: 54}});
   game.settings.register(MODULE_ID, "initiativeCarouselConfig", {scope:"world",config:false,type:Object,default:foundry.utils.deepClone(DEFAULT_INITIATIVE_CAROUSEL_CONFIG)});
-  game.settings.register(MODULE_ID, "initiativeCarouselLayout", {scope:"client",config:false,type:Object,default:{x:16,y:86,scale:1}});
+  game.settings.register(MODULE_ID, "initiativeCarouselLayout", {scope:"client",config:false,type:Object,default:{x:16,y:86,height:520}});
   game.settings.register(MODULE_ID, "combatHudDesign", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_COMBAT_HUD_DESIGN)});
   game.settings.register(MODULE_ID, "ahaConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_AHA_CONFIG)});
   game.settings.register(MODULE_ID, "ahaLayout", {scope: "client", config: false, type: Object, default: {x: 220, y: 180, size: 128, visible: false}});
