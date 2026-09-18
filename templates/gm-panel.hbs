@@ -18,6 +18,13 @@
     <div class="tsru-gm-action-advance"><select name="actionAdvanceCombatant" {{#unless hasCombat}}disabled{{/unless}}><option value="">— Choose a character, enemy, or Aha Instant —</option>{{#each combatants}}<option value="{{this.id}}">{{this.name}} — Initiative {{this.initiative}}</option>{{/each}}</select><button type="button" data-action="action-advance" {{#unless hasCombat}}disabled{{/unless}}><i class="fas fa-forward-fast"></i> Insert Action Advance</button></div>
   </section>
 
+  <section class="tsru-gm-section tsru-gm-carousel-settings">
+    <h3><i class="fas fa-list-ol"></i> HSR Initiative Carousel</h3>
+    <p>The tracker is free-floating and vertically aligned. Its local scale controls can enlarge the artwork, while this maximum width clips anything beyond the approved preview frame.</p>
+    <div class="tsru-gm-carousel-controls"><label><span>Enable HSR carousel</span><input type="checkbox" name="initiativeCarouselEnabled" {{checked initiativeCarousel.enabled}}></label><label><span>Maximum visible width</span><div><input type="number" name="initiativeCarouselMaximumWidth" min="140" max="420" value="{{initiativeCarousel.maximumWidth}}"><b>px</b></div></label><button type="button" data-action="save-initiative-carousel"><i class="fas fa-save"></i> Save Carousel</button></div>
+    <div class="tsru-gm-carousel-preview" style="--preview-width:{{initiativeCarousel.maximumWidth}}px"><div class="tsru-gm-carousel-preview-card active"><i></i><span></span><strong>Active turn</strong></div><div class="tsru-gm-carousel-preview-card inserted"><i></i><span></span><strong>Inserted Ultimate</strong></div><div class="tsru-gm-carousel-preview-cutoff">Maximum visible width</div></div>
+  </section>
+
   <section class="tsru-gm-section tsru-gm-weakness-settings">
     <h3><i class="fas fa-shield-virus"></i> Temporary Toughness Weaknesses</h3>
     <p>Permanent weaknesses come from each enemy's sheet configuration. Temporary weaknesses affect Toughness until reset, without altering those permanent selections.</p>

@@ -57,6 +57,10 @@ const DEFAULT_CONFIG = Object.freeze({
   combatHudPortraitY: 50,
   combatHudPortraitScale: 100,
   combatHudPortraitFlip: false,
+  carouselImage: "",
+  carouselImageX: 50,
+  carouselImageY: 50,
+  carouselImageScale: 100,
   punchlineGain: 1,
   elationActionScript: "",
   elationActionText: "",
@@ -134,6 +138,7 @@ const state = {
   bossPhaseControl: null,
   bossTransitionLocks: new Set()
 };
+state.initiativeCarousel = null;
 state.bossTransitionVisuals = 0;
 state.bossTransitionVisualsUntil = 0;
 
@@ -181,6 +186,11 @@ const DEFAULT_COMBAT_HUD_DESIGN = Object.freeze({
   orbRight: 7, orbBottom: 34, orbSize: 54,
   talentLeft: 5, talentBottom: 20, talentSize: 32,
   nameLeft: 8, nameBottom: 0, nameWidth: 128
+});
+
+const DEFAULT_INITIATIVE_CAROUSEL_CONFIG = Object.freeze({
+  enabled: true,
+  maximumWidth: 220
 });
 
 const DEFAULT_TOUGHNESS = Object.freeze({enabled: true, current: 100, max: 100, weaknesses: [], temporaryWeaknesses: [], discoveredWeaknesses: []});
@@ -303,6 +313,17 @@ function getConfig(actor) {
   config.bossHudWidth = clamp(config.bossHudWidth, 420, 1400);
   config.bossHudHealthHeight = clamp(config.bossHudHealthHeight, 12, 48);
   config.bossHudToughnessHeight = clamp(config.bossHudToughnessHeight, 4, 24);
+  config.carouselImageX = clamp(config.carouselImageX, 0, 100);
+  config.carouselImageY = clamp(config.carouselImageY, 0, 100);
+  config.carouselImageScale = clamp(config.carouselImageScale, 50, 400);
+  return config;
+}
+
+function getInitiativeCarouselConfig() {
+  const stored = game.settings.get(MODULE_ID, "initiativeCarouselConfig") ?? {};
+  const config = foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_INITIATIVE_CAROUSEL_CONFIG), stored, {inplace:false, insertKeys:true, overwrite:true});
+  config.enabled = Boolean(config.enabled);
+  config.maximumWidth = clamp(config.maximumWidth, 140, 420);
   return config;
 }
 
@@ -2692,6 +2713,7 @@ async function ensureBossEncounters(combat=game.combat) {
   if(!isAuthority() || !combat)return;
   for(const combatant of combat.combatants ?? [])await ensureBossEncounter(combatant);
   refreshBossHud();
+  refreshInitiativeCarousel();
 }
 
 async function bossActorFromUuid(uuid) {
@@ -2742,6 +2764,7 @@ async function replaceBossPhase(combatant,nextActor,encounter) {
     await combatant.update({name:nextActor.name,img:texture,[`flags.${MODULE_ID}.bossEncounter`]:encounter},{render:false,animate:false,tsruBossTransition:true});
   }finally{state.bossTransitionVisuals=Math.max(0,state.bossTransitionVisuals-1);state.bossTransitionVisualsUntil=Date.now()+1500;}
   refreshBossHud();
+  refreshInitiativeCarousel();
   ui.notifications.info(`${nextActor.name} entered boss phase ${encounter.currentPhase}.`);
   return true;
 }
@@ -2804,6 +2827,64 @@ async function handleBossPhaseDefeat(actor) {
   }catch(error){console.error(`${MODULE_ID} | Boss phase transition failed`,error);ui.notifications.error(`Boss phase transition failed: ${error.message}`);}
   finally{state.bossTransitionLocks.delete(combatant.id);}
 }
+
+function carouselPortraitData(combatant) {
+  if (isAhaCombatant(combatant)) return {image:getAhaConfig().combatantImage || getAhaConfig().buttonImage || DEFAULT_AHA_CONFIG.combatantImage,x:50,y:50,scale:100};
+  const actor=combatant?.actor;
+  const config=getConfig(actor);
+  if(actor?.type==="character")return {image:config.combatHudPortrait || actor.img || combatant.img || "icons/svg/mystery-man.svg",x:config.combatHudPortraitX,y:config.combatHudPortraitY,scale:config.combatHudPortraitScale,flip:config.combatHudPortraitFlip};
+  return {image:config.carouselImage || combatant?.img || actor?.img || "icons/svg/mystery-man.svg",x:config.carouselImageX,y:config.carouselImageY,scale:config.carouselImageScale,flip:false};
+}
+
+function carouselTurnKind(combatant) {
+  if(isAhaCombatant(combatant))return "aha";
+  if(isElationActionCombatant(combatant))return "elation";
+  if(isTalentTurnCombatant(combatant))return "talent";
+  if(combatant?.getFlag(MODULE_ID,"temporaryUltimate"))return "ultimate";
+  if(combatant?.getFlag(MODULE_ID,"actionAdvance"))return "advance";
+  return "normal";
+}
+
+class HsrInitiativeCarousel {
+  constructor(){this.element=null;this.drag=null;}
+  layout(){const saved=game.settings.get(MODULE_ID,"initiativeCarouselLayout")||{};return {x:Number.isFinite(Number(saved.x))?Number(saved.x):16,y:Number.isFinite(Number(saved.y))?Number(saved.y):86,scale:clamp(saved.scale??1,.6,2)};}
+  async saveLayout(changes={}){const next={...this.layout(),...changes};await game.settings.set(MODULE_ID,"initiativeCarouselLayout",next);return next;}
+  turnMarkup(combatant,{active=false,nextRound=false}={}){
+    const portrait=carouselPortraitData(combatant),kind=carouselTurnKind(combatant);
+    const inserted=kind!=="normal"&&kind!=="aha";
+    const labels={ultimate:"ULT",talent:"TALENT",advance:"ADV",elation:"ELATION",aha:"AHA"};
+    const initiative=Number.isFinite(Number(combatant.initiative))?Number(combatant.initiative):"—";
+    return `<button type="button" class="tsru-hsr-turn ${active?"is-active":""} ${inserted?"is-inserted":""} is-${kind} ${nextRound?"is-next-round":""}" data-combatant-id="${combatant.id}" title="${escapeHTML(combatant.name)} — Initiative ${initiative}" style="--portrait-x:${portrait.x}%;--portrait-y:${portrait.y}%;--portrait-scale:${portrait.scale/100};--portrait-flip:${portrait.flip?-1:1}"><span class="tsru-hsr-turn-pointer"><i></i></span><span class="tsru-hsr-turn-card"><img src="${escapeHTML(portrait.image)}" alt="${escapeHTML(combatant.name)}"><b>${escapeHTML(combatant.name)}</b>${labels[kind]?`<em>${labels[kind]}</em>`:""}<small>${initiative}</small></span></button>`;
+  }
+  render(){
+    const config=getInitiativeCarouselConfig(),combat=game.combat;
+    if(!config.enabled||!combat?.started||!combat.turns?.length)return this.destroy();
+    document.body.classList.add("tsru-hsr-carousel-active");
+    if(!this.element){
+      this.element=document.createElement("section");this.element.className="tsru-hsr-initiative-carousel";document.body.appendChild(this.element);
+      this.element.addEventListener("click",event=>{const control=event.target.closest("[data-carousel-control]");if(control){event.preventDefault();const layout=this.layout();if(control.dataset.carouselControl==="smaller")this.saveLayout({scale:clamp(layout.scale-.1,.6,2)}).then(()=>this.render());if(control.dataset.carouselControl==="larger")this.saveLayout({scale:clamp(layout.scale+.1,.6,2)}).then(()=>this.render());return;}const button=event.target.closest("[data-combatant-id]");if(!button)return;const entry=game.combat?.combatants.get(button.dataset.combatantId),token=entry?.token?.object;if(token){token.control({releaseOthers:true});canvas.animatePan(token.center);}});
+      this.element.addEventListener("pointerdown",event=>{const handle=event.target.closest(".tsru-hsr-carousel-drag");if(!handle)return;event.preventDefault();const rect=this.element.getBoundingClientRect();this.drag={dx:event.clientX-rect.left,dy:event.clientY-rect.top};handle.setPointerCapture(event.pointerId);});
+      this.element.addEventListener("pointermove",event=>{if(!this.drag)return;this.element.style.left=`${clamp(event.clientX-this.drag.dx,0,innerWidth-60)}px`;this.element.style.top=`${clamp(event.clientY-this.drag.dy,0,innerHeight-60)}px`;});
+      this.element.addEventListener("pointerup",event=>{if(!this.drag)return;this.drag=null;event.target.releasePointerCapture?.(event.pointerId);const rect=this.element.getBoundingClientRect();this.saveLayout({x:Math.round(rect.left),y:Math.round(rect.top)});});
+    }
+    const layout=this.layout(),turns=[...combat.turns].filter(entry=>game.user.isGM||(!entry.hidden&&!entry.token?.hidden));
+    const currentId=combat.combatant?.id,currentIndex=Math.max(0,turns.findIndex(entry=>entry.id===currentId));
+    let remaining=turns.slice(currentIndex),wrapped=turns.slice(0,currentIndex),activeRow=0;
+    const current=combat.combatant,currentKind=carouselTurnKind(current),resumeId=current?.getFlag(MODULE_ID,"resumeCombatantId");
+    if(currentKind!=="normal"&&currentKind!=="aha"&&resumeId){const resumed=turns.find(entry=>entry.id===resumeId);if(resumed){remaining=[resumed,current,...remaining.slice(1).filter(entry=>entry.id!==resumeId)];wrapped=wrapped.filter(entry=>entry.id!==resumeId);activeRow=1;}}
+    const rows=[];
+    remaining.forEach((entry,index)=>rows.push(this.turnMarkup(entry,{active:index===activeRow})));
+    rows.push(`<div class="tsru-hsr-round-divider"><i></i><strong>ROUND ${Number(combat.round||0)+1}</strong><i></i></div>`);
+    if(wrapped.length)wrapped.forEach(entry=>rows.push(this.turnMarkup(entry,{nextRound:true})));
+    else if(turns[0])rows.push(this.turnMarkup(turns[0],{nextRound:true}));
+    this.element.style.left=`${clamp(layout.x,0,innerWidth-60)}px`;this.element.style.top=`${clamp(layout.y,0,innerHeight-60)}px`;this.element.style.width=`${config.maximumWidth}px`;this.element.style.setProperty("--carousel-scale",String(layout.scale));
+    this.element.innerHTML=`<header><span class="tsru-hsr-carousel-drag" title="Move initiative carousel"><i class="fas fa-grip-lines"></i></span><strong>ROUND ${combat.round||0}</strong><div><button type="button" data-carousel-control="smaller" title="Scale down"><i class="fas fa-minus"></i></button><span>${Math.round(layout.scale*100)}%</span><button type="button" data-carousel-control="larger" title="Scale up"><i class="fas fa-plus"></i></button></div></header><div class="tsru-hsr-carousel-viewport"><div class="tsru-hsr-carousel-list">${rows.join("")}</div></div>`;
+    return this;
+  }
+  destroy(){this.element?.remove();this.element=null;document.body.classList.remove("tsru-hsr-carousel-active");if(state.initiativeCarousel===this)state.initiativeCarousel=null;}
+}
+
+function refreshInitiativeCarousel(){if(!state.initiativeCarousel)state.initiativeCarousel=new HsrInitiativeCarousel();state.initiativeCarousel.render();}
 
 class BossHud {
   constructor(){this.element=null;this.drag=null;}
@@ -3133,6 +3214,7 @@ async function showCombatPartyHud({notify = true} = {}) {
   await saveCombatPartyHudLayout({minimized: false});
   refreshCombatPartyHud();
   refreshBossHud();
+  refreshInitiativeCarousel();
   const shown = Boolean(document.querySelector(".tsru-combat-party-hud:not(.is-minimized)"));
   if (notify && shown) ui.notifications.info("Combat party HUD shown.");
   return shown;
@@ -3602,11 +3684,8 @@ async function processUltimateQueue(combatId) {
   if (!queue || !combat || queue.activeActorId) return;
   if (queue.startTimer) { window.clearTimeout(queue.startTimer); queue.startTimer = null; }
   if (!queue.requests.length) return finishUltimateQueue(combatId);
-  const firstTime = Math.min(...queue.requests.map(entry => entry.requestedAt));
-  const simultaneous = queue.requests.filter(entry => entry.requestedAt <= firstTime + 200);
-  simultaneous.sort((left, right) => right.initiative - left.initiative || left.sequence - right.sequence);
-  const request = simultaneous[0];
-  queue.requests.splice(queue.requests.indexOf(request), 1);
+  queue.requests.sort((left,right)=>left.requestedAt-right.requestedAt||left.sequence-right.sequence);
+  const request = queue.requests.shift();
   try { await beginQueuedUltimate(request, queue, combat); }
   catch (error) {
     console.error(`${MODULE_ID} | Could not begin queued Ultimate`, error);
@@ -5196,7 +5275,7 @@ class StarRailGMPanel extends FormApplication {
       };
     });
     const actionCharacters = game.actors.filter(actor => actor.type === "character").sort((left, right) => left.name.localeCompare(right.name)).map(actor => ({id: actor.id, name: actor.name}));
-    return {characters, actionCharacters, sceneEnemies, punchline: currentPunchline(), punchlineOverride: punchlineOverrideEnabled(), skillPoints: currentSkillPoints(), skillPointMax: getSkillPointConfig().maximum, combatants, hasCombat: Boolean(game.combat?.started)};
+    return {characters, actionCharacters, sceneEnemies, punchline: currentPunchline(), punchlineOverride: punchlineOverrideEnabled(), skillPoints: currentSkillPoints(), skillPointMax: getSkillPointConfig().maximum, combatants, hasCombat: Boolean(game.combat?.started), initiativeCarousel:getInitiativeCarouselConfig()};
   }
   activateListeners(html) {
     super.activateListeners(html);
@@ -5266,6 +5345,10 @@ class StarRailGMPanel extends FormApplication {
       if (!id) return ui.notifications.warn("Choose a combatant first.");
       await insertActionAdvanceTurn(id);
       this.render(false);
+    });
+    html.find("[data-action='save-initiative-carousel']").on("click",async()=>{
+      const data={enabled:Boolean(html.find('[name="initiativeCarouselEnabled"]').prop("checked")),maximumWidth:clamp(html.find('[name="initiativeCarouselMaximumWidth"]').val(),140,420)};
+      await game.settings.set(MODULE_ID,"initiativeCarouselConfig",data);refreshInitiativeCarousel();ui.notifications.info("HSR initiative carousel settings saved.");this.render(false);
     });
     html.find("[data-action='place-action-button']").on("click", async () => {
       const actor = game.actors.get(html.find('[name="actionButtonActor"]').val());
@@ -5384,6 +5467,8 @@ function registerSettings() {
   game.settings.register(MODULE_ID, "selectedMainCharacterId", {scope: "client", config: false, type: String, default: ""});
   game.settings.register(MODULE_ID, "combatPartyHudLayout", {scope: "client", config: false, type: Object, default: {scale: 1, minimized: false, x: null, y: null}});
   game.settings.register(MODULE_ID, "bossHudLayout", {scope: "client", config: false, type: Object, default: {x: null, y: 54}});
+  game.settings.register(MODULE_ID, "initiativeCarouselConfig", {scope:"world",config:false,type:Object,default:foundry.utils.deepClone(DEFAULT_INITIATIVE_CAROUSEL_CONFIG)});
+  game.settings.register(MODULE_ID, "initiativeCarouselLayout", {scope:"client",config:false,type:Object,default:{x:16,y:86,scale:1}});
   game.settings.register(MODULE_ID, "combatHudDesign", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_COMBAT_HUD_DESIGN)});
   game.settings.register(MODULE_ID, "ahaConfig", {scope: "world", config: false, type: Object, default: foundry.utils.deepClone(DEFAULT_AHA_CONFIG)});
   game.settings.register(MODULE_ID, "ahaLayout", {scope: "client", config: false, type: Object, default: {x: 220, y: 180, size: 128, visible: false}});
@@ -6287,6 +6372,7 @@ function observeCharacterSheetTabs(app) {
 
 function openToughnessConfig(actor) {
   const config = getToughness(actor);
+  const carousel = getConfig(actor);
   const elements = getElements();
   const weaknessRows = elements.map(element => `<label class="tsru-weakness-choice"><input type="checkbox" name="weakness" value="${escapeHTML(element.id)}" ${config.weaknesses.includes(element.id) ? "checked" : ""}><img src="${escapeHTML(element.icon || "icons/svg/aura.svg")}"><span>${escapeHTML(element.name)}</span></label>`).join("");
   const content = `<form class="tsru-toughness-form">
@@ -6294,13 +6380,16 @@ function openToughnessConfig(actor) {
     <label class="tsru-toughness-toggle"><span><strong>Enable Toughness</strong><small>Show and automatically process Toughness while this actor is in combat.</small></span><input type="checkbox" name="enabled" ${config.enabled ? "checked" : ""}></label>
     <div class="tsru-toughness-numbers"><label><strong>Current</strong><input type="number" name="current" min="0" value="${config.current}"></label><label><strong>Maximum</strong><input type="number" name="max" min="1" value="${config.max}"></label></div>
     <fieldset><legend>Elemental Weaknesses</legend><div class="tsru-weakness-grid">${weaknessRows || "<em>Create Elements in Module Settings first.</em>"}</div></fieldset>
+    ${actor.type==="npc"?`<fieldset class="tsru-carousel-art-config"><legend>Initiative Carousel Artwork</legend><label><strong>NPC carousel art</strong><small>Used by the HSR initiative carousel instead of the token portrait.</small><div class="tsru-file-control"><input type="text" name="carouselImage" value="${escapeHTML(carousel.carouselImage)}" placeholder="Use combatant or actor image"><button type="button" data-carousel-picker title="Browse Files"><i class="fas fa-file-import"></i></button></div></label><div class="tsru-toughness-numbers"><label><strong>Art X</strong><input type="number" name="carouselImageX" min="0" max="100" value="${carousel.carouselImageX}"></label><label><strong>Art Y</strong><input type="number" name="carouselImageY" min="0" max="100" value="${carousel.carouselImageY}"></label><label><strong>Zoom %</strong><input type="number" name="carouselImageScale" min="50" max="400" value="${carousel.carouselImageScale}"></label></div></fieldset>`:""}
   </form>`;
   const dialog = new Dialog({title: `${actor.name} — Toughness`, content, buttons: {
     save: {icon: '<i class="fas fa-save"></i>', label: "Save", callback: async html => {
       const max = Math.max(1, Number(html.find('[name="max"]').val()) || 100);
       const data = {enabled: html.find('[name="enabled"]').prop("checked"), max, current: clamp(html.find('[name="current"]').val(), 0, max), weaknesses: html.find('[name="weakness"]:checked').map((_i, field) => field.value).get(), temporaryWeaknesses: config.temporaryWeaknesses, discoveredWeaknesses: config.discoveredWeaknesses};
       await actor.setFlag(MODULE_ID, "toughness", data);
+      if(actor.type==="npc")await actor.update({[`flags.${MODULE_ID}.ultimate.carouselImage`]:String(html.find('[name="carouselImage"]').val()||""),[`flags.${MODULE_ID}.ultimate.carouselImageX`]:clamp(html.find('[name="carouselImageX"]').val(),0,100),[`flags.${MODULE_ID}.ultimate.carouselImageY`]:clamp(html.find('[name="carouselImageY"]').val(),0,100),[`flags.${MODULE_ID}.ultimate.carouselImageScale`]:clamp(html.find('[name="carouselImageScale"]').val(),50,400)});
       refreshToughnessBars();
+      refreshInitiativeCarousel();
     }},
     refill: {icon: '<i class="fas fa-shield"></i>', label: "Refill", callback: async html => {
       const max = Math.max(1, Number(html.find('[name="max"]').val()) || config.max);
@@ -6312,6 +6401,7 @@ function openToughnessConfig(actor) {
       refreshToughnessBars();
     }}
   }, default: "save"}, {width: 540, classes: ["tsru-toughness-dialog"]});
+  Hooks.once("renderDialog",rendered=>{if(rendered!==dialog)return;rendered.element.find("[data-carousel-picker]").on("click",event=>{event.preventDefault();const input=rendered.element.find('[name="carouselImage"]');new FilePicker({type:"image",current:input.val(),callback:path=>input.val(path).trigger("change")}).browse();});});
   dialog.render(true);
 }
 
@@ -6532,6 +6622,7 @@ Hooks.once("ready", () => {
   refreshResourceHuds();
   refreshTechniqueButtons();
   refreshBossHud();
+  refreshInitiativeCarousel();
   if(isAuthority())ensureBossEncounters(game.combat).catch(error=>console.error(`${MODULE_ID} | Boss encounter initialization failed`,error));
   refreshTalentPointFont();
   preloadAhaVideo();
@@ -6748,6 +6839,7 @@ Hooks.on("updateActor", (actor, changes, options) => {
   refreshUltimateHotbarMacros();
   refreshPunchlineHUD();
   refreshBossHud();
+  refreshInitiativeCarousel();
   if(isAuthority())handleBossPhaseDefeat(actor).catch(error=>console.error(`${MODULE_ID} | Boss phase check failed`,error));
   const talentChanges = foundry.utils.getProperty(changes, `flags.${MODULE_ID}.ultimate`);
   if (isAuthority() && actor.type === "character" && talentChanges && (
@@ -6780,11 +6872,11 @@ Hooks.on("updateActor", (actor, changes, options) => {
     reconcileUltimateLock(actor.id);
   }
 });
-Hooks.on("updateToken", token => { refreshToughnessBars(); refreshResourceHuds(); refreshBossHud(); if(isAuthority()&&token.actor)handleBossPhaseDefeat(token.actor).catch(error=>console.error(`${MODULE_ID} | Boss token phase check failed`,error)); state.gmPanel?.render(false); });
+Hooks.on("updateToken", token => { refreshToughnessBars(); refreshResourceHuds(); refreshBossHud(); refreshInitiativeCarousel(); if(isAuthority()&&token.actor)handleBossPhaseDefeat(token.actor).catch(error=>console.error(`${MODULE_ID} | Boss token phase check failed`,error)); state.gmPanel?.render(false); });
 Hooks.on("targetToken", user => { if (user.id === game.user.id) state.gmPanel?.refreshTargetHighlights(); });
 Hooks.on("controlToken", () => state.gmPanel?.refreshTargetHighlights());
 Hooks.on("deleteActor", actor => { state.orbs.get(actor.id)?.destroy(); state.skillButtons.get(actor.id)?.destroy(); state.talentButtons.get(actor.id)?.destroy(); state.techniqueButtons.get(actor.id)?.destroy(); refreshResourceHuds(); });
-Hooks.on("updateUser", user => { if (user.id === game.user.id) { refreshAllOrbs(); refreshSkillUI(); refreshResourceHuds(); refreshCombatPartyHud(); } });
+Hooks.on("updateUser", user => { if (user.id === game.user.id) { refreshAllOrbs(); refreshSkillUI(); refreshResourceHuds(); refreshCombatPartyHud(); refreshInitiativeCarousel(); } });
 Hooks.on("updateSetting", setting => {
   if (setting?.key?.startsWith(`${MODULE_ID}.skillPoint`)) refreshSkillUI();
   if (setting?.key === `${MODULE_ID}.talentPointConfig`) {
@@ -6811,8 +6903,9 @@ Hooks.on("updateSetting", setting => {
     if (setting?.key === `${MODULE_ID}.ahaConfig`) preloadAhaVideo();
   }
   if (setting?.key === `${MODULE_ID}.punchlineOverride`) refreshPunchlineHUD();
+  if(setting?.key===`${MODULE_ID}.initiativeCarouselConfig`)refreshInitiativeCarousel();
 });
-Hooks.on("canvasReady", () => { refreshAllOrbs(); refreshSkillUI(); refreshTalentButtons(); refreshTechniqueButtons(); refreshPunchlineHUD(); refreshToughnessBars(); refreshCombatPartyHud(); refreshBossHud(); });
+Hooks.on("canvasReady", () => { refreshAllOrbs(); refreshSkillUI(); refreshTalentButtons(); refreshTechniqueButtons(); refreshPunchlineHUD(); refreshToughnessBars(); refreshCombatPartyHud(); refreshBossHud(); refreshInitiativeCarousel(); });
 Hooks.on("canvasReady", refreshAhaButton);
 
 Hooks.on("deleteCombat", async combat => {
@@ -6820,6 +6913,7 @@ Hooks.on("deleteCombat", async combat => {
   state.partyCombatHud?.destroy();
   state.bossHud?.destroy();
   state.bossPhaseControl?.destroy();
+  state.initiativeCarousel?.destroy();
   state.bossTransitionLocks.clear();
   state.punchlineMeter?.destroy();
   state.skillMeter?.destroy();
@@ -6861,6 +6955,7 @@ Hooks.on("updateCombat", async combat => {
   refreshPunchlineHUD();
   refreshSkillUI();
   refreshBossHud();
+  refreshInitiativeCarousel();
   for (const actor of game.actors.filter(entry => entry.type === "character")) refreshTalentCounter(actor);
   state.gmPanel?.render(false);
   if (!isAuthority()) return;
@@ -6935,6 +7030,7 @@ Hooks.on("updateCombat", async combat => {
 
 Hooks.on("updateCombatant", async (combatant, changed) => {
   refreshBossHud();
+  refreshInitiativeCarousel();
   state.bossPhaseControl?.render();
   if(isAuthority())await ensureBossEncounter(combatant);
   if (!isAuthority() || isAhaCombatant(combatant) || isElationActionCombatant(combatant) || isTalentTurnCombatant(combatant) || !("initiative" in changed)) return;
@@ -6945,6 +7041,7 @@ Hooks.on("createCombatant", combatant => {
   state.gmPanel?.render(false);
   window.setTimeout(refreshToughnessBars, 150);
   window.setTimeout(refreshCombatPartyHud, 150);
+  window.setTimeout(refreshInitiativeCarousel,150);
   window.setTimeout(()=>ensureBossEncounter(combatant).catch(error=>console.error(`${MODULE_ID} | Boss combatant initialization failed`,error)),100);
   if (isAhaCombatant(combatant) || isElationActionCombatant(combatant) || isTalentTurnCombatant(combatant)) return;
   window.setTimeout(() => maybeEnsureAhaCombatant(combatant.parent), 100);
@@ -6955,6 +7052,7 @@ Hooks.on("combatStart", async combat => {
   refreshPunchlineHUD();
   refreshSkillUI();
   refreshBossHud();
+  refreshInitiativeCarousel();
   state.lastCombatTurns.set(combat.id, combatTurnSnapshot(combat));
   if (isAuthority()) {
     await ensureBossEncounters(combat);
@@ -6972,10 +7070,12 @@ Hooks.on("combatStart", async combat => {
     refreshCombatPartyHud();
     refreshPunchlineHUD();
     refreshSkillUI();
+    refreshInitiativeCarousel();
   }, 100);
 });
 Hooks.on("deleteCombatant", combatant => {
   refreshBossHud();
+  refreshInitiativeCarousel();
   state.bossPhaseControl?.render();
   const tracked = state.lastCombatTurns.get(combatant.parent?.id);
   if (tracked?.id === combatant.id) state.lastCombatTurns.set(combatant.parent.id, combatTurnSnapshot(combatant.parent));
