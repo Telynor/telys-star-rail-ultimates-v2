@@ -363,7 +363,8 @@ function getConfig(actor) {
 }
 
 function initiativePortraitPositionBounds(scalePercent){
-  const travel=Math.max(50,clamp(Number(scalePercent)||100,50,800)/2);
+  const scale=clamp(Number(scalePercent)||100,50,800);
+  const travel=Math.max(1050,scale*1.5);
   return {min:Math.floor(50-travel),max:Math.ceil(50+travel)};
 }
 
@@ -6819,7 +6820,7 @@ function openToughnessConfig(actor) {
     <label class="tsru-toughness-toggle"><span><strong>Enable Toughness</strong><small>Show and automatically process Toughness while this actor is in combat.</small></span><input type="checkbox" name="enabled" ${config.enabled ? "checked" : ""}></label>
     <div class="tsru-toughness-numbers"><label><strong>Current</strong><input type="number" name="current" min="0" value="${config.current}"></label><label><strong>Maximum</strong><input type="number" name="max" min="1" value="${config.max}"></label></div>
     <fieldset><legend>Elemental Weaknesses</legend><div class="tsru-weakness-grid">${weaknessRows || "<em>Create Elements in Module Settings first.</em>"}</div></fieldset>
-    ${actor.type==="npc"?`<fieldset class="tsru-carousel-art-config"><legend>Initiative Carousel Artwork</legend><label><strong>NPC carousel art</strong><small>Used by the HSR initiative carousel instead of the token portrait.</small><div class="tsru-file-control"><input type="text" name="carouselImage" value="${escapeHTML(carousel.carouselImage)}" placeholder="Use combatant or actor image"><button type="button" data-carousel-picker title="Browse Files"><i class="fas fa-file-import"></i></button></div></label><div class="tsru-toughness-numbers"><label><strong>Art X</strong><input type="number" name="carouselImageX" min="-350" max="450" value="${carousel.carouselImageX}"></label><label><strong>Art Y</strong><input type="number" name="carouselImageY" min="-350" max="450" value="${carousel.carouselImageY}"></label><label><strong>Zoom %</strong><input type="number" name="carouselImageScale" min="50" max="800" value="${carousel.carouselImageScale}"></label></div></fieldset>`:""}
+    ${actor.type==="npc"?`<fieldset class="tsru-carousel-art-config"><legend>Initiative Carousel Artwork</legend><label><strong>NPC carousel art</strong><small>Used by the HSR initiative carousel instead of the token portrait.</small><div class="tsru-file-control"><input type="text" name="carouselImage" value="${escapeHTML(carousel.carouselImage)}" placeholder="Use combatant or actor image"><button type="button" data-carousel-picker title="Browse Files"><i class="fas fa-file-import"></i></button></div></label><div class="tsru-toughness-numbers"><label><strong>Art X</strong><input type="number" name="carouselImageX" min="-1000" max="1100" value="${carousel.carouselImageX}"></label><label><strong>Art Y</strong><input type="number" name="carouselImageY" min="-1000" max="1100" value="${carousel.carouselImageY}"></label><label><strong>Zoom %</strong><input type="number" name="carouselImageScale" min="50" max="800" value="${carousel.carouselImageScale}"></label></div></fieldset>`:""}
   </form>`;
   const dialog = new Dialog({title: `${actor.name} — Toughness`, content, buttons: {
     save: {icon: '<i class="fas fa-save"></i>', label: "Save", callback: async html => {
