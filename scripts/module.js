@@ -188,7 +188,11 @@ const DEFAULT_AHA_CONFIG = Object.freeze({
   buttonImage: "icons/svg/explosion.svg",
   color: "#ff4fd8",
   initiativeEnabled: false,
-  combatantImage: "icons/svg/mystery-man.svg"
+  combatantImage: "icons/svg/mystery-man.svg",
+  combatantImageX: 50,
+  combatantImageY: 50,
+  combatantImageScale: 100,
+  combatantImageFlip: false
 });
 
 const DEFAULT_TECHNIQUE_POINT_CONFIG = Object.freeze({
@@ -3055,7 +3059,7 @@ async function handleBossPhaseDefeat(actor) {
 }
 
 function carouselPortraitData(combatant) {
-  if (isAhaCombatant(combatant)) return {image:getAhaConfig().combatantImage || getAhaConfig().buttonImage || DEFAULT_AHA_CONFIG.combatantImage,x:50,y:50,scale:100};
+  if (isAhaCombatant(combatant)){const config=getAhaConfig(),scale=clamp(config.combatantImageScale,50,800),bounds=initiativePortraitPositionBounds(scale);return {image:config.combatantImage||config.buttonImage||DEFAULT_AHA_CONFIG.combatantImage,x:clamp(config.combatantImageX,bounds.min,bounds.max),y:clamp(config.combatantImageY,bounds.min,bounds.max),scale,flip:Boolean(config.combatantImageFlip)};}
   const actor=combatant?.actor;
   const config=getConfig(actor);
   return {image:config.carouselImage || actor?.img || combatant?.img || "icons/svg/mystery-man.svg",x:config.carouselImageX,y:config.carouselImageY,scale:config.carouselImageScale,flip:config.carouselImageFlip};
@@ -3121,7 +3125,7 @@ class HsrInitiativeCarousel {
     const disposition=Number(combatant?.token?.disposition);
     const friendlyDisposition=Number(globalThis.CONST?.TOKEN_DISPOSITIONS?.FRIENDLY??1);
     const allied=Number.isFinite(disposition)?disposition===friendlyDisposition:combatant?.actor?.type==="character";
-    const customFrameColor=combatant?.actor?.type==="character"&&actorConfig.carouselFrameColorOverride?resolvedInitiativeFrameColor(actorConfig):"";
+    const customFrameColor=actorConfig.carouselFrameColorOverride?resolvedInitiativeFrameColor(actorConfig):"";
     const labels={ultimate:"ULT",talent:"TALENT",advance:"ADV",elation:"ELATION",aha:"AHA"};
     const initiative=Number.isFinite(Number(combatant.initiative))?Number(combatant.initiative):"—";
     return `<button type="button" class="tsru-hsr-turn tsru-initiative-art-mask ${active?"is-active":""} ${inserted?"is-inserted":""} ${allied?"is-ally":"is-enemy"} ${customFrameColor?"has-custom-frame":""} is-${kind} ${nextRound?"is-next-round":""}" data-combatant-id="${combatant.id}" title="${escapeHTML(displayName)} — Initiative ${initiative}" style="--portrait-x:${portrait.x}%;--portrait-y:${portrait.y}%;--portrait-scale:${portrait.scale/100};--portrait-flip:${portrait.flip?-1:1};${customFrameColor?`--turn-color:${customFrameColor};`:""}"><span class="tsru-hsr-turn-pointer"><i></i></span><span class="tsru-hsr-turn-card"><span class="tsru-initiative-art-layer"><img src="${escapeHTML(portrait.image)}" alt="${escapeHTML(displayName)}"></span><b>${escapeHTML(displayName)}</b>${labels[kind]?`<em>${labels[kind]}</em>`:""}<small>${initiative}</small></span></button>`;
@@ -5393,6 +5397,15 @@ class AhaConfig extends FormApplication {
     html.find("[data-action='show-aha-button']").on("click", showAhaButton);
     html.find("[data-action='show-punchline']").on("click", async () => { await savePunchlineLayout({visible: true}); refreshPunchlineHUD(); });
     html.find("[data-action='reset-canvas-toughness']").on("click", resetCanvasToughness);
+    const initiativePreview=html.find("[data-aha-initiative-preview]"),initiativeCard=initiativePreview.find(".tsru-hsr-turn"),initiativeImage=initiativePreview.find("img");
+    const initiativeValues=()=>{const scale=clamp(Number(html.find('[name="combatantImageScale"]').val())||100,50,800),bounds=initiativePortraitPositionBounds(scale);return {image:String(html.find('[name="combatantImage"]').val()||DEFAULT_AHA_CONFIG.combatantImage),x:clamp(Number(html.find('[name="combatantImageX"]').val())||0,bounds.min,bounds.max),y:clamp(Number(html.find('[name="combatantImageY"]').val())||0,bounds.min,bounds.max),scale,flip:Boolean(html.find('[name="combatantImageFlip"]').prop("checked"))};};
+    const refreshInitiativePreview=()=>{const data=initiativeValues();initiativeImage.attr("src",data.image);initiativeCard.css({"--portrait-x":`${data.x}%`,"--portrait-y":`${data.y}%`,"--portrait-scale":data.scale/100,"--portrait-flip":data.flip?-1:1});};
+    html.find('[name="combatantImage"],[name="combatantImageX"],[name="combatantImageY"],[name="combatantImageScale"],[name="combatantImageFlip"]').on("input change",refreshInitiativePreview);
+    let initiativeDrag=null;
+    initiativePreview.on("pointerdown.tsru-aha-crop",".tsru-hsr-turn-card",event=>{if(event.button!==0)return;event.preventDefault();const data=initiativeValues(),rect=event.currentTarget.getBoundingClientRect();initiativeDrag={x:event.clientX,y:event.clientY,startX:data.x,startY:data.y,rect};event.currentTarget.setPointerCapture?.(event.pointerId);});
+    $(document).off(".tsru-aha-initiative-crop").on("pointermove.tsru-aha-initiative-crop",event=>{if(!initiativeDrag)return;event.preventDefault();const bounds=initiativePortraitPositionBounds(initiativeValues().scale),x=clamp(initiativeDrag.startX+(event.clientX-initiativeDrag.x)/Math.max(1,initiativeDrag.rect.width)*100,bounds.min,bounds.max),y=clamp(initiativeDrag.startY+(event.clientY-initiativeDrag.y)/Math.max(1,initiativeDrag.rect.height)*100,bounds.min,bounds.max);html.find('[name="combatantImageX"]').val(Math.round(x));html.find('[name="combatantImageY"]').val(Math.round(y));refreshInitiativePreview();}).on("pointerup.tsru-aha-initiative-crop pointercancel.tsru-aha-initiative-crop",()=>{initiativeDrag=null;});
+    initiativePreview.on("wheel.tsru-aha-crop",event=>{event.preventDefault();event.stopPropagation();const input=html.find('[name="combatantImageScale"]'),next=clamp(initiativeValues().scale+(event.originalEvent.deltaY<0?5:-5),50,800);input.val(next);refreshInitiativePreview();});
+    refreshInitiativePreview();
     const refreshPunchlinePreview = () => {
       const preview = html.find(".tsru-punchline-placement-preview");
       const x = clamp(html.find('[name="punchlineIconOffsetX"]').val(), -100, 100);
@@ -5424,7 +5437,11 @@ class AhaConfig extends FormApplication {
       buttonImage: formData.buttonImage || DEFAULT_AHA_CONFIG.buttonImage,
       color: formData.color || DEFAULT_AHA_CONFIG.color,
       initiativeEnabled: Boolean(formData.initiativeEnabled),
-      combatantImage: formData.combatantImage || DEFAULT_AHA_CONFIG.combatantImage
+      combatantImage: formData.combatantImage || DEFAULT_AHA_CONFIG.combatantImage,
+      combatantImageX: clamp(formData.combatantImageX,-1150,1250),
+      combatantImageY: clamp(formData.combatantImageY,-1150,1250),
+      combatantImageScale: clamp(formData.combatantImageScale,50,800),
+      combatantImageFlip: Boolean(formData.combatantImageFlip)
     };
     await game.settings.set(MODULE_ID, "ahaConfig", savedConfig);
     await setPunchline(formData.punchline);
@@ -5438,6 +5455,7 @@ class AhaConfig extends FormApplication {
     for (const app of Object.values(ui.windows ?? {})) if (app.actor?.type === "character") app.render(false);
     ui.notifications.info("Aha Instant configuration saved.");
   }
+  async close(...args){$(document).off(".tsru-aha-initiative-crop");return super.close(...args);}
 }
 
 class AhaMenu extends FormApplication {
