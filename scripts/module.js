@@ -384,6 +384,7 @@ function getInitiativeCarouselConfig() {
 
 function getInitiativeFrameColors(){const stored=game.settings.get(MODULE_ID,"initiativeFrameColors");return (Array.isArray(stored)&&stored.length?stored:DEFAULT_INITIATIVE_FRAME_COLORS).map(entry=>({id:String(entry.id||foundry.utils.randomID()),name:String(entry.name||"Frame Color"),color:/^#[0-9a-f]{6}$/i.test(String(entry.color||""))?String(entry.color):"#58dfee"}));}
 function resolvedInitiativeFrameColor(config){return getInitiativeFrameColors().find(entry=>entry.id===config.carouselFrameColorPreset)?.color||config.carouselFrameColor||"#58dfee";}
+function initiativeFrameOverrideEnabled(config){const preset=String(config?.carouselFrameColorPreset||"");return Boolean(config?.carouselFrameColorOverride||(preset&&preset!=="ally-blue"));}
 function initiativeFrameColorOptions(config){const selected=String(config.carouselFrameColorPreset||"");return getInitiativeFrameColors().map(entry=>({...entry,selected:entry.id===selected}));}
 
 function getToughness(actor) {
@@ -3070,10 +3071,10 @@ function openInitiativePortraitEditor(actor){
   const existing=state.initiativePortraitEditors.get(actor.id);
   if(existing)return existing.bringToTop?.();
   const config=getConfig(actor),colors=getInitiativeFrameColors();
-  const frameColor=config.carouselFrameColorOverride?(colors.find(entry=>entry.id===config.carouselFrameColorPreset)?.color||config.carouselFrameColor||"#58dfee"):"#58dfee";
+  const frameOverride=initiativeFrameOverrideEnabled(config),frameColor=frameOverride?(colors.find(entry=>entry.id===config.carouselFrameColorPreset)?.color||config.carouselFrameColor||"#58dfee"):"#58dfee";
   const content=`<form class="tsru-initiative-portrait-editor">
     <div class="tsru-initiative-editor-stage" data-initiative-editor-stage>
-      <button type="button" class="tsru-hsr-turn tsru-initiative-art-mask is-ally is-active ${config.carouselFrameColorOverride?"has-custom-frame":""}" style="--turn-color:${frameColor};--portrait-x:${config.carouselImageX}%;--portrait-y:${config.carouselImageY}%;--portrait-scale:${config.carouselImageScale/100};--portrait-flip:${config.carouselImageFlip?-1:1}"><span class="tsru-hsr-turn-pointer"><i></i></span><span class="tsru-hsr-turn-card"><span class="tsru-initiative-art-layer"><img src="${escapeHTML(config.carouselImage||actor.img||"icons/svg/mystery-man.svg")}" alt="${escapeHTML(actor.name)}" draggable="false"></span><b>${escapeHTML(actor.name)}</b><small>19</small></span></button>
+      <button type="button" class="tsru-hsr-turn tsru-initiative-art-mask is-ally is-active ${frameOverride?"has-custom-frame":""}" style="--turn-color:${frameColor};--portrait-x:${config.carouselImageX}%;--portrait-y:${config.carouselImageY}%;--portrait-scale:${config.carouselImageScale/100};--portrait-flip:${config.carouselImageFlip?-1:1}"><span class="tsru-hsr-turn-pointer"><i></i></span><span class="tsru-hsr-turn-card"><span class="tsru-initiative-art-layer"><img src="${escapeHTML(config.carouselImage||actor.img||"icons/svg/mystery-man.svg")}" alt="${escapeHTML(actor.name)}" draggable="false"></span><b>${escapeHTML(actor.name)}</b><small>19</small></span></button>
     </div>
     <p class="notes">Drop artwork into the preview, drag to reposition it, and use the mouse wheel to zoom. Every change saves automatically.</p>
     <label><strong>Initiative portrait</strong><span class="tsru-file-control"><input type="text" name="carouselImage" value="${escapeHTML(config.carouselImage)}" placeholder="Use actor portrait"><button type="button" data-initiative-image-picker title="Browse Files"><i class="fas fa-file-import"></i></button></span></label>
@@ -3125,7 +3126,7 @@ class HsrInitiativeCarousel {
     const disposition=Number(combatant?.token?.disposition);
     const friendlyDisposition=Number(globalThis.CONST?.TOKEN_DISPOSITIONS?.FRIENDLY??1);
     const allied=Number.isFinite(disposition)?disposition===friendlyDisposition:combatant?.actor?.type==="character";
-    const customFrameColor=actorConfig.carouselFrameColorOverride?resolvedInitiativeFrameColor(actorConfig):"";
+    const customFrameColor=initiativeFrameOverrideEnabled(actorConfig)?resolvedInitiativeFrameColor(actorConfig):"";
     const labels={ultimate:"ULT",talent:"TALENT",advance:"ADV",elation:"ELATION",aha:"AHA"};
     const initiative=Number.isFinite(Number(combatant.initiative))?Number(combatant.initiative):"—";
     return `<button type="button" class="tsru-hsr-turn tsru-initiative-art-mask ${active?"is-active":""} ${inserted?"is-inserted":""} ${allied?"is-ally":"is-enemy"} ${customFrameColor?"has-custom-frame":""} is-${kind} ${nextRound?"is-next-round":""}" data-combatant-id="${combatant.id}" title="${escapeHTML(displayName)} — Initiative ${initiative}" style="--portrait-x:${portrait.x}%;--portrait-y:${portrait.y}%;--portrait-scale:${portrait.scale/100};--portrait-flip:${portrait.flip?-1:1};${customFrameColor?`--turn-color:${customFrameColor};`:""}"><span class="tsru-hsr-turn-pointer"><i></i></span><span class="tsru-hsr-turn-card"><span class="tsru-initiative-art-layer"><img src="${escapeHTML(portrait.image)}" alt="${escapeHTML(displayName)}"></span><b>${escapeHTML(displayName)}</b>${labels[kind]?`<em>${labels[kind]}</em>`:""}<small>${initiative}</small></span></button>`;
