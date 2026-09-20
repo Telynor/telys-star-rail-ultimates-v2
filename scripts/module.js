@@ -4083,7 +4083,7 @@ async function onSocket(payload) {
   if(payload.type==="craftingResult"&&payload.targetUserId===game.user.id){
     (payload.ok?ui.notifications.info:ui.notifications.error).call(ui.notifications,payload.message);state.craftingApp?.render({force:false});return;
   }
-  if (payload.type === "breakResult" || payload.type === "damageResult") { await showBreakResult(payload); return; }
+  if (payload.type === "breakResult" || payload.type === "damageResult" || payload.type === "weaknessBreak") { await showBreakResult(payload); return; }
   if (payload.type === "ahaConfigChanged") {
     state.punchlineMeter?.destroy();
     refreshAhaButton();
@@ -4493,6 +4493,7 @@ async function limitBreakAttackHpDamage(attacker, target, amount, eventId, optio
 }
 
 const DEFAULT_DAMAGE_DISPLAY = Object.freeze({
+  brokenOverlayImage: "",
   damageFontFile: "",
   breakFontFile: "",
   superBreakFontFile: "",
@@ -4560,7 +4561,7 @@ class BreakAppearanceConfig extends FormApplication {
     super.activateListeners(html);
     html.find(".file-picker").on("click", event => {
       const input=html.find(`[name="${event.currentTarget.dataset.target}"]`);
-      new FilePicker({type:"any",current:input.val(),callback:path=>input.val(path).trigger("input").trigger("change")}).browse();
+      new FilePicker({type:event.currentTarget.dataset.fileType||"any",current:input.val(),callback:path=>input.val(path).trigger("input").trigger("change")}).browse();
     });
     let previewSequence = 0;
     const refreshPreview = async () => {
@@ -4598,7 +4599,7 @@ class BreakAppearanceConfig extends FormApplication {
   }
   async _updateObject(_event, formData) {
     if (!game.user.isGM) return;
-    const config = {};
+    const config = {brokenOverlayImage:String(formData.brokenOverlayImage ?? "").trim()};
     for (const type of ["damage", "break", "superBreak"]) {
       config[`${type}FontFile`] = String(formData[`${type}FontFile`] ?? "").trim();
       config[`${type}FontSize`] = clamp(Number(formData[`${type}FontSize`]), 16, 140);
@@ -4609,6 +4610,7 @@ class BreakAppearanceConfig extends FormApplication {
       config[`${type}BottomColor`] = /^#[0-9a-f]{6}$/i.test(formData[`${type}BottomColor`] ?? "") ? formData[`${type}BottomColor`] : "#ffffff";
     }
     await game.settings.set(MODULE_ID, "breakFonts", config);
+    refreshBrokenTokenOverlays();
     ui.notifications.info("Universal damage display appearance saved.");
   }
 }
@@ -4623,14 +4625,14 @@ function safePopupColor(value, fallback = "#ffffff") {
   return /^#[0-9a-f]{6}$/i.test(String(value ?? "")) ? String(value) : fallback;
 }
 
-function renderDamageSvg(container, {label = "", damage = "0", fontFamily = "Arial, sans-serif", fontSize = 48, bold = true, gradient = true, topColor = "#ffffff", bottomColor = "#ffffff"} = {}) {
+function renderDamageSvg(container, {label = "", damage = "0", labelOnly = false, fontFamily = "Arial, sans-serif", fontSize = 48, bold = true, gradient = true, topColor = "#ffffff", bottomColor = "#ffffff"} = {}) {
   if (!container) return;
   container.replaceChildren();
   const ns = "http://www.w3.org/2000/svg";
   const size = clamp(Number(fontSize), 16, 140);
-  const labelSize = size * .52;
-  const width = Math.max(150, String(damage).length * size * .72, String(label).length * labelSize * .68);
-  const height = label ? size * 1.65 : size * 1.2;
+  const labelSize = labelOnly ? size : size * .52;
+  const width = Math.max(150, labelOnly ? String(label).length * labelSize * .72 : String(damage).length * size * .72, String(label).length * labelSize * .68);
+  const height = labelOnly ? size * 1.25 : label ? size * 1.65 : size * 1.2;
   const svg = document.createElementNS(ns, "svg");
   svg.classList.add("tsru-damage-svg");
   svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
@@ -4668,8 +4670,8 @@ function renderDamageSvg(container, {label = "", damage = "0", fontFamily = "Ari
     node.style.filter = "drop-shadow(0 1px 1px rgba(0,0,0,.65))";
     svg.appendChild(node);
   };
-  if (label) addText(label, labelSize * .72, labelSize);
-  addText(String(damage), label ? labelSize + size * .62 : height * .52, size);
+  if (label) addText(label, labelOnly ? height * .52 : labelSize * .72, labelSize);
+  if (!labelOnly) addText(String(damage), label ? labelSize + size * .62 : height * .52, size);
   container.appendChild(svg);
 }
 
@@ -4763,7 +4765,7 @@ async function showBreakResult(payload) {
   const token = canvas?.tokens?.get(payload.tokenId) ?? breakDisplayTarget(game.actors.get(payload.actorId));
   const damage = String(Math.max(0, Math.floor(Number(payload.damage) || 0)));
   const type = payload.plainDamage ? "damage" : payload.superBreak ? "superBreak" : "break";
-  const label = payload.plainDamage ? (payload.critical ? "CRIT Hit" : "") : payload.superBreak ? "Super Break" : "Break";
+  const label = payload.announcementOnly ? "BREAK" : payload.plainDamage ? (payload.critical ? "CRIT Hit" : "") : payload.superBreak ? "SUPER BREAK" : "BREAK";
   const style = damageDisplayStyle(type);
   let fontFamily = "Arial, sans-serif";
   try { fontFamily = await loadSplashFont(style.fontFile || payload.fontFile); }
@@ -4794,6 +4796,7 @@ async function showBreakResult(payload) {
   renderDamageSvg(popup, {
     label,
     damage,
+    labelOnly:Boolean(payload.announcementOnly),
     fontFamily,
     fontSize: style.fontSize,
     bold: style.bold,
@@ -4804,6 +4807,41 @@ async function showBreakResult(payload) {
   document.body.append(popup);
   window.setTimeout(() => popup.remove(), 1250);
 }
+
+async function broadcastWeaknessBreak(attacker, target) {
+  const {actor}=toughnessTargetParts(target);
+  const token=breakDisplayTarget(target);
+  const display={type:"weaknessBreak",actorId:actor?.id??"",tokenId:token?.id??"",sceneId:canvas?.scene?.id??"",damage:0,announcementOnly:true,forceElementColor:true,color:damageResultColor(attacker)};
+  await showBreakResult(display);
+  game.socket.emit(SOCKET,display);
+}
+
+function removeBrokenTokenOverlay(token) {
+  const overlay=token?.__tsruBrokenOverlay;
+  if(overlay){overlay.destroy?.({children:true});delete token.__tsruBrokenOverlay;}
+  if(token)delete token.__tsruBrokenOverlayLoading;
+}
+
+async function renderBrokenTokenOverlay(token) {
+  if(!token?.actor)return;
+  const image=String(getBreakFonts().brokenOverlayImage||"").trim();
+  const broken=getToughness(token.actor).enabled&&getToughness(token.actor).current<=0;
+  if(!image||!broken){removeBrokenTokenOverlay(token);return;}
+  const existing=token.__tsruBrokenOverlay;
+  if(existing?.__tsruSource===image){existing.width=token.w;existing.height=token.h;return;}
+  if(token.__tsruBrokenOverlayLoading===image)return;
+  removeBrokenTokenOverlay(token);
+  token.__tsruBrokenOverlayLoading=image;
+  try{
+    const texture=await loadTexture(image);
+    if(token.__tsruBrokenOverlayLoading!==image||!token.parent||!token.actor||getToughness(token.actor).current>0||String(getBreakFonts().brokenOverlayImage||"").trim()!==image)return;
+    const sprite=new PIXI.Sprite(texture);
+    sprite.__tsruSource=image;sprite.name="tsru-broken-token-overlay";sprite.position.set(0,0);sprite.width=token.w;sprite.height=token.h;sprite.zIndex=9999;sprite.eventMode="none";sprite.interactive=false;
+    token.sortableChildren=true;token.addChild(sprite);token.__tsruBrokenOverlay=sprite;
+  }catch(error){console.warn(MODULE_ID+" | Could not load broken-token overlay",error);}finally{if(token.__tsruBrokenOverlayLoading===image)delete token.__tsruBrokenOverlayLoading;}
+}
+
+function refreshBrokenTokenOverlays(){for(const token of canvas?.tokens?.placeables??[])renderBrokenTokenOverlay(token);}
 
 async function applyWeaknessBreakDamage(attacker, target, {superBreak = false} = {}) {
   const config = getConfig(attacker);
@@ -5011,6 +5049,7 @@ async function applyToughnessDamage(attacker, targets, amount, eventKey = "") {
     applied = true;
     if (next === 0 && toughness.current > 0) {
       ui.notifications.info(`${actor.name}'s Toughness was broken!`);
+      await broadcastWeaknessBreak(attacker,target);
       if (breakCharacter) await applyWeaknessBreakDamage(attacker, target);
       await delayBrokenCombatant(target);
     }
@@ -6915,6 +6954,7 @@ function renderToughnessBar(token) {
 
 function refreshToughnessBars() {
   for (const token of canvas?.tokens?.placeables ?? []) renderToughnessBar(token);
+  refreshBrokenTokenOverlays();
 }
 
 function injectToughnessHeaderButton(app, html) {
