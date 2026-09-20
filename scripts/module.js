@@ -4414,31 +4414,17 @@ async function applyChatRollAsDamage(message, target, requestingUser, applicatio
   const resolvedApplicationId = applicationId || foundry.utils.randomID();
   const targetUuid = toughnessTargetParts(target).tokenDocument?.uuid ?? targetActor.uuid;
   const eventKey = `manual-chat-damage:${message.id}:${resolvedApplicationId}:${targetUuid}`;
-  if (isBreakDamageRoll) {
-    const breakType = isSuperBreakDamageRoll ? "superBreak" : "break";
-    state.lastDamageDisplay = {
-      type: breakType,
-      label: isSuperBreakDamageRoll ? "Super Break" : "Break",
-      color: damageResultColor(attacker),
-      critical: false,
-      attackerId: attacker.id,
-      expires: Date.now() + 15000
-    };
-  }
+  const critical=damageRollWasCritical(message);
+  state.lastDamageDisplay = {
+    type:isBreakDamageRoll?(isSuperBreakDamageRoll?"superBreak":"break"):"damage",
+    label:isBreakDamageRoll?(isSuperBreakDamageRoll?"SUPER BREAK":"BREAK"):(critical?"CRIT Hit":""),
+    color:damageResultColor(attacker,{hpDamage:true}),
+    critical,
+    forceElementColor:Boolean(isBreakDamageRoll||config.breakCharacter),
+    attackerId:attacker.id,
+    expires:Date.now()+15000
+  };
   await applyDirectChatDamage(targetActor, hpDamage);
-  if (attacker.type === "character" && hpDamage > 0) {
-    if (isBreakDamageRoll) {
-      const elementColor = damageResultColor(attacker);
-      await broadcastDamageResult(target, hpDamage, {
-        plainDamage: false,
-        superBreak: isSuperBreakDamageRoll,
-        color: elementColor,
-        fontFile: isSuperBreakDamageRoll ? getBreakFonts().superBreakFontFile : getBreakFonts().breakFontFile
-      });
-    } else {
-      await broadcastDamageOnce(attacker, target, hpDamage, eventKey, {critical:damageRollWasCritical(message)});
-    }
-  }
   const appliedToughness = toughnessDamage > 0 ? await applyToughnessDamage(attacker, [target], toughnessDamage, eventKey) : 0;
   const detail = {sourceActor: attacker, targetActor, amount: hpDamage, origin: message, manual: true};
   await dispatchTalentEvent("damageDealt", detail, eventKey);
@@ -4908,9 +4894,6 @@ async function processAppliedDamage(target, amount, options = {}) {
   const damageEventId = origin?.id ?? options.midi?.workflowId ?? "unknown";
 
   if (Number(amount) > 0) {
-    const shownDamage=getConfig(attacker).breakCharacter ? Math.min(1,Math.floor(Number(amount))) : Math.floor(Number(amount));
-    const critical = damageRollWasCritical(options.midi ?? options.workflow ?? origin);
-    await broadcastDamageOnce(attacker, target, shownDamage, damageEventId, {critical});
     const detail = {sourceActor: attacker, targetActor, amount: Number(amount), origin, midi: options.midi ?? null};
     await dispatchTalentEvent("damageDealt", detail, `${damageEventId}:${targetActor.uuid}`);
     await dispatchTalentEvent("damageTaken", detail, `${damageEventId}:${targetActor.uuid}`);
@@ -5184,11 +5167,6 @@ async function processMidiWorkflow(workflow) {
     state.processedMessages.add(damageKey);
     window.setTimeout(() => state.processedMessages.delete(damageKey), 120000);
     await applyToughnessDamage(attacker, toughnessTargets, diceDamage, key);
-  }
-  const displayDamage = getConfig(attacker).breakCharacter ? Math.min(1, fullDamageTotal(damageRolls)) : fullDamageTotal(damageRolls);
-  if (attacker?.type === "character" && displayDamage > 0) {
-    const critical = damageRollWasCritical(workflow);
-    for (const target of toughnessTargets) await broadcastDamageOnce(attacker, target, displayDamage, key, {critical});
   }
   for (const target of targets) {
     const actor = target.actor ?? target.document?.actor;
