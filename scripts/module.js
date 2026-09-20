@@ -3156,7 +3156,8 @@ class HsrInitiativeCarousel {
     if(currentKind!=="normal"&&currentKind!=="aha"&&resumeId){const resumed=turns.find(entry=>entry.id===resumeId);if(resumed){remaining=[resumed,current,...remaining.slice(1).filter(entry=>entry.id!==resumeId)];wrapped=wrapped.filter(entry=>entry.id!==resumeId);activeRow=1;}}
     const rows=[];
     remaining.forEach((entry,index)=>rows.push(this.turnMarkup(entry,{active:index===activeRow})));
-    rows.push(`<div class="tsru-hsr-round-divider"><i></i><strong>ROUND ${Number(combat.round||0)+1}</strong><i></i></div>`);
+    const nextRoundNumber=Math.max(1,Number(combat.round||0)+1),nextRoundActionValue=Math.max(0,(nextRoundNumber-1)*6);
+    rows.push(`<div class="tsru-hsr-round-marker" title="Round ${nextRoundNumber} — ${nextRoundActionValue} action value"><span class="tsru-hsr-round-hourglass"><i class="fas fa-hourglass-half"></i></span><span class="tsru-hsr-round-count">${nextRoundNumber}</span><span class="tsru-hsr-round-separator"></span><span class="tsru-hsr-round-action-value">${nextRoundActionValue}</span></div>`);
     if(wrapped.length)wrapped.forEach(entry=>rows.push(this.turnMarkup(entry,{nextRound:true})));
     else if(turns[0])rows.push(this.turnMarkup(turns[0],{nextRound:true}));
     const maximumHeight=Math.max(180,Math.min(config.maximumHeight,innerHeight-clamp(layout.y,0,innerHeight-60)-16));
