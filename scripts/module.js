@@ -4763,6 +4763,7 @@ async function broadcastDamageOnce(attacker, target, amount, eventId, {critical 
 async function showBreakResult(payload) {
   if (payload.sceneId && canvas?.scene?.id !== payload.sceneId) return;
   const token = canvas?.tokens?.get(payload.tokenId) ?? breakDisplayTarget(game.actors.get(payload.actorId));
+  if(payload.announcementOnly&&token)await renderBrokenTokenOverlay(token);
   const damage = String(Math.max(0, Math.floor(Number(payload.damage) || 0)));
   const type = payload.plainDamage ? "damage" : payload.superBreak ? "superBreak" : "break";
   const label = payload.announcementOnly ? "BREAK" : payload.plainDamage ? (payload.critical ? "CRIT Hit" : "") : payload.superBreak ? "SUPER BREAK" : "BREAK";
@@ -4776,14 +4777,17 @@ async function showBreakResult(payload) {
   const rect = view?.getBoundingClientRect?.();
   let left = window.innerWidth / 2;
   let top = window.innerHeight / 2;
+  let tokenScreenWidth = 0;
   if (token && rect) {
-    const stageScale = Math.abs(Number(canvas?.stage?.scale?.y)) || 1;
-    const worldPoint = new PIXI.Point(token.center.x, token.center.y - token.h / 2 - 12 / stageScale);
-    const screenPoint = canvas?.stage?.worldTransform?.apply?.(worldPoint) ?? token.getGlobalPosition?.(new PIXI.Point()) ?? worldPoint;
     const screenWidth = Number(canvas?.app?.renderer?.screen?.width) || rect.width;
     const screenHeight = Number(canvas?.app?.renderer?.screen?.height) || rect.height;
-    left = rect.left + screenPoint.x * (rect.width / screenWidth);
-    top = rect.top + screenPoint.y * (rect.height / screenHeight);
+    const bounds=token.getBounds?.();
+    if(bounds){
+      const scaleX=rect.width/screenWidth,scaleY=rect.height/screenHeight;
+      left=rect.left+(bounds.x+bounds.width/2)*scaleX;
+      top=rect.top+(bounds.y+bounds.height/2)*scaleY;
+      tokenScreenWidth=bounds.width*scaleX;
+    }
   }
 
   const configuredTop = (payload.forceElementColor || style.inheritElement) ? payload.color : style.topColor;
@@ -4793,12 +4797,13 @@ async function showBreakResult(payload) {
   popup.className = `tsru-break-popup${payload.plainDamage ? " is-plain-damage" : ""}`;
   popup.style.left = `${left}px`;
   popup.style.top = `${top}px`;
+  const popupFontSize=payload.announcementOnly&&tokenScreenWidth>0?clamp(Math.min(style.fontSize,tokenScreenWidth/3.6),12,style.fontSize):style.fontSize;
   renderDamageSvg(popup, {
     label,
     damage,
     labelOnly:Boolean(payload.announcementOnly),
     fontFamily,
-    fontSize: style.fontSize,
+    fontSize: popupFontSize,
     bold: style.bold,
     gradient: style.gradient,
     topColor,
