@@ -4772,65 +4772,28 @@ async function showBreakResult(payload) {
   try { fontFamily = await loadSplashFont(style.fontFile || payload.fontFile); }
   catch(error) { console.warn(`${MODULE_ID} | Could not load damage popup font`, error); }
   installDamageScrollingTextOverride();
-
-  const view = canvas?.app?.view ?? document.querySelector("#board canvas");
-  const rect = view?.getBoundingClientRect?.();
-  let left = window.innerWidth / 2;
-  let top = window.innerHeight / 2;
-  let tokenScreenWidth = 0;
-  if (token && rect) {
-    const screenWidth = Number(canvas?.app?.renderer?.screen?.width) || rect.width;
-    const screenHeight = Number(canvas?.app?.renderer?.screen?.height) || rect.height;
-    const bounds=token.getBounds?.();
-    if(bounds){
-      const scaleX=rect.width/screenWidth,scaleY=rect.height/screenHeight;
-      left=rect.left+(bounds.x+bounds.width/2)*scaleX;
-      top=rect.top+(bounds.y+bounds.height/2)*scaleY;
-      tokenScreenWidth=bounds.width*scaleX;
-    }
-  }
-
   const configuredTop = (payload.forceElementColor || style.inheritElement) ? payload.color : style.topColor;
   const topColor = safePopupColor(configuredTop, "#ffffff");
   const bottomColor = safePopupColor(style.bottomColor, "#ffffff");
-  if(payload.announcementOnly){
-    if(!token||!canvas?.interface?.createScrollingText)return;
-    const fontSize=clamp(Math.min(style.fontSize,token.w/3.6),12,style.fontSize);
-    await canvas.interface.createScrollingText(token.center,"BREAK",{
-      anchor:CONST.TEXT_ANCHOR_POINTS.CENTER,
-      direction:CONST.TEXT_ANCHOR_POINTS.TOP,
-      duration:1200,
-      distance:Math.max(8,token.h*.12),
-      jitter:0,
-      fontFamily,
-      fontSize,
-      fontWeight:style.bold?"900":"400",
-      fill:style.gradient?[topColor,bottomColor]:"#ffffff",
-      fillGradientType:0,
-      fillGradientStops:[0,1],
-      stroke:"#18181e",
-      strokeThickness:2
-    });
-    return;
-  }
-  const popup = document.createElement("div");
-  popup.className = `tsru-break-popup${payload.plainDamage ? " is-plain-damage" : ""}`;
-  popup.style.left = `${left}px`;
-  popup.style.top = `${top}px`;
-  const popupFontSize=payload.announcementOnly&&tokenScreenWidth>0?clamp(Math.min(style.fontSize,tokenScreenWidth/3.6),12,style.fontSize):style.fontSize;
-  renderDamageSvg(popup, {
-    label,
-    damage,
-    labelOnly:Boolean(payload.announcementOnly),
+  if(!token||!canvas?.interface?.createScrollingText)return;
+  const content=payload.announcementOnly?"BREAK":label?`${label}\n${damage}`:damage;
+  const longestLine=Math.max(...content.split("\n").map(line=>line.length),1);
+  const fontSize=clamp(Math.min(style.fontSize,token.w/Math.max(2.4,longestLine*.68)),12,style.fontSize);
+  await canvas.interface.createScrollingText(token.center,content,{
+    anchor:CONST.TEXT_ANCHOR_POINTS.CENTER,
+    direction:CONST.TEXT_ANCHOR_POINTS.TOP,
+    duration:1200,
+    distance:Math.max(8,token.h*.12),
+    jitter:0,
     fontFamily,
-    fontSize: popupFontSize,
-    bold: style.bold,
-    gradient: style.gradient,
-    topColor,
-    bottomColor
+    fontSize,
+    fontWeight:style.bold?"900":"400",
+    fill:style.gradient?[topColor,bottomColor]:"#ffffff",
+    fillGradientType:0,
+    fillGradientStops:[0,1],
+    stroke:"#18181e",
+    strokeThickness:2
   });
-  document.body.append(popup);
-  window.setTimeout(() => popup.remove(), 1250);
 }
 
 async function broadcastWeaknessBreak(attacker, target) {
