@@ -4793,6 +4793,26 @@ async function showBreakResult(payload) {
   const configuredTop = (payload.forceElementColor || style.inheritElement) ? payload.color : style.topColor;
   const topColor = safePopupColor(configuredTop, "#ffffff");
   const bottomColor = safePopupColor(style.bottomColor, "#ffffff");
+  if(payload.announcementOnly){
+    if(!token||!canvas?.interface?.createScrollingText)return;
+    const fontSize=clamp(Math.min(style.fontSize,token.w/3.6),12,style.fontSize);
+    await canvas.interface.createScrollingText(token.center,"BREAK",{
+      anchor:CONST.TEXT_ANCHOR_POINTS.CENTER,
+      direction:CONST.TEXT_ANCHOR_POINTS.TOP,
+      duration:1200,
+      distance:Math.max(8,token.h*.12),
+      jitter:0,
+      fontFamily,
+      fontSize,
+      fontWeight:style.bold?"900":"400",
+      fill:style.gradient?[topColor,bottomColor]:"#ffffff",
+      fillGradientType:0,
+      fillGradientStops:[0,1],
+      stroke:"#18181e",
+      strokeThickness:2
+    });
+    return;
+  }
   const popup = document.createElement("div");
   popup.className = `tsru-break-popup${payload.plainDamage ? " is-plain-damage" : ""}`;
   popup.style.left = `${left}px`;
