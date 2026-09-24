@@ -18,16 +18,16 @@ const DEFAULT_RARITIES = [
 const DEFAULT_HUB_BUTTONS = [
   ["party","Main Character","fas fa-user-check",68,18],["quests","Missions","fas fa-clipboard-list",80,18],["abilities","Abilities","fas fa-circle-nodes",68,38],
   ["crafting","Synthesize","fas fa-flask",80,38],["eidolon-effects","Eidolons","fas fa-gem",68,58],["characters","Characters","fas fa-users",80,58],
-  ["gm","GM Panel","fas fa-sliders",68,78],["quest-manager","Mission Manager","fas fa-list-check",80,78],["configure-hub","Configure Phone","fas fa-mobile-screen",92,78]
+  ["gm","GM Panel","fas fa-sliders",68,78],["quest-manager","Mission Manager","fas fa-list-check",80,78],["configure-hub","Configure Phone","fas fa-mobile-screen",92,78],["contacts-config","Configure Contacts","fas fa-address-book",92,58]
 ].map(([action,label,icon,x,y])=>({action,label,icon,x,y,width:10,height:16}));
 const HUB_BUTTON_ACTIONS = [
   ["quests","Mission Log"],["party","Main Character Selector"],["abilities","Ability Bubbles"],["crafting","Party Crafting"],["eidolon-effects","Eidolon Effects"],
   ["check-kit","Check Kit"],["inventory","Main Character Inventory"],["messenger","HSR Messenger"],["sheet","Character Sheet Tab or Element"],
   ["orbs","Combat Party HUD"],["hud-designer","Combat HUD Designer"],["aha-config","Aha Instant Configuration"],["aha-toggle","Aha Instant Orb"],["skill-config","Skill Point Configuration"],
   ["elements","Element Manager"],["paths","Path Manager"],["eidolons","Eidolon Configuration"],["light-cone-generator","Light Cone Generator"],["quest-settings","Mission Settings"],
-  ["characters","Main Character Selector (GM)"],["gm","GM Panel"],["quest-manager","Mission Manager"],["configure-hub","Phone Hub Designer"]
+  ["characters","Main Character Selector (GM)"],["gm","GM Panel"],["quest-manager","Mission Manager"],["contacts-config","Configure Contacts"],["configure-hub","Phone Hub Designer"]
 ].map(([value,label])=>({value,label}));
-const GM_ONLY_HUB_ACTIONS = new Set(["gm","quest-manager","configure-hub","characters","quest-settings","elements","paths","eidolons","light-cone-generator","aha-config","skill-config","hud-designer"]);
+const GM_ONLY_HUB_ACTIONS = new Set(["gm","quest-manager","contacts-config","configure-hub","characters","quest-settings","elements","paths","eidolons","light-cone-generator","aha-config","skill-config","hud-designer"]);
 const DEFAULT_HUB_CONFIG = {
   wallpaper:"",wallpaperFit:"cover",wallpaperX:50,wallpaperY:50,wallpaperScale:100,
   snap:true,gridSize:4,poseByActor:{},phoneByActor:{},buttons:DEFAULT_HUB_BUTTONS
@@ -42,6 +42,7 @@ function hubConfig(actor=null,profileKey=""){
     for(const key of ["wallpaper","wallpaperFit","wallpaperX","wallpaperY","wallpaperScale"]) if(actorConfig[key]!==undefined) merged[key]=actorConfig[key];
     if(Array.isArray(actorConfig.buttons)&&actorConfig.buttons.length) merged.buttons=actorConfig.buttons.map((button,index)=>({...DEFAULT_HUB_BUTTONS[index%DEFAULT_HUB_BUTTONS.length],...button}));
   }
+  if(profileKey==="__gm__"&&!merged.buttons.some(button=>button.action==="contacts-config"))merged.buttons.push({...DEFAULT_HUB_BUTTONS.find(button=>button.action==="contacts-config")});
   return merged;
 }
 
@@ -303,6 +304,7 @@ class HSRHub extends FormApplication {
         eidolons: ["Eidolon Configuration", () => api()?.openEidolonConfig?.()],
         "light-cone-generator": ["Light Cone Generator", () => api()?.openLightConeGenerator?.()],
         "quest-manager": ["Mission Manager", () => new QuestManager().render(true)],
+        "contacts-config": ["Configure Contacts", () => new HSRContactConfig().render(true)],
         "quest-settings": ["Mission Settings", () => new QuestSettings().render(true)],
         "configure-hub": ["Phone Hub Designer", () => {const app=new HSRHubConfig();app.actorId=this.viewActorId||"__gm__";app.render(true);}]
       };
@@ -350,6 +352,15 @@ class HSRHubConfig extends FormApplication {
 function messengerThreads(){return clone(game.settings.get(MODULE_ID,"hsrMessengerThreads")??[]);}
 async function saveMessengerThreads(threads){await game.settings.set(MODULE_ID,"hsrMessengerThreads",threads);}
 function messengerPortrait(actor){const config=actor?.getFlag(MODULE_ID,"ultimate")??{};return {portrait:String(config.messagingPortrait||actor?.img||"icons/svg/mystery-man.svg"),portraitX:Number(config.messagingPortraitX??50),portraitY:Number(config.messagingPortraitY??50),portraitScale:Number(config.messagingPortraitScale??100)};}
+function messengerActors(){return game.actors.filter(actor=>["character","npc"].includes(actor.type)).sort((a,b)=>a.name.localeCompare(b.name));}
+function messengerContactIds(){return new Set(game.settings.get(MODULE_ID,"hsrMessengerContacts")??[]);}
+
+class HSRContactConfig extends FormApplication {
+  static get defaultOptions(){return foundry.utils.mergeObject(super.defaultOptions,{id:"tsru-hsr-contact-config",title:"Configure Messenger Contacts",template:`modules/${MODULE_ID}/templates/hsr-contact-config.hbs`,width:620,height:720,resizable:true,closeOnSubmit:true});}
+  getData(){const enabled=messengerContactIds(),actors=messengerActors();return {actors:actors.map(actor=>({id:actor.id,name:actor.name,img:actor.img,enabled:enabled.has(actor.id)}))};}
+  activateListeners(html){super.activateListeners(html);html.find("[data-contact-jump]").on("change",event=>{const id=String(event.currentTarget.value||""),row=html.find(`[data-contact-row="${id}"]`)[0];row?.scrollIntoView({behavior:"smooth",block:"center"});row?.querySelector("input")?.focus();});html.find("[data-contact-search]").on("input",event=>{const query=String(event.currentTarget.value||"").trim().toLowerCase();html.find("[data-contact-row]").each((_index,row)=>row.hidden=Boolean(query&&!String(row.dataset.contactName||"").toLowerCase().includes(query)));});}
+  async _updateObject(_event,formData){if(!game.user.isGM)return ui.notifications.error("Only a GM can configure contacts.");const expanded=foundry.utils.expandObject(formData),ids=Object.entries(expanded.contacts??{}).filter(([_id,value])=>Boolean(value)).map(([id])=>id);await game.settings.set(MODULE_ID,"hsrMessengerContacts",ids);ui.notifications.info(`Players can now message ${ids.length} configured contacts.`);}
+}
 
 class HSRMessenger extends Application {
   static get defaultOptions(){return foundry.utils.mergeObject(super.defaultOptions,{id:"tsru-hsr-messenger",title:"HSR Messenger",template:`modules/${MODULE_ID}/templates/hsr-messenger.hbs`,width:920,height:700,resizable:true});}
@@ -357,26 +368,33 @@ class HSRMessenger extends Application {
     const all=messengerThreads(),visible=(game.user.isGM?all:all.filter(thread=>(thread.participantIds??[]).includes(game.user.id))).sort((a,b)=>Number(b.updatedAt||0)-Number(a.updatedAt||0));
     if(!visible.some(thread=>thread.id===this.threadId))this.threadId=visible[0]?.id||"";
     const selected=visible.find(thread=>thread.id===this.threadId);
-    const speakers=game.actors.filter(actor=>["character","npc"].includes(actor.type)).sort((a,b)=>a.name.localeCompare(b.name));
+    const speakers=messengerActors();
     if(!speakers.some(actor=>actor.id===this.speakerActorId))this.speakerActorId=api()?.getSelectedMainCharacter?.()?.id||speakers[0]?.id||"";
-    const messages=(selected?.messages??[]).map(message=>{const actor=game.actors.get(message.speakerActorId),portrait=messengerPortrait(actor);return {...message,...portrait,speakerName:actor?.name||message.speakerName||"Unknown",mine:message.senderUserId===game.user.id,time:new Date(Number(message.createdAt)||Date.now()).toLocaleString()};});
-    const selectedData=selected?{...selected,messages,participantNames:(selected.participantIds??[]).map(id=>game.users.get(id)?.name).filter(Boolean).join(", ")}:null;
-    return {isGM:game.user.isGM,threads:visible.map(thread=>({id:thread.id,title:thread.title,selected:thread.id===this.threadId,preview:String(thread.messages?.at(-1)?.text||"No messages").slice(0,70)})),selected:selectedData,speakers:speakers.map(actor=>({id:actor.id,name:actor.name,selected:actor.id===this.speakerActorId}))};
+    const messages=[...(selected?.messages??[])].sort((a,b)=>Number(b.createdAt||0)-Number(a.createdAt||0)).map(message=>{const actor=game.actors.get(message.speakerActorId),portrait=messengerPortrait(actor);return {...message,...portrait,speakerName:actor?.name||message.speakerName||"Unknown",mine:message.senderUserId===game.user.id,time:new Date(Number(message.createdAt)||Date.now()).toLocaleString()};});
+    const memberNames=(selected?.memberActorIds??[]).map(id=>game.actors.get(id)?.name).filter(Boolean),fallbackNames=(selected?.participantIds??[]).map(id=>game.users.get(id)?.name).filter(Boolean);
+    const selectedData=selected?{...selected,messages,participantNames:(memberNames.length?memberNames:fallbackNames).join(", ")}:null,contactIds=messengerContactIds(),contacts=speakers.filter(actor=>contactIds.has(actor.id)).map(actor=>({...messengerPortrait(actor),id:actor.id,name:actor.name,img:actor.img}));
+    return {isGM:game.user.isGM,contactsView:this.view==="contacts",messagesView:this.view!=="contacts",contacts,threads:visible.map(thread=>({id:thread.id,title:thread.title,selected:thread.id===this.threadId,preview:String(thread.messages?.at(-1)?.text||"No messages").slice(0,70)})),selected:selectedData,speakers:speakers.map(actor=>({id:actor.id,name:actor.name,selected:actor.id===this.speakerActorId}))};
   }
   activateListeners(html){
     super.activateListeners(html);
-    html.find("[data-thread-id]").on("click",event=>{this.threadId=String(event.currentTarget.dataset.threadId);this.render(false);});
+    html.find("[data-thread-id]").on("click",event=>{this.threadId=String(event.currentTarget.dataset.threadId);this.view="messages";this.render(false);});
     html.find('[name="speakerActorId"]').on("change",event=>{this.speakerActorId=String(event.currentTarget.value);});
-    html.find("[data-action='new-thread']").on("click",()=>this.createThread());
+    html.find("[data-messenger-view]").on("click",event=>{this.view=String(event.currentTarget.dataset.messengerView||"messages");this.render(false);});
+    html.find("[data-contact-id]").on("click",event=>this.openContact(String(event.currentTarget.dataset.contactId)));
+    html.find("[data-action='configure-contacts']").on("click",()=>{if(game.user.isGM)new HSRContactConfig().render(true);});
+    html.find("[data-contact-search]").on("input",event=>{const query=String(event.currentTarget.value||"").trim().toLowerCase();html.find("[data-contact-id]").each((_index,row)=>row.hidden=Boolean(query&&!String(row.dataset.contactName||"").toLowerCase().includes(query)));});
+    html.find("[data-action='new-thread']").on("click",()=>game.user.isGM?this.createGroupChat():this.viewContacts());
     html.find("[data-action='send-message']").on("click",()=>this.sendMessage(html));
+    html.find("[data-delete-message]").on("click",event=>this.deleteMessage(String(event.currentTarget.dataset.deleteMessage)));
     html.find('[name="messageText"]').on("keydown",event=>{if(event.key==="Enter"&&!event.shiftKey){event.preventDefault();this.sendMessage(html);}});
     html.find("[data-action='delete-thread']").on("click",()=>this.deleteThread());
-    const scroller=html.find(".tsru-messenger-messages")[0];if(scroller)scroller.scrollTop=scroller.scrollHeight;
+    const scroller=html.find(".tsru-messenger-messages")[0];if(scroller)scroller.scrollTop=0;
   }
-  async createThread(){
-    const users=game.users.filter(user=>!user.isGM&&user.id!==game.user.id).map(user=>({id:user.id,name:user.name}));
-    const content=await renderTemplate(`modules/${MODULE_ID}/templates/hsr-messenger-new.hbs`,{users});
-    new Dialog({title:"New Text Chain",content,buttons:{create:{label:"Create",icon:'<i class="fas fa-plus"></i>',callback:async html=>{const root=html?.[0]??html,title=String(root.querySelector('[name="title"]')?.value||"New Conversation").trim(),recipientIds=[...root.querySelectorAll('[name="recipientIds"]:checked')].map(input=>input.value);if(!recipientIds.length)return ui.notifications.warn("Choose at least one recipient.");if(!game.user.isGM)recipientIds.push(game.user.id);const threads=messengerThreads(),thread={id:foundry.utils.randomID(),title,participantIds:[...new Set(recipientIds)],createdBy:game.user.id,createdAt:Date.now(),updatedAt:Date.now(),messages:[]};threads.push(thread);await saveMessengerThreads(threads);this.threadId=thread.id;this.render(false);}},cancel:{label:"Cancel"}},default:"create"}).render(true);
+  viewContacts(){this.view="contacts";this.render(false);}
+  async openContact(actorId){if(game.user.isGM)return;const contactIds=messengerContactIds();if(!contactIds.has(actorId))return ui.notifications.warn("That contact is not currently available.");const mainActor=api()?.getSelectedMainCharacter?.(),contact=game.actors.get(actorId);if(!mainActor||!contact)return ui.notifications.warn("Select a main character before opening a conversation.");const threads=messengerThreads();let thread=threads.find(entry=>entry.contactActorId===actorId&&(entry.memberActorIds??[]).includes(mainActor.id)&&(entry.participantIds??[]).includes(game.user.id));if(!thread){thread={id:foundry.utils.randomID(),title:contact.name,contactActorId:actorId,memberActorIds:[mainActor.id,contact.id],participantIds:[game.user.id],createdBy:game.user.id,createdAt:Date.now(),updatedAt:Date.now(),messages:[]};threads.push(thread);await saveMessengerThreads(threads);}this.threadId=thread.id;this.view="messages";this.render(false);}
+  async createGroupChat(){
+    if(!game.user.isGM)return this.viewContacts();const actors=messengerActors().map(actor=>({id:actor.id,name:actor.name,img:actor.img,type:actor.type})),content=await renderTemplate(`modules/${MODULE_ID}/templates/hsr-messenger-new.hbs`,{actors});
+    new Dialog({title:"Make Group Chat",content,buttons:{create:{label:"Make Group Chat",icon:'<i class="fas fa-users"></i>',callback:async html=>{const root=html?.[0]??html,title=String(root.querySelector('[name="title"]')?.value||"New Group Chat").trim(),memberActorIds=[...root.querySelectorAll('[name="memberActorIds"]:checked')].map(input=>input.value);if(memberActorIds.length<2)return ui.notifications.warn("Choose at least two NPCs or player characters.");const participantIds=new Set();for(const id of memberActorIds){const actor=game.actors.get(id);for(const user of game.users)if(!user.isGM&&actor?.testUserPermission(user,"OWNER"))participantIds.add(user.id);}const threads=messengerThreads(),thread={id:foundry.utils.randomID(),title,memberActorIds,participantIds:[...participantIds],createdBy:game.user.id,createdAt:Date.now(),updatedAt:Date.now(),messages:[]};threads.push(thread);await saveMessengerThreads(threads);this.threadId=thread.id;this.view="messages";this.render(false);}},cancel:{label:"Cancel"}},default:"create",render:html=>{html.find("[data-group-search]").on("input",event=>{const query=String(event.currentTarget.value||"").trim().toLowerCase();html.find("[data-group-actor]").each((_index,row)=>row.hidden=Boolean(query&&!String(row.dataset.groupName||"").toLowerCase().includes(query)));});}}).render(true);
   }
   async sendMessage(html){
     const text=String(html.find('[name="messageText"]').val()||"").trim();if(!text||!this.threadId)return;
@@ -385,6 +403,7 @@ class HSRMessenger extends Application {
     const actor=game.user.isGM?game.actors.get(html.find('[name="speakerActorId"]').val()):api()?.getSelectedMainCharacter?.();if(!actor)return ui.notifications.warn("Choose a main character or speaker first.");
     thread.messages??=[];thread.messages.push({id:foundry.utils.randomID(),senderUserId:game.user.id,speakerActorId:actor.id,speakerName:actor.name,text,createdAt:Date.now()});thread.updatedAt=Date.now();await saveMessengerThreads(threads);this.render(false);
   }
+  async deleteMessage(messageId){if(!game.user.isGM||!this.threadId||!messageId)return;const threads=messengerThreads(),thread=threads.find(entry=>entry.id===this.threadId),message=thread?.messages?.find(entry=>entry.id===messageId);if(!thread||!message)return;const confirmed=await Dialog.confirm({title:"Delete Message",content:`<p>Delete this message from <strong>${esc(message.speakerName||"Unknown")}</strong> for everyone?</p>`});if(!confirmed)return;thread.messages=thread.messages.filter(entry=>entry.id!==messageId);thread.updatedAt=Date.now();await saveMessengerThreads(threads);this.render(false);}
   async deleteThread(){if(!game.user.isGM||!this.threadId)return;const confirmed=await Dialog.confirm({title:"Delete Text Chain",content:"<p>Permanently delete this entire text chain?</p>"});if(!confirmed)return;await saveMessengerThreads(messengerThreads().filter(thread=>thread.id!==this.threadId));this.threadId="";this.render(false);}
 }
 
@@ -655,6 +674,7 @@ Hooks.once("init",()=>{
   game.settings.register(MODULE_ID,"partySelections",{scope:"world",config:false,type:Object,default:{}});
   game.settings.register(MODULE_ID,"hsrHubConfig",{scope:"world",config:false,type:Object,default:clone(DEFAULT_HUB_CONFIG)});
   game.settings.register(MODULE_ID,"hsrMessengerThreads",{scope:"world",config:false,type:Array,default:[]});
+  game.settings.register(MODULE_ID,"hsrMessengerContacts",{scope:"world",config:false,type:Array,default:[]});
   game.settings.registerMenu(MODULE_ID,"questConfiguration",{name:"Mission Types & Reward Rarities",label:"Configure Missions",hint:"Configure mission categories, category artwork, filter icons, order, and reward rarity hierarchy.",icon:"fas fa-list-check",type:class extends FormApplication{render(){new QuestSettings().render(true);return this;}},restricted:true});
 });
 
@@ -665,7 +685,7 @@ Hooks.once("ready",()=>{
     if(payload?.type!=="questsChanged")return;refreshQuestWindows();
     if(payload.notify&&payload.sourceUserId!==game.user.id){const q=quests().find(x=>x.id===payload.questId);if(q&&visibleQuest(q))ui.notifications.info(q.status==="complete"?`Mission Complete: ${q.title}`:`New Mission: ${q.title}`);}
   });
-  Object.assign(game.modules.get(MODULE_ID).api??{}, {openHub,openMessenger:()=>new HSRMessenger().render(true),openQuestLog,openQuestManager:()=>new QuestManager().render(true),openQuestSettings:()=>new QuestSettings().render(true),openPartySelector:()=>new PartyCharacterSelector().render(true)});
+  Object.assign(game.modules.get(MODULE_ID).api??{}, {openHub,openMessenger:()=>new HSRMessenger().render(true),openContactConfig:()=>new HSRContactConfig().render(true),openQuestLog,openQuestManager:()=>new QuestManager().render(true),openQuestSettings:()=>new QuestSettings().render(true),openPartySelector:()=>new PartyCharacterSelector().render(true)});
   registerHubToolbarFallback();
 });
 
@@ -674,4 +694,5 @@ Hooks.on("updateSetting", setting => {
   if (["questTypes", "questRarities", "quests", "questAllIcon"].some(key => setting?.key === `${MODULE_ID}.${key}`)) refreshQuestWindows();
   if(setting?.key===`${MODULE_ID}.hsrHubConfig`)for(const app of Object.values(ui.windows??{}))if(["tsru-hub","tsru-hub-config"].includes(app.options?.id))app.render(false);
   if(setting?.key===`${MODULE_ID}.hsrMessengerThreads`)for(const app of Object.values(ui.windows??{}))if(app.options?.id==="tsru-hsr-messenger")app.render(false);
+  if(setting?.key===`${MODULE_ID}.hsrMessengerContacts`)for(const app of Object.values(ui.windows??{}))if(["tsru-hsr-messenger","tsru-hsr-contact-config"].includes(app.options?.id))app.render(false);
 });

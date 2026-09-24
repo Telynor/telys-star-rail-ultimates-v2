@@ -1,5 +1,6 @@
 <form class="tsru-messenger-new-thread">
-  <label>Text chain name<input type="text" name="title" value="New Conversation" required></label>
-  <fieldset><legend>Recipients</legend>{{#each users}}<label><input type="checkbox" name="recipientIds" value="{{this.id}}"> <span>{{this.name}}</span></label>{{/each}}</fieldset>
-  <p>Select one or more players. Everyone selected can read and reply to this chain.</p>
+  <label>Group chat name<input type="text" name="title" value="New Group Chat" required></label>
+  <label>Find a character<input type="search" data-group-search placeholder="Type an NPC or player character name…"></label>
+  <fieldset><legend>NPCs and Player Characters</legend>{{#each actors}}<label data-group-actor data-group-name="{{this.name}}"><input type="checkbox" name="memberActorIds" value="{{this.id}}"><img src="{{this.img}}" alt=""><span><strong>{{this.name}}</strong><small>{{this.type}}</small></span></label>{{/each}}</fieldset>
+  <p>Player owners of selected characters can read and reply. The GM can speak as any actor.</p>
 </form>

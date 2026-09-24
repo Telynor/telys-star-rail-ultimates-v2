@@ -1,0 +1,7 @@
+<form class="tsru-contact-config">
+  <header><h2><i class="fas fa-address-book"></i> Configure Contacts</h2><p>Checked characters appear on every player's Contacts page. This restriction does not apply to the GM.</p></header>
+  <label>Jump to a character<select data-contact-jump><option value="">Type a name while this dropdown is focused…</option>{{#each actors}}<option value="{{this.id}}">{{this.name}}</option>{{/each}}</select></label>
+  <label>Filter contacts<input type="search" data-contact-search placeholder="Search NPCs and player characters…"></label>
+  <section class="tsru-contact-config-list">{{#each actors}}<label data-contact-row="{{this.id}}" data-contact-name="{{this.name}}"><img src="{{this.img}}" alt=""><span>{{this.name}}</span><input type="checkbox" name="contacts.{{this.id}}" {{checked this.enabled}}></label>{{/each}}</section>
+  <button type="submit"><i class="fas fa-save"></i> Save Contact Availability</button>
+</form>
