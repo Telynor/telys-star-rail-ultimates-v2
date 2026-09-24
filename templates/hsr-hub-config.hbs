@@ -20,6 +20,7 @@
         <label class="tsru-hub-sheet-target">Sheet tab / CSS element<input type="text" name="buttons.{{this.index}}.target" value="{{this.target}}" list="tsru-sheet-targets" placeholder="inventory, spells, features, or .css-selector"></label>
         <label>Width %<input type="number" name="buttons.{{this.index}}.width" value="{{this.width}}" min="4" max="100" step="1" data-hub-button-size></label>
         <label>Height %<input type="number" name="buttons.{{this.index}}.height" value="{{this.height}}" min="6" max="100" step="1" data-hub-button-size></label>
+        <input type="hidden" name="buttons.{{this.index}}.double" value="{{#if this.double}}1{{else}}0{{/if}}"><button type="button" class="tsru-double-length {{#if this.double}}active{{/if}}" data-toggle-hub-double="{{this.index}}" title="{{#if this.double}}Return to single width{{else}}Make this button two spaces wide{{/if}}"><i class="fas fa-arrows-left-right"></i> {{#if this.double}}Single Length{{else}}Make Double Length{{/if}}</button>
         <button type="button" class="danger" data-remove-hub-button="{{this.index}}" title="Delete button"><i class="fas fa-trash"></i></button>
       </article>{{/each}}
     </div>
@@ -28,7 +29,7 @@
   <div class="tsru-hub-designer-preview" data-hub-designer-preview style="--hub-wallpaper:url('{{config.wallpaper}}');--hub-wallpaper-fit:{{config.wallpaperFit}};--hub-wallpaper-x:{{config.wallpaperX}}%;--hub-wallpaper-y:{{config.wallpaperY}}%;--hub-wallpaper-scale:{{config.wallpaperScale}};">
     <div class="tsru-hub-designer-canvas" data-hub-designer-canvas>
       {{#unless dmPanel}}<div class="tsru-hub-config-pose" data-hub-pose-preview style="--pose-x:{{pose.x}}%;--pose-y:{{pose.y}}%;--pose-scale:{{pose.scale}};--pose-flip:{{#if pose.flip}}-1{{else}}1{{/if}};"><img src="{{pose.image}}" alt=""></div>{{/unless}}<div class="tsru-hub-config-phone"><strong class="tsru-hub-config-profile-name">{{profileName}}</strong></div>
-      {{#each buttons}}<button type="button" class="tsru-hub-config-button {{#if this.gmOnly}}is-gm-only{{/if}}" data-hub-button-index="{{this.index}}" style="{{this.style}}"><i class="{{this.icon}}"></i><span>{{this.label}}</span><b data-hub-button-resize title="Resize button"></b></button><input type="hidden" name="buttons.{{this.index}}.x" value="{{this.x}}"><input type="hidden" name="buttons.{{this.index}}.y" value="{{this.y}}">{{/each}}
+      {{#each buttons}}<button type="button" class="tsru-hub-config-button {{#if this.gmOnly}}is-gm-only{{/if}} {{#if this.double}}is-double{{/if}}" data-hub-button-index="{{this.index}}" style="{{this.style}}"><i class="{{this.icon}}"></i><span>{{this.label}}</span><b data-hub-button-resize title="Resize button"></b></button><input type="hidden" name="buttons.{{this.index}}.x" value="{{this.x}}"><input type="hidden" name="buttons.{{this.index}}.y" value="{{this.y}}">{{/each}}
     </div>
   </div><button type="submit"><i class="fas fa-save"></i> Save {{profileName}}'s Phone Hub</button>
 </form>
