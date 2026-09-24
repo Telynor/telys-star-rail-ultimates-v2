@@ -1,14 +1,14 @@
 <section class="tsru-eidolon-tab tab" data-group="primary" data-tab="tsru-eidolons">
-  <header class="tsru-eidolon-heading"><div><h2><i class="fas fa-gem"></i> Eidolon Resonance</h2><p>Eidolons unlock in sequence from E1 through E6.</p></div>{{#if isGM}}<div class="tsru-eidolon-heading-actions"><button type="button" data-action="select-existing-eidolons"><i class="fas fa-file-import"></i> Select Existing Eidolons</button><span class="tsru-gm-badge">GM CONFIGURATION</span></div>{{/if}}</header>
+  <header class="tsru-eidolon-heading"><div><h2><i class="fas fa-gem"></i> Eidolon Resonance</h2><p>Eidolons unlock in sequence from E1 through E6.</p></div><div class="tsru-eidolon-heading-actions"><button type="button" data-action="check-eidolon-effects"><i class="fas fa-list"></i> Check Eidolon Effects</button>{{#if isGM}}<button type="button" data-action="select-existing-eidolons"><i class="fas fa-file-import"></i> Select Existing Eidolons</button><span class="tsru-gm-badge">GM CONFIGURATION</span>{{/if}}</div></header>
 
   <div class="tsru-eidolon-stage" data-eidolon-stage>
     {{#if interface.backgroundImage}}<img class="tsru-eidolon-background" src="{{interface.backgroundImage}}" alt="">{{/if}}
     {{#each slots}}
-      {{#unless this.isE3}}<div class="tsru-eidolon-art-slot {{#unless this.active}}locked{{/unless}}" data-eidolon-art="{{this.number}}" data-fallback-art="{{this.displayArtwork}}" style="--mask:{{this.mask}};{{#if this.maskImage}}--mask-image:url('{{this.maskImage}}');{{/if}}--art-x:{{this.offsetX}}%;--art-y:{{this.offsetY}}%;--art-scale:{{this.scalePercent}}"><img src="{{this.displayArtwork}}" alt="E{{this.number}} artwork"></div>{{/unless}}
+      {{#unless this.isE3}}<div class="tsru-eidolon-art-slot {{#unless this.active}}locked{{/unless}}" data-eidolon-art="{{this.number}}" data-fallback-art="{{this.displayArtwork}}" data-tooltip="{{this.effectText}}" aria-label="E{{this.number}} {{this.title}}: {{this.effectText}}" style="--mask:{{this.mask}};{{#if this.maskImage}}--mask-image:url('{{this.maskImage}}');{{/if}}--art-x:{{this.offsetX}}%;--art-y:{{this.offsetY}}%;--art-scale:{{this.scalePercent}}"><img src="{{this.displayArtwork}}" alt="E{{this.number}} artwork"></div>{{/unless}}
     {{/each}}
     {{#if interface.fiveShardOverlay}}<img class="tsru-eidolon-five-overlay" src="{{interface.fiveShardOverlay}}" alt="">{{/if}}
     {{#each slots}}
-      {{#if this.isE3}}<div class="tsru-eidolon-art-slot tsru-eidolon-e3-art {{#unless this.active}}locked{{/unless}}" data-eidolon-art="3" data-fallback-art="{{this.displayArtwork}}" style="--mask:{{this.mask}};{{#if this.maskImage}}--mask-image:url('{{this.maskImage}}');{{/if}}--art-x:{{this.offsetX}}%;--art-y:{{this.offsetY}}%;--art-scale:{{this.scalePercent}}"><img src="{{this.displayArtwork}}" alt="E3 artwork"></div>{{/if}}
+      {{#if this.isE3}}<div class="tsru-eidolon-art-slot tsru-eidolon-e3-art {{#unless this.active}}locked{{/unless}}" data-eidolon-art="3" data-fallback-art="{{this.displayArtwork}}" data-tooltip="{{this.effectText}}" aria-label="E3 {{this.title}}: {{this.effectText}}" style="--mask:{{this.mask}};{{#if this.maskImage}}--mask-image:url('{{this.maskImage}}');{{/if}}--art-x:{{this.offsetX}}%;--art-y:{{this.offsetY}}%;--art-scale:{{this.scalePercent}}"><img src="{{this.displayArtwork}}" alt="E3 artwork"></div>{{/if}}
     {{/each}}
     {{#if interface.e3Overlay}}<img class="tsru-eidolon-e3-overlay" src="{{interface.e3Overlay}}" alt="">{{/if}}
     {{#each slots}}<div class="tsru-eidolon-title {{#unless this.active}}locked{{/unless}}" data-eidolon-title="{{this.number}}"><strong>E{{this.number}}</strong><span>{{this.title}}</span></div>{{/each}}
@@ -36,6 +36,7 @@
       <p class="tsru-eidolon-crop-hint"><i class="fas fa-crop-simple"></i> The complete artwork is fitted into the canvas first. Drag it and adjust Zoom to position it beneath the Eidolon cookie cutter.</p>
       <div class="tsru-eidolon-popout-controls" data-eidolon-editor="{{this.number}}">
         <label>Title<input type="text" name="eidolon.{{this.number}}.title" value="{{this.title}}"></label>
+        <label class="tsru-eidolon-effect-field">Effect description<textarea name="eidolon.{{this.number}}.effect" rows="7" placeholder="Describe the complete E{{this.number}} effect…">{{this.effect}}</textarea></label>
         <label>Artwork<span class="tsru-file-control"><input type="text" name="eidolon.{{this.number}}.artwork" value="{{this.artwork}}"><button type="button" class="file-picker" data-type="image" data-target="eidolon.{{this.number}}.artwork"><i class="fas fa-file-import"></i></button></span></label>
         <label>X position <input type="range" min="-100" max="100" step="0.5" name="eidolon.{{this.number}}.offsetX" value="{{this.offsetX}}"><output>{{this.offsetX}}%</output></label>
         <label>Y position <input type="range" min="-100" max="100" step="0.5" name="eidolon.{{this.number}}.offsetY" value="{{this.offsetY}}"><output>{{this.offsetY}}%</output></label>

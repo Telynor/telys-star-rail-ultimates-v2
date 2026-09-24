@@ -15,6 +15,28 @@ const DEFAULT_RARITIES = [
   {id: "legendary", name: "Legendary", order: 40, color: "#dba640", background: ""}
 ];
 
+const DEFAULT_HUB_BUTTONS = [
+  ["party","Main Character","fas fa-user-check",68,18],["quests","Missions","fas fa-clipboard-list",80,18],["abilities","Abilities","fas fa-circle-nodes",68,38],
+  ["crafting","Synthesize","fas fa-flask",80,38],["eidolon-effects","Eidolons","fas fa-gem",68,58],["characters","Characters","fas fa-users",80,58],
+  ["gm","GM Panel","fas fa-sliders",68,78],["quest-manager","Mission Manager","fas fa-list-check",80,78],["configure-hub","Configure Phone","fas fa-mobile-screen",92,78]
+].map(([action,label,icon,x,y])=>({action,label,icon,x,y,width:10,height:16}));
+const DEFAULT_HUB_CONFIG = {
+  wallpaper:"",wallpaperFit:"cover",wallpaperX:50,wallpaperY:50,wallpaperScale:100,
+  snap:true,gridSize:4,poseByActor:{},buttons:DEFAULT_HUB_BUTTONS
+};
+
+function hubConfig(){
+  const saved=clone(game.settings.get(MODULE_ID,"hsrHubConfig")??{});
+  const merged=foundry.utils.mergeObject(clone(DEFAULT_HUB_CONFIG),saved,{inplace:false,insertKeys:true,overwrite:true});
+  merged.buttons=(Array.isArray(saved.buttons)&&saved.buttons.length?saved.buttons:DEFAULT_HUB_BUTTONS).map((button,index)=>({...DEFAULT_HUB_BUTTONS[index%DEFAULT_HUB_BUTTONS.length],...button}));
+  return merged;
+}
+
+function hubPose(actor,config=hubConfig()){
+  const stored=config.poseByActor?.[actor?.id]??{};
+  return {image:String(stored.image||actor?.img||"icons/svg/mystery-man.svg"),x:Number(stored.x??50),y:Number(stored.y??50),scale:Number(stored.scale??100),flip:Boolean(stored.flip)};
+}
+
 const clone = value => foundry.utils.deepClone(value);
 const esc = value => {
   const div = document.createElement("div");
@@ -175,10 +197,16 @@ async function distributeRewards(questId) {
 }
 
 class HSRHub extends FormApplication {
-  static get defaultOptions() { return foundry.utils.mergeObject(super.defaultOptions, {id: "tsru-hub", title: "HSR Hub", template: `modules/${MODULE_ID}/templates/hsr-hub.hbs`, width: 430, height: "auto", resizable: true}); }
-  getData() { return {gm: game.user.isGM,player:!game.user.isGM}; }
+  static get defaultOptions() { return foundry.utils.mergeObject(super.defaultOptions, {id:"tsru-hub",title:"HSR Hub",template:`modules/${MODULE_ID}/templates/hsr-hub.hbs`,width:window.innerWidth,height:window.innerHeight,resizable:false}); }
+  getData() {
+    const config=hubConfig(),actor=api()?.getSelectedMainCharacter?.(),pose=hubPose(actor,config);
+    const gmOnly=new Set(["gm","quest-manager","configure-hub","characters"]),playerOnly=new Set(["party"]);
+    return {gm:game.user.isGM,player:!game.user.isGM,actor,pose,config,buttons:config.buttons.filter(button=>(game.user.isGM||!gmOnly.has(button.action))&&(!game.user.isGM||!playerOnly.has(button.action))).map(button=>({...button,style:`left:${button.x}%;top:${button.y}%;width:${button.width}%;height:${button.height}%`}))};
+  }
   activateListeners(html) {
     super.activateListeners(html);
+    this.element.appendTo(document.body).addClass("tsru-phone-hub-window");
+    html.find("[data-action='close-phone-hub']").on("click",()=>this.close());
     html.find("[data-hub-action]").on("click", async event => {
       const action = event.currentTarget.dataset.hubAction;
       const actions = {
@@ -190,6 +218,9 @@ class HSRHub extends FormApplication {
         }],
         "hud-designer": ["Combat HUD Designer", () => api()?.openCombatHudDesigner?.()],
         abilities: ["Ability Bubbles", () => requireApiMethod("showAllAbilityBubbles")()],
+        crafting: ["Party Crafting", () => api()?.openCrafting?.()],
+        "eidolon-effects": ["Eidolon Effects", () => api()?.openEidolonEffectsBrowser?.()],
+        characters: ["Main Character", () => new PartyCharacterSelector().render(true)],
         gm: ["Star Rail GM Panel", () => api()?.openGMPanel?.()],
         "aha-config": ["Aha Instant Configuration", () => api()?.openAhaConfig?.()],
         "aha-toggle": ["Aha Instant Orb", async () => {
@@ -202,13 +233,37 @@ class HSRHub extends FormApplication {
         eidolons: ["Eidolon Configuration", () => api()?.openEidolonConfig?.()],
         "light-cone-generator": ["Light Cone Generator", () => api()?.openLightConeGenerator?.()],
         "quest-manager": ["Mission Manager", () => new QuestManager().render(true)],
-        "quest-settings": ["Mission Settings", () => new QuestSettings().render(true)]
+        "quest-settings": ["Mission Settings", () => new QuestSettings().render(true)],
+        "configure-hub": ["Phone Hub Designer", () => new HSRHubConfig().render(true)]
       };
       const [label, callback] = actions[action] ?? [];
       if (callback) await runUiAction(label, callback);
     });
   }
   async _updateObject() {}
+}
+
+class HSRHubConfig extends FormApplication {
+  static get defaultOptions(){return foundry.utils.mergeObject(super.defaultOptions,{id:"tsru-hub-config",title:"HSR Phone Hub Designer",template:`modules/${MODULE_ID}/templates/hsr-hub-config.hbs`,width:1000,height:820,resizable:true,closeOnSubmit:true});}
+  getData(){const config=hubConfig(),actors=game.actors.filter(actor=>actor.type==="character").sort((a,b)=>String(a.name).localeCompare(String(b.name))),actor=actors.find(entry=>entry.id===this.actorId)||api()?.getSelectedMainCharacter?.()||actors[0];this.actorId=actor?.id||"";return {config,actors:actors.map(entry=>({...entry,selected:entry.id===this.actorId})),actor,pose:hubPose(actor,config),buttons:config.buttons.map((button,index)=>({...button,index,style:`left:${button.x}%;top:${button.y}%;width:${button.width}%;height:${button.height}%`}))};}
+  activateListeners(html){
+    super.activateListeners(html);activatePickers(html);
+    html.find('[name="actorId"]').on("change",event=>{this.actorId=String(event.currentTarget.value);this.render(false);});
+    html.find("[data-toggle-hub-snap]").on("click",event=>{const input=html.find('[name="snap"]'),enabled=!input.prop("checked");input.prop("checked",enabled);event.currentTarget.innerHTML=`<i class="fas fa-magnet"></i> ${enabled?"Disable Snapping":"Enable Snapping"}`;});
+    const preview=html.find("[data-hub-designer-preview]");
+    const snap=value=>{const enabled=html.find('[name="snap"]').prop("checked"),size=Math.max(1,Number(html.find('[name="gridSize"]').val())||4);return enabled?Math.round(value/size)*size:value;};
+    html.find('[name="wallpaperFit"]').val(hubConfig().wallpaperFit);
+    const updateWallpaper=()=>preview.css({"--hub-wallpaper":`url('${String(html.find('[name="wallpaper"]').val()||"").replaceAll("'","%27")}')`,"--hub-wallpaper-fit":html.find('[name="wallpaperFit"]').val(),"--hub-wallpaper-x":`${html.find('[name="wallpaperX"]').val()}%`,"--hub-wallpaper-y":`${html.find('[name="wallpaperY"]').val()}%`,"--hub-wallpaper-scale":Number(html.find('[name="wallpaperScale"]').val())});
+    html.find('[name="wallpaper"],[name="wallpaperFit"],[name="wallpaperX"],[name="wallpaperY"],[name="wallpaperScale"]').on("input change",updateWallpaper);
+    let drag=null;
+    preview.on("pointerdown","[data-hub-button-index]",event=>{if(event.button!==0)return;event.preventDefault();const node=event.currentTarget,rect=preview[0].getBoundingClientRect();drag={type:"button",node,index:Number(node.dataset.hubButtonIndex),rect,dx:event.clientX-node.getBoundingClientRect().left,dy:event.clientY-node.getBoundingClientRect().top};node.setPointerCapture?.(event.pointerId);});
+    preview.on("pointerdown","[data-hub-pose-preview]",event=>{if(event.button!==0)return;event.preventDefault();const rect=preview[0].getBoundingClientRect();drag={type:"pose",node:event.currentTarget,rect,startX:event.clientX,startY:event.clientY,x:Number(html.find('[name="poseX"]').val())||50,y:Number(html.find('[name="poseY"]').val())||50};event.currentTarget.setPointerCapture?.(event.pointerId);});
+    preview.on("pointermove",event=>{if(!drag)return;if(drag.type==="button"){const x=snap((event.clientX-drag.rect.left-drag.dx)/drag.rect.width*100),y=snap((event.clientY-drag.rect.top-drag.dy)/drag.rect.height*100);drag.node.style.left=`${Math.max(0,Math.min(100,x))}%`;drag.node.style.top=`${Math.max(0,Math.min(100,y))}%`;html.find(`[name="buttons.${drag.index}.x"]`).val(Math.max(0,Math.min(100,x)));html.find(`[name="buttons.${drag.index}.y"]`).val(Math.max(0,Math.min(100,y)));}else{const x=Math.max(-100,Math.min(200,drag.x+(event.clientX-drag.startX)/drag.rect.width*100)),y=Math.max(-100,Math.min(200,drag.y+(event.clientY-drag.startY)/drag.rect.height*100));html.find('[name="poseX"]').val(Math.round(x));html.find('[name="poseY"]').val(Math.round(y));drag.node.style.setProperty("--pose-x",`${x}%`);drag.node.style.setProperty("--pose-y",`${y}%`);}}).on("pointerup pointercancel",()=>{drag=null;});
+    preview.on("wheel","[data-hub-pose-preview]",event=>{event.preventDefault();const input=html.find('[name="poseScale"]'),value=Math.max(20,Math.min(500,(Number(input.val())||100)+(event.originalEvent.deltaY<0?5:-5)));input.val(value);event.currentTarget.style.setProperty("--pose-scale",value);});
+    preview.on("dragover",event=>event.preventDefault()).on("drop",event=>{event.preventDefault();let data={};try{data=JSON.parse(event.originalEvent.dataTransfer.getData("text/plain")||"{}");}catch{}const path=data.path||data.src||data.texture?.src;if(path){html.find('[name="poseImage"]').val(path).trigger("change");preview.find("[data-hub-pose-preview] img").attr("src",path);}});
+    html.find('[name="poseImage"]').on("change",event=>preview.find("[data-hub-pose-preview] img").attr("src",event.currentTarget.value));
+  }
+  async _updateObject(_event,formData){const expanded=foundry.utils.expandObject(formData),config=hubConfig();config.wallpaper=String(expanded.wallpaper||"");config.wallpaperFit=String(expanded.wallpaperFit||"cover");config.wallpaperX=Number(expanded.wallpaperX)||50;config.wallpaperY=Number(expanded.wallpaperY)||50;config.wallpaperScale=Math.max(25,Math.min(400,Number(expanded.wallpaperScale)||100));config.snap=Boolean(expanded.snap);config.gridSize=Math.max(1,Math.min(25,Number(expanded.gridSize)||4));config.buttons=Object.values(expanded.buttons??{}).map((button,index)=>({...config.buttons[index],x:Number(button.x)||0,y:Number(button.y)||0,width:Math.max(4,Number(button.width)||10),height:Math.max(6,Number(button.height)||16)}));config.poseByActor??={};config.poseByActor[this.actorId]={image:String(expanded.poseImage||""),x:Number(expanded.poseX)||50,y:Number(expanded.poseY)||50,scale:Math.max(20,Math.min(500,Number(expanded.poseScale)||100)),flip:Boolean(expanded.poseFlip)};await game.settings.set(MODULE_ID,"hsrHubConfig",config);refreshQuestWindows();ui.notifications.info("HSR Phone Hub layout saved.");}
 }
 
 class QuestSettings extends FormApplication {
@@ -476,13 +531,14 @@ Hooks.once("init",()=>{
   game.settings.register(MODULE_ID,"questAllIcon",{scope:"world",config:false,type:String,default:"icons/svg/book.svg"});
   game.settings.register(MODULE_ID,"questSeen",{scope:"client",config:false,type:Array,default:[]});
   game.settings.register(MODULE_ID,"partySelections",{scope:"world",config:false,type:Object,default:{}});
+  game.settings.register(MODULE_ID,"hsrHubConfig",{scope:"world",config:false,type:Object,default:clone(DEFAULT_HUB_CONFIG)});
   game.settings.registerMenu(MODULE_ID,"questConfiguration",{name:"Mission Types & Reward Rarities",label:"Configure Missions",hint:"Configure mission categories, category artwork, filter icons, order, and reward rarity hierarchy.",icon:"fas fa-list-check",type:class extends FormApplication{render(){new QuestSettings().render(true);return this;}},restricted:true});
 });
 
 Hooks.once("ready",()=>{
   game.socket.on(SOCKET,async payload=>{
     if(payload?.type==="selectPartyCharacter" && game.user.isGM && partyAuthority()?.id===game.user.id) { await applyPartySelection(payload.userId,payload.actorId); return; }
-    if(payload?.type==="partySelectionChanged") { if(payload.userId===game.user.id) await api()?.setLocalMainCharacter?.(payload.actorId); for(const app of Object.values(ui.windows??{})) if(["tsru-party-selector","tsru-quest-manager","tsru-gm-panel"].includes(app.options?.id)) app.render(false); if(payload.userId===game.user.id) ui.notifications.info("Your main character and party status were updated."); return; }
+    if(payload?.type==="partySelectionChanged") { if(payload.userId===game.user.id) await api()?.setLocalMainCharacter?.(payload.actorId); for(const app of Object.values(ui.windows??{})) if(["tsru-party-selector","tsru-quest-manager","tsru-gm-panel","tsru-hub"].includes(app.options?.id)) app.render(false); if(payload.userId===game.user.id) ui.notifications.info("Your main character and party status were updated."); return; }
     if(payload?.type!=="questsChanged")return;refreshQuestWindows();
     if(payload.notify&&payload.sourceUserId!==game.user.id){const q=quests().find(x=>x.id===payload.questId);if(q&&visibleQuest(q))ui.notifications.info(q.status==="complete"?`Mission Complete: ${q.title}`:`New Mission: ${q.title}`);}
   });
@@ -493,4 +549,5 @@ Hooks.once("ready",()=>{
 Hooks.on("getSceneControlButtons",consolidateToolbar);
 Hooks.on("updateSetting", setting => {
   if (["questTypes", "questRarities", "quests", "questAllIcon"].some(key => setting?.key === `${MODULE_ID}.${key}`)) refreshQuestWindows();
+  if(setting?.key===`${MODULE_ID}.hsrHubConfig`)for(const app of Object.values(ui.windows??{}))if(["tsru-hub","tsru-hub-config"].includes(app.options?.id))app.render(false);
 });

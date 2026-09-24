@@ -266,6 +266,7 @@ function defaultEidolonSlots() {
     number: index + 1,
     active: false,
     title: `Eidolon ${index + 1}`,
+    effect: "",
     artwork: "",
     offsetX: 0,
     offsetY: 0,
@@ -665,6 +666,15 @@ async function addEnergy(actor, amount, reason = "") {
   if (after === before) return;
   await setEnergy(actor, after);
   Hooks.callAll("tsruEnergyChanged", actor, before, after, reason);
+}
+
+async function awardDamageEnergy(actor, eventId) {
+  if (!actor || actor.type !== "character" || !isAuthority()) return;
+  const key = `damage-energy:${eventId || foundry.utils.randomID()}:${actor.uuid}`;
+  if (state.processedMessages.has(key)) return;
+  state.processedMessages.add(key);
+  window.setTimeout(() => state.processedMessages.delete(key), 120000);
+  await addEnergy(actor, energyGain(getConfig(actor), "attack"), "damage");
 }
 
 function canObserveActor(actor) {
@@ -2949,8 +2959,11 @@ async function ensureBossEncounters(combat=game.combat) {
 
 async function bossActorFromUuid(uuid) {
   if(!uuid)return null;
-  const direct=String(uuid).match(/^Actor\.([^.]+)$/);
-  return direct ? game.actors.get(direct[1]) : (await fromUuid(String(uuid)).catch(()=>null));
+  const reference=String(uuid).trim();
+  const direct=reference.match(/^Actor\.([^.]+)$/);
+  let document=direct ? game.actors.get(direct[1]) : (game.actors.get(reference) || game.actors.getName?.(reference));
+  document ||= await fromUuid(reference).catch(()=>null);
+  return document?.documentName === "Actor" ? document : document?.actor ?? null;
 }
 
 function bossPortraitConfig(actor, fallback={}) {
@@ -3047,12 +3060,19 @@ async function handleBossPhaseDefeat(actor) {
     let encounter=await ensureBossEncounter(combatant);
     if(!encounter || encounter.defeated)return;
     if(encounter.currentPhase < encounter.totalPhases){
-      const nextActor=await bossActorFromUuid(encounter.phaseActorUuids?.[encounter.currentPhase]);
+      const planOwner=game.actors.get(encounter.planOwnerActorId) || actor;
+      const configuredReference=encounter.phaseActorUuids?.[encounter.currentPhase]
+        || bossPhaseActorUuids(planOwner)?.[encounter.currentPhase];
+      const nextActor=await bossActorFromUuid(configuredReference);
       if(nextActor){
         encounter.currentPhase+=1;
         await replaceBossPhase(combatant,nextActor,encounter);
         return;
       }
+      const phase=encounter.currentPhase+1;
+      console.error(`${MODULE_ID} | Boss phase ${phase} could not be resolved`,{combatantId:combatant.id,actorId:actor.id,configuredReference,encounter});
+      ui.notifications.error(`Boss phase ${phase} is missing or invalid. The boss was not marked defeated; configure its world Actor and try again.`);
+      return;
     }
     await finishBossEncounter(combatant,encounter);
   }catch(error){console.error(`${MODULE_ID} | Boss phase transition failed`,error);ui.notifications.error(`Boss phase transition failed: ${error.message}`);}
@@ -4425,6 +4445,7 @@ async function applyChatRollAsDamage(message, target, requestingUser, applicatio
     expires:Date.now()+15000
   };
   await applyDirectChatDamage(targetActor, hpDamage);
+  if (hpDamage > 0) await awardDamageEnergy(attacker, `manual:${message.id}`);
   const appliedToughness = toughnessDamage > 0 ? await applyToughnessDamage(attacker, [target], toughnessDamage, eventKey) : 0;
   const detail = {sourceActor: attacker, targetActor, amount: hpDamage, origin: message, manual: true};
   await dispatchTalentEvent("damageDealt", detail, eventKey);
@@ -4891,9 +4912,11 @@ async function processAppliedDamage(target, amount, options = {}) {
   if (!attacker || attacker.documentName !== "Actor") return;
 
   const targetActor = target?.actor ?? target?.document?.actor ?? target;
-  const damageEventId = origin?.id ?? options.midi?.workflowId ?? "unknown";
+  const damageEventId = origin?.id ?? options.midi?.workflowId ?? options.workflow?.uuid ?? options.workflow?.id
+    ?? `unidentified:${attacker.uuid}:${Math.floor(Date.now()/250)}`;
 
   if (Number(amount) > 0) {
+    await awardDamageEnergy(attacker, damageEventId);
     const detail = {sourceActor: attacker, targetActor, amount: Number(amount), origin, midi: options.midi ?? null};
     await dispatchTalentEvent("damageDealt", detail, `${damageEventId}:${targetActor.uuid}`);
     await dispatchTalentEvent("damageTaken", detail, `${damageEventId}:${targetActor.uuid}`);
@@ -5103,7 +5126,6 @@ async function processCoreAttackMessage(message) {
     }
     return;
   }
-  if (attackMessage && attacker) await addEnergy(attacker, energyGain(getConfig(attacker), "attack"), "attack");
   if ((damageMessage || macroDamageMessage) && attacker) {
     if (taggedBreakDamage) return;
     if (!midiActive) await awardPunchlineForAttack(attacker, `chat:${message.id}`);
@@ -5149,7 +5171,6 @@ async function processMidiWorkflow(workflow) {
   if (attacker && !state.processedMessages.has(attackKey)) {
     state.processedMessages.add(attackKey);
     window.setTimeout(() => state.processedMessages.delete(attackKey), 120000);
-    await addEnergy(attacker, energyGain(getConfig(attacker), "attack"), "attack");
     await dispatchTalentEvent("attackResolved", {
       sourceActor: attacker,
       item: workflow?.item ?? workflow?.activity?.item ?? null,
@@ -5860,6 +5881,7 @@ class StarRailGMPanel extends FormApplication {
       if (target === "paths") new PathManager().render(true);
       if (target === "recipes") new RecipeManager().render(true);
       if (target === "eidolons") new EidolonAppearanceConfig().render(true);
+      if (target === "eidolon-effects") openEidolonEffectsBrowser();
     });
   }
   refreshLiveValues() {
@@ -6469,6 +6491,7 @@ async function eidolonTabData(actor) {
       mask: interfaceConfig[`mask${slot.number}`] ? "none" : EIDOLON_MASKS[slot.number],
       maskImage: resolveAssetUrl(interfaceConfig[`mask${slot.number}`]),
       displayArtwork: slot.artwork || "",
+      effectText: eidolonEffectPlainText(slot.effect),
       scalePercent: slot.scale / 100,
       canActivate: slot.number === firstLocked && (game.user.isGM || actor.isOwner),
       canConfigure: Boolean(game.user.isGM)
@@ -6496,8 +6519,81 @@ async function activateEidolon(actor, number) {
   } else if (!game.user.isGM) return;
   data.slots[number - 1].active = true;
   await actor.setFlag(MODULE_ID, "eidolons", data);
+  await syncEidolonFeature(actor, data.slots[number - 1]);
   ui.notifications.info(`${actor.name} activated Eidolon ${number}.`);
   for (const app of Object.values(ui.windows ?? {})) if ((app.actor ?? app.document)?.id === actor.id) app.render(false);
+}
+
+function eidolonFeatureName(actor, slot) {
+  const config=getConfig(actor);
+  const element=getElements().find(entry=>entry.id===config.elementId)?.name || "Unassigned Element";
+  const path=getPaths().find(entry=>entry.id===config.pathId)?.name || "Unassigned Path";
+  return `${actor.name} - ${element}/${path} E${slot.number}: ${slot.title || `Eidolon ${slot.number}`}`;
+}
+
+async function syncEidolonFeature(actor, slot) {
+  if (!actor || !slot) return;
+  const existing=actor.items.find(item=>Number(item.getFlag(MODULE_ID,"eidolonFeature"))===Number(slot.number));
+  if (!slot.active) {
+    if (existing) await existing.delete({render:false});
+    return;
+  }
+  const data={
+    name:eidolonFeatureName(actor,slot),
+    type:"feat",
+    img:slot.artwork || "icons/svg/upgrade.svg",
+    "system.description.value":String(slot.effect||""),
+    "system.type.value":"class",
+    [`flags.${MODULE_ID}.eidolonFeature`]:Number(slot.number)
+  };
+  if(existing) await existing.update(data,{render:false});
+  else await actor.createEmbeddedDocuments("Item",[foundry.utils.expandObject(data)],{render:false});
+}
+
+async function syncAllEidolonFeatures(actor) {
+  for (const slot of getEidolons(actor).slots) await syncEidolonFeature(actor,slot);
+}
+
+function eidolonEffectPlainText(effect) {
+  const wrapper=document.createElement("div");
+  wrapper.innerHTML=String(effect||"");
+  return wrapper.textContent?.replace(/\s+/g," ").trim() || "No effect description configured.";
+}
+
+function openEidolonEffectsBrowser(preselectedActor=null) {
+  const actors=Array.from(game.actors??[]).filter(actor=>actor.type==="character" && (game.user.isGM || actor.isOwner)).sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+  if(!actors.length)return ui.notifications.warn("No character sheets are available to inspect.");
+  const selected=actors.find(actor=>actor.id===preselectedActor?.id) || actors[0];
+  const options=actors.map(actor=>`<option value="${escapeHTML(actor.id)}" ${actor.id===selected.id?"selected":""}>${escapeHTML(actor.name)}</option>`).join("");
+  const content=`<section class="tsru-eidolon-effects-browser"><label><i class="fas fa-search"></i><input type="search" data-eidolon-actor-search placeholder="Search characters"></label><select data-eidolon-actor-select>${options}</select><div data-eidolon-effects-list></div></section>`;
+  const dialog=new Dialog({title:"Check Eidolon Effects",content,buttons:{close:{icon:'<i class="fas fa-xmark"></i>',label:"Close"}}},{width:720,height:720,resizable:true,classes:["tsru-eidolon-effects-dialog"]});
+  Hooks.once("renderDialog",rendered=>{
+    if(rendered!==dialog)return;
+    const root=rendered.element;
+    const select=root.find("[data-eidolon-actor-select]");
+    const list=root.find("[data-eidolon-effects-list]");
+    const render=()=>{
+      const actor=game.actors.get(String(select.val()||""));
+      if(!actor)return list.empty();
+      const slots=getEidolons(actor).slots;
+      list.html(`<header><img src="${escapeHTML(actor.img||"icons/svg/mystery-man.svg")}" alt=""><h2>${escapeHTML(actor.name)}</h2></header>${slots.map(slot=>`<article class="${slot.active?"active":"inactive"}"><div><b>E${slot.number} — ${escapeHTML(slot.title)}</b><span>${slot.active?'<i class="fas fa-check"></i> Active':'<i class="fas fa-lock"></i> Inactive'}</span></div><div class="tsru-eidolon-effect-copy">${slot.effect||"<em>No effect description configured.</em>"}</div><button type="button" data-print-eidolon data-actor-id="${actor.id}" data-eidolon="${slot.number}"><i class="fas fa-message"></i> Print to Chat</button></article>`).join("")}`);
+    };
+    root.find("[data-eidolon-actor-search]").on("input",event=>{
+      const query=String(event.currentTarget.value||"").trim().toLowerCase();
+      select.find("option").each((_i,option)=>option.hidden=Boolean(query&&!option.textContent.toLowerCase().includes(query)));
+      const visible=select.find("option").filter((_i,option)=>!option.hidden).first();
+      if(visible.length&&!select.find("option:selected").is(":not([hidden])")){select.val(visible.val());render();}
+    });
+    select.on("change",render);
+    list.on("click","[data-print-eidolon]",async event=>{
+      const button=event.currentTarget, actor=game.actors.get(button.dataset.actorId), slot=getEidolons(actor).slots[Number(button.dataset.eidolon)-1];
+      if(!actor||!slot)return;
+      const description=await TextEditor.enrichHTML(String(slot.effect||"<em>No effect description configured.</em>"),{async:true,secrets:game.user.isGM||actor.isOwner});
+      await ChatMessage.create({speaker:ChatMessage.getSpeaker({actor}),content:`<section class="tsru-eidolon-chat"><h3>${escapeHTML(actor.name)} — E${slot.number}: ${escapeHTML(slot.title)}</h3><p class="${slot.active?"active":"inactive"}">${slot.active?"Active":"Inactive"}</p><div>${description}</div></section>`});
+    });
+    render();
+  });
+  dialog.render(true);
 }
 
 function refreshEidolonPreview(tab, number) {
@@ -6521,6 +6617,8 @@ function refreshEidolonStageSlot(tab, number, slot) {
   art.attr("data-fallback-art", slot.artwork || "").toggleClass("locked", !slot.active);
   art.find("img").attr("src", slot.artwork || "");
   art.css("--art-x", `${slot.offsetX}%`).css("--art-y", `${slot.offsetY}%`).css("--art-scale", String(slot.scale / 100));
+  const effect=eidolonEffectPlainText(slot.effect);
+  art.attr("data-tooltip",effect).attr("aria-label",`E${number}: ${slot.title}. ${effect}`);
   const title = tab.find(`[data-eidolon-title="${number}"]`);
   title.toggleClass("locked", !slot.active).find("span").text(slot.title || `Eidolon ${number}`);
 }
@@ -6535,6 +6633,7 @@ function refreshEidolonStageDraft(tab, editor, number) {
   refreshEidolonStageSlot(tab, number, {
     artwork: String(editor.find(`[name="eidolon.${number}.artwork"]`).val() || ""),
     title: String(editor.find(`[name="eidolon.${number}.title"]`).val() || `Eidolon ${number}`),
+    effect: String(editor.find(`[name="eidolon.${number}.effect"]`).val() || ""),
     offsetX: clamp(editor.find(`[name="eidolon.${number}.offsetX"]`).val(), -100, 100),
     offsetY: clamp(editor.find(`[name="eidolon.${number}.offsetY"]`).val(), -100, 100),
     scale: clamp(editor.find(`[name="eidolon.${number}.scale"]`).val(), 25, 400),
@@ -6547,6 +6646,7 @@ function populateEidolonEditor(actor, tab, number) {
   const editor = tab.find(`[data-eidolon-editor="${number}"]`);
   if (!slot || !editor.length) return;
   editor.find(`[name="eidolon.${number}.title"]`).val(slot.title);
+  editor.find(`[name="eidolon.${number}.effect"]`).val(slot.effect);
   editor.find(`[name="eidolon.${number}.artwork"]`).val(slot.artwork);
   editor.find(`[name="eidolon.${number}.offsetX"]`).val(slot.offsetX);
   editor.find(`[name="eidolon.${number}.offsetY"]`).val(slot.offsetY);
@@ -6568,12 +6668,14 @@ async function saveEidolonSlotFromEditor(actor, scope, number, {notify = false} 
   const editor = scope.find(`[data-eidolon-editor="${number}"]`);
   if (!slot || !editor.length) return;
   slot.title = String(editor.find(`[name="eidolon.${number}.title"]`).val() || `Eidolon ${number}`);
+  slot.effect = String(editor.find(`[name="eidolon.${number}.effect"]`).val() || "");
   slot.artwork = String(editor.find(`[name="eidolon.${number}.artwork"]`).val() || "");
   slot.offsetX = clamp(editor.find(`[name="eidolon.${number}.offsetX"]`).val(), -100, 100);
   slot.offsetY = clamp(editor.find(`[name="eidolon.${number}.offsetY"]`).val(), -100, 100);
   slot.scale = clamp(editor.find(`[name="eidolon.${number}.scale"]`).val(), 25, 400);
   slot.active = editor.find(`[name="eidolon.${number}.active"]`).prop("checked");
   await actor.update({[`flags.${MODULE_ID}.eidolons`]: data}, {tsruAutosave: !notify, render: false});
+  await syncEidolonFeature(actor,slot);
   if (notify) ui.notifications.info(`${actor.name}'s E${number} appearance was saved.`);
 }
 
@@ -6603,12 +6705,14 @@ async function selectExistingEidolons(actor) {
             number: index + 1,
             active: Boolean(slot.active),
             title: String(slot.title || `Eidolon ${index + 1}`),
+            effect: String(slot.effect || ""),
             artwork: String(slot.artwork || ""),
             offsetX: clamp(slot.offsetX, -100, 100),
             offsetY: clamp(slot.offsetY, -100, 100),
             scale: clamp(slot.scale, 25, 400)
           }));
           await actor.update({[`flags.${MODULE_ID}.eidolons`]: destinationData});
+          await syncAllEidolonFeatures(actor);
           ui.notifications.info(`Imported Eidolons from ${source.name} to ${actor.name}.`);
           for (const sheet of Object.values(ui.windows ?? {})) {
             if ((sheet.actor ?? sheet.document)?.id === actor.id) sheet.render(false);
@@ -6623,6 +6727,7 @@ async function selectExistingEidolons(actor) {
 
 function activateEidolonListeners(actor, tab, app) {
   tab.find("[data-action='activate-eidolon']").on("click", async event => activateEidolon(actor, Number(event.currentTarget.dataset.eidolon)));
+  tab.find("[data-action='check-eidolon-effects']").on("click",()=>openEidolonEffectsBrowser(actor));
   if (!game.user.isGM) return;
 
   tab.find("[data-action='select-existing-eidolons']").on("click", () => selectExistingEidolons(actor));
@@ -6701,7 +6806,7 @@ function activateEidolonListeners(actor, tab, app) {
       console.error(`${MODULE_ID} | Could not open Eidolon artwork browser`, error);
     });
   });
-  tab.find("[data-eidolon-editor] input").on("input change", event => {
+  tab.find("[data-eidolon-editor] input, [data-eidolon-editor] textarea").on("input change", event => {
     const editorElement = event.currentTarget.closest("[data-eidolon-editor]");
     const number = Number(editorElement.dataset.eidolonEditor);
     const popout = $(event.currentTarget).closest("[data-eidolon-popout]");
@@ -7056,6 +7161,7 @@ function registerApi() {
     openTalentPointConfig: () => new TalentPointConfig().render(true),
     openTechniquePointConfig: () => new TechniquePointConfig().render(true),
     openEidolonConfig: () => new EidolonAppearanceConfig().render(true),
+    openEidolonEffectsBrowser,
     openLightConeGenerator,
     openCrafting,
     openRecipeManager:()=>new RecipeManager().render(true),
@@ -7065,6 +7171,7 @@ function registerApi() {
     showTalentUI,
     showAllAbilityBubbles,
     setLocalMainCharacter,
+    getSelectedMainCharacter: selectedMainCharacter,
     refreshResourceHuds,
     getPunchline: currentPunchline,
     setPunchline,
@@ -7096,6 +7203,7 @@ Hooks.once("init", () => {
 
 Hooks.once("ready", async () => {
   await ensureDefaultPaths();
+  if(isAuthority())for(const actor of game.actors.filter(entry=>entry.type==="character"))await syncAllEidolonFeatures(actor);
   game.socket.on(SOCKET, onSocket);
   registerApi();
   applySceneNavigationVisibility();
@@ -7362,7 +7470,7 @@ Hooks.on("updateActor", (actor, changes, options) => {
     reconcileUltimateLock(actor.id);
   }
 });
-Hooks.on("updateToken", token => { refreshToughnessBars(); refreshResourceHuds(); refreshBossHud(); refreshInitiativeCarousel(); if(isAuthority()&&token.actor)handleBossPhaseDefeat(token.actor).catch(error=>console.error(`${MODULE_ID} | Boss token phase check failed`,error)); state.gmPanel?.render(false); });
+Hooks.on("updateToken", token => { refreshToughnessBars(); refreshResourceHuds(); refreshCombatPartyHud(); refreshBossHud(); refreshInitiativeCarousel(); if(isAuthority()&&token.actor)handleBossPhaseDefeat(token.actor).catch(error=>console.error(`${MODULE_ID} | Boss token phase check failed`,error)); state.gmPanel?.render(false); });
 Hooks.on("targetToken", user => { if (user.id === game.user.id) state.gmPanel?.refreshTargetHighlights(); });
 Hooks.on("controlToken", () => state.gmPanel?.refreshTargetHighlights());
 Hooks.on("deleteActor", actor => { state.orbs.get(actor.id)?.destroy(); state.skillButtons.get(actor.id)?.destroy(); state.talentButtons.get(actor.id)?.destroy(); state.techniqueButtons.get(actor.id)?.destroy(); refreshResourceHuds(); });
@@ -7522,6 +7630,7 @@ Hooks.on("updateCombat", async combat => {
 });
 
 Hooks.on("updateCombatant", async (combatant, changed) => {
+  refreshCombatPartyHud();
   refreshBossHud();
   refreshInitiativeCarousel();
   state.bossPhaseControl?.render();
@@ -7567,6 +7676,7 @@ Hooks.on("combatStart", async combat => {
   }, 100);
 });
 Hooks.on("deleteCombatant", combatant => {
+  refreshCombatPartyHud();
   refreshBossHud();
   refreshInitiativeCarousel();
   state.bossPhaseControl?.render();
