@@ -20,21 +20,65 @@ const DEFAULT_HUB_BUTTONS = [
   ["crafting","Synthesize","fas fa-flask",80,38],["eidolon-effects","Eidolons","fas fa-gem",68,58],["characters","Characters","fas fa-users",80,58],
   ["gm","GM Panel","fas fa-sliders",68,78],["quest-manager","Mission Manager","fas fa-list-check",80,78],["configure-hub","Configure Phone","fas fa-mobile-screen",92,78]
 ].map(([action,label,icon,x,y])=>({action,label,icon,x,y,width:10,height:16}));
+const HUB_BUTTON_ACTIONS = [
+  ["quests","Mission Log"],["party","Main Character Selector"],["abilities","Ability Bubbles"],["crafting","Party Crafting"],["eidolon-effects","Eidolon Effects"],
+  ["check-kit","Check Kit"],["inventory","Main Character Inventory"],["messenger","HSR Messenger"],["sheet","Character Sheet Tab or Element"],
+  ["orbs","Combat Party HUD"],["hud-designer","Combat HUD Designer"],["aha-config","Aha Instant Configuration"],["aha-toggle","Aha Instant Orb"],["skill-config","Skill Point Configuration"],
+  ["elements","Element Manager"],["paths","Path Manager"],["eidolons","Eidolon Configuration"],["light-cone-generator","Light Cone Generator"],["quest-settings","Mission Settings"],
+  ["characters","Main Character Selector (GM)"],["gm","GM Panel"],["quest-manager","Mission Manager"],["configure-hub","Phone Hub Designer"]
+].map(([value,label])=>({value,label}));
+const GM_ONLY_HUB_ACTIONS = new Set(["gm","quest-manager","configure-hub","characters","quest-settings","elements","paths","eidolons","light-cone-generator","aha-config","skill-config","hud-designer"]);
 const DEFAULT_HUB_CONFIG = {
   wallpaper:"",wallpaperFit:"cover",wallpaperX:50,wallpaperY:50,wallpaperScale:100,
-  snap:true,gridSize:4,poseByActor:{},buttons:DEFAULT_HUB_BUTTONS
+  snap:true,gridSize:4,poseByActor:{},phoneByActor:{},buttons:DEFAULT_HUB_BUTTONS
 };
 
-function hubConfig(){
+function hubConfig(actor=null,profileKey=""){
   const saved=clone(game.settings.get(MODULE_ID,"hsrHubConfig")??{});
   const merged=foundry.utils.mergeObject(clone(DEFAULT_HUB_CONFIG),saved,{inplace:false,insertKeys:true,overwrite:true});
   merged.buttons=(Array.isArray(saved.buttons)&&saved.buttons.length?saved.buttons:DEFAULT_HUB_BUTTONS).map((button,index)=>({...DEFAULT_HUB_BUTTONS[index%DEFAULT_HUB_BUTTONS.length],...button}));
+  const actorConfig=saved.phoneByActor?.[profileKey||actor?.id]??null;
+  if(actorConfig){
+    for(const key of ["wallpaper","wallpaperFit","wallpaperX","wallpaperY","wallpaperScale"]) if(actorConfig[key]!==undefined) merged[key]=actorConfig[key];
+    if(Array.isArray(actorConfig.buttons)&&actorConfig.buttons.length) merged.buttons=actorConfig.buttons.map((button,index)=>({...DEFAULT_HUB_BUTTONS[index%DEFAULT_HUB_BUTTONS.length],...button}));
+  }
   return merged;
 }
 
-function hubPose(actor,config=hubConfig()){
-  const stored=config.poseByActor?.[actor?.id]??{};
+function hubPose(actor,config=hubConfig(),profileKey=""){
+  const stored=config.poseByActor?.[profileKey||actor?.id]??{};
   return {image:String(stored.image||actor?.img||"icons/svg/mystery-man.svg"),x:Number(stored.x??50),y:Number(stored.y??50),scale:Number(stored.scale??100),flip:Boolean(stored.flip)};
+}
+
+function actorOwnerName(actor){const owners=game.users.filter(user=>!user.isGM&&actor?.testUserPermission(user,"OWNER")).map(user=>user.name);return owners.join(", ")||"No player owner";}
+
+async function openHubActorSheet(actor,target=""){
+  if(!actor)return ui.notifications.warn("Select a main character first.");
+  actor.sheet.render(true);
+  await new Promise(resolve=>setTimeout(resolve,80));
+  const root=actor.sheet.element?.[0]??actor.sheet.element;
+  const requested=String(target||"").trim();
+  if(!requested)return;
+  const selectorLike=/^[.#\[]/.test(requested);
+  const tabNode=!selectorLike?root?.querySelector?.(`[data-tab="${CSS.escape(requested)}"]`):null;
+  if(tabNode){tabNode.click();return;}
+  const node=root?.querySelector?.(selectorLike?requested:`#${CSS.escape(requested)},[data-tab="${CSS.escape(requested)}"],[data-section="${CSS.escape(requested)}"]`);
+  if(node){node.scrollIntoView({behavior:"smooth",block:"center"});node.click?.();return;}
+  ui.notifications.warn(`Could not find sheet tab or element “${requested}” on ${actor.name}.`);
+}
+
+async function showHubKit(actor){
+  if(!actor)return ui.notifications.warn("Select a main character first.");
+  const config=actor.getFlag(MODULE_ID,"ultimate")??{};
+  const entries=[
+    ["Ultimate","fas fa-burst",config.ultimateText,config.enabled!==false],
+    ["Talent","fas fa-star",config.talentText,Boolean(config.talentText)||Number(config.talentPointsMax)>0],
+    ["Skill","fas fa-hand-sparkles",config.skillText,config.skillEnabled!==false],
+    ["Technique","fas fa-bolt",config.techniqueText,Boolean(config.techniqueEnabled)||Boolean(config.techniqueText)]
+  ].filter(([_label,_icon,text,enabled])=>enabled&&String(text||"").trim());
+  const sections=[];
+  for(const [label,icon,text] of entries)sections.push(`<article><h3><i class="${icon}"></i> ${label}</h3><div>${await TextEditor.enrichHTML(String(text),{async:true,secrets:actor.isOwner,relativeTo:actor})}</div></article>`);
+  new Dialog({title:`${actor.name} — Check Kit`,content:`<section class="tsru-kit-browser"><header><img src="${esc(actor.img)}"><h2>${esc(actor.name)}</h2></header>${sections.join("")||"<p><em>No Skill, Talent, Technique, or Ultimate descriptions are configured.</em></p>"}</section>`,buttons:{close:{label:"Close"}}},{width:620,height:"auto",resizable:true}).render(true);
 }
 
 const clone = value => foundry.utils.deepClone(value);
@@ -199,16 +243,22 @@ async function distributeRewards(questId) {
 class HSRHub extends FormApplication {
   static get defaultOptions() { return foundry.utils.mergeObject(super.defaultOptions, {id:"tsru-hub",title:"HSR Hub",template:`modules/${MODULE_ID}/templates/hsr-hub.hbs`,width:window.innerWidth,height:window.innerHeight,resizable:false}); }
   getData() {
-    const config=hubConfig(),actor=api()?.getSelectedMainCharacter?.(),pose=hubPose(actor,config);
-    const gmOnly=new Set(["gm","quest-manager","configure-hub","characters"]),playerOnly=new Set(["party"]);
-    return {gm:game.user.isGM,player:!game.user.isGM,actor,pose,config,buttons:config.buttons.filter(button=>(game.user.isGM||!gmOnly.has(button.action))&&(!game.user.isGM||!playerOnly.has(button.action))).map(button=>({...button,style:`left:${button.x}%;top:${button.y}%;width:${button.width}%;height:${button.height}%`}))};
+    const actors=game.actors.filter(actor=>actor.type==="character").sort((a,b)=>actorOwnerName(a).localeCompare(actorOwnerName(b))||a.name.localeCompare(b.name));
+    const actor=game.user.isGM?(this.viewActorId?game.actors.get(this.viewActorId):null):api()?.getSelectedMainCharacter?.(),profileKey=game.user.isGM?(actor?.id||"__gm__"):actor?.id,config=hubConfig(actor,profileKey),pose=hubPose(actor,config,profileKey);
+    const gmOnly=GM_ONLY_HUB_ACTIONS,playerOnly=new Set(["party"]);
+    return {gm:game.user.isGM,player:!game.user.isGM,gmPanel:game.user.isGM&&!actor,actor,pose,config,phoneChoices:[{id:"",name:"DM PANEL",selected:!actor},...actors.map(entry=>({id:entry.id,name:`${entry.name} — ${actorOwnerName(entry)}`,selected:entry.id===actor?.id}))],buttons:config.buttons.filter(button=>(game.user.isGM||!gmOnly.has(button.action))&&(!game.user.isGM||!playerOnly.has(button.action))).map(button=>({...button,id:button.id||button.action,gmOnly:gmOnly.has(button.action),style:`left:${button.x}%;top:${button.y}%;width:${button.width}%;height:${button.height}%`}))};
   }
   activateListeners(html) {
     super.activateListeners(html);
     this.element.appendTo(document.body).addClass("tsru-phone-hub-window");
     html.find("[data-action='close-phone-hub']").on("click",()=>this.close());
+    html.find("[data-gm-phone-view]").on("change",event=>{this.viewActorId=String(event.currentTarget.value||"");this.render(false);});
+    html.find("[data-action='configure-viewed-phone']").on("click",()=>{const app=new HSRHubConfig();app.actorId=this.viewActorId||"__gm__";app.render(true);});
     html.find("[data-hub-action]").on("click", async event => {
       const action = event.currentTarget.dataset.hubAction;
+      const mainActor=game.user.isGM&&this.viewActorId?game.actors.get(this.viewActorId):api()?.getSelectedMainCharacter?.();
+      const buttonId=String(event.currentTarget.dataset.hubButtonId||action);
+      const buttonConfig=hubConfig(mainActor).buttons.find(button=>String(button.id||button.action)===buttonId)??{};
       const actions = {
         quests: ["Mission Log", openQuestLog],
         party: ["Main Character", () => new PartyCharacterSelector().render(true)],
@@ -219,6 +269,10 @@ class HSRHub extends FormApplication {
         "hud-designer": ["Combat HUD Designer", () => api()?.openCombatHudDesigner?.()],
         abilities: ["Ability Bubbles", () => requireApiMethod("showAllAbilityBubbles")()],
         crafting: ["Party Crafting", () => api()?.openCrafting?.()],
+        "check-kit": ["Check Kit", () => showHubKit(mainActor)],
+        inventory: ["Inventory", () => openHubActorSheet(mainActor,"inventory")],
+        messenger: ["HSR Messenger", () => new HSRMessenger().render(true)],
+        sheet: ["Character Sheet", () => openHubActorSheet(mainActor,buttonConfig.target)],
         "eidolon-effects": ["Eidolon Effects", () => api()?.openEidolonEffectsBrowser?.()],
         characters: ["Main Character", () => new PartyCharacterSelector().render(true)],
         gm: ["Star Rail GM Panel", () => api()?.openGMPanel?.()],
@@ -234,7 +288,7 @@ class HSRHub extends FormApplication {
         "light-cone-generator": ["Light Cone Generator", () => api()?.openLightConeGenerator?.()],
         "quest-manager": ["Mission Manager", () => new QuestManager().render(true)],
         "quest-settings": ["Mission Settings", () => new QuestSettings().render(true)],
-        "configure-hub": ["Phone Hub Designer", () => new HSRHubConfig().render(true)]
+        "configure-hub": ["Phone Hub Designer", () => {const app=new HSRHubConfig();app.actorId=this.viewActorId||"__gm__";app.render(true);}]
       };
       const [label, callback] = actions[action] ?? [];
       if (callback) await runUiAction(label, callback);
@@ -245,14 +299,20 @@ class HSRHub extends FormApplication {
 
 class HSRHubConfig extends FormApplication {
   static get defaultOptions(){return foundry.utils.mergeObject(super.defaultOptions,{id:"tsru-hub-config",title:"HSR Phone Hub Designer",template:`modules/${MODULE_ID}/templates/hsr-hub-config.hbs`,width:1000,height:820,resizable:true,closeOnSubmit:true});}
-  getData(){const config=hubConfig(),actors=game.actors.filter(actor=>actor.type==="character").sort((a,b)=>String(a.name).localeCompare(String(b.name))),actor=actors.find(entry=>entry.id===this.actorId)||api()?.getSelectedMainCharacter?.()||actors[0];this.actorId=actor?.id||"";return {config,actors:actors.map(entry=>({...entry,selected:entry.id===this.actorId})),actor,pose:hubPose(actor,config),buttons:config.buttons.map((button,index)=>({...button,index,style:`left:${button.x}%;top:${button.y}%;width:${button.width}%;height:${button.height}%`}))};}
+  getData(){const actors=game.actors.filter(actor=>actor.type==="character").sort((a,b)=>String(a.name).localeCompare(String(b.name))),dmPanel=this.actorId==="__gm__"||(!this.actorId&&game.user.isGM),actor=dmPanel?null:(actors.find(entry=>entry.id===this.actorId)||api()?.getSelectedMainCharacter?.()||actors[0]);this.actorId=dmPanel?"__gm__":(actor?.id||"__gm__");const config={...hubConfig(actor,this.actorId),...(this.configDraft??{})},pose={...hubPose(actor,config,this.actorId),...(this.poseDraft??{})};if(!this.buttonsDraft)this.buttonsDraft=clone(config.buttons);const buttons=this.buttonsDraft.map((button,index)=>({...button,id:button.id||foundry.utils.randomID(),index,gmOnly:GM_ONLY_HUB_ACTIONS.has(button.action),actionOptions:HUB_BUTTON_ACTIONS.map(option=>({...option,selected:option.value===button.action})),sheetAction:button.action==="sheet",style:`left:${button.x}%;top:${button.y}%;width:${button.width}%;height:${button.height}%`}));this.buttonsDraft=buttons.map(({actionOptions,sheetAction,style,index,gmOnly,...button})=>button);return {config,dmPanel,profileName:dmPanel?"DM PANEL":actor?.name,actors:[{id:"__gm__",name:"DM PANEL",ownerLabel:"Game Master",selected:dmPanel},...actors.map(entry=>({id:entry.id,name:entry.name,ownerLabel:actorOwnerName(entry),selected:entry.id===this.actorId}))],actor,pose,buttons};}
+  captureButtons(html){const form=html?.is?.("form")?html[0]:html?.find?.("form.tsru-hub-config-form")?.[0];if(!form)return;const expanded=foundry.utils.expandObject(Object.fromEntries(new FormData(form).entries()));this.configDraft={wallpaper:String(expanded.wallpaper||""),wallpaperFit:String(expanded.wallpaperFit||"cover"),wallpaperX:Number(expanded.wallpaperX)||50,wallpaperY:Number(expanded.wallpaperY)||50,wallpaperScale:Number(expanded.wallpaperScale)||100,snap:Boolean(expanded.snap),gridSize:Number(expanded.gridSize)||4};this.poseDraft={image:String(expanded.poseImage||""),x:Number(expanded.poseX)||50,y:Number(expanded.poseY)||50,scale:Number(expanded.poseScale)||100,flip:Boolean(expanded.poseFlip)};const current=Object.values(expanded.buttons??{});this.buttonsDraft=current.map((button,index)=>({...this.buttonsDraft[index],id:String(button.id||this.buttonsDraft[index]?.id||foundry.utils.randomID()),label:String(button.label||"New Button"),icon:String(button.icon||"fas fa-star"),action:String(button.action||"sheet"),target:String(button.target||""),x:Number(button.x)||0,y:Number(button.y)||0,width:Math.max(4,Number(button.width)||10),height:Math.max(6,Number(button.height)||16)}));}
   activateListeners(html){
     super.activateListeners(html);activatePickers(html);
-    html.find('[name="actorId"]').on("change",event=>{this.actorId=String(event.currentTarget.value);this.render(false);});
+    html.find('[name="actorId"]').on("change",event=>{this.actorId=String(event.currentTarget.value);this.buttonsDraft=null;this.configDraft=null;this.poseDraft=null;this.render(false);});
+    html.find("[data-add-hub-button]").on("click",()=>{this.captureButtons(html);this.buttonsDraft.push({id:foundry.utils.randomID(),label:"New Button",icon:"fas fa-star",action:"sheet",target:"features",x:68,y:78,width:10,height:16});this.render(false);});
+    html.find("[data-add-hub-preset]").on("click",event=>{this.captureButtons(html);const action=String(event.currentTarget.dataset.addHubPreset),presets={"check-kit":["Check Kit","fas fa-book-open"],inventory:["Inventory","fas fa-box-open"],messenger:["Messages","fas fa-comments"]},[label,icon]=presets[action]??["New Button","fas fa-star"],count=this.buttonsDraft.length;this.buttonsDraft.push({id:foundry.utils.randomID(),label,icon,action,target:"",x:68+(count%3)*11,y:78-Math.floor(count%6/3)*18,width:10,height:16});this.render(false);});
+    html.find("[data-remove-hub-button]").on("click",event=>{this.captureButtons(html);this.buttonsDraft.splice(Number(event.currentTarget.dataset.removeHubButton),1);this.render(false);});
+    html.find("[data-hub-button-action]").on("change",event=>{const row=event.currentTarget.closest("[data-hub-button-editor]"),index=[...row.parentElement.children].indexOf(row),gmOnly=GM_ONLY_HUB_ACTIONS.has(event.currentTarget.value);row?.classList.toggle("is-sheet-action",event.currentTarget.value==="sheet");row?.classList.toggle("is-gm-only",gmOnly);html.find(`[data-hub-button-index="${index}"]`).toggleClass("is-gm-only",gmOnly);});
+    html.find('[name$=".label"],[name$=".icon"]').on("input",event=>{const match=event.currentTarget.name.match(/^buttons\.(\d+)\.(label|icon)$/);if(!match)return;const button=html.find(`[data-hub-button-index="${match[1]}"]`);if(match[2]==="label")button.find("span").text(event.currentTarget.value);else button.find("i").attr("class",event.currentTarget.value);});
     html.find("[data-toggle-hub-snap]").on("click",event=>{const input=html.find('[name="snap"]'),enabled=!input.prop("checked");input.prop("checked",enabled);event.currentTarget.innerHTML=`<i class="fas fa-magnet"></i> ${enabled?"Disable Snapping":"Enable Snapping"}`;});
     const preview=html.find("[data-hub-designer-preview]");
     const snap=value=>{const enabled=html.find('[name="snap"]').prop("checked"),size=Math.max(1,Number(html.find('[name="gridSize"]').val())||4);return enabled?Math.round(value/size)*size:value;};
-    html.find('[name="wallpaperFit"]').val(hubConfig().wallpaperFit);
+    html.find('[name="wallpaperFit"]').val(hubConfig(game.actors.get(this.actorId),this.actorId).wallpaperFit);
     const updateWallpaper=()=>preview.css({"--hub-wallpaper":`url('${String(html.find('[name="wallpaper"]').val()||"").replaceAll("'","%27")}')`,"--hub-wallpaper-fit":html.find('[name="wallpaperFit"]').val(),"--hub-wallpaper-x":`${html.find('[name="wallpaperX"]').val()}%`,"--hub-wallpaper-y":`${html.find('[name="wallpaperY"]').val()}%`,"--hub-wallpaper-scale":Number(html.find('[name="wallpaperScale"]').val())});
     html.find('[name="wallpaper"],[name="wallpaperFit"],[name="wallpaperX"],[name="wallpaperY"],[name="wallpaperScale"]').on("input change",updateWallpaper);
     let drag=null;
@@ -263,7 +323,48 @@ class HSRHubConfig extends FormApplication {
     preview.on("dragover",event=>event.preventDefault()).on("drop",event=>{event.preventDefault();let data={};try{data=JSON.parse(event.originalEvent.dataTransfer.getData("text/plain")||"{}");}catch{}const path=data.path||data.src||data.texture?.src;if(path){html.find('[name="poseImage"]').val(path).trigger("change");preview.find("[data-hub-pose-preview] img").attr("src",path);}});
     html.find('[name="poseImage"]').on("change",event=>preview.find("[data-hub-pose-preview] img").attr("src",event.currentTarget.value));
   }
-  async _updateObject(_event,formData){const expanded=foundry.utils.expandObject(formData),config=hubConfig();config.wallpaper=String(expanded.wallpaper||"");config.wallpaperFit=String(expanded.wallpaperFit||"cover");config.wallpaperX=Number(expanded.wallpaperX)||50;config.wallpaperY=Number(expanded.wallpaperY)||50;config.wallpaperScale=Math.max(25,Math.min(400,Number(expanded.wallpaperScale)||100));config.snap=Boolean(expanded.snap);config.gridSize=Math.max(1,Math.min(25,Number(expanded.gridSize)||4));config.buttons=Object.values(expanded.buttons??{}).map((button,index)=>({...config.buttons[index],x:Number(button.x)||0,y:Number(button.y)||0,width:Math.max(4,Number(button.width)||10),height:Math.max(6,Number(button.height)||16)}));config.poseByActor??={};config.poseByActor[this.actorId]={image:String(expanded.poseImage||""),x:Number(expanded.poseX)||50,y:Number(expanded.poseY)||50,scale:Math.max(20,Math.min(500,Number(expanded.poseScale)||100)),flip:Boolean(expanded.poseFlip)};await game.settings.set(MODULE_ID,"hsrHubConfig",config);refreshQuestWindows();ui.notifications.info("HSR Phone Hub layout saved.");}
+  async _updateObject(_event,formData){if(!game.user.isGM)return ui.notifications.error("Only a GM can save player phone layouts.");const expanded=foundry.utils.expandObject(formData),stored=clone(game.settings.get(MODULE_ID,"hsrHubConfig")??{});stored.snap=Boolean(expanded.snap);stored.gridSize=Math.max(1,Math.min(25,Number(expanded.gridSize)||4));stored.poseByActor??={};stored.poseByActor[this.actorId]={image:String(expanded.poseImage||""),x:Number(expanded.poseX)||50,y:Number(expanded.poseY)||50,scale:Math.max(20,Math.min(500,Number(expanded.poseScale)||100)),flip:Boolean(expanded.poseFlip)};stored.phoneByActor??={};stored.phoneByActor[this.actorId]={wallpaper:String(expanded.wallpaper||""),wallpaperFit:String(expanded.wallpaperFit||"cover"),wallpaperX:Number(expanded.wallpaperX)||50,wallpaperY:Number(expanded.wallpaperY)||50,wallpaperScale:Math.max(25,Math.min(400,Number(expanded.wallpaperScale)||100)),buttons:Object.values(expanded.buttons??{}).map(button=>({id:String(button.id||foundry.utils.randomID()),label:String(button.label||"Button"),icon:String(button.icon||"fas fa-star"),action:String(button.action||"sheet"),target:String(button.target||""),x:Number(button.x)||0,y:Number(button.y)||0,width:Math.max(4,Number(button.width)||10),height:Math.max(6,Number(button.height)||16)}))};await game.settings.set(MODULE_ID,"hsrHubConfig",stored);refreshQuestWindows();const actor=game.actors.get(this.actorId),name=this.actorId==="__gm__"?"DM PANEL":actor?.name||"Character";ui.notifications.info(`${name}'s HSR Phone Hub layout saved.`);}
+}
+
+function messengerThreads(){return clone(game.settings.get(MODULE_ID,"hsrMessengerThreads")??[]);}
+async function saveMessengerThreads(threads){await game.settings.set(MODULE_ID,"hsrMessengerThreads",threads);}
+function messengerPortrait(actor){const config=actor?.getFlag(MODULE_ID,"ultimate")??{};return {portrait:String(config.messagingPortrait||actor?.img||"icons/svg/mystery-man.svg"),portraitX:Number(config.messagingPortraitX??50),portraitY:Number(config.messagingPortraitY??50),portraitScale:Number(config.messagingPortraitScale??100)};}
+
+class HSRMessenger extends Application {
+  static get defaultOptions(){return foundry.utils.mergeObject(super.defaultOptions,{id:"tsru-hsr-messenger",title:"HSR Messenger",template:`modules/${MODULE_ID}/templates/hsr-messenger.hbs`,width:920,height:700,resizable:true});}
+  getData(){
+    const all=messengerThreads(),visible=(game.user.isGM?all:all.filter(thread=>(thread.participantIds??[]).includes(game.user.id))).sort((a,b)=>Number(b.updatedAt||0)-Number(a.updatedAt||0));
+    if(!visible.some(thread=>thread.id===this.threadId))this.threadId=visible[0]?.id||"";
+    const selected=visible.find(thread=>thread.id===this.threadId);
+    const speakers=game.actors.filter(actor=>["character","npc"].includes(actor.type)).sort((a,b)=>a.name.localeCompare(b.name));
+    if(!speakers.some(actor=>actor.id===this.speakerActorId))this.speakerActorId=api()?.getSelectedMainCharacter?.()?.id||speakers[0]?.id||"";
+    const messages=(selected?.messages??[]).map(message=>{const actor=game.actors.get(message.speakerActorId),portrait=messengerPortrait(actor);return {...message,...portrait,speakerName:actor?.name||message.speakerName||"Unknown",mine:message.senderUserId===game.user.id,time:new Date(Number(message.createdAt)||Date.now()).toLocaleString()};});
+    const selectedData=selected?{...selected,messages,participantNames:(selected.participantIds??[]).map(id=>game.users.get(id)?.name).filter(Boolean).join(", ")}:null;
+    return {isGM:game.user.isGM,threads:visible.map(thread=>({id:thread.id,title:thread.title,selected:thread.id===this.threadId,preview:String(thread.messages?.at(-1)?.text||"No messages").slice(0,70)})),selected:selectedData,speakers:speakers.map(actor=>({id:actor.id,name:actor.name,selected:actor.id===this.speakerActorId}))};
+  }
+  activateListeners(html){
+    super.activateListeners(html);
+    html.find("[data-thread-id]").on("click",event=>{this.threadId=String(event.currentTarget.dataset.threadId);this.render(false);});
+    html.find('[name="speakerActorId"]').on("change",event=>{this.speakerActorId=String(event.currentTarget.value);});
+    html.find("[data-action='new-thread']").on("click",()=>this.createThread());
+    html.find("[data-action='send-message']").on("click",()=>this.sendMessage(html));
+    html.find('[name="messageText"]').on("keydown",event=>{if(event.key==="Enter"&&!event.shiftKey){event.preventDefault();this.sendMessage(html);}});
+    html.find("[data-action='delete-thread']").on("click",()=>this.deleteThread());
+    const scroller=html.find(".tsru-messenger-messages")[0];if(scroller)scroller.scrollTop=scroller.scrollHeight;
+  }
+  async createThread(){
+    const users=game.users.filter(user=>!user.isGM&&user.id!==game.user.id).map(user=>({id:user.id,name:user.name}));
+    const content=await renderTemplate(`modules/${MODULE_ID}/templates/hsr-messenger-new.hbs`,{users});
+    new Dialog({title:"New Text Chain",content,buttons:{create:{label:"Create",icon:'<i class="fas fa-plus"></i>',callback:async html=>{const root=html?.[0]??html,title=String(root.querySelector('[name="title"]')?.value||"New Conversation").trim(),recipientIds=[...root.querySelectorAll('[name="recipientIds"]:checked')].map(input=>input.value);if(!recipientIds.length)return ui.notifications.warn("Choose at least one recipient.");if(!game.user.isGM)recipientIds.push(game.user.id);const threads=messengerThreads(),thread={id:foundry.utils.randomID(),title,participantIds:[...new Set(recipientIds)],createdBy:game.user.id,createdAt:Date.now(),updatedAt:Date.now(),messages:[]};threads.push(thread);await saveMessengerThreads(threads);this.threadId=thread.id;this.render(false);}},cancel:{label:"Cancel"}},default:"create"}).render(true);
+  }
+  async sendMessage(html){
+    const text=String(html.find('[name="messageText"]').val()||"").trim();if(!text||!this.threadId)return;
+    const threads=messengerThreads(),thread=threads.find(entry=>entry.id===this.threadId);if(!thread)return;
+    if(!game.user.isGM&&!(thread.participantIds??[]).includes(game.user.id))return ui.notifications.error("You cannot post to this text chain.");
+    const actor=game.user.isGM?game.actors.get(html.find('[name="speakerActorId"]').val()):api()?.getSelectedMainCharacter?.();if(!actor)return ui.notifications.warn("Choose a main character or speaker first.");
+    thread.messages??=[];thread.messages.push({id:foundry.utils.randomID(),senderUserId:game.user.id,speakerActorId:actor.id,speakerName:actor.name,text,createdAt:Date.now()});thread.updatedAt=Date.now();await saveMessengerThreads(threads);this.render(false);
+  }
+  async deleteThread(){if(!game.user.isGM||!this.threadId)return;const confirmed=await Dialog.confirm({title:"Delete Text Chain",content:"<p>Permanently delete this entire text chain?</p>"});if(!confirmed)return;await saveMessengerThreads(messengerThreads().filter(thread=>thread.id!==this.threadId));this.threadId="";this.render(false);}
 }
 
 class QuestSettings extends FormApplication {
@@ -532,6 +633,7 @@ Hooks.once("init",()=>{
   game.settings.register(MODULE_ID,"questSeen",{scope:"client",config:false,type:Array,default:[]});
   game.settings.register(MODULE_ID,"partySelections",{scope:"world",config:false,type:Object,default:{}});
   game.settings.register(MODULE_ID,"hsrHubConfig",{scope:"world",config:false,type:Object,default:clone(DEFAULT_HUB_CONFIG)});
+  game.settings.register(MODULE_ID,"hsrMessengerThreads",{scope:"world",config:false,type:Array,default:[]});
   game.settings.registerMenu(MODULE_ID,"questConfiguration",{name:"Mission Types & Reward Rarities",label:"Configure Missions",hint:"Configure mission categories, category artwork, filter icons, order, and reward rarity hierarchy.",icon:"fas fa-list-check",type:class extends FormApplication{render(){new QuestSettings().render(true);return this;}},restricted:true});
 });
 
@@ -542,7 +644,7 @@ Hooks.once("ready",()=>{
     if(payload?.type!=="questsChanged")return;refreshQuestWindows();
     if(payload.notify&&payload.sourceUserId!==game.user.id){const q=quests().find(x=>x.id===payload.questId);if(q&&visibleQuest(q))ui.notifications.info(q.status==="complete"?`Mission Complete: ${q.title}`:`New Mission: ${q.title}`);}
   });
-  Object.assign(game.modules.get(MODULE_ID).api??{}, {openHub,openQuestLog,openQuestManager:()=>new QuestManager().render(true),openQuestSettings:()=>new QuestSettings().render(true),openPartySelector:()=>new PartyCharacterSelector().render(true)});
+  Object.assign(game.modules.get(MODULE_ID).api??{}, {openHub,openMessenger:()=>new HSRMessenger().render(true),openQuestLog,openQuestManager:()=>new QuestManager().render(true),openQuestSettings:()=>new QuestSettings().render(true),openPartySelector:()=>new PartyCharacterSelector().render(true)});
   registerHubToolbarFallback();
 });
 
@@ -550,4 +652,5 @@ Hooks.on("getSceneControlButtons",consolidateToolbar);
 Hooks.on("updateSetting", setting => {
   if (["questTypes", "questRarities", "quests", "questAllIcon"].some(key => setting?.key === `${MODULE_ID}.${key}`)) refreshQuestWindows();
   if(setting?.key===`${MODULE_ID}.hsrHubConfig`)for(const app of Object.values(ui.windows??{}))if(["tsru-hub","tsru-hub-config"].includes(app.options?.id))app.render(false);
+  if(setting?.key===`${MODULE_ID}.hsrMessengerThreads`)for(const app of Object.values(ui.windows??{}))if(app.options?.id==="tsru-hsr-messenger")app.render(false);
 });

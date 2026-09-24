@@ -1,0 +1,5 @@
+<form class="tsru-messenger-new-thread">
+  <label>Text chain name<input type="text" name="title" value="New Conversation" required></label>
+  <fieldset><legend>Recipients</legend>{{#each users}}<label><input type="checkbox" name="recipientIds" value="{{this.id}}"> <span>{{this.name}}</span></label>{{/each}}</fieldset>
+  <p>Select one or more players. Everyone selected can read and reply to this chain.</p>
+</form>

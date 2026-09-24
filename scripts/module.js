@@ -89,6 +89,10 @@ const DEFAULT_CONFIG = Object.freeze({
   carouselFrameColorOverride: false,
   carouselFrameColorPreset: "ally-blue",
   carouselFrameColor: "#58dfee",
+  messagingPortrait: "",
+  messagingPortraitX: 50,
+  messagingPortraitY: 50,
+  messagingPortraitScale: 100,
   punchlineGain: 1,
   elationActionScript: "",
   elationActionText: "",
@@ -6229,7 +6233,7 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
   tab.find("[name]").each((_index, field) => {
     data[field.name] = field.type === "checkbox" ? field.checked : field.value;
   });
-  for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "skillPointCost", "talentPointsCurrent", "talentPointsMax", "talentPointsOvercapMax", "punchlineGain", "splashDuration", "splashX", "splashY", "splashScale", "titleX", "titleY", "titleSize", "combatHudPortraitX", "combatHudPortraitY", "combatHudPortraitScale", "ultimateButtonX", "ultimateButtonY", "ultimateButtonScale", "bossPhaseCount", "bossPhase2TokenWidth", "bossPhase2TokenHeight", "bossPhase3TokenWidth", "bossPhase3TokenHeight", "bossHudPortraitX", "bossHudPortraitY", "bossHudPortraitScale", "bossHudWidth", "bossHudHealthHeight", "bossHudToughnessHeight"]) data[key] = Number(data[key]);
+  for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "skillPointCost", "talentPointsCurrent", "talentPointsMax", "talentPointsOvercapMax", "punchlineGain", "splashDuration", "splashX", "splashY", "splashScale", "titleX", "titleY", "titleSize", "combatHudPortraitX", "combatHudPortraitY", "combatHudPortraitScale", "messagingPortraitX", "messagingPortraitY", "messagingPortraitScale", "ultimateButtonX", "ultimateButtonY", "ultimateButtonScale", "bossPhaseCount", "bossPhase2TokenWidth", "bossPhase2TokenHeight", "bossPhase3TokenWidth", "bossPhase3TokenHeight", "bossHudPortraitX", "bossHudPortraitY", "bossHudPortraitScale", "bossHudWidth", "bossHudHealthHeight", "bossHudToughnessHeight"]) data[key] = Number(data[key]);
   for (const key of ["enabled", "showPercent", "showHudPercent", "skillEnabled", "techniqueEnabled", "mainParty", "trialCharacter", "combatHudPortraitFlip", "ultimateButtonAdjustEnabled", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter", "isBoss", "bossInheritsMainPhaseCount", "carouselFrameColorOverride"]) data[key] = Boolean(data[key]);
   data.max = Math.max(1, data.max || 100);
   data.current = clamp(data.current, 0, data.max);
@@ -6246,6 +6250,7 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
   for(const key of ["bossPhase2TokenWidth","bossPhase2TokenHeight","bossPhase3TokenWidth","bossPhase3TokenHeight"])data[key]=clamp(data[key],0,20);
   data.bossHudPortraitX=clamp(data.bossHudPortraitX,0,100);data.bossHudPortraitY=clamp(data.bossHudPortraitY,0,100);data.bossHudPortraitScale=clamp(data.bossHudPortraitScale,50,400);data.bossHudWidth=clamp(data.bossHudWidth,420,1400);data.bossHudHealthHeight=clamp(data.bossHudHealthHeight,12,48);data.bossHudToughnessHeight=clamp(data.bossHudToughnessHeight,4,24);
   data.carouselFrameColor=/^#[0-9a-f]{6}$/i.test(String(data.carouselFrameColor??""))?String(data.carouselFrameColor):"#58dfee";
+  data.messagingPortraitX=clamp(data.messagingPortraitX,0,100);data.messagingPortraitY=clamp(data.messagingPortraitY,0,100);data.messagingPortraitScale=clamp(data.messagingPortraitScale,50,400);
   data.carouselFrameColorPreset=String(data.carouselFrameColorPreset||"");
   data.talentCombatId = talentCombatForActor(actor)?.id ?? "";
   await actor.update({[`flags.${MODULE_ID}.ultimate`]: data}, {tsruAutosave: !notify, render: false});
@@ -6266,6 +6271,12 @@ function activateConfigListeners(actor, tab, app) {
   initializeCollapsibleUltimateSections(actor, tab);
   tab.find("input:not([readonly])").prop("readonly", false);
   activateImageDrops(tab);
+  const messengerPreview=tab.find("[data-messaging-portrait-preview]");
+  if(messengerPreview.length){
+    const syncMessengerPreview=()=>{const x=clamp(tab.find('[name="messagingPortraitX"]').val(),0,100),y=clamp(tab.find('[name="messagingPortraitY"]').val(),0,100),scale=clamp(tab.find('[name="messagingPortraitScale"]').val(),50,400),src=String(tab.find('[name="messagingPortrait"]').val()||actor.img||"");messengerPreview.css({"--msg-preview-x":`${x}%`,"--msg-preview-y":`${y}%`,"--msg-preview-scale":scale});messengerPreview.find("img").attr("src",src);};
+    syncMessengerPreview();tab.find('[name="messagingPortrait"],[name="messagingPortraitX"],[name="messagingPortraitY"],[name="messagingPortraitScale"]').on("input change",syncMessengerPreview);
+    let portraitDrag=null;messengerPreview.on("pointerdown",event=>{if(event.button!==0)return;event.preventDefault();const rect=event.currentTarget.getBoundingClientRect();portraitDrag={rect,startX:event.clientX,startY:event.clientY,x:Number(tab.find('[name="messagingPortraitX"]').val())||50,y:Number(tab.find('[name="messagingPortraitY"]').val())||50};event.currentTarget.setPointerCapture?.(event.pointerId);}).on("pointermove",event=>{if(!portraitDrag)return;const x=clamp(portraitDrag.x-(event.clientX-portraitDrag.startX)/portraitDrag.rect.width*100,0,100),y=clamp(portraitDrag.y-(event.clientY-portraitDrag.startY)/portraitDrag.rect.height*100,0,100);tab.find('[name="messagingPortraitX"]').val(Math.round(x));tab.find('[name="messagingPortraitY"]').val(Math.round(y));syncMessengerPreview();}).on("pointerup pointercancel",()=>{portraitDrag=null;}).on("wheel",event=>{event.preventDefault();const input=tab.find('[name="messagingPortraitScale"]'),value=clamp((Number(input.val())||100)+(event.originalEvent.deltaY<0?5:-5),50,400);input.val(value);syncMessengerPreview();});
+  }
   tab.find(".tsru-drop-actor").on("dragover.tsru-boss",event=>{event.preventDefault();$(event.currentTarget).addClass("is-dragover");});
   tab.find(".tsru-drop-actor").on("dragleave.tsru-boss",event=>$(event.currentTarget).removeClass("is-dragover"));
   tab.find(".tsru-drop-actor").on("drop.tsru-boss",event=>{

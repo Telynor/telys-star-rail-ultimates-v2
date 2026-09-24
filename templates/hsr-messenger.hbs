@@ -1,0 +1,13 @@
+<main class="tsru-messenger">
+  <aside class="tsru-messenger-sidebar">
+    <header><h2><i class="fas fa-comments"></i> Messages</h2><button type="button" data-action="new-thread"><i class="fas fa-pen-to-square"></i></button></header>
+    <div class="tsru-messenger-thread-list">{{#each threads}}<button type="button" class="{{#if this.selected}}active{{/if}}" data-thread-id="{{this.id}}"><strong>{{this.title}}</strong><small>{{this.preview}}</small></button>{{else}}<p>No text chains yet.</p>{{/each}}</div>
+  </aside>
+  <section class="tsru-messenger-conversation">
+    {{#if selected}}
+      <header><div><h2>{{selected.title}}</h2><small>{{selected.participantNames}}</small></div>{{#if isGM}}<button type="button" data-action="delete-thread" title="Delete text chain"><i class="fas fa-trash"></i></button>{{/if}}</header>
+      <div class="tsru-messenger-messages">{{#each selected.messages}}<article class="{{#if this.mine}}mine{{/if}}"><img src="{{this.portrait}}" alt="" style="--msg-x:{{this.portraitX}}%;--msg-y:{{this.portraitY}}%;--msg-scale:{{this.portraitScale}};"><div><b>{{this.speakerName}}</b><p>{{this.text}}</p><time>{{this.time}}</time></div></article>{{else}}<p class="empty">This text chain has no messages yet.</p>{{/each}}</div>
+      <footer>{{#if isGM}}<label>Speak as<select name="speakerActorId">{{#each speakers}}<option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.name}}</option>{{/each}}</select></label>{{/if}}<textarea name="messageText" rows="2" placeholder="Enter message"></textarea><button type="button" data-action="send-message"><i class="fas fa-paper-plane"></i> Send</button></footer>
+    {{else}}<div class="tsru-messenger-empty"><i class="fas fa-message"></i><p>Select or create a text chain.</p></div>{{/if}}
+  </section>
+</main>
