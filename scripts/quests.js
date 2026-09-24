@@ -54,16 +54,29 @@ function actorOwnerName(actor){const owners=game.users.filter(user=>!user.isGM&&
 
 async function openHubActorSheet(actor,target=""){
   if(!actor)return ui.notifications.warn("Select a main character first.");
-  actor.sheet.render(true);
-  await new Promise(resolve=>setTimeout(resolve,80));
-  const root=actor.sheet.element?.[0]??actor.sheet.element;
   const requested=String(target||"").trim();
+  actor.sheet.render(true,requested?{tab:requested}:{});
   if(!requested)return;
-  const selectorLike=/^[.#\[]/.test(requested);
-  const tabNode=!selectorLike?root?.querySelector?.(`[data-tab="${CSS.escape(requested)}"]`):null;
-  if(tabNode){tabNode.click();return;}
-  const node=root?.querySelector?.(selectorLike?requested:`#${CSS.escape(requested)},[data-tab="${CSS.escape(requested)}"],[data-section="${CSS.escape(requested)}"]`);
+  const selectorLike=/^[.#\[]/.test(requested),aliases={inventory:["inventory","items","equipment"],features:["features","classes","class features"],spells:["spells","spellbook"],effects:["effects","active effects"],biography:["biography","details","description"]}[requested.toLowerCase()]??[requested];
+  const normalize=value=>String(value??"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+  let root=null,node=null;
+  for(let attempt=0;attempt<40;attempt++){
+    root=actor.sheet.element?.[0]??actor.sheet.element;
+    if(root?.isConnected){
+      if(selectorLike)try{node=root.querySelector?.(requested);}catch{}
+      if(!node){
+        const controls=[...(root?.querySelectorAll?.("[data-tab],[data-section],[data-target],[role='tab'],nav button,nav a,.tabs button,.tabs a,button[data-action],a[data-action]")??[])];
+        const values=control=>[control.dataset?.tab,control.dataset?.section,control.dataset?.target,control.getAttribute?.("aria-label"),control.getAttribute?.("title"),control.getAttribute?.("data-tooltip"),control.getAttribute?.("data-tooltip-text")];
+        node=controls.find(control=>aliases.some(alias=>values(control).some(value=>normalize(value)===normalize(alias))));
+        node??=controls.find(control=>aliases.some(alias=>{const needle=normalize(alias);return [control.textContent,...values(control)].some(value=>normalize(value).split(" ").includes(needle)||normalize(value).startsWith(`${needle} `));}));
+      }
+      if(node)break;
+    }
+    await new Promise(resolve=>setTimeout(resolve,50));
+  }
   if(node){node.scrollIntoView({behavior:"smooth",block:"center"});node.click?.();return;}
+  const tabGroups=actor.sheet.tabGroups??{};
+  if(typeof actor.sheet.changeTab==="function")for(const alias of aliases)for(const group of [...Object.keys(tabGroups),"primary","sheet"]){try{await actor.sheet.changeTab(alias,group);return;}catch{}}
   ui.notifications.warn(`Could not find sheet tab or element “${requested}” on ${actor.name}.`);
 }
 
@@ -245,8 +258,9 @@ class HSRHub extends FormApplication {
   getData() {
     const actors=game.actors.filter(actor=>actor.type==="character").sort((a,b)=>actorOwnerName(a).localeCompare(actorOwnerName(b))||a.name.localeCompare(b.name));
     const actor=game.user.isGM?(this.viewActorId?game.actors.get(this.viewActorId):null):api()?.getSelectedMainCharacter?.(),profileKey=game.user.isGM?(actor?.id||"__gm__"):actor?.id,config=hubConfig(actor,profileKey),pose=hubPose(actor,config,profileKey);
-    const gmOnly=GM_ONLY_HUB_ACTIONS,playerOnly=new Set(["party"]);
-    return {gm:game.user.isGM,player:!game.user.isGM,gmPanel:game.user.isGM&&!actor,actor,pose,config,phoneChoices:[{id:"",name:"DM PANEL",selected:!actor},...actors.map(entry=>({id:entry.id,name:`${entry.name} — ${actorOwnerName(entry)}`,selected:entry.id===actor?.id}))],buttons:config.buttons.filter(button=>(game.user.isGM||!gmOnly.has(button.action))&&(!game.user.isGM||!playerOnly.has(button.action))).map(button=>({...button,id:button.id||button.action,gmOnly:gmOnly.has(button.action),style:`left:${button.x}%;top:${button.y}%;width:${button.width}%;height:${button.height}%`}))};
+    const gmOnly=GM_ONLY_HUB_ACTIONS,playerOnly=new Set(["party"]),gmPanel=game.user.isGM&&!actor;
+    const visibleButton=button=>game.user.isGM?(gmPanel?!playerOnly.has(button.action):!gmOnly.has(button.action)):!gmOnly.has(button.action);
+    return {gm:game.user.isGM,player:!game.user.isGM,gmPanel,actor,pose,config,phoneChoices:[{id:"",name:"DM PANEL",selected:!actor},...actors.map(entry=>({id:entry.id,name:`${entry.name} — ${actorOwnerName(entry)}`,selected:entry.id===actor?.id}))],buttons:config.buttons.filter(visibleButton).map(button=>({...button,id:button.id||button.action,gmOnly:gmOnly.has(button.action),style:`left:${button.x}%;top:${button.y}%;width:${button.width}%;height:${button.height}%`}))};
   }
   activateListeners(html) {
     super.activateListeners(html);
