@@ -101,6 +101,7 @@ const DEFAULT_CONFIG = Object.freeze({
   ultimateText: "",
   enhancedStanceEnabled: false,
   enhancedStanceActive: false,
+  enhancedTokenImage: "",
   enhancedHudPortrait: "",
   enhancedHudPortraitX: 50,
   enhancedHudPortraitY: 50,
@@ -416,6 +417,40 @@ function getVisualConfig(actor) {
     if(config.enhancedUltimateText)config.ultimateText=config.enhancedUltimateText;
   }
   return config;
+}
+
+// Token images are changed on placed TokenDocuments only. Each token keeps its
+// own original texture in a persistent flag, so a stance toggle never alters
+// the actor prototype or another character's artwork.
+async function syncEnhancedTokenArtwork(actor){
+  if(!isAuthority()||actor?.type!=="character")return;
+  const config=getConfig(actor),image=String(config.enhancedTokenImage||"").trim();
+  const enhanced=Boolean(config.enhancedStanceEnabled&&config.enhancedStanceActive&&image);
+  for(const scene of game.scenes??[]){
+    for(const token of scene.tokens??[]){
+      if(token.actorId!==actor.id)continue;
+      const original=token.getFlag(MODULE_ID,"enhancedStanceOriginalToken");
+      if(enhanced){
+        if(!original){
+          const current=String(token.texture?.src||"");
+          if(current===image)continue;
+          await token.update({"texture.src":image,[`flags.${MODULE_ID}.enhancedStanceOriginalToken`]:{actorId:actor.id,src:current}});
+        }else if(original.actorId===actor.id&&token.texture?.src!==image)await token.update({"texture.src":image});
+      }else if(original?.actorId===actor.id){
+        if(token.texture?.src!==original.src)await token.update({"texture.src":original.src});
+        await token.unsetFlag(MODULE_ID,"enhancedStanceOriginalToken");
+      }
+    }
+  }
+}
+function queueEnhancedTokenArtwork(actor){
+  if(!isAuthority()||!actor?.id)return Promise.resolve();
+  state.enhancedTokenQueues??=new Map();
+  const previous=state.enhancedTokenQueues.get(actor.id)??Promise.resolve();
+  const current=previous.catch(()=>{}).then(()=>syncEnhancedTokenArtwork(actor));
+  state.enhancedTokenQueues.set(actor.id,current);
+  current.finally(()=>{if(state.enhancedTokenQueues.get(actor.id)===current)state.enhancedTokenQueues.delete(actor.id);}).catch(()=>{});
+  return current.catch(error=>console.error(`${MODULE_ID} | Enhanced token update failed for ${actor.name}`,error));
 }
 
 function initiativePortraitPositionBounds(scalePercent){
@@ -6599,6 +6634,7 @@ function activateConfigListeners(actor, tab, app) {
     input.val(next).trigger("input");
   });
   tab.find("[data-action='open-initiative-portrait-editor']").on("click.tsru-initiative-preview",event=>{event.preventDefault();openInitiativePortraitEditor(actor);});
+  tab.on("input.tsru-enhanced-token change.tsru-enhanced-token","[name=enhancedTokenImage]",event=>tab.find("[data-enhanced-token-preview] img").attr("src",event.currentTarget.value||actor.prototypeToken?.texture?.src||actor.img||"icons/svg/mystery-man.svg"));
   tab.find("[data-action='open-enhanced-initiative-editor']").on("click",event=>{event.preventDefault();openInitiativePortraitEditor(actor,{enhanced:true});});
   tab.find("[data-action='open-enhanced-hud-editor']").on("click",event=>{event.preventDefault();openEnhancedArtworkEditor(actor,"hud");});
   tab.find("[data-action='open-enhanced-splash-editor']").on("click",event=>{event.preventDefault();openEnhancedArtworkEditor(actor,"splash");});
@@ -7707,6 +7743,7 @@ Hooks.on("updateActor", (actor, changes, options) => {
   refreshResourceHuds();
   refreshToughnessBars();
   const enhancedChanges=foundry.utils.getProperty(changes,`flags.${MODULE_ID}.ultimate`);
+  if(enhancedChanges&&["enhancedStanceEnabled","enhancedStanceActive","enhancedTokenImage"].some(key=>Object.hasOwn(enhancedChanges,key)))queueEnhancedTokenArtwork(actor);
   if(enhancedChanges && ["enhancedStanceEnabled","enhancedStanceActive","enhancedUltimateEnabled"].some(key=>Object.hasOwn(enhancedChanges,key)))state.gmPanel?.render(false);
   else state.gmPanel?.refreshLiveValues();
   refreshCombatPartyHud();
@@ -7782,6 +7819,8 @@ Hooks.on("updateSetting", setting => {
   if(setting?.key===`${MODULE_ID}.initiativeCarouselConfig`)refreshInitiativeCarousel();
   if(setting?.key===`${MODULE_ID}.initiativeFrameColors`){refreshInitiativeCarousel();for(const app of Object.values(ui.windows??{}))if((app.actor??app.document)?.type==="character")app.render(false);}
 });
+Hooks.on("createToken",token=>{const actor=game.actors.get(token.actorId);if(actor)queueEnhancedTokenArtwork(actor);});
+Hooks.once("ready",()=>{if(isAuthority())for(const actor of game.actors.filter(entry=>entry.type==="character"))queueEnhancedTokenArtwork(actor);});
 Hooks.on("canvasReady", () => { refreshAllOrbs(); refreshSkillUI(); refreshTalentButtons(); refreshTechniqueButtons(); refreshPunchlineHUD(); refreshToughnessBars(); refreshCombatPartyHud(); refreshBossHud(); refreshInitiativeCarousel(); });
 Hooks.on("canvasReady", refreshAhaButton);
 
