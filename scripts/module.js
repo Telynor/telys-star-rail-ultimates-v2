@@ -107,7 +107,9 @@ const DEFAULT_CONFIG = Object.freeze({
   enhancedHudPortraitScale: 100,
   enhancedHudPortraitFlip: false,
   enhancedSkillButtonImage: "",
+  enhancedSkillText: "",
   enhancedTalentIcon: "",
+  enhancedTalentText: "",
   enhancedCarouselImage: "",
   enhancedCarouselImageX: 50,
   enhancedCarouselImageY: 50,
@@ -405,7 +407,7 @@ function getConfig(actor) {
 function getVisualConfig(actor) {
   const config=getConfig(actor);
   if(!config.enhancedStanceEnabled||!config.enhancedStanceActive)return config;
-  for(const [field,enhanced] of [["combatHudPortrait","enhancedHudPortrait"],["skillButtonImage","enhancedSkillButtonImage"],["talentIcon","enhancedTalentIcon"],["carouselImage","enhancedCarouselImage"]])if(config[enhanced])config[field]=config[enhanced];
+  for(const [field,enhanced] of [["combatHudPortrait","enhancedHudPortrait"],["skillButtonImage","enhancedSkillButtonImage"],["skillText","enhancedSkillText"],["talentIcon","enhancedTalentIcon"],["talentText","enhancedTalentText"],["carouselImage","enhancedCarouselImage"]])if(config[enhanced])config[field]=config[enhanced];
   if(config.enhancedHudPortrait){for(const field of ["X","Y","Scale","Flip"])config[`combatHudPortrait${field}`]=config[`enhancedHudPortrait${field}`];}
   if(config.enhancedCarouselImage){for(const field of ["X","Y","Scale","Flip"])config[`carouselImage${field}`]=config[`enhancedCarouselImage${field}`];}
   if(config.enhancedUltimateEnabled){
@@ -1155,7 +1157,8 @@ function punchlineOverrideEnabled() {
 }
 
 async function postTalentText(actor) {
-  return postAbilityText(actor, "talent", getConfig(actor).talentText);
+  if(!stanceActionAllowed(actor,"talent",{notify:false}))return;
+  return postAbilityText(actor, "talent", getVisualConfig(actor).talentText);
 }
 
 async function beginTalentTurn(combatant) {
@@ -1701,6 +1704,42 @@ async function executeTechnique(actorId, requestingUserId) {
   }
 }
 
+function enhancedFormActive(actor){const config=getConfig(actor);return Boolean(config.enhancedStanceEnabled&&config.enhancedStanceActive);}
+function stanceActionAllowed(actor,action,{notify=true}={}){
+  if(!enhancedFormActive(actor))return true;
+  const config=getConfig(actor);
+  const ready=action==="skill"?Boolean(String(config.enhancedSkillText||"").trim()):action==="talent"?Boolean(String(config.enhancedTalentText||"").trim()):action==="ultimate"?Boolean(config.enhancedUltimateEnabled&&String(config.enhancedUltimateText||"").trim()):true;
+  if(!ready&&notify)ui.notifications.warn(`Configure ${actor.name}'s enhanced ${action} before using it in the enhanced stance.`);
+  return ready;
+}
+function stanceMacroPresentation(actor,action){
+  const config=getVisualConfig(actor),enhanced=enhancedFormActive(actor),label={skill:"Skill",talent:"Talent",ultimate:config.ultimateName||"Ultimate"}[action];
+  const img=action==="skill"?config.skillButtonImage:action==="talent"?config.talentIcon:config.ultimateButtonImage||config.orbImage;
+  return {name:`${actor.name} — ${enhanced?"Enhanced ":""}${label}`,img:img||actor.img||"icons/svg/d20.svg"};
+}
+// Each actor/action has a single macro identity. Updating that macro changes only
+// its existing hotbar slots; unrelated macros and slot assignments are untouched.
+async function synchronizeStanceHotbarMacros(){
+  if(!game.user?.hotbar||!game.macros)return;
+  const entries=new Map();
+  for(const value of Object.values(game.user.hotbar)){
+    const macro=game.macros.get(typeof value==="string"?value:value?.id);
+    const action=macro?.getFlag(MODULE_ID,"action"),actor=game.actors.get(macro?.getFlag(MODULE_ID,"actorId"));
+    if(!actor||!macro.isOwner||!["skill","talent","ultimate"].includes(action))continue;
+    entries.set(macro.id,{macro,actor,action});
+  }
+  for(const {macro,actor,action} of entries.values()){
+    const display=stanceMacroPresentation(actor,action);
+    if(macro.name===display.name&&macro.img===display.img)continue;
+    if(!state.stanceMacroSync)state.stanceMacroSync=new Set();
+    if(state.stanceMacroSync.has(macro.id))continue;
+    state.stanceMacroSync.add(macro.id);
+    try{await macro.update({name:display.name,img:display.img});}
+    catch(error){console.error(`${MODULE_ID} | Could not refresh stance macro`,error);}
+    finally{state.stanceMacroSync.delete(macro.id);}
+  }
+}
+
 function activateStarRailActionDrag(element, actor, action) {
   if (!element || !actor) return;
   element.draggable = true;
@@ -1727,10 +1766,12 @@ async function createStarRailActionMacro(data, slot) {
   let macro = game.macros.find(entry => entry.getFlag(MODULE_ID,"action") === data.action && entry.getFlag(MODULE_ID,"actorId") === actor.id && entry.isOwner);
   if (!macro) {
     const method = {skill:"requestSkill",technique:"requestTechnique",ultimate:"requestUltimate",talent:"showTalentPopup"}[data.action];
-    macro = await Macro.create({name:data.name,type:"script",img:data.img || actor.img || "icons/svg/d20.svg",command:`const actor = game.actors.get("${actor.id}");\nif (!actor) return ui.notifications.error("Character not found.");\nreturn game.modules.get("${MODULE_ID}")?.api?.${method}(actor);`,flags:{[MODULE_ID]:{action:data.action,actorId:actor.id}}});
+    const display=["skill","talent","ultimate"].includes(data.action)?stanceMacroPresentation(actor,data.action):{name:data.name,img:data.img || actor.img || "icons/svg/d20.svg"};
+    macro = await Macro.create({name:display.name,type:"script",img:display.img,command:`const actor = game.actors.get("${actor.id}");\nif (!actor) return ui.notifications.error("Character not found.");\nreturn game.modules.get("${MODULE_ID}")?.api?.${method}(actor);`,flags:{[MODULE_ID]:{action:data.action,actorId:actor.id}}});
   }
   await game.user.assignHotbarMacro(macro,slot);
   requestAnimationFrame(refreshUltimateHotbarMacros);
+  synchronizeStanceHotbarMacros();
   return false;
 }
 
@@ -1748,6 +1789,7 @@ function ultimateMacroDisplay(actor) {
 
 function refreshUltimateHotbarMacros() {
   if (!game?.user) return;
+  synchronizeStanceHotbarMacros().catch(error=>console.error(`${MODULE_ID} | Stance hotbar sync failed`,error));
   const slots = new Set(document.querySelectorAll("#hotbar [data-slot], #action-bar [data-slot], .hotbar [data-slot], #hotbar [data-macro-id], #action-bar [data-macro-id], .hotbar [data-macro-id]"));
   for (const slot of slots) {
     const slotNumber = String(slot.dataset.slot ?? "");
@@ -1771,7 +1813,7 @@ function refreshUltimateHotbarMacros() {
       label.textContent = isTalent ? "TALENT" : "SKILL";
       label.setAttribute("aria-hidden", "true");
       slot.append(label);
-      if (isTalent && actor) slot.title = plainAbilityText(getConfig(actor).talentText) || `${actor.name} Talent`;
+      if (isTalent && actor) slot.title = plainAbilityText(getVisualConfig(actor).talentText) || `${actor.name} Talent`;
       continue;
     }
     if (!isUltimate) { slot.classList.remove("has-energy", "is-ready"); continue; }
@@ -1941,6 +1983,7 @@ async function saveTalentButtonLayout(actorId, changes) {
 
 async function showTalentPopup(actor) {
   if (!actor || (!game.user.isGM && !actor.isOwner)) return ui.notifications.error("You do not own this character.");
+  if(!stanceActionAllowed(actor,"talent"))return;
   const config = getVisualConfig(actor);
   const {trigger, overcap} = talentPointLimits(actor);
   const body = await TextEditor.enrichHTML(config.talentText || "<em>No Talent description has been entered.</em>", {async:true,secrets:actor.isOwner,relativeTo:actor});
@@ -1980,7 +2023,7 @@ class TalentButton {
     this.element.style.left=`${clamp(layout.x,0,window.innerWidth-40)}px`;this.element.style.top=`${clamp(layout.y,0,window.innerHeight-40)}px`;this.element.style.setProperty("--tsru-skill-size",`${clamp(layout.size,64,280)}px`);
     const button=this.element.querySelector(".tsru-talent-button");
     button.querySelector("img").src=config.talentIcon || this.actor.img || "icons/svg/star.svg";
-    button.title=plainAbilityText(config.talentText) || `${this.actor.name} Talent`;
+    button.title=stanceActionAllowed(this.actor,"talent",{notify:false})?(plainAbilityText(config.talentText) || `${this.actor.name} Talent`):"Configure the enhanced Talent to use this button.";
     this.element.querySelector(".tsru-skill-label").textContent=`Talent ${currentTalentPoints(this.actor)}/${talentPointLimits(this.actor).trigger}`;
     return this;
   }
@@ -2201,7 +2244,7 @@ class SkillButton {
     const config = getVisualConfig(this.actor);
     const element = getElements().find(entry => entry.id === config.elementId);
     const cost = Math.max(0, Math.floor(Number(config.skillPointCost) || 0));
-    const available = getConfig(this.actor).skillEnabled && currentSkillPoints() >= cost && !state.skillLocks.has(this.actor.id);
+    const available = getConfig(this.actor).skillEnabled && stanceActionAllowed(this.actor,"skill",{notify:false}) && currentSkillPoints() >= cost && !state.skillLocks.has(this.actor.id);
     this.element.style.left = `${clamp(layout.x, 0, window.innerWidth - 40)}px`;
     this.element.style.top = `${clamp(layout.y, 0, window.innerHeight - 40)}px`;
     this.element.style.setProperty("--tsru-skill-size", `${clamp(layout.size, 64, 280)}px`);
@@ -3838,14 +3881,15 @@ async function reconcileUltimateLock(actorId) {
 async function requestUltimate(actor) {
   const config = getConfig(actor);
   if (!game.user.isGM && !actor?.isOwner) return ui.notifications.error("You do not own this character.");
+  if (!stanceActionAllowed(actor,"ultimate"))return;
   if (!config.enabled || config.current < config.max) return ui.notifications.warn("This Ultimate is not ready.");
   await reconcileUltimateLock(actor.id);
   if (state.ultimateLocks.has(actor.id)) return ui.notifications.warn("This Ultimate is already queued or resolving.");
-  if (game.user.isGM && isAuthority()) return executeUltimate(actor.id, game.user.id);
+  if (game.user.isGM && isAuthority()) return executeUltimate(actor.id, game.user.id,enhancedFormActive(actor));
   const gm = activeGM();
   if (!gm) return ui.notifications.error("A GM must be connected to activate an Ultimate.");
   const requestId = foundry.utils.randomID();
-  game.socket.emit(SOCKET, {type: "activateUltimate", requestId, actorId: actor.id, requestingUserId: game.user.id});
+  game.socket.emit(SOCKET, {type: "activateUltimate", requestId, actorId: actor.id, requestingUserId: game.user.id, enhanced:enhancedFormActive(actor)});
 }
 
 async function insertUltimateTurn(actor, resume = {}) {
@@ -3917,7 +3961,8 @@ async function runUltimateScript(actor, combatantId = "") {
 }
 
 async function runSkillScript(actor) {
-  return postAbilityText(actor, "skill", getConfig(actor).skillText);
+  if(!stanceActionAllowed(actor,"skill"))return;
+  return postAbilityText(actor, "skill", getVisualConfig(actor).skillText);
 }
 
 async function runElationActionScript(actor, combatantId = "") {
@@ -3982,16 +4027,17 @@ async function executeElationAction(combatant) {
 async function requestSkill(actor) {
   const config = getConfig(actor);
   if (!game.user.isGM && !actor?.isOwner) return ui.notifications.error("You do not own this character.");
+  if (!stanceActionAllowed(actor,"skill"))return;
   if (!config.skillEnabled) return ui.notifications.warn("This character's Skill button is disabled.");
   const cost = Math.max(0, Math.floor(Number(config.skillPointCost) || 0));
   if (currentSkillPoints() < cost) return ui.notifications.warn(`This Skill requires ${cost} Skill Points.`);
   if (state.skillLocks.has(actor.id)) return ui.notifications.warn("This Skill is already resolving.");
-  if (game.user.isGM && isAuthority()) return executeSkill(actor.id, game.user.id);
+  if (game.user.isGM && isAuthority()) return executeSkill(actor.id, game.user.id,enhancedFormActive(actor));
   const gm = activeGM();
   if (!gm) return ui.notifications.error("A GM must be connected to spend a shared Skill Point.");
   const requestId = foundry.utils.randomID();
   ui.notifications.info(`${actor.name}'s Skill request was sent to the GM.`);
-  game.socket.emit(SOCKET, {type: "activateSkill", requestId, actorId: actor.id, requestingUserId: game.user.id});
+  game.socket.emit(SOCKET, {type: "activateSkill", requestId, actorId: actor.id, requestingUserId: game.user.id,enhanced:enhancedFormActive(actor)});
 }
 
 async function completeSkill(actorId) {
@@ -4004,12 +4050,14 @@ async function completeSkill(actorId) {
   refreshSkillUI();
 }
 
-async function executeSkill(actorId, requestingUserId) {
+async function executeSkill(actorId, requestingUserId, expectedEnhanced=undefined) {
   if (!isAuthority() || state.skillLocks.has(actorId) || state.skillSpendLock) return false;
   const actor = game.actors.get(actorId);
   const requester = game.users.get(requestingUserId);
   if (!actor || actor.type !== "character" || (!requester?.isGM && !actor.testUserPermission(requester, "OWNER"))) return false;
+  if(expectedEnhanced!==undefined&&Boolean(expectedEnhanced)!==enhancedFormActive(actor))return false;
   const config = getConfig(actor);
+  if (!stanceActionAllowed(actor,"skill"))return false;
   if (!config.skillEnabled) { ui.notifications.warn(`${actor.name}'s Skill button is disabled.`); return false; }
   const cost = Math.max(0, Math.floor(Number(config.skillPointCost) || 0));
   if (currentSkillPoints() < cost) { ui.notifications.warn(`This Skill requires ${cost} Skill Points.`); return false; }
@@ -4175,11 +4223,13 @@ async function processUltimateQueue(combatId) {
   }
 }
 
-async function executeUltimate(actorId, requestingUserId) {
+async function executeUltimate(actorId, requestingUserId, expectedEnhanced=undefined) {
   if (!isAuthority() || state.ultimateLocks.has(actorId)) return;
   const actor = game.actors.get(actorId);
   const requester = game.users.get(requestingUserId);
   if (!actor || (!requester?.isGM && !actor.testUserPermission(requester, "OWNER"))) return;
+  if(expectedEnhanced!==undefined&&Boolean(expectedEnhanced)!==enhancedFormActive(actor))return ui.notifications.warn("The character changed stance. Activate the current form instead.");
+  if(!stanceActionAllowed(actor,"ultimate"))return;
   const config = getConfig(actor);
   if (!config.enabled || config.current < config.max) return;
   state.ultimateLocks.add(actorId);
@@ -4299,7 +4349,7 @@ async function onSocket(payload) {
   if (payload.type === "elationActionComplete" && isAuthority()) return completeElationAction(payload.combatantId, payload.userId);
   if (payload.type === "skillPointsChanged") { refreshSkillUI(); return; }
   if (payload.type === "activateSkill" && isAuthority()) {
-    const accepted = await executeSkill(payload.actorId, payload.requestingUserId) === true;
+    const accepted = await executeSkill(payload.actorId, payload.requestingUserId,payload.enhanced) === true;
     game.socket.emit(SOCKET, {type: "playerActionResult", targetUserId: payload.requestingUserId, requestId: payload.requestId, accepted, action: "Skill", message: accepted ? "Skill activated successfully." : "The GM could not activate that Skill. Check ownership, the Skill toggle, and available Skill Points."});
     return;
   }
@@ -4380,7 +4430,7 @@ async function onSocket(payload) {
   if (payload.type === "activateUltimate" && isAuthority()) {
     const actor = game.actors.get(payload.actorId);
     const before = Number(getConfig(actor).current);
-    await executeUltimate(payload.actorId, payload.requestingUserId);
+    await executeUltimate(payload.actorId, payload.requestingUserId,payload.enhanced);
     const accepted = Boolean(actor && Number(getConfig(actor).current) < before);
     const queue = game.combat?.id ? state.ultimateQueues.get(game.combat.id) : null;
     const waiting = Boolean(accepted && queue?.waitTurnId);
@@ -5859,7 +5909,7 @@ class DMCombatMenu extends FormApplication {
     html.find("[data-dm-tab]").on("click",event=>{this.tab=event.currentTarget.dataset.dmTab;this.render(false);});
     html.find("[data-dm-talent-popup]").on("click",event=>{const actor=game.actors.get(event.currentTarget.dataset.dmTalentPopup);if(actor)showTalentPopup(actor);});
     html.find("[data-dm-talent]").on("click",async event=>{const actor=game.actors.get(event.currentTarget.dataset.dmTalent);if(actor&&talentCombatForActor(actor)){await setTalentPoints(actor,currentTalentPoints(actor)+Number(event.currentTarget.dataset.delta));this.refresh();}});
-    html.find("[data-dm-stance]").on("click",async event=>{const actor=game.actors.get(event.currentTarget.dataset.dmStance);if(actor&&getConfig(actor).enhancedStanceEnabled){await actor.update({[`flags.${MODULE_ID}.ultimate.enhancedStanceActive`]:!getConfig(actor).enhancedStanceActive});this.refresh();}});
+    html.find("[data-dm-stance]").on("click",async event=>{const actor=game.actors.get(event.currentTarget.dataset.dmStance);if(actor&&getConfig(actor).enhancedStanceEnabled){if(state.skillLocks.has(actor.id)||state.ultimateLocks.has(actor.id))return ui.notifications.warn("Finish the current Skill or Ultimate before changing stance.");await actor.update({[`flags.${MODULE_ID}.ultimate.enhancedStanceActive`]:!getConfig(actor).enhancedStanceActive});this.refresh();}});
     html.find("[data-dm-phase]").on("click",async event=>{const combatant=game.combat?.combatants.get(event.currentTarget.dataset.dmPhase);if(combatant){await switchBossPhase(combatant,Number(event.currentTarget.dataset.phase));this.refresh();}});
     const tokenFor=async button=>fromUuid(button.dataset.dmElement||button.dataset.dmMode||button.dataset.dmReset||button.dataset.dmWeakLock).catch(()=>null);
     html.find("[data-dm-weak-lock]").on("click",async event=>{const token=await tokenFor(event.currentTarget);if(token){await token.setFlag(MODULE_ID,"miniWeaknessLocked",!token.getFlag(MODULE_ID,"miniWeaknessLocked"));this.refresh();}});
@@ -5927,6 +5977,7 @@ class StarRailGMPanel extends FormApplication {
       if(!game.user.isGM)return;
       const actor=game.actors.get(event.currentTarget.dataset.toggleEnhancedStance),config=getConfig(actor);
       if(!actor||actor.type!=="character"||!config.enhancedStanceEnabled)return;
+      if(state.skillLocks.has(actor.id)||state.ultimateLocks.has(actor.id))return ui.notifications.warn("Finish the current Skill or Ultimate before changing stance.");
       await actor.update({[`flags.${MODULE_ID}.ultimate.enhancedStanceActive`]:!config.enhancedStanceActive});
       this.render(false);
     });
