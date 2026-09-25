@@ -102,6 +102,9 @@ const DEFAULT_CONFIG = Object.freeze({
   enhancedStanceEnabled: false,
   enhancedStanceActive: false,
   enhancedTokenImage: "",
+  enhancedTransitionInGif: "",
+  enhancedTransitionOutGif: "",
+  enhancedTransitionDuration: 1.5,
   enhancedHudPortrait: "",
   enhancedHudPortraitX: 50,
   enhancedHudPortraitY: 50,
@@ -419,6 +422,41 @@ function getVisualConfig(actor) {
   return config;
 }
 
+// A DOM image preserves GIF animation; its projection is recomputed every
+// frame so it stays centered on the token while the token or viewport moves.
+function playEnhancedTokenTransition(actor,entering){
+  const config=getConfig(actor),source=String((entering?config.enhancedTransitionInGif:config.enhancedTransitionOutGif)||"").trim();
+  if(!source||!canvas?.ready)return Promise.resolve();
+  const tokens=(canvas.tokens?.placeables??[]).filter(token=>token.document?.actorId===actor.id);
+  if(!tokens.length)return Promise.resolve();
+  const duration=clamp(config.enhancedTransitionDuration,0.2,15)*1000;
+  return Promise.all(tokens.map(token=>new Promise(resolve=>{
+    const image=document.createElement("img");image.className="tsru-enhanced-token-transition";image.alt="";image.setAttribute("aria-hidden","true");
+    image.src=`${source}${source.includes("?")?"&":"?"}tsruTransition=${Date.now()}`;
+    document.body.appendChild(image);
+    let frame=0,finished=false;const started=performance.now();
+    const finish=()=>{if(finished)return;finished=true;cancelAnimationFrame(frame);image.remove();resolve();};
+    image.onerror=finish;
+    const track=()=>{
+      if(!token.parent||!canvas?.ready)return finish();
+      const view=canvas.app?.view??canvas.app?.canvas??canvas.app?.renderer?.view;
+      const bounds=view?.getBoundingClientRect?.();
+      const projected=canvas.stage?.toGlobal?.(token.center);
+      if(!bounds||!projected)return finish();
+      const renderer=canvas.app?.renderer?.screen;
+      const ratioX=bounds.width/Math.max(1,renderer?.width??view.width??bounds.width);
+      const ratioY=bounds.height/Math.max(1,renderer?.height??view.height??bounds.height);
+      image.style.left=`${bounds.left+projected.x*ratioX}px`;
+      image.style.top=`${bounds.top+projected.y*ratioY}px`;
+      image.style.width=`${Math.max(0,token.w*canvas.stage.scale.x*ratioX)}px`;
+      image.style.height=`${Math.max(0,token.h*canvas.stage.scale.y*ratioY)}px`;
+      if(performance.now()-started>=duration)return finish();
+      frame=requestAnimationFrame(track);
+    };
+    frame=requestAnimationFrame(track);
+  }))).then(()=>{});
+}
+
 // Token images are changed on placed TokenDocuments only. Each token keeps its
 // own original texture in a persistent flag, so a stance toggle never alters
 // the actor prototype or another character's artwork.
@@ -443,11 +481,11 @@ async function syncEnhancedTokenArtwork(actor){
     }
   }
 }
-function queueEnhancedTokenArtwork(actor){
+function queueEnhancedTokenArtwork(actor,after=Promise.resolve()){
   if(!isAuthority()||!actor?.id)return Promise.resolve();
   state.enhancedTokenQueues??=new Map();
   const previous=state.enhancedTokenQueues.get(actor.id)??Promise.resolve();
-  const current=previous.catch(()=>{}).then(()=>syncEnhancedTokenArtwork(actor));
+  const current=previous.catch(()=>{}).then(()=>after).then(()=>syncEnhancedTokenArtwork(actor));
   state.enhancedTokenQueues.set(actor.id,current);
   current.finally(()=>{if(state.enhancedTokenQueues.get(actor.id)===current)state.enhancedTokenQueues.delete(actor.id);}).catch(()=>{});
   return current.catch(error=>console.error(`${MODULE_ID} | Enhanced token update failed for ${actor.name}`,error));
@@ -6510,7 +6548,7 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
   tab.find("[name]").each((_index, field) => {
     data[field.name] = field.type === "checkbox" ? field.checked : field.value;
   });
-  for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "skillPointCost", "talentPointsCurrent", "talentPointsMax", "talentPointsOvercapMax", "punchlineGain", "splashDuration", "splashX", "splashY", "splashScale", "titleX", "titleY", "titleSize", "combatHudPortraitX", "combatHudPortraitY", "combatHudPortraitScale", "enhancedHudPortraitX", "enhancedHudPortraitY", "enhancedHudPortraitScale", "enhancedCarouselImageX", "enhancedCarouselImageY", "enhancedCarouselImageScale", "enhancedSplashX", "enhancedSplashY", "enhancedSplashScale", "messagingPortraitX", "messagingPortraitY", "messagingPortraitScale", "ultimateButtonX", "ultimateButtonY", "ultimateButtonScale", "bossPhaseCount", "bossPhase2TokenWidth", "bossPhase2TokenHeight", "bossPhase3TokenWidth", "bossPhase3TokenHeight", "bossHudPortraitX", "bossHudPortraitY", "bossHudPortraitScale", "bossHudWidth", "bossHudHealthHeight", "bossHudToughnessHeight"]) data[key] = Number(data[key]);
+  for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "skillPointCost", "talentPointsCurrent", "talentPointsMax", "talentPointsOvercapMax", "punchlineGain", "splashDuration", "splashX", "splashY", "splashScale", "titleX", "titleY", "titleSize", "combatHudPortraitX", "combatHudPortraitY", "combatHudPortraitScale", "enhancedHudPortraitX", "enhancedHudPortraitY", "enhancedHudPortraitScale", "enhancedCarouselImageX", "enhancedCarouselImageY", "enhancedCarouselImageScale", "enhancedSplashX", "enhancedSplashY", "enhancedSplashScale", "enhancedTransitionDuration", "messagingPortraitX", "messagingPortraitY", "messagingPortraitScale", "ultimateButtonX", "ultimateButtonY", "ultimateButtonScale", "bossPhaseCount", "bossPhase2TokenWidth", "bossPhase2TokenHeight", "bossPhase3TokenWidth", "bossPhase3TokenHeight", "bossHudPortraitX", "bossHudPortraitY", "bossHudPortraitScale", "bossHudWidth", "bossHudHealthHeight", "bossHudToughnessHeight"]) data[key] = Number(data[key]);
   for (const key of ["enabled", "showPercent", "showHudPercent", "skillEnabled", "techniqueEnabled", "mainParty", "trialCharacter", "combatHudPortraitFlip", "enhancedHudPortraitFlip", "enhancedCarouselImageFlip", "ultimateButtonAdjustEnabled", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter", "isBoss", "bossInheritsMainPhaseCount", "carouselFrameColorOverride", "enhancedStanceEnabled", "enhancedUltimateEnabled"]) data[key] = Boolean(data[key]);
   if(!data.enhancedStanceEnabled)data.enhancedStanceActive=false;
   data.max = Math.max(1, data.max || 100);
@@ -6531,6 +6569,7 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
   data.messagingPortraitX=clamp(data.messagingPortraitX,0,100);data.messagingPortraitY=clamp(data.messagingPortraitY,0,100);data.messagingPortraitScale=clamp(data.messagingPortraitScale,50,400);
   data.enhancedHudPortraitX=clamp(data.enhancedHudPortraitX,0,100);data.enhancedHudPortraitY=clamp(data.enhancedHudPortraitY,0,100);data.enhancedHudPortraitScale=clamp(data.enhancedHudPortraitScale,50,300);
   data.enhancedCarouselImageScale=clamp(data.enhancedCarouselImageScale,50,800);const enhancedBounds=initiativePortraitPositionBounds(data.enhancedCarouselImageScale);data.enhancedCarouselImageX=clamp(data.enhancedCarouselImageX,enhancedBounds.min,enhancedBounds.max);data.enhancedCarouselImageY=clamp(data.enhancedCarouselImageY,enhancedBounds.min,enhancedBounds.max);
+  data.enhancedTransitionDuration=clamp(data.enhancedTransitionDuration,0.2,15);
   data.enhancedSplashX=clamp(data.enhancedSplashX,0,100);data.enhancedSplashY=clamp(data.enhancedSplashY,0,100);data.enhancedSplashScale=clamp(data.enhancedSplashScale,25,500);
   data.carouselFrameColorPreset=String(data.carouselFrameColorPreset||"");
   data.talentCombatId = talentCombatForActor(actor)?.id ?? "";
@@ -7743,7 +7782,13 @@ Hooks.on("updateActor", (actor, changes, options) => {
   refreshResourceHuds();
   refreshToughnessBars();
   const enhancedChanges=foundry.utils.getProperty(changes,`flags.${MODULE_ID}.ultimate`);
-  if(enhancedChanges&&["enhancedStanceEnabled","enhancedStanceActive","enhancedTokenImage"].some(key=>Object.hasOwn(enhancedChanges,key)))queueEnhancedTokenArtwork(actor);
+  state.enhancedStanceSeen??=new Map();
+  const active=Boolean(getConfig(actor).enhancedStanceActive);
+  const prior=state.enhancedStanceSeen.get(actor.id);
+  const stanceChanged=enhancedChanges&&Object.hasOwn(enhancedChanges,"enhancedStanceActive")&&prior!==undefined&&prior!==active;
+  state.enhancedStanceSeen.set(actor.id,active);
+  const transition=stanceChanged?playEnhancedTokenTransition(actor,active):Promise.resolve();
+  if(enhancedChanges&&["enhancedStanceEnabled","enhancedStanceActive","enhancedTokenImage"].some(key=>Object.hasOwn(enhancedChanges,key)))queueEnhancedTokenArtwork(actor,transition);
   if(enhancedChanges && ["enhancedStanceEnabled","enhancedStanceActive","enhancedUltimateEnabled"].some(key=>Object.hasOwn(enhancedChanges,key)))state.gmPanel?.render(false);
   else state.gmPanel?.refreshLiveValues();
   refreshCombatPartyHud();
@@ -7820,7 +7865,7 @@ Hooks.on("updateSetting", setting => {
   if(setting?.key===`${MODULE_ID}.initiativeFrameColors`){refreshInitiativeCarousel();for(const app of Object.values(ui.windows??{}))if((app.actor??app.document)?.type==="character")app.render(false);}
 });
 Hooks.on("createToken",token=>{const actor=game.actors.get(token.actorId);if(actor)queueEnhancedTokenArtwork(actor);});
-Hooks.once("ready",()=>{if(isAuthority())for(const actor of game.actors.filter(entry=>entry.type==="character"))queueEnhancedTokenArtwork(actor);});
+Hooks.once("ready",()=>{state.enhancedStanceSeen=new Map(game.actors.map(actor=>[actor.id,Boolean(getConfig(actor).enhancedStanceActive)]));if(isAuthority())for(const actor of game.actors.filter(entry=>entry.type==="character"))queueEnhancedTokenArtwork(actor);});
 Hooks.on("canvasReady", () => { refreshAllOrbs(); refreshSkillUI(); refreshTalentButtons(); refreshTechniqueButtons(); refreshPunchlineHUD(); refreshToughnessBars(); refreshCombatPartyHud(); refreshBossHud(); refreshInitiativeCarousel(); });
 Hooks.on("canvasReady", refreshAhaButton);
 
