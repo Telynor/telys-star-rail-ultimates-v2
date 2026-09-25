@@ -1933,3 +1933,9 @@ body.tsru-hide-scene-navigation #scene-navigation,body.tsru-hide-scene-navigatio
 /* Confine each phone wallpaper to the scrollable app area, beneath its buttons. */
 .tsru-phone-screen>header{background:#10141b!important}.tsru-phone-scroll{isolation:isolate;background:#08090b}.tsru-phone-scroll>.tsru-phone-wallpaper{position:absolute!important;z-index:0!important;inset:0!important;display:block;width:100%;height:100%;background-color:#08090b;background-image:linear-gradient(#08090a22,#08090a55),var(--hub-wallpaper);background-repeat:no-repeat;background-position:var(--hub-wallpaper-x) var(--hub-wallpaper-y);background-size:var(--hub-wallpaper-fit);transform:scale(calc(var(--hub-wallpaper-scale)/100));transform-origin:var(--hub-wallpaper-x) var(--hub-wallpaper-y);pointer-events:none}.tsru-phone-scroll>.tsru-phone-button-field{z-index:1}.tsru-hub-designer-preview{background-image:none!important}.tsru-hub-config-phone:before{background-image:linear-gradient(#08090a22,#08090a55),var(--hub-wallpaper)}
 @media(max-width:740px){.tsru-recipe-browser-list{grid-template-columns:1fr}.tsru-mission-gm-tools{grid-template-columns:1fr}}
+
+/* The wallpaper stays within the phone's button area while its buttons scroll. */
+.tsru-phone-wallpaper-frame{position:absolute;z-index:1;top:var(--phone-header-height);right:0;bottom:0;left:0;overflow:hidden;background:#08090b;pointer-events:none}
+.tsru-phone-wallpaper-frame>img{display:block;width:100%;height:100%;max-width:none;max-height:none;border:0;object-fit:cover}
+.tsru-phone-wallpaper-frame:after{position:absolute;inset:0;background:linear-gradient(#08090a22,#08090a55);content:""}
+.tsru-phone-screen>.tsru-phone-scroll{background:transparent}

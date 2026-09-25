@@ -267,7 +267,7 @@ class HSRHub extends FormApplication {
     const visibleButton=button=>game.user.isGM?(gmPanel?!playerOnly.has(button.action):!gmOnly.has(button.action)):!gmOnly.has(button.action);
     const buttons=config.buttons.filter(visibleButton).map(button=>{const double=Boolean(button.double),width=Math.min(100,Number(button.width||10)*(double?2:1)),top=Math.max(0,Number(button.y||0)-18);return {...button,double,id:button.id||button.action,gmOnly:gmOnly.has(button.action),style:`left:${button.x}%;top:${top}vh;width:${width}%;height:${button.height}vh`};});
     const contentHeight=Math.max(78,...buttons.map(button=>Math.max(0,Number(button.y||0)-18)+Number(button.height||16)));
-    return {gm:game.user.isGM,player:!game.user.isGM,gmPanel,actor,pose,profileImage:hubProfileImage(actor),config,contentHeight,phoneChoices:[{id:"",name:"DM PANEL",selected:!actor},...actors.map(entry=>({id:entry.id,name:`${entry.name} — ${actorOwnerName(entry)}`,selected:entry.id===actor?.id}))],buttons};
+    return {gm:game.user.isGM,player:!game.user.isGM,gmPanel,actor,pose,profileImage:hubProfileImage(actor),config,wallpaperFit:config.wallpaperFit==="100% 100%"?"fill":(["cover","contain"].includes(config.wallpaperFit)?config.wallpaperFit:"cover"),contentHeight,phoneChoices:[{id:"",name:"DM PANEL",selected:!actor},...actors.map(entry=>({id:entry.id,name:`${entry.name} — ${actorOwnerName(entry)}`,selected:entry.id===actor?.id}))],buttons};
   }
   activateListeners(html) {
     super.activateListeners(html);
