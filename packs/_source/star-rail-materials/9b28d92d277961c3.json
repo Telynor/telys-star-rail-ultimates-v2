@@ -1,0 +1,50 @@
+{
+  "_id": "9b28d92d277961c3",
+  "name": "Jade Marrow Diffusion",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402022.png",
+  "system": {
+    "description": {
+      "value": "<p>A poultice made by refining gentle halcyon horn and cryojade, then grinding them into powder and mixing them with a large amount of herbal extracts. It is greenish in color, has a pleasant fragrance, and has therapeutic effects in promoting the healing of muscle injuries, fractures, and bone fractures. Strictly prohibited for internal use!</p><p>\"The leg has already deteriorated severely and requires amputation.\"<br>\"Please, doctor, can't you prescribe something to save it?\"<br>\"Even if I do, you won't follow the instructions.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Affected creatures have advantage on saves against spells and magical effects. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, increases Effect RES of all allies by 30% for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "402022",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, increases Effect RES of all allies by 30% for the next battle.",
+      "gmDescription": "Upon use, increases Effect RES of all allies by 30% for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Affected creatures have advantage on saves against spells and magical effects. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

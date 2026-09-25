@@ -1,0 +1,50 @@
+{
+  "_id": "d026774c06b5fa53",
+  "name": "Alfalfa Salad",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402025.png",
+  "system": {
+    "description": {
+      "value": "<p>A vegetable salad that was once sold at an astounding price, believed to bring good luck and happiness to those who consumed it. Later, a chef replaced the expensive clover with regular lettuce, making it an affordable dish for the masses.</p><p>\"But now, it no longer brings anyone happiness.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. For each affected creature, Crit Ratio increases by 1. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, increases all allies' CRIT Rate by 18% for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "402025",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, increases all allies' CRIT Rate by 18% for the next battle.",
+      "gmDescription": "Upon use, increases all allies' CRIT Rate by 18% for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. For each affected creature, Crit Ratio increases by 1. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

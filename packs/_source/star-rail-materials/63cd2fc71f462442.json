@@ -1,0 +1,50 @@
+{
+  "_id": "63cd2fc71f462442",
+  "name": "Bough of Thought",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181017.png",
+  "system": {
+    "description": {
+      "value": "<p>A glowing bough with branches sprawling unrestrained in every direction, resembling the organic divergence of thought. It is born in a quiet corner of the Grove where scholars often drift into contemplative dazes. Though lacking any practical use, Cerces appears particularly fond of such curiosities. Legend has it that the Titan would select the bough with the most intricate branching and wear it atop their head as an ornament. </p><p>\"For a long time, I've been going to bed early, yet it does little to quiet my restless mind. It feels as though the thoughts from a past life have been reborn within me... At some point, I began to notice a cluster of intertwined branches outside my window.\"</p><hr><h3>Crafting Material</h3><p>This is a crafting reagent used by Star Rail synthesis recipes.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Tier 2 Synthesis Material</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "181017",
+      "contentKind": "material",
+      "hasUsableEffect": false,
+      "originalHsrEffect": "Tier 2 Synthesis Material",
+      "gmDescription": "Tier 2 Synthesis Material",
+      "dndEffect": "This is a crafting reagent used by Star Rail synthesis recipes."
+    }
+  }
+}

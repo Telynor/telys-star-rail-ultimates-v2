@@ -1,0 +1,50 @@
+{
+  "_id": "67686be3aee82101",
+  "name": "Phase Flame",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/183002.png",
+  "system": {
+    "description": {
+      "value": "<p>Sserkal, #29 of the Genius Society, only lived 29 days by human measures of time. Despite that, she put her short life as a spider to good use, inventing new technologies that would have taken the spider-kind thousands of years to develop. Of all her inventions, the most famous must be the technique known as Phase Change.<br>What people don't know is that this technique was first applied to experiments with ions. She successfully created Phase Flame, which almost immediately changed to another phase. By the time the Flame returned to the Sserkal Phase, our genius had already passed away. She tried to harness the Flame but had too little time to do so. Thus, the Phase Flame continued to change between phases across different worlds, leaving behind the seeds of flame.</p><p>\"Sserkal's life was remarkable. She was smart, kindhearted, and above all, humble. She remained curious and inquisitive, asking her final question in the club on the last day of her life, the answer to which has not been found to this day.\"</p><hr><h3>Crafting Material</h3><p>This is a crafting reagent used by Star Rail synthesis recipes.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Tier 4 Synthesis Material</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "183002",
+      "contentKind": "material",
+      "hasUsableEffect": false,
+      "originalHsrEffect": "Tier 4 Synthesis Material",
+      "gmDescription": "Tier 4 Synthesis Material",
+      "dndEffect": "This is a crafting reagent used by Star Rail synthesis recipes."
+    }
+  }
+}

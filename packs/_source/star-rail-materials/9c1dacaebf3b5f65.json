@@ -1,0 +1,50 @@
+{
+  "_id": "9c1dacaebf3b5f65",
+  "name": "Grande Rejuvepill",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408206.png",
+  "system": {
+    "description": {
+      "value": "<p>A simple remedy made by grinding blue maple deer antler, sprout combination remedy, and droppings from blue-winged squirrels into powder, then kneading them with honey to form pills. It has some healing effects, but not significant.</p><p>\"Your medicine's effectiveness... is it any different from a bowl of brown sugar water?\"<br>\"Of course it is. Brown sugar water is sweet, while my medicine is as spicy as drinking boiling water.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, a creature can consume or administer this item. The target regains 1d4 + 1 hit points.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, immediately heals one ally for 10 HP.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "common",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "408206",
+      "contentKind": "material",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, immediately heals one ally for 10 HP.",
+      "gmDescription": "Upon use, immediately heals one ally for 10 HP.",
+      "dndEffect": "As an action, a creature can consume or administer this item. The target regains 1d4 + 1 hit points."
+    }
+  }
+}

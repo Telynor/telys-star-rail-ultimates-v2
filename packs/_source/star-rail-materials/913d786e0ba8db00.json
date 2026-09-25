@@ -1,0 +1,50 @@
+{
+  "_id": "913d786e0ba8db00",
+  "name": "Virtual Particle",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181002.png",
+  "system": {
+    "description": {
+      "value": "<p>Tiny particles commonly found in the universe but cannot be observed in theory.<br>Scientists are good at transforming theories into reality.</p><p>\"I've got a virtual particle and an anti virtual particle here. How do we turn them into a real particle and a real antiparticle? Now, look closely...\"</p><hr><h3>Crafting Material</h3><p>This is a crafting reagent used by Star Rail synthesis recipes.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Tier 2 Synthesis Material</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "181002",
+      "contentKind": "material",
+      "hasUsableEffect": false,
+      "originalHsrEffect": "Tier 2 Synthesis Material",
+      "gmDescription": "Tier 2 Synthesis Material",
+      "dndEffect": "This is a crafting reagent used by Star Rail synthesis recipes."
+    }
+  }
+}

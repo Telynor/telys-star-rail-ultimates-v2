@@ -1,0 +1,50 @@
+{
+  "_id": "d69af4b5430575e7",
+  "name": "Cold Joke",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408447.png",
+  "system": {
+    "description": {
+      "value": "<p>In Planarcadia, people use \"cold jokes\" to chill their drinks. But since \"cold jokes\" haven't been industrialized yet, producing them still heavily depends on the jokester's personal skill. There used to be this \"Radical Master of Cold Jokes\" who was famous for crafting jokes that went way beyond the physiological limits of the imagenae. Super popular for a while. Then one of his cold jokes actually froze someone to death, so he had no choice but to publicly apologize and disappear from the scene.</p><p>\"I heard Zhongshan made a batch of cold jokes about 'Fire' recently, perfect balance of hot and cold, really unique texture. But she absolutely refuses to share them with everyone.\"<br>\"Huh? Why? She's not that stingy, is she?\"<br>\"She says she's avoiding the taboo of 'Sparkle.'\"<br>\"...What's her problem.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Once per turn when an affected creature deals cold damage, it deals an additional 1d4 cold damage. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, increases Ice DMG of all allies by 16% for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "408447",
+      "contentKind": "material",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, increases Ice DMG of all allies by 16% for the next battle.",
+      "gmDescription": "Upon use, increases Ice DMG of all allies by 16% for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Once per turn when an affected creature deals cold damage, it deals an additional 1d4 cold damage. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

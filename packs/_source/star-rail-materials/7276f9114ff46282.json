@@ -1,0 +1,50 @@
+{
+  "_id": "7276f9114ff46282",
+  "name": "Fruitwood-Grilled Shantak Moa Drumettes",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401014.png",
+  "system": {
+    "description": {
+      "value": "<p>Cooked using the flesh of extraterrestrial monsters defeated by Yancui, the chef of Spices Supreme. Shantak moas are inherently ferocious creatures, and while some people use them as mounts to traverse the icy vacuum, the cost is sacrificing their own limbs as sustenance for the creatures.</p><p>\"Oh, the bird! It whipped its head around and it glared at me, wanting to peck me. But with a palm strike to its face, it fell limp, just like mud. It was only then did I realize that both it and I were suspended in midair...\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Once per turn when an affected creature deals fire damage, it deals an additional 1d4 fire damage. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, increases Fire DMG of all allies by 16% for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "401014",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, increases Fire DMG of all allies by 16% for the next battle.",
+      "gmDescription": "Upon use, increases Fire DMG of all allies by 16% for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Once per turn when an affected creature deals fire damage, it deals an additional 1d4 fire damage. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

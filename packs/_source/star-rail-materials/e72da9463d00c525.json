@@ -1,0 +1,50 @@
+{
+  "_id": "e72da9463d00c525",
+  "name": "Weary",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/183005.png",
+  "system": {
+    "description": {
+      "value": "<p>I'm tired of writing. I'm done with it.</p><p>\"This is what is called 'weariness.'\"</p><hr><h3>Crafting Material</h3><p>This is a crafting reagent used by Star Rail synthesis recipes.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Tier 4 Synthesis Material</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "183005",
+      "contentKind": "material",
+      "hasUsableEffect": false,
+      "originalHsrEffect": "Tier 4 Synthesis Material",
+      "gmDescription": "Tier 4 Synthesis Material",
+      "dndEffect": "This is a crafting reagent used by Star Rail synthesis recipes."
+    }
+  }
+}

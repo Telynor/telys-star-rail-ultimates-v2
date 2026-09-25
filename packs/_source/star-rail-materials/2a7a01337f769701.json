@@ -1,0 +1,50 @@
+{
+  "_id": "2a7a01337f769701",
+  "name": "High-Tech Protective Gear",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402005.png",
+  "system": {
+    "description": {
+      "value": "<p>High-Tech protective gear developed by the Intelligentsia Guild. It keeps the most vulnerable parts of your body from harm and converts the impact into energy used to charge the gear, making it fit for prolonged combat operations.<br>The prototypes of this model were distributed in small numbers among the Armed Archaeologists, allowing the Guild to collect large amounts of data to help improve the model. The Interastral Peace Corporation was tasked to sell it on the retail market.</p><p>\"When can we get our hands on the upgraded model?\"<br>\"Soon, my scholars...! You're gonna have to make do with Disposable Shields for the time being.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Temporary hit points gained increase by proficiency bonus, and the creature has +1 AC while it has temporary hit points. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, increases DEF of all allies by 15% and enhances the max DMG that can be absorbed by Shields cast on allies by 18% in the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "402005",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, increases DEF of all allies by 15% and enhances the max DMG that can be absorbed by Shields cast on allies by 18% in the next battle.",
+      "gmDescription": "Upon use, increases DEF of all allies by 15% and enhances the max DMG that can be absorbed by Shields cast on allies by 18% in the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Temporary hit points gained increase by proficiency bonus, and the creature has +1 AC while it has temporary hit points. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

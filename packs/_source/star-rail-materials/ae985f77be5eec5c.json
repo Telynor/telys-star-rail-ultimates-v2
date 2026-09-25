@@ -1,0 +1,50 @@
+{
+  "_id": "ae985f77be5eec5c",
+  "name": "Diet Fried Rice",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401012.png",
+  "system": {
+    "description": {
+      "value": "<p>No smoke, no grease, no additives. Keeps you fed and tastes good.<br>The child of human wisdom and nature's gift.</p><p>\"Is it truly healthy to only eat healthy food?\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, a creature can consume or administer this item. The target regains 4d4 + 4 hit points.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, immediately heals a single ally by 28% of their Max HP plus 250 extra HP.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "401012",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, immediately heals a single ally by 28% of their Max HP plus 250 extra HP.",
+      "gmDescription": "Upon use, immediately heals a single ally by 28% of their Max HP plus 250 extra HP.",
+      "dndEffect": "As an action, a creature can consume or administer this item. The target regains 4d4 + 4 hit points."
+    }
+  }
+}

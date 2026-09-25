@@ -1,0 +1,3451 @@
+[
+  {
+    "id": "hsr-2101",
+    "name": "Comfort Food",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Comfort Food.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2101",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.68f25e9d6a88b319",
+        "name": "Solid Water",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180001.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.bec1a660f6e41786",
+        "name": "Basic Ingredients",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180002.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.193101b38bab672c",
+      "name": "Comfort Food",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/400004.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2102",
+    "name": "Punitive Food",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Punitive Food.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2102",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.9af89c7cda6a7d0e",
+        "name": "Trash",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408001.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.bec1a660f6e41786",
+        "name": "Basic Ingredients",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180002.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.16aa8377697691d2",
+      "name": "Punitive Food",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/400005.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2103",
+    "name": "Trick Snack",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Trick Snack.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2103",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.13e534b1950c42df",
+        "name": "Gaseous Liquid",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180006.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.262ecaca4419e102",
+        "name": "Seed",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180007.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.204405646b2d6a7e",
+      "name": "Trick Snack",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/400006.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2104",
+    "name": "Simple First-Aid Device",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Simple First-Aid Device.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2104",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.905d73b10b5a6094",
+        "name": "Phlogiston",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180004.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.9b88f6f58167ad74",
+        "name": "Metal",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180005.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.57a3b2373bfc03d3",
+      "name": "Simple First-Aid Device",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/400007.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2105",
+    "name": "Startaro Bubble",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Startaro Bubble.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2105",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.68f25e9d6a88b319",
+        "name": "Solid Water",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180001.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.9af89c7cda6a7d0e",
+        "name": "Trash",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408001.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.dc27be5798dc2413",
+      "name": "Startaro Bubble",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/400008.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2106",
+    "name": "Redsoil Feed",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Redsoil Feed.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2106",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.13e534b1950c42df",
+        "name": "Gaseous Liquid",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180006.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.68f25e9d6a88b319",
+        "name": "Solid Water",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180001.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.3b3e83224429aee2",
+      "name": "Redsoil Feed",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/140544.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2201",
+    "name": "Cosmic Fried Rice",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Cosmic Fried Rice.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2201",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.68f25e9d6a88b319",
+        "name": "Solid Water",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180001.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.b4e123a995febbdc",
+        "name": "Protein Rice",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181003.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.87df3f834c1ced03",
+      "name": "Cosmic Fried Rice",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401003.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2202",
+    "name": "Yucky Fried Rice",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Yucky Fried Rice.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2202",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.9af89c7cda6a7d0e",
+        "name": "Trash",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408001.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.b4e123a995febbdc",
+        "name": "Protein Rice",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181003.png",
+        "type": "loot",
+        "quantity": 3
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.747fecca2d961ca8",
+      "name": "Yucky Fried Rice",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401004.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2203",
+    "name": "Punitive Energy",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Punitive Energy.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2203",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.9af89c7cda6a7d0e",
+        "name": "Trash",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408001.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.913d786e0ba8db00",
+        "name": "Virtual Particle",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181002.png",
+        "type": "loot",
+        "quantity": 3
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.4f1abc28e1383378",
+      "name": "Punitive Energy",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401005.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2204",
+    "name": "Energy Drink",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Energy Drink.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2204",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.905d73b10b5a6094",
+        "name": "Phlogiston",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180004.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.913d786e0ba8db00",
+        "name": "Virtual Particle",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181002.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.21f5bf971c05871f",
+      "name": "Energy Drink",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401006.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2205",
+    "name": "Life Transmitter",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Life Transmitter.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2205",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.13e534b1950c42df",
+        "name": "Gaseous Liquid",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180006.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.8f3e5c0d401b6dce",
+        "name": "Mechanical Parts",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181001.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.44141686eea6ebf9",
+      "name": "Life Transmitter",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401007.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2206",
+    "name": "Bottled Soda",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Bottled Soda.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2206",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.13e534b1950c42df",
+        "name": "Gaseous Liquid",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180006.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.68f25e9d6a88b319",
+        "name": "Solid Water",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180001.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.913d786e0ba8db00",
+        "name": "Virtual Particle",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181002.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.e9d2334030fc3fd7",
+      "name": "Bottled Soda",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401008.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2207",
+    "name": "Simple Protective Gear",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Simple Protective Gear.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2207",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.9b88f6f58167ad74",
+        "name": "Metal",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180005.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.8f3e5c0d401b6dce",
+        "name": "Mechanical Parts",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181001.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.b40fc21f6ec59aa2",
+      "name": "Simple Protective Gear",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401009.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2208",
+    "name": "Rice Plant Panicle",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Rice Plant Panicle.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2208",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.262ecaca4419e102",
+        "name": "Seed",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180007.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.b4e123a995febbdc",
+        "name": "Protein Rice",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181003.png",
+        "type": "loot",
+        "quantity": 3
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.8055c1424da98dce",
+      "name": "Rice Plant Panicle",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401010.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2209",
+    "name": "Camo Paint",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Camo Paint.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2209",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.68f25e9d6a88b319",
+        "name": "Solid Water",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180001.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.913d786e0ba8db00",
+        "name": "Virtual Particle",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181002.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.a0e9238438c88875",
+      "name": "Camo Paint",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401011.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2210",
+    "name": "Diet Fried Rice",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Diet Fried Rice.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2210",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.13e534b1950c42df",
+        "name": "Gaseous Liquid",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180006.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.b4e123a995febbdc",
+        "name": "Protein Rice",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181003.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.ae985f77be5eec5c",
+      "name": "Diet Fried Rice",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401012.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2211",
+    "name": "Wrathful Gauntlets",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Wrathful Gauntlets.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2211",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.905d73b10b5a6094",
+        "name": "Phlogiston",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180004.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.8f3e5c0d401b6dce",
+        "name": "Mechanical Parts",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181001.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.8d6d5b778d9c4468",
+      "name": "Wrathful Gauntlets",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401013.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2212",
+    "name": "Fruitwood-Grilled Shantak Moa Drumettes",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Fruitwood-Grilled Shantak Moa Drumettes.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2212",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.c9076a5e12bd4808",
+        "name": "Feather of Flame",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181004.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.bec1a660f6e41786",
+        "name": "Basic Ingredients",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180002.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.68f25e9d6a88b319",
+        "name": "Solid Water",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180001.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.7276f9114ff46282",
+      "name": "Fruitwood-Grilled Shantak Moa Drumettes",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401014.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2213",
+    "name": "Flaming Potent Tea",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Flaming Potent Tea.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2213",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.c9076a5e12bd4808",
+        "name": "Feather of Flame",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181004.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.f4ed9d86377c0918",
+        "name": "Human-Height Auspicious Crops",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180009.png",
+        "type": "loot",
+        "quantity": 3
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.9cb836ab3e67de61",
+      "name": "Flaming Potent Tea",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401015.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2214",
+    "name": "Self-Sufficer",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Self-Sufficer.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2214",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.f4ed9d86377c0918",
+        "name": "Human-Height Auspicious Crops",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180009.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.60576a6d55a30a18",
+        "name": "Discarded Ingenium Parts",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180008.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.7995537d802f7fea",
+      "name": "Self-Sufficer",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401016.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2217",
+    "name": "Deep-fried Flying Sea Anemone",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Deep-fried Flying Sea Anemone.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2217",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.bec1a660f6e41786",
+        "name": "Basic Ingredients",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180002.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.68f25e9d6a88b319",
+        "name": "Solid Water",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180001.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.1d3ea92d92866cb3",
+        "name": "Eye of Lightning",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181006.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.af8d0c2c92215b94",
+      "name": "Deep-fried Flying Sea Anemone",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401017.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2218",
+    "name": "Amber Huadiao Wine",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Amber Huadiao Wine.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2218",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.f4ed9d86377c0918",
+        "name": "Human-Height Auspicious Crops",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180009.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.093ed59cb7408bd8",
+        "name": "Extract of Medicinal Herbs",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181012.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.277bab3b09db914c",
+      "name": "Amber Huadiao Wine",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401018.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2219",
+    "name": "Delicious Shumai",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Delicious Shumai.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2219",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.905d73b10b5a6094",
+        "name": "Phlogiston",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180004.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.bec1a660f6e41786",
+        "name": "Basic Ingredients",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180002.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.b4e123a995febbdc",
+        "name": "Protein Rice",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181003.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.b8016985c4ad3d84",
+      "name": "Delicious Shumai",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401019.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2220",
+    "name": "Delicious Bean Cake",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Delicious Bean Cake.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2220",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.f4ed9d86377c0918",
+        "name": "Human-Height Auspicious Crops",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180009.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.aa840dc8e0524bda",
+        "name": "Leaf of Imaginary",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181009.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.4a19876198a682ae",
+      "name": "Delicious Bean Cake",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401020.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2221",
+    "name": "Clockie Pizza (Single Slice)",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Clockie Pizza (Single Slice).",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2221",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.64ff4b3a1d53430b",
+        "name": "Hunger",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181015.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.47abcf0a34781956",
+        "name": "Rusty Gear",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180012.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.e0a5071946b3f674",
+      "name": "Clockie Pizza (Single Slice)",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401021.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2222",
+    "name": "Sliced Cake \"Stargazer\"",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Sliced Cake \"Stargazer\".",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2222",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.64ff4b3a1d53430b",
+        "name": "Hunger",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181015.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.b458ce4f33a57820",
+        "name": "Confounding",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181014.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.ef295f8ff0cf3380",
+      "name": "Sliced Cake \"Stargazer\"",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401022.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2223",
+    "name": "Mr. Herring's Lemon Tart",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Mr. Herring's Lemon Tart.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2223",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.b458ce4f33a57820",
+        "name": "Confounding",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181014.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.ea9d31151ef1a9e6",
+        "name": "Broken Dreams",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180011.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.bbbf10b806fcfd62",
+      "name": "Mr. Herring's Lemon Tart",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401023.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2224",
+    "name": "Hundred-Layer Sundae (Zero Calories)",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Hundred-Layer Sundae (Zero Calories).",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2224",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.64ff4b3a1d53430b",
+        "name": "Hunger",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181015.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.3098fed4eca298a9",
+        "name": "Core of Ice",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181005.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.7c4a728744a09417",
+      "name": "Hundred-Layer Sundae (Zero Calories)",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401024.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2225",
+    "name": "Classic SoulGlad",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Classic SoulGlad.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2225",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.204566a3d8ec002e",
+        "name": "Tranquility",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180010.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.ea9d31151ef1a9e6",
+        "name": "Broken Dreams",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180011.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.340dbc46338f644c",
+      "name": "Classic SoulGlad",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401025.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2226",
+    "name": "\"Sour Dreams\" Soft Candy",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize \"Sour Dreams\" Soft Candy.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2226",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.6dcd38241f75918d",
+        "name": "Quantum Ripples",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181008.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.204566a3d8ec002e",
+        "name": "Tranquility",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180010.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.348b81c59e178c12",
+      "name": "\"Sour Dreams\" Soft Candy",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401026.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2227",
+    "name": "\"Dreamlight\" Mixed Sweets",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize \"Dreamlight\" Mixed Sweets.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2227",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.64ff4b3a1d53430b",
+        "name": "Hunger",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181015.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.989bcdd4c2e6f99b",
+        "name": "Vortex of Wind",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181007.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.025e3b95cfdae00f",
+      "name": "\"Dreamlight\" Mixed Sweets",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401027.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2228",
+    "name": "Momentary Freedom",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Momentary Freedom.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2228",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.78f785d82a98fbff",
+        "name": "Old Molar",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181016.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.47abcf0a34781956",
+        "name": "Rusty Gear",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180012.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.581fc8b381c965a1",
+      "name": "Momentary Freedom",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/140399.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2229",
+    "name": "Sword in the Stone",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Sword in the Stone.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2229",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.f687a152659697f1",
+        "name": "Flying Sword Model",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408209.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.39db08568ba7d590",
+        "name": "Meteoric Alloy",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181010.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.8a8e37a64d97e265",
+      "name": "Sword in the Stone",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401029.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2230",
+    "name": "Interstellar Braised Beast",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Interstellar Braised Beast.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2230",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.ef031974a6df4e8d",
+        "name": "Crystal Lizard Satay",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408402.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.50e7504fb922eb55",
+        "name": "Tian Dong",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181013.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.153969f021f3c340",
+      "name": "Interstellar Braised Beast",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401030.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2231",
+    "name": "Golden Honeycake",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Golden Honeycake.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2231",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.5d12c29a3b7d2f5b",
+        "name": "Deep Marrow Rock Salt",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181018.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.bec1a660f6e41786",
+        "name": "Basic Ingredients",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180002.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.1692ae065407f7d9",
+      "name": "Golden Honeycake",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401031.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2232",
+    "name": "Rough-Brew Ambrosia",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Rough-Brew Ambrosia.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2232",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.63cd2fc71f462442",
+        "name": "Bough of Thought",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181017.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.f7ecd6c183460459",
+        "name": "Distinctive Tattered Feather",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180013.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.dda20297277f79b1",
+      "name": "Rough-Brew Ambrosia",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401032.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2233",
+    "name": "Dried Sagelore Fruit",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Dried Sagelore Fruit.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2233",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.5d12c29a3b7d2f5b",
+        "name": "Deep Marrow Rock Salt",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181018.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.262ecaca4419e102",
+        "name": "Seed",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180007.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.8768074a6d8937c1",
+      "name": "Dried Sagelore Fruit",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401033.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2234",
+    "name": "Northern Helm",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Northern Helm.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2234",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.39db08568ba7d590",
+        "name": "Meteoric Alloy",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181010.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.f7ecd6c183460459",
+        "name": "Distinctive Tattered Feather",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180013.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.dce7fb697f86dffa",
+      "name": "Northern Helm",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401034.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2235",
+    "name": "Deep-fried Honey Curd",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Deep-fried Honey Curd.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2235",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.63cd2fc71f462442",
+        "name": "Bough of Thought",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181017.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.5d12c29a3b7d2f5b",
+        "name": "Deep Marrow Rock Salt",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181018.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.9d4478a3715c27e6",
+      "name": "Deep-fried Honey Curd",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401035.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2236",
+    "name": "\"Dried\" Bread",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize \"Dried\" Bread.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2236",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.5d12c29a3b7d2f5b",
+        "name": "Deep Marrow Rock Salt",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181018.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.b4e123a995febbdc",
+        "name": "Protein Rice",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181003.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.ddf41fda7567882b",
+      "name": "\"Dried\" Bread",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401036.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2301",
+    "name": "Healing Spray",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Healing Spray.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2301",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.68f25e9d6a88b319",
+        "name": "Solid Water",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180001.png",
+        "type": "loot",
+        "quantity": 5
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.5d36e388b543d2d0",
+        "name": "Ambergris of Abundance",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182002.png",
+        "type": "loot",
+        "quantity": 3
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.8da1aae1218045e6",
+      "name": "Healing Spray",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402001.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2302",
+    "name": "Disposable Shield",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Disposable Shield.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2302",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.8f3e5c0d401b6dce",
+        "name": "Mechanical Parts",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181001.png",
+        "type": "loot",
+        "quantity": 4
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.f400c5e4cb0790b2",
+        "name": "Preservation Construction Material",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182004.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.7af6f12d27a891e0",
+        "name": "Hard Chip of Nihility",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182005.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.857825793ffbcd67",
+      "name": "Disposable Shield",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402002.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2303",
+    "name": "Energy Drink (sugar-free)",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Energy Drink (sugar-free).",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2303",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.905d73b10b5a6094",
+        "name": "Phlogiston",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180004.png",
+        "type": "loot",
+        "quantity": 4
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.913d786e0ba8db00",
+        "name": "Virtual Particle",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181002.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.dcb78df962e9b1d8",
+        "name": "Tree Bark of Erudition",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182006.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.3618a775d9e2f590",
+      "name": "Energy Drink (sugar-free)",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402003.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2304",
+    "name": "Antimatter Field Generator",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Antimatter Field Generator.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2304",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.39db08568ba7d590",
+        "name": "Meteoric Alloy",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181010.png",
+        "type": "loot",
+        "quantity": 4
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.66c3088cd00bbf8c",
+        "name": "Strange Matter of Destruction",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182001.png",
+        "type": "loot",
+        "quantity": 3
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.8021cf4616588cd3",
+      "name": "Antimatter Field Generator",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402004.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2305",
+    "name": "High-Tech Protective Gear",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize High-Tech Protective Gear.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2305",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.9b88f6f58167ad74",
+        "name": "Metal",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180005.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.8f3e5c0d401b6dce",
+        "name": "Mechanical Parts",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181001.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.f400c5e4cb0790b2",
+        "name": "Preservation Construction Material",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182004.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.2a7a01337f769701",
+      "name": "High-Tech Protective Gear",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402005.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2306",
+    "name": "Inferior Protective Gear",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Inferior Protective Gear.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2306",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.9af89c7cda6a7d0e",
+        "name": "Trash",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408001.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.8f3e5c0d401b6dce",
+        "name": "Mechanical Parts",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181001.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.f400c5e4cb0790b2",
+        "name": "Preservation Construction Material",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182004.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.ddc70407cf45fe01",
+      "name": "Inferior Protective Gear",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402006.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2307",
+    "name": "Tasty Field Nutrient Bar",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Tasty Field Nutrient Bar.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2307",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.bec1a660f6e41786",
+        "name": "Basic Ingredients",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180002.png",
+        "type": "loot",
+        "quantity": 5
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.b4e123a995febbdc",
+        "name": "Protein Rice",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181003.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.5d36e388b543d2d0",
+        "name": "Ambergris of Abundance",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182002.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.fe8e34506a6bcf30",
+      "name": "Tasty Field Nutrient Bar",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402007.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2308",
+    "name": "Dust of Alacrity",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Dust of Alacrity.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2308",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.262ecaca4419e102",
+        "name": "Seed",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180007.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.913d786e0ba8db00",
+        "name": "Virtual Particle",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181002.png",
+        "type": "loot",
+        "quantity": 5
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.e0cecaf4dbe052bb",
+        "name": "Stone of The Hunt",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182003.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.78e82977b17df6c7",
+      "name": "Dust of Alacrity",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402008.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2309",
+    "name": "Enhancement Paste: Physical",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Enhancement Paste: Physical.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2309",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.9b88f6f58167ad74",
+        "name": "Metal",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180005.png",
+        "type": "loot",
+        "quantity": 5
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.39db08568ba7d590",
+        "name": "Meteoric Alloy",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181010.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.f400c5e4cb0790b2",
+        "name": "Preservation Construction Material",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182004.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.516ead98fd028a6b",
+      "name": "Enhancement Paste: Physical",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402009.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2310",
+    "name": "Enhancement Paste: Wind",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Enhancement Paste: Wind.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2310",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.13e534b1950c42df",
+        "name": "Gaseous Liquid",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180006.png",
+        "type": "loot",
+        "quantity": 5
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.989bcdd4c2e6f99b",
+        "name": "Vortex of Wind",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181007.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.e0cecaf4dbe052bb",
+        "name": "Stone of The Hunt",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182003.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.bd0e89999da13fc9",
+      "name": "Enhancement Paste: Wind",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402010.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2311",
+    "name": "Enhancement Paste: Fire",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Enhancement Paste: Fire.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2311",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.905d73b10b5a6094",
+        "name": "Phlogiston",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180004.png",
+        "type": "loot",
+        "quantity": 5
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.c9076a5e12bd4808",
+        "name": "Feather of Flame",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181004.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.66c3088cd00bbf8c",
+        "name": "Strange Matter of Destruction",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182001.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.be8fd4c4c8353105",
+      "name": "Enhancement Paste: Fire",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402011.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2312",
+    "name": "Enhancement Paste: Ice",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Enhancement Paste: Ice.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2312",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.68f25e9d6a88b319",
+        "name": "Solid Water",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180001.png",
+        "type": "loot",
+        "quantity": 5
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.3098fed4eca298a9",
+        "name": "Core of Ice",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181005.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.dcb78df962e9b1d8",
+        "name": "Tree Bark of Erudition",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182006.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.ae815086f0c73c9c",
+      "name": "Enhancement Paste: Ice",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402012.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2313",
+    "name": "Enhancement Paste: Lightning",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Enhancement Paste: Lightning.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2313",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.9b88f6f58167ad74",
+        "name": "Metal",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180005.png",
+        "type": "loot",
+        "quantity": 5
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.1d3ea92d92866cb3",
+        "name": "Eye of Lightning",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181006.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.5d36e388b543d2d0",
+        "name": "Ambergris of Abundance",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182002.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.d83c14d6fad71ed1",
+      "name": "Enhancement Paste: Lightning",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402013.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2314",
+    "name": "Enhancement Paste: Quantum",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Enhancement Paste: Quantum.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2314",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.13e534b1950c42df",
+        "name": "Gaseous Liquid",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180006.png",
+        "type": "loot",
+        "quantity": 5
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.6dcd38241f75918d",
+        "name": "Quantum Ripples",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181008.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.6661414d6c5e0dc1",
+        "name": "Slime of Harmony",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182007.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.4e92b041c8ae2efd",
+      "name": "Enhancement Paste: Quantum",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402014.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2315",
+    "name": "Enhancement Paste: Imaginary",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Enhancement Paste: Imaginary.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2315",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.262ecaca4419e102",
+        "name": "Seed",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180007.png",
+        "type": "loot",
+        "quantity": 5
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.aa840dc8e0524bda",
+        "name": "Leaf of Imaginary",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181009.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.7af6f12d27a891e0",
+        "name": "Hard Chip of Nihility",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182005.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.e94990a38986a35f",
+      "name": "Enhancement Paste: Imaginary",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402015.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2316",
+    "name": "Vomit Inducing Agent",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Vomit Inducing Agent.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2316",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.9af89c7cda6a7d0e",
+        "name": "Trash",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408001.png",
+        "type": "loot",
+        "quantity": 8
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.4e8a52d6cb5d6ce1",
+      "name": "Vomit Inducing Agent",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402016.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2317",
+    "name": "All Good Potion",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize All Good Potion.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2317",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.9b88f6f58167ad74",
+        "name": "Metal",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180005.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.bec1a660f6e41786",
+        "name": "Basic Ingredients",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180002.png",
+        "type": "loot",
+        "quantity": 4
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.b4e123a995febbdc",
+        "name": "Protein Rice",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181003.png",
+        "type": "loot",
+        "quantity": 4
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.d7c70905b803d8b2",
+      "name": "All Good Potion",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402017.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2318",
+    "name": "Snow Plains Combo Stew",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Snow Plains Combo Stew.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2318",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.cf2116b4ed647d2e",
+        "name": "Frostweave Salmon Bread",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408409.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.48a96c3c3e93003d",
+        "name": "Stone-Roasted Meat Skewer",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408204.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.68f25e9d6a88b319",
+        "name": "Solid Water",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180001.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.979f79ca0095dbc8",
+      "name": "Snow Plains Combo Stew",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402018.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2319",
+    "name": "Prayer Machine",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Prayer Machine.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2319",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.5d36e388b543d2d0",
+        "name": "Ambergris of Abundance",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182002.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.fe9b39c9f41acc34",
+        "name": "Jade Abacus Unit",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181011.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.60576a6d55a30a18",
+        "name": "Discarded Ingenium Parts",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180008.png",
+        "type": "loot",
+        "quantity": 5
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.e120c037b019b35a",
+      "name": "Prayer Machine",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402019.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2320",
+    "name": "Five-Grain Jade Elixir",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Five-Grain Jade Elixir.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2320",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.e0cecaf4dbe052bb",
+        "name": "Stone of The Hunt",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182003.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.ae5ce47932dd6103",
+        "name": "Short Rejuvepill",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408207.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.f4ed9d86377c0918",
+        "name": "Human-Height Auspicious Crops",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180009.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.28e49f9282cdbe75",
+      "name": "Five-Grain Jade Elixir",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402020.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2321",
+    "name": "Health Detox Pill",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Health Detox Pill.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2321",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.73358034d13361e8",
+        "name": "Dragon Scale Coral",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182008.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.50e7504fb922eb55",
+        "name": "Tian Dong",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181013.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.093ed59cb7408bd8",
+        "name": "Extract of Medicinal Herbs",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181012.png",
+        "type": "loot",
+        "quantity": 3
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.5ee45b225aee4141",
+      "name": "Health Detox Pill",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402021.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2322",
+    "name": "Jade Marrow Diffusion",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Jade Marrow Diffusion.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2322",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.dcb78df962e9b1d8",
+        "name": "Tree Bark of Erudition",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182006.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.093ed59cb7408bd8",
+        "name": "Extract of Medicinal Herbs",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181012.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.9c1dacaebf3b5f65",
+        "name": "Grande Rejuvepill",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408206.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.9b28d92d277961c3",
+      "name": "Jade Marrow Diffusion",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402022.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2323",
+    "name": "Pom-Pom's Fried Fowl",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Pom-Pom's Fried Fowl.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2323",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.7276f9114ff46282",
+        "name": "Fruitwood-Grilled Shantak Moa Drumettes",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401014.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.bec1a660f6e41786",
+        "name": "Basic Ingredients",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180002.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.68f25e9d6a88b319",
+        "name": "Solid Water",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180001.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.905d73b10b5a6094",
+        "name": "Phlogiston",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180004.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.ac73db13c3c239a0",
+      "name": "Pom-Pom's Fried Fowl",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402023.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2324",
+    "name": "Children's Fragrant Orange Pills",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Children's Fragrant Orange Pills.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2324",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.ae5ce47932dd6103",
+        "name": "Short Rejuvepill",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408207.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.50e7504fb922eb55",
+        "name": "Tian Dong",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181013.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.73358034d13361e8",
+        "name": "Dragon Scale Coral",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182008.png",
+        "type": "loot",
+        "quantity": 3
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.9cd73d04989f4d1f",
+      "name": "Children's Fragrant Orange Pills",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402024.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2325",
+    "name": "Alfalfa Salad",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Alfalfa Salad.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2325",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.5f9d9786f678ecad",
+        "name": "The Sound and the Fury",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182009.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.64ff4b3a1d53430b",
+        "name": "Hunger",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181015.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.262ecaca4419e102",
+        "name": "Seed",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180007.png",
+        "type": "loot",
+        "quantity": 5
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.d026774c06b5fa53",
+      "name": "Alfalfa Salad",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402025.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2326",
+    "name": "The Moment of Betrayal",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize The Moment of Betrayal.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2326",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.5f9d9786f678ecad",
+        "name": "The Sound and the Fury",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182009.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.b458ce4f33a57820",
+        "name": "Confounding",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181014.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.ea9d31151ef1a9e6",
+        "name": "Broken Dreams",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180011.png",
+        "type": "loot",
+        "quantity": 5
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.6d3a1d9df4d1c57a",
+      "name": "The Moment of Betrayal",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402026.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2327",
+    "name": "Fleeting Happiness",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Fleeting Happiness.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2327",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.aff385ebb4793628",
+        "name": "Thermal Gel",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/183006.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.78f785d82a98fbff",
+        "name": "Old Molar",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181016.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.204566a3d8ec002e",
+        "name": "Tranquility",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180010.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.310ff5c160c72892",
+      "name": "Fleeting Happiness",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402027.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2328",
+    "name": "The Cloud of Doubt",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize The Cloud of Doubt.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2328",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.aff385ebb4793628",
+        "name": "Thermal Gel",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/183006.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.47abcf0a34781956",
+        "name": "Rusty Gear",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180012.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.ea9d31151ef1a9e6",
+        "name": "Broken Dreams",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180011.png",
+        "type": "loot",
+        "quantity": 5
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.9f8b83f0bf447fed",
+      "name": "The Cloud of Doubt",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/140396.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2329",
+    "name": "Astral Express Game Disk",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Astral Express Game Disk.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2329",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.6661414d6c5e0dc1",
+        "name": "Slime of Harmony",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182007.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.8f3e5c0d401b6dce",
+        "name": "Mechanical Parts",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181001.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.39db08568ba7d590",
+        "name": "Meteoric Alloy",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181010.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.5e6d0dc4c0d9b171",
+      "name": "Astral Express Game Disk",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402029.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2330",
+    "name": "Spine-Marrow Sparking Blade",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Spine-Marrow Sparking Blade.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2330",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.f687a152659697f1",
+        "name": "Flying Sword Model",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408209.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.cb6de3a32f7f70ad",
+        "name": "Sparkle's Unlimited Edition Collectible Figure",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408628.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.850c251a0883650c",
+      "name": "Spine-Marrow Sparking Blade",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402030.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2331",
+    "name": "Flaming Chili Sauce",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Flaming Chili Sauce.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2331",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.5d36e388b543d2d0",
+        "name": "Ambergris of Abundance",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182002.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.c9076a5e12bd4808",
+        "name": "Feather of Flame",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181004.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.bec1a660f6e41786",
+        "name": "Basic Ingredients",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180002.png",
+        "type": "loot",
+        "quantity": 4
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.4927c359d7778bfb",
+      "name": "Flaming Chili Sauce",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402031.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2332",
+    "name": "Dromas Steak",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Dromas Steak.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2332",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.5d36e388b543d2d0",
+        "name": "Ambergris of Abundance",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182002.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.bec1a660f6e41786",
+        "name": "Basic Ingredients",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180002.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.f7ecd6c183460459",
+        "name": "Distinctive Tattered Feather",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180013.png",
+        "type": "loot",
+        "quantity": 5
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.ba9ca2e219f34964",
+      "name": "Dromas Steak",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402032.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2333",
+    "name": "Kremnos Shield",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Kremnos Shield.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2333",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.84e1d4d35ffd0d86",
+        "name": "Silk Spindle",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182011.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.f400c5e4cb0790b2",
+        "name": "Preservation Construction Material",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182004.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.63cd2fc71f462442",
+        "name": "Bough of Thought",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181017.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.51055ee06b15a669",
+      "name": "Kremnos Shield",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402033.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2334",
+    "name": "Bestial Remnant",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Bestial Remnant.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2334",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.84e1d4d35ffd0d86",
+        "name": "Silk Spindle",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182011.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.63cd2fc71f462442",
+        "name": "Bough of Thought",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181017.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.8f3e5c0d401b6dce",
+        "name": "Mechanical Parts",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181001.png",
+        "type": "loot",
+        "quantity": 2
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.169de3f22c3eb19e",
+      "name": "Bestial Remnant",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402034.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2335",
+    "name": "Abundance of Luck",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Abundance of Luck.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2335",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.5d36e388b543d2d0",
+        "name": "Ambergris of Abundance",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182002.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.63cd2fc71f462442",
+        "name": "Bough of Thought",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181017.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.68f25e9d6a88b319",
+        "name": "Solid Water",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180001.png",
+        "type": "loot",
+        "quantity": 3
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.874310ad35858209",
+      "name": "Abundance of Luck",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402035.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2336",
+    "name": "Grudge Notebook",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Grudge Notebook.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2336",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.5d36e388b543d2d0",
+        "name": "Ambergris of Abundance",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182002.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.d69af4b5430575e7",
+        "name": "Cold Joke",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408447.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.aa840dc8e0524bda",
+        "name": "Leaf of Imaginary",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181009.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.ccf7cae6fcc08dde",
+      "name": "Grudge Notebook",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402036.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2337",
+    "name": "Vibrant Zest-Core",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Vibrant Zest-Core.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2337",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.989bcdd4c2e6f99b",
+        "name": "Vortex of Wind",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181007.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.204566a3d8ec002e",
+        "name": "Tranquility",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180010.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.68f25e9d6a88b319",
+        "name": "Solid Water",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180001.png",
+        "type": "loot",
+        "quantity": 4
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.05da64f42ab6092b",
+      "name": "Vibrant Zest-Core",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402037.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2338",
+    "name": "Mung Bean Soda Sukiyaki",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Mung Bean Soda Sukiyaki.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2338",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.b9720ad39a32790c",
+        "name": "Izumo Miso",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408608.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.9601da329b4dc7b6",
+        "name": "Mung Bean Soda",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408405.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.6e8717a50730ec79",
+      "name": "Mung Bean Soda Sukiyaki",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402038.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2401",
+    "name": "Disposable Kinetic Arm",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Disposable Kinetic Arm.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2401",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.905d73b10b5a6094",
+        "name": "Phlogiston",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180004.png",
+        "type": "loot",
+        "quantity": 4
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.8f3e5c0d401b6dce",
+        "name": "Mechanical Parts",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181001.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.66c3088cd00bbf8c",
+        "name": "Strange Matter of Destruction",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182001.png",
+        "type": "loot",
+        "quantity": 4
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.67686be3aee82101",
+        "name": "Phase Flame",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/183002.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.ff62df684a1a553b",
+      "name": "Disposable Kinetic Arm",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/403001.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2402",
+    "name": "Ruby Potion",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Ruby Potion.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2402",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.913d786e0ba8db00",
+        "name": "Virtual Particle",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181002.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.e0cecaf4dbe052bb",
+        "name": "Stone of The Hunt",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182003.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.7af6f12d27a891e0",
+        "name": "Hard Chip of Nihility",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182005.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.d041b81d72ae7bb5",
+        "name": "Interdimensional Leaf",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/183001.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.e075c3187e545519",
+      "name": "Ruby Potion",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/403002.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2403",
+    "name": "Disposable Kinetic Cannon",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Disposable Kinetic Cannon.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2403",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.905d73b10b5a6094",
+        "name": "Phlogiston",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180004.png",
+        "type": "loot",
+        "quantity": 4
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.c9076a5e12bd4808",
+        "name": "Feather of Flame",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181004.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.66c3088cd00bbf8c",
+        "name": "Strange Matter of Destruction",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182001.png",
+        "type": "loot",
+        "quantity": 4
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.67686be3aee82101",
+        "name": "Phase Flame",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/183002.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.473bedc9ceb7f682",
+      "name": "Disposable Kinetic Cannon",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/403003.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2404",
+    "name": "Stone From the Everwinter Monument",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Stone From the Everwinter Monument.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2404",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.3098fed4eca298a9",
+        "name": "Core of Ice",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181005.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.f400c5e4cb0790b2",
+        "name": "Preservation Construction Material",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182004.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.7af6f12d27a891e0",
+        "name": "Hard Chip of Nihility",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182005.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.260e3b3a70b794b6",
+        "name": "Tear Crystal of Glorious Death",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/183003.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.a378fcfdca656087",
+      "name": "Stone From the Everwinter Monument",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/403004.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2405",
+    "name": "Topological Acceleration Band",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Topological Acceleration Band.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2405",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.13e534b1950c42df",
+        "name": "Gaseous Liquid",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180006.png",
+        "type": "loot",
+        "quantity": 6
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.e0cecaf4dbe052bb",
+        "name": "Stone of The Hunt",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182003.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.6661414d6c5e0dc1",
+        "name": "Slime of Harmony",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182007.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.13b2cdaac6ef3c1e",
+        "name": "Mythus Knots",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/183004.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.937fafd232c2eb85",
+      "name": "Topological Acceleration Band",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/403005.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2406",
+    "name": "Longevity Pill of Cruelty",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Longevity Pill of Cruelty.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2406",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.262ecaca4419e102",
+        "name": "Seed",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180007.png",
+        "type": "loot",
+        "quantity": 5
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.5d36e388b543d2d0",
+        "name": "Ambergris of Abundance",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182002.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.7af6f12d27a891e0",
+        "name": "Hard Chip of Nihility",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182005.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.f400c5e4cb0790b2",
+        "name": "Preservation Construction Material",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182004.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.d041b81d72ae7bb5",
+        "name": "Interdimensional Leaf",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/183001.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.59ebc8b5d4531863",
+      "name": "Longevity Pill of Cruelty",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/403006.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2407",
+    "name": "Sugarball-Fried Viscorpi",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Sugarball-Fried Viscorpi.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2407",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.ae815086f0c73c9c",
+        "name": "Enhancement Paste: Ice",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402012.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.bec1a660f6e41786",
+        "name": "Basic Ingredients",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180002.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.68f25e9d6a88b319",
+        "name": "Solid Water",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180001.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.7989fb9b3e0d19ee",
+      "name": "Sugarball-Fried Viscorpi",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/403007.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2408",
+    "name": "Automatic Wooden Dummy",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Automatic Wooden Dummy.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2408",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.d041b81d72ae7bb5",
+        "name": "Interdimensional Leaf",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/183001.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.6661414d6c5e0dc1",
+        "name": "Slime of Harmony",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182007.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.fe9b39c9f41acc34",
+        "name": "Jade Abacus Unit",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181011.png",
+        "type": "loot",
+        "quantity": 4
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.60576a6d55a30a18",
+        "name": "Discarded Ingenium Parts",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180008.png",
+        "type": "loot",
+        "quantity": 5
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.4d543d05ccba9aa7",
+      "name": "Automatic Wooden Dummy",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/403008.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2409",
+    "name": "The Moment Before Death",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize The Moment Before Death.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2409",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.e72da9463d00c525",
+        "name": "Weary",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/183005.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.b458ce4f33a57820",
+        "name": "Confounding",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181014.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.78f785d82a98fbff",
+        "name": "Old Molar",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181016.png",
+        "type": "loot",
+        "quantity": 4
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.204566a3d8ec002e",
+        "name": "Tranquility",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180010.png",
+        "type": "loot",
+        "quantity": 5
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.5184749ead366373",
+      "name": "The Moment Before Death",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/403009.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2410",
+    "name": "Bustling Ambience",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Bustling Ambience.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2410",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.898d888854f85994",
+        "name": "Mechanical Cube",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182010.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.5f9d9786f678ecad",
+        "name": "The Sound and the Fury",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182009.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.47abcf0a34781956",
+        "name": "Rusty Gear",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180012.png",
+        "type": "loot",
+        "quantity": 5
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.ea9d31151ef1a9e6",
+        "name": "Broken Dreams",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180011.png",
+        "type": "loot",
+        "quantity": 4
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.35490301f272667e",
+      "name": "Bustling Ambience",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/403010.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2411",
+    "name": "Scare Box",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Scare Box.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2411",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.898d888854f85994",
+        "name": "Mechanical Cube",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182010.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.aff385ebb4793628",
+        "name": "Thermal Gel",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/183006.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.47abcf0a34781956",
+        "name": "Rusty Gear",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180012.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.ea9d31151ef1a9e6",
+        "name": "Broken Dreams",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180011.png",
+        "type": "loot",
+        "quantity": 4
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.34d02223f04ce124",
+      "name": "Scare Box",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/403011.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2412",
+    "name": "Take Your Life 3000",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Take Your Life 3000.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2412",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.f687a152659697f1",
+        "name": "Flying Sword Model",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408209.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.ce733743bf037cc2",
+        "name": "Tranquil Duster",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408413.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.7995537d802f7fea",
+        "name": "Self-Sufficer",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401016.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.28afd188f3286eaf",
+        "name": "Hypnotic Hammer",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408607.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.4d543d05ccba9aa7",
+        "name": "Automatic Wooden Dummy",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/403008.png",
+        "type": "loot",
+        "quantity": 1
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.47ce7315c1276474",
+      "name": "Take Your Life 3000",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/403012.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2413",
+    "name": "Veil Bundle",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Veil Bundle.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2413",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.be3bae237c857cdd",
+        "name": "Fresh Seed of Dawn",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/183007.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.84e1d4d35ffd0d86",
+        "name": "Silk Spindle",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182011.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.63cd2fc71f462442",
+        "name": "Bough of Thought",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181017.png",
+        "type": "loot",
+        "quantity": 2
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.f7ecd6c183460459",
+        "name": "Distinctive Tattered Feather",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180013.png",
+        "type": "loot",
+        "quantity": 3
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.1dd2e726616c5d00",
+      "name": "Veil Bundle",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/403013.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2414",
+    "name": "Monarch's Maneuver",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Monarch's Maneuver.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2414",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.be3bae237c857cdd",
+        "name": "Fresh Seed of Dawn",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/183007.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.6661414d6c5e0dc1",
+        "name": "Slime of Harmony",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182007.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.989bcdd4c2e6f99b",
+        "name": "Vortex of Wind",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181007.png",
+        "type": "loot",
+        "quantity": 4
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.9b88f6f58167ad74",
+        "name": "Metal",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180005.png",
+        "type": "loot",
+        "quantity": 3
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.7595660612d9e56d",
+      "name": "Monarch's Maneuver",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/403014.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2415",
+    "name": "Boneflute of Fish-Calling",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Boneflute of Fish-Calling.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2415",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.be3bae237c857cdd",
+        "name": "Fresh Seed of Dawn",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/183007.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.7af6f12d27a891e0",
+        "name": "Hard Chip of Nihility",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182005.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.39db08568ba7d590",
+        "name": "Meteoric Alloy",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181010.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.68f25e9d6a88b319",
+        "name": "Solid Water",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180001.png",
+        "type": "loot",
+        "quantity": 5
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.2d7c448d82e30e17",
+      "name": "Boneflute of Fish-Calling",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/403015.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2416",
+    "name": "Steel Coil",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Steel Coil.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2416",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.260e3b3a70b794b6",
+        "name": "Tear Crystal of Glorious Death",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/183003.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.7af6f12d27a891e0",
+        "name": "Hard Chip of Nihility",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182005.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.d69af4b5430575e7",
+        "name": "Cold Joke",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408447.png",
+        "type": "loot",
+        "quantity": 1
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.39db08568ba7d590",
+        "name": "Meteoric Alloy",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181010.png",
+        "type": "loot",
+        "quantity": 3
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.4ec68301b252ecee",
+      "name": "Steel Coil",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/403016.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  },
+  {
+    "id": "hsr-2417",
+    "name": "Amber Lord Jumps Over the Wall",
+    "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+    "description": "Synthesize Amber Lord Jumps Over the Wall.",
+    "classificationId": "consumables",
+    "hsrRecipeId": "2417",
+    "ingredients": [
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.f400c5e4cb0790b2",
+        "name": "Preservation Construction Material",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182004.png",
+        "type": "loot",
+        "quantity": 4
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.b4e123a995febbdc",
+        "name": "Protein Rice",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181003.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.68f25e9d6a88b319",
+        "name": "Solid Water",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180001.png",
+        "type": "loot",
+        "quantity": 3
+      },
+      {
+        "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.bec1a660f6e41786",
+        "name": "Basic Ingredients",
+        "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180002.png",
+        "type": "loot",
+        "quantity": 3
+      }
+    ],
+    "output": {
+      "uuid": "Compendium.telys-star-rail-ultimates.star-rail-materials.Item.1c616294c5a5b15e",
+      "name": "Amber Lord Jumps Over the Wall",
+      "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/403017.png",
+      "type": "loot",
+      "quantity": 1
+    }
+  }
+]

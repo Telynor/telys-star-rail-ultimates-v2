@@ -1,0 +1,50 @@
+{
+  "_id": "bbbf10b806fcfd62",
+  "name": "Mr. Herring's Lemon Tart",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401023.png",
+  "system": {
+    "description": {
+      "value": "<p>A sweet and tangy dessert made of lemon juice and red caviar.<br>The original recipe included a herring, which emitted a pungent odor disliked by the public. The negative feedback resulted in the current version containing only red caviar.</p><p>\"They never said it was a canned herring!\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Affected creatures gain +1 AC and +1 to Constitution saves. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Increase DEF of all allies by 25% in the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "401023",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Increase DEF of all allies by 25% in the next battle.",
+      "gmDescription": "Increase DEF of all allies by 25% in the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Affected creatures gain +1 AC and +1 to Constitution saves. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

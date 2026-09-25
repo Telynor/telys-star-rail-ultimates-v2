@@ -1,0 +1,50 @@
+{
+  "_id": "a378fcfdca656087",
+  "name": "Stone From the Everwinter Monument",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/403004.png",
+  "system": {
+    "description": {
+      "value": "<p>The Mourning Actors came to Jarilo-VI a long time ago. They were not aware of the Architects. The only sight they witnessed was the trail of destruction left by the Legion. They rowed their gondolas quietly above the planet and left before the Legion could notice them, leaving behind a silent eulogy.<br>Time flew by, and the Belobog Architects found a type of beautiful stone that glimmered with bright colors. They mixed the stone with Geomarrow and built a monument, which some say still stands at the heart of Qlipoth Fort in the city of Belobog.</p><p>\"Even if we fail, this monument will stand for all eternity. Those who come after will find it and know that we once existed.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Affected creatures have advantage on saves against paralysis, restraint, and cold effects. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, increases all allies' chance to resist Frozen by 50% for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "403004",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, increases all allies' chance to resist Frozen by 50% for the next battle.",
+      "gmDescription": "Upon use, increases all allies' chance to resist Frozen by 50% for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Affected creatures have advantage on saves against paralysis, restraint, and cold effects. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

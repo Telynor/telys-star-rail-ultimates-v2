@@ -1,0 +1,50 @@
+{
+  "_id": "ccf7cae6fcc08dde",
+  "name": "Grudge Notebook",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402036.png",
+  "system": {
+    "description": {
+      "value": "<p>A highly practical notebook. It automatically captures \"who just ticked off the user\" and records the details on its inner pages.</p><p>\"March 7th ate the last ice cream, grudge noted. March 7th overslept and missed our gaming session, grudge noted. March 7th said 'You really do look like those furbos in your family hahaha,' grudge noted. March 7th insisted on seeing my grudge notebook and said 'Why are you holding grudges over every little thing hahaha,' grudge noted. Dan Heng clearly couldn't keep a straight face after hearing all this, grudge noted.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. The first time an affected creature falls below half its hit-point maximum, it regains twice its proficiency bonus plus its level in hit points. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, allows all ally characters to restore HP equal to 50% of their Max HP when their HP percentage is lowered to below 50% for the first time in the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "402036",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, allows all ally characters to restore HP equal to 50% of their Max HP when their HP percentage is lowered to below 50% for the first time in the next battle.",
+      "gmDescription": "Upon use, allows all ally characters to restore HP equal to 50% of their Max HP when their HP percentage is lowered to below 50% for the first time in the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. The first time an affected creature falls below half its hit-point maximum, it regains twice its proficiency bonus plus its level in hit points. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

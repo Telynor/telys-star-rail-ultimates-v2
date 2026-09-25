@@ -1,0 +1,50 @@
+{
+  "_id": "8021cf4616588cd3",
+  "name": "Antimatter Field Generator",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402004.png",
+  "system": {
+    "description": {
+      "value": "<p>Despite being blessed by Nanook the Aeon and having the know-how of making a multitude of heavy weaponry, some members of the Antimatter Legion still prefer primitive non-firearms. The Voidrangers implant Antimatter Field Generators into their arms to form formidable Field Blades.</p><p>\"Like a hot knife through butter.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. For each affected creature, Strength increases by 1, maximum 20, and Crit Ratio increases by 1. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, increases ATK of all allies by 260 and CRIT Rate by 8% for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "402004",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, increases ATK of all allies by 260 and CRIT Rate by 8% for the next battle.",
+      "gmDescription": "Upon use, increases ATK of all allies by 260 and CRIT Rate by 8% for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. For each affected creature, Strength increases by 1, maximum 20, and Crit Ratio increases by 1. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

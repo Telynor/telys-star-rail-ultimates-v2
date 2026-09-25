@@ -1,0 +1,50 @@
+{
+  "_id": "ea9d31151ef1a9e6",
+  "name": "Broken Dreams",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180011.png",
+  "system": {
+    "description": {
+      "value": "<p>Shards like this can be found everywhere throughout Penacony.<br>They once belonged to broken hearts.</p><p>\"In the realm of black dreams I sleep, where distinctions of right or wrong are buried deep.\"</p><hr><h3>Crafting Material</h3><p>This is a crafting reagent used by Star Rail synthesis recipes.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Tier 1 Synthesis Material</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "common",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "180011",
+      "contentKind": "material",
+      "hasUsableEffect": false,
+      "originalHsrEffect": "Tier 1 Synthesis Material",
+      "gmDescription": "Tier 1 Synthesis Material",
+      "dndEffect": "This is a crafting reagent used by Star Rail synthesis recipes."
+    }
+  }
+}

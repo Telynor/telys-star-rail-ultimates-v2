@@ -1,0 +1,50 @@
+{
+  "_id": "4d543d05ccba9aa7",
+  "name": "Automatic Wooden Dummy",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/403008.png",
+  "system": {
+    "description": {
+      "value": "<p>The mechanized wooden training dummy used to teach boxing techniques at the Tiger Boxing Gym. It is said that due to branch closures and the former owner absconding with the funds, angry students who held membership cards resorted to selling it to repay debts. It underwent some modifications, and during sparring sessions, this wooden dummy strikes with extreme force, causing countless injuries.</p><p>\"My leg! I can't feel my leg!\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. On its turn, an affected creature must Attack or cast a damaging cantrip if able; its first damage roll that turn gains its proficiency bonus. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, in the next battle, automatically enters auto-battle that cannot be turned off. If allies successfully enter auto-battle, the DMG dealt by all allies increases by 45%.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "403008",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, in the next battle, automatically enters auto-battle that cannot be turned off. If allies successfully enter auto-battle, the DMG dealt by all allies increases by 45%.",
+      "gmDescription": "Upon use, in the next battle, automatically enters auto-battle that cannot be turned off. If allies successfully enter auto-battle, the DMG dealt by all allies increases by 45%.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. On its turn, an affected creature must Attack or cast a damaging cantrip if able; its first damage roll that turn gains its proficiency bonus. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

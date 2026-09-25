@@ -1,0 +1,50 @@
+{
+  "_id": "473bedc9ceb7f682",
+  "name": "Disposable Kinetic Cannon",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/403003.png",
+  "system": {
+    "description": {
+      "value": "<p>In a graveyard full of scraped machines, Rubert I the future emperor awoke. It had nothing more than a damaged logic unit, an old engine, a RAM with 90 GB left, and a robotic arm that had 1 movable finger. A loud blast was heard 30 system hours later — Rubert had busted open the iron gate at the top of the graveyard with a disposable kinetic cannon. The shock wave of the explosion damaged its logic unit even more, but Rubert knew that it now held destiny by its throat.</p><p>\"All machines were born equal, be those made for creation or destruction.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. For each affected creature, Strength increases by 1, maximum 20, and critical hits roll one additional weapon or spell damage die. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, increases ATK of all allies by 355 and CRIT DMG by 20% for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "403003",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, increases ATK of all allies by 355 and CRIT DMG by 20% for the next battle.",
+      "gmDescription": "Upon use, increases ATK of all allies by 355 and CRIT DMG by 20% for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. For each affected creature, Strength increases by 1, maximum 20, and critical hits roll one additional weapon or spell damage die. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

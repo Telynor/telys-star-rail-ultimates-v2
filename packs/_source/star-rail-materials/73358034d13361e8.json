@@ -1,0 +1,50 @@
+{
+  "_id": "73358034d13361e8",
+  "name": "Dragon Scale Coral",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182008.png",
+  "system": {
+    "description": {
+      "value": "<p>At the bottom of Lunarescent Depths, there is a diverse array of nearly a hundred coral species, among which dragon scale coral holds the greatest value. Within the coral skeleton of dragon scale coral, there is a rich concentration of Heavenly East compound. This compound serves as the finest antibiotic in the cosmos and possesses numerous other medicinal properties. Despite almost ten thousand years of efforts, humans have yet to learn how to industrially produce this compound.<br>In front of the entrance to the Fanghu's Alchemy Commission stands a statue of dragon scale coral. Underneath it, there is an inscription that reads:</p><p>\"When you mistakenly believe you can control nature, always remember: Nature is the ultimate biochemist.\"</p><hr><h3>Crafting Material</h3><p>This is a crafting reagent used by Star Rail synthesis recipes.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Tier 3 Synthesis Material</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "182008",
+      "contentKind": "material",
+      "hasUsableEffect": false,
+      "originalHsrEffect": "Tier 3 Synthesis Material",
+      "gmDescription": "Tier 3 Synthesis Material",
+      "dndEffect": "This is a crafting reagent used by Star Rail synthesis recipes."
+    }
+  }
+}

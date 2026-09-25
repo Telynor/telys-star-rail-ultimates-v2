@@ -1,0 +1,50 @@
+{
+  "_id": "4927c359d7778bfb",
+  "name": "Flaming Chili Sauce",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402031.png",
+  "system": {
+    "description": {
+      "value": "<p>A chili sauce crafted by a renowned chefhealer, known for its ability to warm the stomach even in the harshest cold. Its fiery flavor is so irresistible, it's to die for — figuratively, of course. <br>However, the creator cheekily claims that its most effective \"medical benefit\" is curing those who boast about being \"immune to spiciness.\"</p><p>\"Hashafasasha... Not spicy at all! I am serious! This ain't spicy at all!\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Speed increases by 5 feet. Its Strength also increases by 1, maximum 20. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, increases all allies' SPD by 8% and their ATK by 15% for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "402031",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, increases all allies' SPD by 8% and their ATK by 15% for the next battle.",
+      "gmDescription": "Upon use, increases all allies' SPD by 8% and their ATK by 15% for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Speed increases by 5 feet. Its Strength also increases by 1, maximum 20. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

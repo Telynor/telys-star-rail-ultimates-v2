@@ -1,0 +1,46 @@
+{
+  "_id": "ad2ce8ca3617d09a",
+  "name": "Adventure Log",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/212.png",
+  "system": {
+    "description": {
+      "value": "<p>A neatly organized collection of educational adventure notes.</p><p><strong>Use:</strong> Provides 5,000 Character EXP.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "212",
+      "sourceTrack": "Nameless Gift / Nameless Honor"
+    }
+  }
+}

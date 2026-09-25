@@ -1,0 +1,50 @@
+{
+  "_id": "1c616294c5a5b15e",
+  "name": "Amber Lord Jumps Over the Wall",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/403017.png",
+  "system": {
+    "description": {
+      "value": "<p>Mingxi has developed dozens of \"creative Xianzhou dishes\" for the Upside-Down Restaurant, and \"Amber Lord Jumps Over the Wall\" has been the most successful of them all. It has already become the go-to dish representing \"high-end dining\" in Astropolis. Given enough time, it might just come to define the \"Astropolis cuisine\" entirely.</p><p>\"Hey boss, why is it called 'Amber Lord Jumps Over the Wall' and not 'Amber Lord Builds the Wall'?\"<br>\"'Builds the Wall'? I'm afraid you'd break a tooth trying to chew through that.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. For each affected creature, Strength increases by 1, maximum 20, and critical hits roll one additional weapon or spell damage die. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, increases ATK of all allies by 24% and CRIT DMG by 24% for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "403017",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, increases ATK of all allies by 24% and CRIT DMG by 24% for the next battle.",
+      "gmDescription": "Upon use, increases ATK of all allies by 24% and CRIT DMG by 24% for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. For each affected creature, Strength increases by 1, maximum 20, and critical hits roll one additional weapon or spell damage die. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

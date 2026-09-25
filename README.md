@@ -32,7 +32,9 @@ A Foundry Virtual Tabletop v14 module for D&D 5e that recreates Honkai: Star Rai
 
 ## Features
 
-- A reusable **Star Rail Materials** Item compendium containing the unique loot rewards from Nameless Gift and Nameless Honor, with original icons and clean descriptions.
+- A reusable **Star Rail Materials** Item compendium containing Nameless Honor materials plus 95 HSR synthesis outputs, every required reagent, and a green unlock card for every bundled recipe.
+- Original HSR artwork for crafted items and reagents, with the original HSR effect retained in a GM-only description and a restrained D&D 5e adaptation shown to players.
+- Automatic, non-destructive installation of bundled HSR recipes into Party Crafting. Existing GM-customized recipes are preserved, and every card unlocks its corresponding recipe through the normal party-wide redemption rules.
 - A movable and resizable circular Ultimate orb for every configured player character.
 - Bottom-to-top animated Energy fill.
 - Element-defined charging and fully charged colors inherited by every assigned character.
@@ -111,7 +113,7 @@ When publishing a new version, change `version` and the release filename in `mod
 
 ## Star Rail Materials compendium maintenance
 
-The editable Item sources live in `packs/_source/star-rail-materials`. After changing the material definitions in `tools/build-star-rail-materials.mjs`, run `npm install` once and then `npm run build:materials` to rebuild the Foundry LevelDB pack. HSR item IDs are stored in module flags so future additions can be deduplicated reliably.
+The editable Item sources live in `packs/_source/star-rail-materials`; the normalized recipe source is `data/hsr-recipe-catalog.json`. After changing either the catalog or the conversion rules in `tools/build-star-rail-materials.mjs`, run `npm install` once and then `npm run build:materials` to rebuild the Foundry LevelDB pack and `data/star-rail-recipes.json`. HSR item and recipe IDs are stored in module flags so future additions can be deduplicated reliably. Increment `HSR_RECIPE_CATALOG_VERSION` when shipping catalog changes so existing worlds receive only newly bundled recipes without overwriting GM edits.
 - Cinematic Ultimate title cards with configurable title/subtitle placement, custom TTF/OTF/WOFF fonts, geometric accents, and live preview
 - Title-card squares and underline automatically inherit the assigned Element's charging color
 - Editable Energy Regen ability card beside the six standard character abilities; all automatic Energy gains use its D&amp;D-style modifier

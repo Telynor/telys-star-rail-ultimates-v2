@@ -1,0 +1,50 @@
+{
+  "_id": "5ee45b225aee4141",
+  "name": "Health Detox Pill",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402021.png",
+  "system": {
+    "description": {
+      "value": "<p>An all-purpose antidote that can neutralize the majority of toxic substances entering the human body. The manufacturer is obligated to include a warning on the packaging:</p><p>\"Do not consume poison just to test this pill's effectiveness!\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Affected creatures have advantage on saves against harmful effects and may reroll one failed save during the effect. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, all allies are immune to debuffs for 3 turns for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "402021",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, all allies are immune to debuffs for 3 turns for the next battle.",
+      "gmDescription": "Upon use, all allies are immune to debuffs for 3 turns for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Affected creatures have advantage on saves against harmful effects and may reroll one failed save during the effect. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

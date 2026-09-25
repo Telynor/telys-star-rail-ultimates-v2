@@ -1,0 +1,50 @@
+{
+  "_id": "f987ebca8eb0e6bd",
+  "name": "Recipe: Deep-fried Honey Curd",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+  "system": {
+    "description": {
+      "value": "<p>Redeem this green recipe slip in Party Crafting to unlock <strong>Deep-fried Honey Curd</strong> for the party and their owners' characters.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "recipe-2235",
+      "contentKind": "recipeCard",
+      "recipeCard": {
+        "recipeId": "hsr-2235"
+      },
+      "outputHsrItemId": "401035"
+    }
+  }
+}

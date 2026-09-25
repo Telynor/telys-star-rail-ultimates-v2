@@ -1,0 +1,50 @@
+{
+  "_id": "28afd188f3286eaf",
+  "name": "Hypnotic Hammer",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408607.png",
+  "system": {
+    "description": {
+      "value": "<p>A hypnotic medicine from the outworld civilization of Orch Republic that sells extremely well over there. All it takes is a single slam of the hammer for the deepest slumber to arrive.</p><p>\"It's up to the product to make you fall asleep, but it's up to an individual's luck to wake back up again.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Once per round each affected creature reduces damage taken by its proficiency bonus. When combat begins, roll a d10 for each creature; on a 1, it is incapacitated until the end of its first turn. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, decreases DMG taken by all allies by 18% for the next battle. When entering battle, there is a 10% base chance to be afflicted with Strong Reverberation, lasting for 1 turn.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "408607",
+      "contentKind": "material",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, decreases DMG taken by all allies by 18% for the next battle. When entering battle, there is a 10% base chance to be afflicted with Strong Reverberation, lasting for 1 turn.",
+      "gmDescription": "Upon use, decreases DMG taken by all allies by 18% for the next battle. When entering battle, there is a 10% base chance to be afflicted with Strong Reverberation, lasting for 1 turn.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Once per round each affected creature reduces damage taken by its proficiency bonus. When combat begins, roll a d10 for each creature; on a 1, it is incapacitated until the end of its first turn. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

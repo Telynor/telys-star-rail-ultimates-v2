@@ -1,0 +1,50 @@
+{
+  "_id": "59ebc8b5d4531863",
+  "name": "Longevity Pill of Cruelty",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/403006.png",
+  "system": {
+    "description": {
+      "value": "<p>A medicine exclusive to the Xianzhou Yaoqing, said to have the effect of improving overall fitness and rendering those who take it immune to all diseases for a short period of time.<br>On the Yaoqing, legend holds that a healer who went by the surname of Yu fell in love with a foxian trader girl. But the Vidyadhara could live for a thousand years, much longer than the foxians. Yu searched for ways to release his lover from the grip of death. He fell for the trickery of the Disciples of Sanctus Medicus and asked his lover to take the longevity medicine of Abundance without telling her what it was. The foxian girl turned into an abomination that no longer loved him before being slain by the Cloud Knights. To prevent Yu, who was overwhelmed by grief, from becoming mara-struck, the Alchemy Commission ordered him to take the Longevity Pill of Cruelty that deprived him of love and desire until his demise.<br>The legend has another version, in which Yu was not of the Vidyadhara but a mere mortal, and the foxian girl was a spy planted by the Disciples to infiltrate the Alchemy Commission. This version is not as popular, for it turns a romance story into a political power struggle.</p><p>\"Those who love and live deeply fall into mara, while those who sever desire and passions can live for a millennium. Ask yourself, then, why fear mara, and why take joy in a long life?\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. Each affected creature gains temporary hit points equal to twice its proficiency bonus plus its level and gains +1 to all saving throws. The benefit applies during the next 3 combats and ends after 1 minute in each combat. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, increases Max HP of all allies by 20% and Effect RES by 6% in the next 3 battles.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "403006",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, increases Max HP of all allies by 20% and Effect RES by 6% in the next 3 battles.",
+      "gmDescription": "Upon use, increases Max HP of all allies by 20% and Effect RES by 6% in the next 3 battles.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. Each affected creature gains temporary hit points equal to twice its proficiency bonus plus its level and gains +1 to all saving throws. The benefit applies during the next 3 combats and ends after 1 minute in each combat. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

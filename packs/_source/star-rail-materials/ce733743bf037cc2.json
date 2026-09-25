@@ -1,0 +1,50 @@
+{
+  "_id": "ce733743bf037cc2",
+  "name": "Tranquil Duster",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408413.png",
+  "system": {
+    "description": {
+      "value": "<p>A wooden duster. Before the activation of important ingenia such as the Matrix of Prescience, craftsmen of the Artisanship Commission will always invite the most qualified masters to perform a warding ceremony with their golden rods, which are dipped in purified water and scattered around the place. It is said that these kinds of rituals decrease ingenia malfunctions by 62.33%.</p><p>\"Believe in science! the only purpose this serves is psychological comfort...\"<br>\"No, you're not getting it! This is seriously different!\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, a creature can consume or administer this item. The target regains 30% maximum Energy.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, the target ally immediately regenerates 30% of their Energy.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "408413",
+      "contentKind": "material",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, the target ally immediately regenerates 30% of their Energy.",
+      "gmDescription": "Upon use, the target ally immediately regenerates 30% of their Energy.",
+      "dndEffect": "As an action, a creature can consume or administer this item. The target regains 30% maximum Energy."
+    }
+  }
+}

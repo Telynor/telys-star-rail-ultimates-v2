@@ -1,0 +1,50 @@
+{
+  "_id": "193101b38bab672c",
+  "name": "Comfort Food",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/400004.png",
+  "system": {
+    "description": {
+      "value": "<p>Simple food that lacks character. But give credit where credit is due, they do make you feel stuffed.</p><p>\"Remember that hunger is still a real problem for many people around the world.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, a creature can consume or administer this item. The target regains 2d4 + 2 hit points.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, immediately heals a single ally by 15% of their Max HP plus 150 extra HP.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "common",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "400004",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, immediately heals a single ally by 15% of their Max HP plus 150 extra HP.",
+      "gmDescription": "Upon use, immediately heals a single ally by 15% of their Max HP plus 150 extra HP.",
+      "dndEffect": "As an action, a creature can consume or administer this item. The target regains 2d4 + 2 hit points."
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "_id": "975ac6c20160d589",
+  "name": "Lost Crystal",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/233.png",
+  "system": {
+    "description": {
+      "value": "<p>A Fragmentum dust crystal densified after being reduced to its original form.</p><p><strong>Use:</strong> Provides 5,000 Relic EXP.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "233",
+      "sourceTrack": "Nameless Gift / Nameless Honor"
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "_id": "7989fb9b3e0d19ee",
+  "name": "Sugarball-Fried Viscorpi",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/403007.png",
+  "system": {
+    "description": {
+      "value": "<p>Cooked using the flesh of extraterrestrial monsters defeated by Yancui, the chef of Spices Supreme. Viscorpi are a decaying alien civilization that thrives on parasitizing the orifices of primates, such as the ear canals and nasal cavities, to induce hallucinations.</p><p>\"Legend has it that in ancient times, our ancestors fought a long and arduous battle against the viscorpi... Eventually, they went extinct. How did they go extinct? Well, it wasn't because we ate them all, that's for sure.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Once per turn when an affected creature deals cold damage, it deals an additional 1d4 cold damage. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, increases Ice DMG of all allies by 35% for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "403007",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, increases Ice DMG of all allies by 35% for the next battle.",
+      "gmDescription": "Upon use, increases Ice DMG of all allies by 35% for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Once per turn when an affected creature deals cold damage, it deals an additional 1d4 cold damage. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

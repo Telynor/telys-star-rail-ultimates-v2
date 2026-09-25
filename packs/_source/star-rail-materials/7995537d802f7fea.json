@@ -1,0 +1,50 @@
+{
+  "_id": "7995537d802f7fea",
+  "name": "Self-Sufficer",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401016.png",
+  "system": {
+    "description": {
+      "value": "<p>Item seized from the remnants of the Disciples of Sanctus Medicus, modifier unknown. After extending it to the hard-to-reach places on one's back, the branches will begin scratching automatically with moderate force and accurate acupuncture point recognition.</p><p>\"This familiar feeling reminds me of every time in the past when my back would itch, and my younger brother would help me scratch it. Unfortunately, he later joined the Disciples of Sanctus Medicus...\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. For each affected creature, Strength increases by 1, maximum 20. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>When used, increases ATK of all allies by 190 for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "401016",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "When used, increases ATK of all allies by 190 for the next battle.",
+      "gmDescription": "When used, increases ATK of all allies by 190 for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. For each affected creature, Strength increases by 1, maximum 20. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

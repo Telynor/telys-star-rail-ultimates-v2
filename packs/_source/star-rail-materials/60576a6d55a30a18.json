@@ -1,0 +1,50 @@
+{
+  "_id": "60576a6d55a30a18",
+  "name": "Discarded Ingenium Parts",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180008.png",
+  "system": {
+    "description": {
+      "value": "<p>To a bystander, it's just trash. To a craftsman, it's leftover materials. To a recycler, it's credits. Only skilled artisans who truly understand the art of ingenia can see valuable treasures in what others deem wasteful.</p><p>\"It is said that in the Great Trial of the Furnace, to challenge Mr. Yingxing, they gave him a pile of defective products and waste. But after a day and night, he crafted a lifelike mechanical lion that moved as if it was alive.\"</p><hr><h3>Crafting Material</h3><p>This is a crafting reagent used by Star Rail synthesis recipes.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Tier 1 Synthesis Material</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "common",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "180008",
+      "contentKind": "material",
+      "hasUsableEffect": false,
+      "originalHsrEffect": "Tier 1 Synthesis Material",
+      "gmDescription": "Tier 1 Synthesis Material",
+      "dndEffect": "This is a crafting reagent used by Star Rail synthesis recipes."
+    }
+  }
+}

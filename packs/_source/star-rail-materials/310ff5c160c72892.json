@@ -1,0 +1,50 @@
+{
+  "_id": "310ff5c160c72892",
+  "name": "Fleeting Happiness",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402027.png",
+  "system": {
+    "description": {
+      "value": "<p>The lengthy meeting reaches an intermission, and you step out to the atrium, finding solace on a bench and releasing a long breath. The sinking sun, accompanied by an evening breeze, brings the sweetness of nature, boldly combatting against the man-made stainless steel behemoth behind you. A stray cat stretches and jumps onto your lap.</p><p>\"At least, at this moment, I belong to myself.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, a creature can consume or administer this item. The target regains 6d4 + 6 hit points.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, immediately heals one ally by 40% of their Max HP plus 320 HP.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "402027",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, immediately heals one ally by 40% of their Max HP plus 320 HP.",
+      "gmDescription": "Upon use, immediately heals one ally by 40% of their Max HP plus 320 HP.",
+      "dndEffect": "As an action, a creature can consume or administer this item. The target regains 6d4 + 6 hit points."
+    }
+  }
+}

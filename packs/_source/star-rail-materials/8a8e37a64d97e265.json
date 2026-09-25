@@ -1,0 +1,50 @@
+{
+  "_id": "8a8e37a64d97e265",
+  "name": "Sword in the Stone",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401029.png",
+  "system": {
+    "description": {
+      "value": "<p>There's a legend in Little Gui's homeworld: Whoever pulls out the sword in the stone would be the great hero foretold in prophecies.<br>However, no one ever managed to pull it out, and few even tried — because that was a historical relic. You'd get jailed for damaging it.</p><p>\"I regret it so much right now... I was just feeling impulsive at that moment and wanted to show off to my friends. That's why I went to pull out the sword. I hope everyone can learn from my mistake...\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. For each affected creature, Strength increases by 1, maximum 20. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>When used, increases ATK of all allies by 190 for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "401029",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "When used, increases ATK of all allies by 190 for the next battle.",
+      "gmDescription": "When used, increases ATK of all allies by 190 for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. For each affected creature, Strength increases by 1, maximum 20. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

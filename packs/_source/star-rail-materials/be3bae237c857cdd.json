@@ -1,0 +1,50 @@
+{
+  "_id": "be3bae237c857cdd",
+  "name": "Fresh Seed of Dawn",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/183007.png",
+  "system": {
+    "description": {
+      "value": "<p>Legend has it that Amphoreus once hosted a beauty pageant where several renowned beauties each plucked a fruit from the golden apple tree. Mnestia declared that the contestant who returned the following year with their golden apple still intact would be deemed the most beautiful.<br>When the year passed, none of the contestants succeeded in the trial — even the finest golden apples had rotted, just as even the most radiant faces inevitably fade with time. But in the third year, an ordinary-looking peasant girl returned, not with an apple, but with a new seedling. She explained that she had been deeply saddened by the golden apple's decay and had carefully gathered the seeds from the rotting fruit, planting them to nurture a new tree. Moved by her actions, Georios appeared and urged Mnestia to crown the peasant girl as the most beautiful contestant.<br>Mnestia, however, was reluctant, unable to see any beauty in the girl. At that moment, Georios called upon Oronyx to cover Mnestia's eyes with the veil of night. The instant Mnestia lost their sight, they perceived the brilliance of the peasant girl's heart and joyfully awarded her the title.</p><p>\"Agy, doesn't this legend sound like your story?\"<br>\"Heh... a beautiful tale, indeed.\"</p><hr><h3>Crafting Material</h3><p>This is a crafting reagent used by Star Rail synthesis recipes.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Tier 4 Synthesis Material</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "183007",
+      "contentKind": "material",
+      "hasUsableEffect": false,
+      "originalHsrEffect": "Tier 4 Synthesis Material",
+      "gmDescription": "Tier 4 Synthesis Material",
+      "dndEffect": "This is a crafting reagent used by Star Rail synthesis recipes."
+    }
+  }
+}

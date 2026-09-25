@@ -1,0 +1,50 @@
+{
+  "_id": "dda20297277f79b1",
+  "name": "Rough-Brew Ambrosia",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401032.png",
+  "system": {
+    "description": {
+      "value": "<p>The ambrosia made through an incredibly simple ritual process has a rough taste, but due to its very low price, it still has a considerable market. It is said that during the fight against the black tide, when clean water was scarce, people relied on this rough-brew ambrosia to supplement their hydration and nutrients.</p><p>\"Okhema now has clean water, o sire of my children. Stop making excuses to buy ambrosia every day.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. Each affected creature gains temporary hit points equal to twice its proficiency bonus plus its level. The benefit begins when the next combat starts and lasts for 1 minute. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, increases Max HP of all allies by 20% for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "401032",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, increases Max HP of all allies by 20% for the next battle.",
+      "gmDescription": "Upon use, increases Max HP of all allies by 20% for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. Each affected creature gains temporary hit points equal to twice its proficiency bonus plus its level. The benefit begins when the next combat starts and lasts for 1 minute. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

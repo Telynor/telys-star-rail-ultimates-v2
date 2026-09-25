@@ -1,0 +1,50 @@
+{
+  "_id": "b40fc21f6ec59aa2",
+  "name": "Simple Protective Gear",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401009.png",
+  "system": {
+    "description": {
+      "value": "<p>Simple protection gear to cover the most vulnerable part of your body.</p><p>\"Don't assume only your head and neck need protection. There're no rules in a real fight.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Affected creatures gain +1 AC and +1 to Constitution saves. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Increase DEF of all allies by 25% in the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "401009",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Increase DEF of all allies by 25% in the next battle.",
+      "gmDescription": "Increase DEF of all allies by 25% in the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Affected creatures gain +1 AC and +1 to Constitution saves. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

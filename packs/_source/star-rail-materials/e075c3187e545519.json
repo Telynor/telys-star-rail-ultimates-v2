@@ -1,0 +1,50 @@
+{
+  "_id": "e075c3187e545519",
+  "name": "Ruby Potion",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/403002.png",
+  "system": {
+    "description": {
+      "value": "<p>Adding water to coffee powder gets you coffee. Adding water to the mixture of Stone of The Hunt and Interdimensional Leaf plus a touch of virtual particle gives you Ruby Potion!</p><p>\"Ruby Potion gets you addictive to thinking fast, not to the potion itself!\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Speed increases by 10 feet. It also gains +1 to ability attack rolls and saving throw DCs. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>When used, increase SPD of all allies by 8%, and Effect Hit Rate by 20% for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "403002",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "When used, increase SPD of all allies by 8%, and Effect Hit Rate by 20% for the next battle.",
+      "gmDescription": "When used, increase SPD of all allies by 8%, and Effect Hit Rate by 20% for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Speed increases by 10 feet. It also gains +1 to ability attack rolls and saving throw DCs. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

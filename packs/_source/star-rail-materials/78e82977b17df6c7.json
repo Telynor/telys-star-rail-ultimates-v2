@@ -1,0 +1,50 @@
+{
+  "_id": "78e82977b17df6c7",
+  "name": "Dust of Alacrity",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402008.png",
+  "system": {
+    "description": {
+      "value": "<p>Of all the memories collected by the Garden of Recollection, one clip comes from an ancient tribe in a long-gone world. It contains a secret recipe: Take the seeds of life, Virtual Particles of energy, and Stone of The Hunt representing the Aeon's Path; grind them into powder and mix to a ratio of 2:5:1 — you'll get the magical dust. Applying the dust to your body makes you exceptionally agile and swift.</p><p>\"Sparrowhawk, bathe in the dust of our ancestors and fly to the top of the mountain. Bring the sacred banner back to our tribe.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Speed increases by 5 feet. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, increases SPD of all allies by 12% for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "402008",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, increases SPD of all allies by 12% for the next battle.",
+      "gmDescription": "Upon use, increases SPD of all allies by 12% for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Speed increases by 5 feet. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

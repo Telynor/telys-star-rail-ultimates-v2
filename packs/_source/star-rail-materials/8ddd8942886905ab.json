@@ -1,0 +1,46 @@
+{
+  "_id": "8ddd8942886905ab",
+  "name": "Traveler's Guide",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/213.png",
+  "system": {
+    "description": {
+      "value": "<p>Required reading for world exploration.</p><p><strong>Use:</strong> Provides 20,000 Character EXP.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "213",
+      "sourceTrack": "Nameless Gift / Nameless Honor"
+    }
+  }
+}

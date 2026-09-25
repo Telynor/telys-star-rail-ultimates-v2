@@ -1,0 +1,50 @@
+{
+  "_id": "cb6de3a32f7f70ad",
+  "name": "Sparkle's Unlimited Edition Collectible Figure",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408628.png",
+  "system": {
+    "description": {
+      "value": "<p>A souvenir that {NICKNAME} sells on {TEXTJOIN#87}... Wait, no, you remember you bought a raccoon plushie! It was supposed to be the cute and mischievous figure of a little raccoon, so how'd it become a figure for this girl? How self-absorbed can one person be?</p><p>\"Come on, Gray Hair. Why so serious? You gotta have fun! This toy can go a long way if you just kick it. Come have a try!\"<br>\"AGGHHGHGHHGHH! My toes!\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. For each affected creature, critical hits roll one additional weapon or spell damage die. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, increases all allies' CRIT DMG by 36% for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "408628",
+      "contentKind": "material",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, increases all allies' CRIT DMG by 36% for the next battle.",
+      "gmDescription": "Upon use, increases all allies' CRIT DMG by 36% for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. For each affected creature, critical hits roll one additional weapon or spell damage die. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

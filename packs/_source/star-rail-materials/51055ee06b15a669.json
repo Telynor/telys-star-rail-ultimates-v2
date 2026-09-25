@@ -1,0 +1,50 @@
+{
+  "_id": "51055ee06b15a669",
+  "name": "Kremnos Shield",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402033.png",
+  "system": {
+    "description": {
+      "value": "<p>The classical shield used in Castrum Kremnos is rare and often granted as a symbol of honor to the strong. When raised, it can protect most of the body, but blocking alone is not the way of a true warrior.</p><p>\"Either raise it high in triumph or return home on it.\"<br> — A saying mothers teach their children in Castrum Kremnos</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Temporary hit points gained increase by proficiency bonus, and the creature has +1 AC while it has temporary hit points. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, increases all allies' DEF by 15% and Shield Effect received by 18% in the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "402033",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, increases all allies' DEF by 15% and Shield Effect received by 18% in the next battle.",
+      "gmDescription": "Upon use, increases all allies' DEF by 15% and Shield Effect received by 18% in the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Temporary hit points gained increase by proficiency bonus, and the creature has +1 AC while it has temporary hit points. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

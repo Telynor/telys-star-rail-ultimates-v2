@@ -1,0 +1,50 @@
+{
+  "_id": "348b81c59e178c12",
+  "name": "\"Sour Dreams\" Soft Candy",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401026.png",
+  "system": {
+    "description": {
+      "value": "<p>A highly affordable snack that holds the same status as fried rice in reality. It is enjoyed by both the poor and the wealthy for its intensely sour flavor.</p><p>\"Caution: Its excessive acidity may awake you from your dream.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, a creature can consume or administer this item. The target regains 4d4 + 4 hit points.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, immediately heals a single ally by 24% of their Max HP plus 300 extra Max HP.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "401026",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, immediately heals a single ally by 24% of their Max HP plus 300 extra Max HP.",
+      "gmDescription": "Upon use, immediately heals a single ally by 24% of their Max HP plus 300 extra Max HP.",
+      "dndEffect": "As an action, a creature can consume or administer this item. The target regains 4d4 + 4 hit points."
+    }
+  }
+}

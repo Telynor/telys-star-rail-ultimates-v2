@@ -1,0 +1,46 @@
+{
+  "_id": "8c9963199c19c353",
+  "name": "Jewels of the Starry Seas",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/300013.png",
+  "system": {
+    "description": {
+      "value": "<p>A precious treasure drifting in the endless sea of stars.</p><p><strong>Use:</strong> Selects an eligible 4-star Nameless Honor Light Cone.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "300013",
+      "sourceTrack": "Nameless Gift / Nameless Honor"
+    }
+  }
+}

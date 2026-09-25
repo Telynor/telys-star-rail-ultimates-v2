@@ -1,0 +1,50 @@
+{
+  "_id": "989bcdd4c2e6f99b",
+  "name": "Vortex of Wind",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181007.png",
+  "system": {
+    "description": {
+      "value": "<p>The eye of the storm remains stagnant.<br>Even when put in vacuum, the grains involved in the vortex continue to revolve around the eye of the storm.</p><p>\"Look, they won't stop no matter what happens. They just keep whirling. You know what that reminds me of?\"<br>\"Trailblazing!\"<br>\"...That's right, Pom-Pom. Promise me that our trailblazing journey will never come to a stop.\"</p><hr><h3>Crafting Material</h3><p>This is a crafting reagent used by Star Rail synthesis recipes.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Tier 2 Synthesis Material</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "181007",
+      "contentKind": "material",
+      "hasUsableEffect": false,
+      "originalHsrEffect": "Tier 2 Synthesis Material",
+      "gmDescription": "Tier 2 Synthesis Material",
+      "dndEffect": "This is a crafting reagent used by Star Rail synthesis recipes."
+    }
+  }
+}

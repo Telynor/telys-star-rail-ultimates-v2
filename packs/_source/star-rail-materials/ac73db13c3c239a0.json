@@ -1,0 +1,50 @@
+{
+  "_id": "ac73db13c3c239a0",
+  "name": "Pom-Pom's Fried Fowl",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402023.png",
+  "system": {
+    "description": {
+      "value": "<p>A signature delicacy from the \"Astral Express\" prepared by Conductor Pom-Pom themselves. First, the poultry (any species, preferably avian) is marinated and coated with Pom-Pom's special seasoning and breading. Then, with the heating and pressure of controlled high-energy particles, it is deep-fried precisely for a duration of 0.2434 seconds until golden brown. The result is a dish blessed with a tender exterior and a juicy interior. One bite and you'll feel as if you're being caressed by the gentle gaze of Akivili, soothed in comfort and warmth.</p><p>\"Voyage among stars for a taste of Cosmos!\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Strength increases by 1, maximum 20, and once per turn when the creature deals fire damage it deals an additional 1d4 fire damage. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, increases Fire DMG of all allies by 16% and ATK of all allies by 18% for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "402023",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, increases Fire DMG of all allies by 16% and ATK of all allies by 18% for the next battle.",
+      "gmDescription": "Upon use, increases Fire DMG of all allies by 16% and ATK of all allies by 18% for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Strength increases by 1, maximum 20, and once per turn when the creature deals fire damage it deals an additional 1d4 fire damage. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

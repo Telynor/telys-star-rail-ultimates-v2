@@ -1,0 +1,50 @@
+{
+  "_id": "47ce7315c1276474",
+  "name": "Take Your Life 3000",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/403012.png",
+  "system": {
+    "description": {
+      "value": "<p>It's widely known that putting powerful things together makes them even more powerful. Like Granny Chen's Tofu, SoulGlad, and Izumo Miso — each delicious on its own. If you mix them together... um, maybe that example wasn't great, forget it.</p><p>\"These deadly weapons, each formidable on their own, are now gathered together. Are you afraid yet?\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. Each affected creature regains 30% maximum Energy. The benefit begins when the next combat starts and lasts for 1 minute. Its Strength increases by 1 and once per turn it adds proficiency bonus to one damage roll. On a 1 on 1d10 at combat start, it is incapacitated until the end of its first turn. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, immediately regenerate 30% Energy for all allies. In the next battle, increase ATK by 100 and DMG dealt by 35%. Upon entering battle, there's a 10% base chance to enter the Strong Reverberation state, lasting for 1 turn.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "403012",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, immediately regenerate 30% Energy for all allies. In the next battle, increase ATK by 100 and DMG dealt by 35%. Upon entering battle, there's a 10% base chance to enter the Strong Reverberation state, lasting for 1 turn.",
+      "gmDescription": "Upon use, immediately regenerate 30% Energy for all allies. In the next battle, increase ATK by 100 and DMG dealt by 35%. Upon entering battle, there's a 10% base chance to enter the Strong Reverberation state, lasting for 1 turn.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. Each affected creature regains 30% maximum Energy. The benefit begins when the next combat starts and lasts for 1 minute. Its Strength increases by 1 and once per turn it adds proficiency bonus to one damage roll. On a 1 on 1d10 at combat start, it is incapacitated until the end of its first turn. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

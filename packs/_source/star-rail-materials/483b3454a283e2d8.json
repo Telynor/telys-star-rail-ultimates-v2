@@ -1,0 +1,50 @@
+{
+  "_id": "483b3454a283e2d8",
+  "name": "Recipe: The Cloud of Doubt",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+  "system": {
+    "description": {
+      "value": "<p>Redeem this green recipe slip in Party Crafting to unlock <strong>The Cloud of Doubt</strong> for the party and their owners' characters.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "recipe-2328",
+      "contentKind": "recipeCard",
+      "recipeCard": {
+        "recipeId": "hsr-2328"
+      },
+      "outputHsrItemId": "402028"
+    }
+  }
+}

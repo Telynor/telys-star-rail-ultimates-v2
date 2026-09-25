@@ -1,0 +1,50 @@
+{
+  "_id": "9d4478a3715c27e6",
+  "name": "Deep-fried Honey Curd",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401035.png",
+  "system": {
+    "description": {
+      "value": "<p>A luxurious delicacy beloved by both nobles and citizens alike. Its surface is caramelized into a crisp shell with sweet honey, while the inside remains a soft, semi-melted cheese. It's said to have been invented by an anonymous priest from the Dawncloud, who accidentally left the offering vessel too close to a burning hearth during a ritual. </p><p>\"Recipes meticulously crafted by humans are often bested by the gods' serendipitous revelations.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, a creature can consume or administer this item. The target regains 30% maximum Energy.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, immediately regenerates energy to a designated ally equal to 30% of their maximum energy.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "401035",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, immediately regenerates energy to a designated ally equal to 30% of their maximum energy.",
+      "gmDescription": "Upon use, immediately regenerates energy to a designated ally equal to 30% of their maximum energy.",
+      "dndEffect": "As an action, a creature can consume or administer this item. The target regains 30% maximum Energy."
+    }
+  }
+}

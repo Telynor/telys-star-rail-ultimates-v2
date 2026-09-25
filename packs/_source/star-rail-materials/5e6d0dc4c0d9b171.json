@@ -1,0 +1,50 @@
+{
+  "_id": "5e6d0dc4c0d9b171",
+  "name": "Astral Express Game Disk",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402029.png",
+  "system": {
+    "description": {
+      "value": "<p>A special relic from the Crystalline Temple's ruins on Memliche, unearthed by the Armed Archaeologists at the beginning of 2158 AE. It was a classic video game that predated the Swarm Disaster named Astral Express.<br>This game is based on the historical event of the Express participating in the Memliche War of Independence, depicting a heroic tale of triumphs and defeats, with thrilling turn-based combat mechanics that left all players desperate to play more.</p><p>\"May this journey lead us starward.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, a creature can consume or administer this item. The party regains 4 shared Technique Points.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>When used, instantly recovers 4 Technique Points for the team.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "402029",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "When used, instantly recovers 4 Technique Points for the team.",
+      "gmDescription": "When used, instantly recovers 4 Technique Points for the team.",
+      "dndEffect": "As an action, a creature can consume or administer this item. The party regains 4 shared Technique Points."
+    }
+  }
+}

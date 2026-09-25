@@ -1,0 +1,50 @@
+{
+  "_id": "4777079d5bd63dbc",
+  "name": "Recipe: Amber Huadiao Wine",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+  "system": {
+    "description": {
+      "value": "<p>Redeem this green recipe slip in Party Crafting to unlock <strong>Amber Huadiao Wine</strong> for the party and their owners' characters.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "recipe-2218",
+      "contentKind": "recipeCard",
+      "recipeCard": {
+        "recipeId": "hsr-2218"
+      },
+      "outputHsrItemId": "401018"
+    }
+  }
+}

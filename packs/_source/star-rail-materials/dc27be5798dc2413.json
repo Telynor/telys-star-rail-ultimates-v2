@@ -1,0 +1,50 @@
+{
+  "_id": "dc27be5798dc2413",
+  "name": "Startaro Bubble",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/400008.png",
+  "system": {
+    "description": {
+      "value": "<p>An incredibly popular milk tea in Luofu.<br>It is visually appealing but tastes surprisingly rough and unpalatable.</p><p>\"I really don't understand why this thing is so popular...\"<br>\"Maybe they had good marketing... I heard they hired a marketing specialist from the IPC.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, a creature can consume or administer this item. The party regains 2 shared Technique Points. Each Main Party creature then loses proficiency bonus hit points.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, immediately recovers 2 Technique Points for your team, but each team member loses HP equal to 15% of their Max HP.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "common",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "400008",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, immediately recovers 2 Technique Points for your team, but each team member loses HP equal to 15% of their Max HP.",
+      "gmDescription": "Upon use, immediately recovers 2 Technique Points for your team, but each team member loses HP equal to 15% of their Max HP.",
+      "dndEffect": "As an action, a creature can consume or administer this item. The party regains 2 shared Technique Points. Each Main Party creature then loses proficiency bonus hit points."
+    }
+  }
+}

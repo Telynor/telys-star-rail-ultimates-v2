@@ -1,0 +1,50 @@
+{
+  "_id": "af8d0c2c92215b94",
+  "name": "Deep-fried Flying Sea Anemone",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401017.png",
+  "system": {
+    "description": {
+      "value": "<p>Cooked using the flesh of extraterrestrial monsters defeated by Yancui, the chef of Spices Supreme. Considering these flying sea anemones are usually at least thirty meters long and swallow ships as snacks, it's really unclear how this chef managed to defeat and procure such an astonishing ingredient.</p><p>\"When I first finished making this dish all those years ago, I called over my old neighbors at the Exalting Sanctum to eat with me and try it out. We feasted for three days and three nights, but in the end, there was still so much left to waste. Ah, what a shame...\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Once per turn when an affected creature deals lightning damage, it deals an additional 1d4 lightning damage. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, increases Lightning DMG of all allies by 16% in the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "401017",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, increases Lightning DMG of all allies by 16% in the next battle.",
+      "gmDescription": "Upon use, increases Lightning DMG of all allies by 16% in the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Once per turn when an affected creature deals lightning damage, it deals an additional 1d4 lightning damage. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

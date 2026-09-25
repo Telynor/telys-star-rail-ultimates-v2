@@ -1,0 +1,50 @@
+{
+  "_id": "b8016985c4ad3d84",
+  "name": "Delicious Shumai",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401019.png",
+  "system": {
+    "description": {
+      "value": "<p>The perfect combination of tradition and modernity. Bite through the slightly cool al dente dough, and the rich milky aroma and warmth will pour out of the filling — Molten Cheese Tart will impart you with its sincerity.</p><p>\"Cheese is power!\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, a creature can consume or administer this item. The target regains 30% maximum Energy.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, immediately restores 30% Energy for one ally.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "401019",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, immediately restores 30% Energy for one ally.",
+      "gmDescription": "Upon use, immediately restores 30% Energy for one ally.",
+      "dndEffect": "As an action, a creature can consume or administer this item. The target regains 30% maximum Energy."
+    }
+  }
+}

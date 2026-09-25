@@ -1,0 +1,50 @@
+{
+  "_id": "ae5ce47932dd6103",
+  "name": "Short Rejuvepill",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408207.png",
+  "system": {
+    "description": {
+      "value": "<p>A simple remedy made by grinding mountain devil mint, white-hair ivy extract, and droppings from blue-winged squirrels into powder, then kneading them with honey to form pills. It can't cure all ailments, but it is considered to be better than nothing.</p><p>\"Quick, take this medicine, or your wound will have healed on its own.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, a creature can consume or administer this item. The target regains 1 hit point.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, immediately heals one ally for 1 HP.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "common",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "408207",
+      "contentKind": "material",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, immediately heals one ally for 1 HP.",
+      "gmDescription": "Upon use, immediately heals one ally for 1 HP.",
+      "dndEffect": "As an action, a creature can consume or administer this item. The target regains 1 hit point."
+    }
+  }
+}

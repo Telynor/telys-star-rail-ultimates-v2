@@ -1,0 +1,50 @@
+{
+  "_id": "05da64f42ab6092b",
+  "name": "Vibrant Zest-Core",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402037.png",
+  "system": {
+    "description": {
+      "value": "<p>At first, no one paid any attention to this orange can... until it started jumping, singing, and showering all of Planarcadia with joyful dopamine. Watch out! If it catches you frowning, it'll send little orange fairies bursting into your mouth to do a cheerful tap dance on the tip of your tongue.</p><p>\"Note: No imagenae were harmed during this delivery event.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Whenever an affected creature generates Punchline or another Elation resource, it generates 1 additional point. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, increases all allies' Elation by 24% for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "402037",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, increases all allies' Elation by 24% for the next battle.",
+      "gmDescription": "Upon use, increases all allies' Elation by 24% for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Whenever an affected creature generates Punchline or another Elation resource, it generates 1 additional point. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

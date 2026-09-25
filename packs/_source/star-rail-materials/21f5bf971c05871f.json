@@ -1,0 +1,50 @@
+{
+  "_id": "21f5bf971c05871f",
+  "name": "Energy Drink",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401006.png",
+  "system": {
+    "description": {
+      "value": "<p>Energy drink that gives you a second wind.</p><p>\"Here are some facts: Imaginary Energy contains power, and the human body needs power. Therefore, the human body can absorb Imaginary Energy.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, a creature can consume or administer this item. The target regains 30% maximum Energy.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, immediately regenerates 30% of Max Energy for a single ally.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "401006",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, immediately regenerates 30% of Max Energy for a single ally.",
+      "gmDescription": "Upon use, immediately regenerates 30% of Max Energy for a single ally.",
+      "dndEffect": "As an action, a creature can consume or administer this item. The target regains 30% maximum Energy."
+    }
+  }
+}

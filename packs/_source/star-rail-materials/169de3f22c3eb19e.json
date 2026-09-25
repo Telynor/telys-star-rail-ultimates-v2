@@ -1,0 +1,50 @@
+{
+  "_id": "169de3f22c3eb19e",
+  "name": "Bestial Remnant",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402034.png",
+  "system": {
+    "description": {
+      "value": "<p>It is well known that a human is merely the combination of bones, flesh, and a few dozen grams of soul. None of which can survive alone once separated. Yet this piece of a chimeric beast continues to twitch from time to time, as if letting out a defiant cry. Some scholars claim it's due to lingering neural impulses that haven't completely faded.</p><p>\"Or perhaps... life isn't as fragile as we've always believed...\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Affected creatures have advantage on saves against spells and magical effects. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, increases Effect RES of all allies by 30% for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "402034",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, increases Effect RES of all allies by 30% for the next battle.",
+      "gmDescription": "Upon use, increases Effect RES of all allies by 30% for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Affected creatures have advantage on saves against spells and magical effects. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

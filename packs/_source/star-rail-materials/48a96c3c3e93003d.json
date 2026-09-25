@@ -1,0 +1,50 @@
+{
+  "_id": "48a96c3c3e93003d",
+  "name": "Stone-Roasted Meat Skewer",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408204.png",
+  "system": {
+    "description": {
+      "value": "<p>The steel skewer has all sorts of Belobog delicacies on it, and is barbecued thoroughly using high heat.<br>Its ingredients are mostly harmless. It is also the favorite food of Belobog's adventurers out in the wild, as well as being the most easily obtainable.</p><p>\"This tastes so good! What kinds of meat are in it, though?\"<br>\"You wouldn't want to know.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. Each affected creature gains temporary hit points equal to its proficiency bonus plus its level. The benefit begins when the next combat starts and lasts for 1 minute. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, increases Max HP of all allies by 12% for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "common",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "408204",
+      "contentKind": "material",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, increases Max HP of all allies by 12% for the next battle.",
+      "gmDescription": "Upon use, increases Max HP of all allies by 12% for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. Each affected creature gains temporary hit points equal to its proficiency bonus plus its level. The benefit begins when the next combat starts and lasts for 1 minute. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

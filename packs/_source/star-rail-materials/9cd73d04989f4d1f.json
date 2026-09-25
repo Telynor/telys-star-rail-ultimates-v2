@@ -1,0 +1,50 @@
+{
+  "_id": "9cd73d04989f4d1f",
+  "name": "Children's Fragrant Orange Pills",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402024.png",
+  "system": {
+    "description": {
+      "value": "<p>Orange-flavored pills to cure children's colds. They say that the first batch was so tasty that many boisterous children took too much of it. Hence, many Children's Fragrant Orange Pills on the market now contain a great deal of bitterness to their flavoring.</p><p>\"Wahhh, Mama, why does this pellet smell so sweet but taste so bitter...\"<br>\"Because that's life, silly child.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, a creature can consume or administer this item. The target regains 6d4 + 6 hit points.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, immediately heals one ally by 40% of their Max HP plus 320.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "402024",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, immediately heals one ally by 40% of their Max HP plus 320.",
+      "gmDescription": "Upon use, immediately heals one ally by 40% of their Max HP plus 320.",
+      "dndEffect": "As an action, a creature can consume or administer this item. The target regains 6d4 + 6 hit points."
+    }
+  }
+}

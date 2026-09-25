@@ -1,0 +1,50 @@
+{
+  "_id": "d7c70905b803d8b2",
+  "name": "All Good Potion",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402017.png",
+  "system": {
+    "description": {
+      "value": "<p>A surprise side product obtained during the Department of Implement Arts' experiments. Research has proven it to be harmless to humans. Most researchers indicate they \"feel all good\" after using this liquid, therefore giving this item the non-official name of \"All Good Potion.\"</p><p>\"Note: Caution! Side effects from this liquid remains unknown!\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, a creature can consume or administer this item. The target regains 50% maximum Energy.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, immediately regenerates 50% of Max Energy for a single ally.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "402017",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, immediately regenerates 50% of Max Energy for a single ally.",
+      "gmDescription": "Upon use, immediately regenerates 50% of Max Energy for a single ally.",
+      "dndEffect": "As an action, a creature can consume or administer this item. The target regains 50% maximum Energy."
+    }
+  }
+}

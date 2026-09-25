@@ -1,0 +1,50 @@
+{
+  "_id": "87df3f834c1ced03",
+  "name": "Cosmic Fried Rice",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401003.png",
+  "system": {
+    "description": {
+      "value": "<p>Golden brown fried rice that is appealing to the eye and the stomach.</p><p>\"All the chefs will tell you that fried rice has more to it than what appears on the surface.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, a creature can consume or administer this item. The target regains 4d4 + 4 hit points.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, immediately heals a single ally by 24% of their Max HP plus 300 extra HP.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "401003",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, immediately heals a single ally by 24% of their Max HP plus 300 extra HP.",
+      "gmDescription": "Upon use, immediately heals a single ally by 24% of their Max HP plus 300 extra HP.",
+      "dndEffect": "As an action, a creature can consume or administer this item. The target regains 4d4 + 4 hit points."
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "_id": "d041b81d72ae7bb5",
+  "name": "Interdimensional Leaf",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/183001.png",
+  "system": {
+    "description": {
+      "value": "<p>The gravity of the planet Arivanta is not fixed. Rather, it changes all the time according to a Bode plot due to the influence of Arivanta's three moons. Ordinary life forms cannot survive such volatility, so the planet developed its unique eco-system, in which the herbal plant Interdimensional Tree is the most famous.<br>For plants in a world where gravity is constantly subject to change, their leaves often have a hard time landing on the planet's ancient and solid ground. It is for this reason that the Interdimensional Trees tend to shake off their leaves rather late in the year. To help their leaves land, these trees, in the course of evolution, gave their leaves the ability to conduct fast short-distance warp-jumps towards the ground at frequencies that cannot be observed by naked eyes. Even so, not every leaf gets to land on the ground. Those lucky enough to make it watch others rise into the sky and burn as they are devoured by the atmosphere.</p><p>\"Wow.\"</p><hr><h3>Crafting Material</h3><p>This is a crafting reagent used by Star Rail synthesis recipes.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Tier 4 Synthesis Material</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "183001",
+      "contentKind": "material",
+      "hasUsableEffect": false,
+      "originalHsrEffect": "Tier 4 Synthesis Material",
+      "gmDescription": "Tier 4 Synthesis Material",
+      "dndEffect": "This is a crafting reagent used by Star Rail synthesis recipes."
+    }
+  }
+}

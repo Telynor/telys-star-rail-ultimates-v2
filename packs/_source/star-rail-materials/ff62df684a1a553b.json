@@ -1,0 +1,50 @@
+{
+  "_id": "ff62df684a1a553b",
+  "name": "Disposable Kinetic Arm",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/403001.png",
+  "system": {
+    "description": {
+      "value": "<p>It is said that the first thing Emperor Rubert I did when it gained free will was to use all the parts it could find to build a formidable kinetic arm, charged with its hatred towards organic life forms.<br>Before the antilife equation was discovered, the emperor's army used its brute mechanical force to lay waste to the universe.</p><p>\"Technology won't solve all problems. To make something new, you need a hair of... passion.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. For each affected creature, Strength increases by 1, maximum 20, and Crit Ratio increases by 1. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, increases ATK of all allies by 325 and CRIT Rate by 12% for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "403001",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, increases ATK of all allies by 325 and CRIT Rate by 12% for the next battle.",
+      "gmDescription": "Upon use, increases ATK of all allies by 325 and CRIT Rate by 12% for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. For each affected creature, Strength increases by 1, maximum 20, and Crit Ratio increases by 1. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

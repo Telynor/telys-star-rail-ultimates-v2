@@ -1,0 +1,50 @@
+{
+  "_id": "ddc70407cf45fe01",
+  "name": "Inferior Protective Gear",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402006.png",
+  "system": {
+    "description": {
+      "value": "<p>High-Tech protective gear that keeps the most vulnerable parts of your body from harm.<br>But its manufacturer saved on costs at the expense of quality, rendering its charging system not functional at all. It also has a revolting smell.<br>You feel more determined just by putting it on.</p><p>\"That's impossible. I, Sampo, do not sell counterfeits. I'm a reputable businessman after all!\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. Each creature first loses proficiency bonus hit points. The benefit begins when the next combat starts and lasts for 1 minute. Affected creatures gain +1 AC and +1 to Constitution saves. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, immediately causes all allies to lose HP equal to 15% of their Max HP, and increases their DEF by 15% for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "402006",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, immediately causes all allies to lose HP equal to 15% of their Max HP, and increases their DEF by 15% for the next battle.",
+      "gmDescription": "Upon use, immediately causes all allies to lose HP equal to 15% of their Max HP, and increases their DEF by 15% for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. Each creature first loses proficiency bonus hit points. The benefit begins when the next combat starts and lasts for 1 minute. Affected creatures gain +1 AC and +1 to Constitution saves. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

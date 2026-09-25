@@ -1,0 +1,50 @@
+{
+  "_id": "7c4a728744a09417",
+  "name": "Hundred-Layer Sundae (Zero Calories)",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401024.png",
+  "system": {
+    "description": {
+      "value": "<p>It is unlikely that any food would affect one's weight or health in the Dreamscape. Nevertheless, this dessert's form is truly stunning, and the merchant has even specifically labeled \"zero calories\" behind the item.</p><p>\"Body anxiety can transcend time and space.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. Each affected creature gains temporary hit points equal to its proficiency bonus plus its level. The benefit begins when the next combat starts and lasts for 1 minute. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, the Max HP of all allies increases by 10% plus 210 Max HP for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "401024",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, the Max HP of all allies increases by 10% plus 210 Max HP for the next battle.",
+      "gmDescription": "Upon use, the Max HP of all allies increases by 10% plus 210 Max HP for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. Each affected creature gains temporary hit points equal to its proficiency bonus plus its level. The benefit begins when the next combat starts and lasts for 1 minute. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

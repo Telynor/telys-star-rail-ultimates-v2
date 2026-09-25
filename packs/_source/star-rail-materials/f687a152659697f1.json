@@ -1,0 +1,50 @@
+{
+  "_id": "f687a152659697f1",
+  "name": "Flying Sword Model",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408209.png",
+  "system": {
+    "description": {
+      "value": "<p>This travel souvenir sold aboard the Skysplitter, based on Yanqing's flying sword, is quite popular among tourists. Despite being a toy sword, its quality is immaculate, even serving as a suitable training prop for beginners. Yanqing once intentionally used it to beat several challengers who lacked martial virtue to the point of crying for their parents.</p><p>\"Although your defeat this time is regretful, there's no need to be discouraged. If you're willing to challenge again, I'll be ready to accept anytime.\"<br>\"Anytime? Then make sure you sleep with an eye open.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. For each affected creature, Strength increases by 1, maximum 20. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>When used, increases ATK of all allies by 100 for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "common",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "408209",
+      "contentKind": "material",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "When used, increases ATK of all allies by 100 for the next battle.",
+      "gmDescription": "When used, increases ATK of all allies by 100 for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. For each affected creature, Strength increases by 1, maximum 20. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

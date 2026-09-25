@@ -1,0 +1,50 @@
+{
+  "_id": "28e49f9282cdbe75",
+  "name": "Five-Grain Jade Elixir",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402020.png",
+  "system": {
+    "description": {
+      "value": "<p>This beverage is rich and refreshing, with a uniquely wild and almost crude taste that impresses even connoisseurs outside of the Xianzhou. However, there is much debate among consumers about the exact combination of the \"five grains.\"</p><p>In our Thalassa Crystal Palace distillery, the so-called \"five grains\" are Diatomaceous Earth, Saltwort, Verdant Velvet, Lithosalt Blossom, and Shipwreck Grass.</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. Each affected creature loses proficiency bonus hit points. The benefit begins when the next combat starts and lasts for 1 minute. Once during the effect, its Technique rolls one additional damage die. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, immediately causes all allies to lose HP equal to 5% of their Max HP, and increases their Technique DMG by 100% for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "402020",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, immediately causes all allies to lose HP equal to 5% of their Max HP, and increases their Technique DMG by 100% for the next battle.",
+      "gmDescription": "Upon use, immediately causes all allies to lose HP equal to 5% of their Max HP, and increases their Technique DMG by 100% for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. Each affected creature loses proficiency bonus hit points. The benefit begins when the next combat starts and lasts for 1 minute. Once during the effect, its Technique rolls one additional damage die. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

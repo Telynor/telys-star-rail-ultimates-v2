@@ -1,0 +1,46 @@
+{
+  "_id": "bd35705cc5272fc3",
+  "name": "Tears of Dreams",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/110101.png",
+  "system": {
+    "description": {
+      "value": "<p>Sealed thoughts and feelings.</p><p><strong>Use:</strong> Substitutes for missing Path Materials.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "110101",
+      "sourceTrack": "Nameless Gift / Nameless Honor"
+    }
+  }
+}

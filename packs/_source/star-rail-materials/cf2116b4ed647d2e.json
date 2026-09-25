@@ -1,0 +1,50 @@
+{
+  "_id": "cf2116b4ed647d2e",
+  "name": "Frostweave Salmon Bread",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408409.png",
+  "system": {
+    "description": {
+      "value": "<p>A cold platter made from air-fried preserved frostweave salmon and bread, with a bowl of redsunset jam for free.<br>Nowadays, frostweave salmon are mostly bred inside Belobog's walls. Their taste is miles off from the frostweave salmons fished from the wilds outside the city.</p><p>\"I heard having raw fish slices together with bread can delay the onset of diarrhea effectively. Is that true?\"<br>\"Heck if I know. Go ask Natasha.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Once per round each affected creature reduces damage taken by proficiency bonus and has resistance to fire damage. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, decreases Fire DMG taken by all allies by 16% for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "408409",
+      "contentKind": "material",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, decreases Fire DMG taken by all allies by 16% for the next battle.",
+      "gmDescription": "Upon use, decreases Fire DMG taken by all allies by 16% for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Once per round each affected creature reduces damage taken by proficiency bonus and has resistance to fire damage. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

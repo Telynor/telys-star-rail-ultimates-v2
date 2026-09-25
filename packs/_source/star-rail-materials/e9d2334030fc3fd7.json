@@ -1,0 +1,50 @@
+{
+  "_id": "e9d2334030fc3fd7",
+  "name": "Bottled Soda",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401008.png",
+  "system": {
+    "description": {
+      "value": "<p>A time-tested recipe, crucial to the well-being of modern society.<br>You get joy, sugar, fat, and a dash of optimism toward the future all in one goodness.</p><p>\"I spent all my life collecting Praise of High Morals, just so I can shake every soda bottle in the shop today.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. Each affected creature gains temporary hit points equal to its proficiency bonus plus its level. The benefit begins when the next combat starts and lasts for 1 minute. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, the Max HP of all allies increases by 10% plus an extra 210 for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "401008",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, the Max HP of all allies increases by 10% plus an extra 210 for the next battle.",
+      "gmDescription": "Upon use, the Max HP of all allies increases by 10% plus an extra 210 for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. Each affected creature gains temporary hit points equal to its proficiency bonus plus its level. The benefit begins when the next combat starts and lasts for 1 minute. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "_id": "3b3e83224429aee2",
+  "name": "Redsoil Feed",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/140544.png",
+  "system": {
+    "description": {
+      "value": "<p>High-purity redsoil is a rather unusual material: During the drying process, the crystallizing insoluble salts cause the entire block of redsoil to harden into a compact whole that is difficult to erode, even by wind and rain. Interestingly, for dromases, the most delicious redsoil lies right at the threshold between wet and dry.</p><p>\"So if it keeps raining... would the dromases get eating disorders?\"<br>\"In theory, it's possible, but Aquila would never let that happen, rest assured.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, a creature can consume or administer this item. The target regains 2d4 + 2 hit points.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, immediately heals one designated ally for 20% of their Max HP.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "common",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "400009",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, immediately heals one designated ally for 20% of their Max HP.",
+      "gmDescription": "Upon use, immediately heals one designated ally for 20% of their Max HP.",
+      "dndEffect": "As an action, a creature can consume or administer this item. The target regains 2d4 + 2 hit points."
+    }
+  }
+}

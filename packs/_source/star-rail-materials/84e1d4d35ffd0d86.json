@@ -1,0 +1,50 @@
+{
+  "_id": "84e1d4d35ffd0d86",
+  "name": "Silk Spindle",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/182011.png",
+  "system": {
+    "description": {
+      "value": "<p>A spindle entwined with silk threads. When the first discarded garment handcrafted by Aglaea accidentally found its way to the market, people were left in awe. What ingenious trimming! What flawless hidden seams! What masterful cutting! For a time, the entire Okhema fashion scene was swept into a frenzy of imitating Aglaea's artistry. The type of spindle she uses also became a must-have among garmentmakers, but the golden thread wound around it — exclusive to the demigod of Mnestia — cannot be replicated no matter what.</p><p>\"O beautiful Mnestia, grant me but one-tenth of Lady Aglaea's talent! I am willing to do anything in exchange!\"</p><hr><h3>Crafting Material</h3><p>This is a crafting reagent used by Star Rail synthesis recipes.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Tier 3 Synthesis Material</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "182011",
+      "contentKind": "material",
+      "hasUsableEffect": false,
+      "originalHsrEffect": "Tier 3 Synthesis Material",
+      "gmDescription": "Tier 3 Synthesis Material",
+      "dndEffect": "This is a crafting reagent used by Star Rail synthesis recipes."
+    }
+  }
+}

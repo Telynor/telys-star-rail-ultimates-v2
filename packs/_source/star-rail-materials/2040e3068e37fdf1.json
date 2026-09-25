@@ -1,0 +1,50 @@
+{
+  "_id": "2040e3068e37fdf1",
+  "name": "Recipe: Enhancement Paste: Wind",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+  "system": {
+    "description": {
+      "value": "<p>Redeem this green recipe slip in Party Crafting to unlock <strong>Enhancement Paste: Wind</strong> for the party and their owners' characters.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "recipe-2310",
+      "contentKind": "recipeCard",
+      "recipeCard": {
+        "recipeId": "hsr-2310"
+      },
+      "outputHsrItemId": "402010"
+    }
+  }
+}

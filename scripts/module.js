@@ -1,5 +1,6 @@
 const MODULE_ID = "telys-star-rail-ultimates";
 const SOCKET = `module.${MODULE_ID}`;
+const HSR_RECIPE_CATALOG_VERSION = "4.5.0";
 
 const DEFAULT_PATHS = Object.freeze([
   {id:"abundance",name:"Abundance",icon:`modules/${MODULE_ID}/assets/paths/Path_Abundance.png`,color:"#e5c878"},
@@ -2218,6 +2219,27 @@ function getCraftingRecipes() {
   return (Array.isArray(stored) ? stored : Object.values(stored)).filter(Boolean);
 }
 
+async function ensureStarRailCraftingContent() {
+  if (!isAuthority()) return;
+  const installedVersion = game.settings.get(MODULE_ID, "starRailRecipeCatalogVersion") || "";
+  if (installedVersion === HSR_RECIPE_CATALOG_VERSION) return;
+  try {
+    const response = await fetch(`modules/${MODULE_ID}/data/star-rail-recipes.json`);
+    if (!response.ok) throw new Error(`Recipe catalog request failed (${response.status}).`);
+    const bundled = await response.json();
+    if (!Array.isArray(bundled) || !bundled.length) throw new Error("Recipe catalog is empty.");
+    const existing = getCraftingRecipes();
+    const existingIds = new Set(existing.map(recipe => recipe.id));
+    const additions = bundled.filter(recipe => !existingIds.has(recipe.id));
+    if (additions.length) await game.settings.set(MODULE_ID, "craftingRecipes", [...existing, ...additions]);
+    await game.settings.set(MODULE_ID, "starRailRecipeCatalogVersion", HSR_RECIPE_CATALOG_VERSION);
+    console.log(`${MODULE_ID} | Added ${additions.length} Star Rail crafting recipes from catalog ${HSR_RECIPE_CATALOG_VERSION}.`);
+  } catch (error) {
+    console.error(`${MODULE_ID} | Could not install the Star Rail recipe catalog`, error);
+    ui.notifications?.error?.(`Could not install Star Rail crafting recipes: ${error.message}`);
+  }
+}
+
 function getCraftingClassifications(){
   const stored=game.settings.get(MODULE_ID,"craftingClassifications")??[];
   return (Array.isArray(stored)?stored:Object.values(stored)).filter(Boolean).map(entry=>({id:String(entry.id||foundry.utils.randomID()),name:String(entry.name||"Classification"),icon:String(entry.icon||"fas fa-box")}));
@@ -2315,12 +2337,20 @@ async function consumePartyIngredients(recipe,multiplier=1) {
   }
 }
 
+async function recipeOutputItemData(output) {
+  if (output?.itemData) return foundry.utils.deepClone(output.itemData);
+  if (!output?.uuid) return null;
+  const document = await fromUuid(output.uuid);
+  return document?.documentName === "Item" ? document.toObject() : null;
+}
+
 async function grantCraftingOutput(actor,output,multiplier=1) {
-  if(!actor||!output?.itemData)throw new Error("This recipe has no configured output item.");
+  const resolvedItemData = await recipeOutputItemData(output);
+  if(!actor||!resolvedItemData)throw new Error("This recipe's output item could not be found in Star Rail Materials.");
   const quantity=Math.max(1,Number(output.quantity)||1)*clamp(Math.floor(Number(multiplier)||1),1,99);
   const existing=actor.items.find(item=>itemMatchesRecipeEntry(item,output));
   if(existing)return existing.update({"system.quantity":itemQuantity(existing)+quantity});
-  const data=foundry.utils.deepClone(output.itemData);delete data._id;delete data.folder;delete data.sort;delete data.ownership;
+  const data=resolvedItemData;delete data._id;delete data.folder;delete data.sort;delete data.ownership;
   foundry.utils.setProperty(data,"system.quantity",quantity);
   return actor.createEmbeddedDocuments("Item",[data]);
 }
@@ -2332,7 +2362,7 @@ async function executeCraftRecipe(recipeId,actorId,requestingUserId,craftCount=1
   if(!requester||!actor||!recipe)return {ok:false,message:"The recipe or receiving character no longer exists."};
   if(!getConfig(actor).mainParty||(!requester.isGM&&!actor.testUserPermission(requester,"OWNER")))return {ok:false,message:"Choose one of your Main Party characters to receive the result."};
   if(!requester.isGM&&!actorUnlockedRecipes(actor).has(recipeId))return {ok:false,message:"That recipe has not been unlocked."};
-  if(!recipe.output?.itemData)return {ok:false,message:"This recipe has no configured output item."};
+  if(!recipe.output?.itemData&&!recipe.output?.uuid)return {ok:false,message:"This recipe has no configured output item."};
   craftCount=clamp(Math.floor(Number(craftCount)||1),1,99);
   state.craftingLocks.add("party");
   try{await consumePartyIngredients(recipe,craftCount);await grantCraftingOutput(actor,recipe.output,craftCount);await unlockCraftingRecipe(recipeId,actor);return {ok:true,message:`Crafted ${Math.max(1,Number(recipe.output?.quantity)||1)*craftCount} × ${recipe.output?.name}.`};}
@@ -5942,6 +5972,7 @@ function registerSettings() {
   game.settings.register(MODULE_ID, "elements", {scope: "world", config: false, type: Array, default: []});
   game.settings.register(MODULE_ID, "paths", {scope: "world", config: false, type: Array, default: DEFAULT_PATHS.map(path => ({...path}))});
   game.settings.register(MODULE_ID,"craftingRecipes",{scope:"world",config:false,type:Array,default:[]});
+  game.settings.register(MODULE_ID,"starRailRecipeCatalogVersion",{scope:"world",config:false,type:String,default:""});
   game.settings.register(MODULE_ID,"craftingClassifications",{scope:"world",config:false,type:Array,default:foundry.utils.deepClone(DEFAULT_CRAFTING_CLASSIFICATIONS)});
   game.settings.register(MODULE_ID, "elementsDraft", {scope: "client", config: false, type: Array, default: []});
   game.settings.register(MODULE_ID, "orbLayouts", {scope: "client", config: false, type: Object, default: {}});
@@ -7214,6 +7245,7 @@ Hooks.once("init", () => {
 
 Hooks.once("ready", async () => {
   await ensureDefaultPaths();
+  await ensureStarRailCraftingContent();
   if(isAuthority())for(const actor of game.actors.filter(entry=>entry.type==="character"))await syncAllEidolonFeatures(actor);
   game.socket.on(SOCKET, onSocket);
   registerApi();

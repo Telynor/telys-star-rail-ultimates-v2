@@ -1,0 +1,50 @@
+{
+  "_id": "94b311e07d9828fd",
+  "name": "Recipe: Mung Bean Soda Sukiyaki",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/404001.png",
+  "system": {
+    "description": {
+      "value": "<p>Redeem this green recipe slip in Party Crafting to unlock <strong>Mung Bean Soda Sukiyaki</strong> for the party and their owners' characters.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "recipe-2338",
+      "contentKind": "recipeCard",
+      "recipeCard": {
+        "recipeId": "hsr-2338"
+      },
+      "outputHsrItemId": "402038"
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "_id": "4ec68301b252ecee",
+  "name": "Steel Coil",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/403016.png",
+  "system": {
+    "description": {
+      "value": "<p>A 30-ton steel coil.<br>Due to a certain childhood trauma of moderate significance, a retail industry tycoon decided to use a special method to remind the residents of Planarcadia to pay attention to workplace and daily safety. Now, you can buy this type of steel coil at any convenience store in Planarcadia.</p><p>\"That's not my rubber ducky. It's not that flat.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. Each affected creature loses twice its level in hit points. The benefit begins when the next combat starts and lasts for 1 minute. Whenever it generates Punchline or another Elation resource, it generates 1 additional point. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, immediately causes all allies to lose HP equal to 40% of their Max HP, and increases their Elation by 40% for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "403016",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, immediately causes all allies to lose HP equal to 40% of their Max HP, and increases their Elation by 40% for the next battle.",
+      "gmDescription": "Upon use, immediately causes all allies to lose HP equal to 40% of their Max HP, and increases their Elation by 40% for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. Each affected creature loses twice its level in hit points. The benefit begins when the next combat starts and lasts for 1 minute. Whenever it generates Punchline or another Elation resource, it generates 1 additional point. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

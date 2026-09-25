@@ -1,0 +1,50 @@
+{
+  "_id": "8768074a6d8937c1",
+  "name": "Dried Sagelore Fruit",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401033.png",
+  "system": {
+    "description": {
+      "value": "<p>Grove Scholars can weave knowledge into the sacred tree, and with Cerces' permission, they may harvest its fruit that houses condensed wisdom. Each of these Titan-blessed seeds holds information weightier than a library. But even so, like any other information vessel, the seeds have a limited shelf life as carriers of knowledge. Fortunately, their shelf life as food far outlasts that as a knowledge vessel — thus, this delicious dried fruit was born.</p><p>\"Wait... if I could get a fresh one to eat, would I become the smartest person in Okhema overnight?\"<br>\"Someone tried that once, and they went mad. You can't pour a whole lake into a water bowl.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, a creature can consume or administer this item. The party regains 3 shared Technique Points.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, immediately recovers 3 Technique Points for the team.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "401033",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, immediately recovers 3 Technique Points for the team.",
+      "gmDescription": "Upon use, immediately recovers 3 Technique Points for the team.",
+      "dndEffect": "As an action, a creature can consume or administer this item. The party regains 3 shared Technique Points."
+    }
+  }
+}

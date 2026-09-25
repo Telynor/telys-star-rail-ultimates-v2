@@ -1,0 +1,50 @@
+{
+  "_id": "7595660612d9e56d",
+  "name": "Monarch's Maneuver",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/403014.png",
+  "system": {
+    "description": {
+      "value": "<p>A new toy made of gemstones. Players take turns as opposing sides, black and white, simulating a battlefield where victory is claimed by capturing the enemy's king. Yet in the distant Northern Lands, there exists a unique player, she always moves her king first, and wins time and time again.</p><p> \"Should the king not lead, how could the vassals be willing to follow?\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Speed increases by 5 feet. Its Strength also increases by 1, maximum 20. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, increases all allies' SPD by 16% and their ATK by 10% for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "403014",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, increases all allies' SPD by 16% and their ATK by 10% for the next battle.",
+      "gmDescription": "Upon use, increases all allies' SPD by 16% and their ATK by 10% for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Speed increases by 5 feet. Its Strength also increases by 1, maximum 20. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

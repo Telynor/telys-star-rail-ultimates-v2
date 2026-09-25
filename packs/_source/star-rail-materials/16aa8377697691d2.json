@@ -1,0 +1,50 @@
+{
+  "_id": "16aa8377697691d2",
+  "name": "Punitive Food",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/400005.png",
+  "system": {
+    "description": {
+      "value": "<p>Simple food that tastes strange. Eating it almost feels like some punishment game.<br>Just looking at it fills you with determination.</p><p>\"The things we do to survive.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, a creature can consume or administer this item. The party regains 2 shared Technique Points. Each Main Party creature then loses proficiency bonus hit points.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, immediately recovers 2 Technique Points for your team, but each team member loses HP equal to 15% of their Max HP.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "common",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "400005",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, immediately recovers 2 Technique Points for your team, but each team member loses HP equal to 15% of their Max HP.",
+      "gmDescription": "Upon use, immediately recovers 2 Technique Points for your team, but each team member loses HP equal to 15% of their Max HP.",
+      "dndEffect": "As an action, a creature can consume or administer this item. The party regains 2 shared Technique Points. Each Main Party creature then loses proficiency bonus hit points."
+    }
+  }
+}

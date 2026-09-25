@@ -1,0 +1,50 @@
+{
+  "_id": "fe8e34506a6bcf30",
+  "name": "Tasty Field Nutrient Bar",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402007.png",
+  "system": {
+    "description": {
+      "value": "<p>The wars between Cloud Knights and Denizens of Abundance can last for a long time, even across several Amber Eras. The Cloud Knights tend to spend a long time in garrisons and invented many tasty foods for field consumption. The Field Nutrient Bar is easy to carry and particularly sought-after by the troops.<br>The nutrient bar tastes like smoked meat with notes of honey and candy.</p><p>\"Mix peanuts with dried bean curds and wrap with ambergris. Has a nutty flavor to it.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. Each affected creature gains temporary hit points equal to its proficiency bonus plus its level. The benefit begins when the next combat starts and lasts for 1 minute. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, Max HP of all allies increases by 14% plus an extra 360 for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "402007",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, Max HP of all allies increases by 14% plus an extra 360 for the next battle.",
+      "gmDescription": "Upon use, Max HP of all allies increases by 14% plus an extra 360 for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. Each affected creature gains temporary hit points equal to its proficiency bonus plus its level. The benefit begins when the next combat starts and lasts for 1 minute. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "_id": "1692ae065407f7d9",
+  "name": "Golden Honeycake",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401031.png",
+  "system": {
+    "description": {
+      "value": "<p>Golden Honeycakes, one of the oldest delicacies in Amphoreus history, was once a favorite high-end dessert among the nobility. Now, it's becoming a trendy, fashionable food on Okhema's teleslate...</p><p>\"This thing blew up way too fast... I'm a native Okheman, but I never had sweet pancakes at home growing up!\"<br>\"Apparently, a dessert shop got Mr. Mydei to advertise it on the teleslate, and after it went viral, other businesses got envious...\"<br>\"...But honestly, you have to admit, the new flavors they've developed are actually pretty good.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. When the next combat begins, each affected creature regains 4d4 + 4 hit points.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>When entering the next battle, all allies immediately heal for 24% of their respective Max HP.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "401031",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "When entering the next battle, all allies immediately heal for 24% of their respective Max HP.",
+      "gmDescription": "When entering the next battle, all allies immediately heal for 24% of their respective Max HP.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. When the next combat begins, each affected creature regains 4d4 + 4 hit points."
+    }
+  }
+}

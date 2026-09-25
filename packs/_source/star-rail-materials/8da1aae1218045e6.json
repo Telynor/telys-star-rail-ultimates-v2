@@ -1,0 +1,50 @@
+{
+  "_id": "8da1aae1218045e6",
+  "name": "Healing Spray",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/402001.png",
+  "system": {
+    "description": {
+      "value": "<p>A common medicine used by adventurers to quickly seal wounds with adhesive foam.</p><p>\"In the past, all medical breakthroughs were made with the sweat and blood of the pioneers in this field. Now, with the help of Healing Spray, only sweat is needed!\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, a creature can consume or administer this item. The target regains 6d4 + 6 hit points.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, immediately heals a single ally by 38% of their Max HP plus 400 extra HP.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "402001",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, immediately heals a single ally by 38% of their Max HP plus 400 extra HP.",
+      "gmDescription": "Upon use, immediately heals a single ally by 38% of their Max HP plus 400 extra HP.",
+      "dndEffect": "As an action, a creature can consume or administer this item. The target regains 6d4 + 6 hit points."
+    }
+  }
+}

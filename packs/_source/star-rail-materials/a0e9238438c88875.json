@@ -1,0 +1,50 @@
+{
+  "_id": "a0e9238438c88875",
+  "name": "Camo Paint",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401011.png",
+  "system": {
+    "description": {
+      "value": "<p>The mysterious liquid changes color based on the environment.<br>You'll do the same in a few years' time after graduation.</p><p>\"You're a chameleon, Oswaldo. You know what I mean?\"<br>\"The IPC could use a few chameleons.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, a creature can consume or administer this item. For 10 minutes, the target has advantage on Dexterity (Stealth) checks made to avoid being seen and cannot be tracked by ordinary sight while motionless.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, enemies will be less likely to detect your team for 75s.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "401011",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, enemies will be less likely to detect your team for 75s.",
+      "gmDescription": "Upon use, enemies will be less likely to detect your team for 75s.",
+      "dndEffect": "As an action, a creature can consume or administer this item. For 10 minutes, the target has advantage on Dexterity (Stealth) checks made to avoid being seen and cannot be tracked by ordinary sight while motionless."
+    }
+  }
+}

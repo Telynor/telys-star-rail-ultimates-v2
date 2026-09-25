@@ -1,0 +1,50 @@
+{
+  "_id": "44141686eea6ebf9",
+  "name": "Life Transmitter",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401007.png",
+  "system": {
+    "description": {
+      "value": "<p>A simple device used to provide life-saving oxygen.</p><p>\"Breathe in, breathe out. You'll be fine.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, a creature can consume or administer this item. A creature at 0 hit points regains 2d4 + 2 hit points. This cannot restore a dead creature.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, immediately heals one downed character for 10% of the character's Max HP.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "401007",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, immediately heals one downed character for 10% of the character's Max HP.",
+      "gmDescription": "Upon use, immediately heals one downed character for 10% of the character's Max HP.",
+      "dndEffect": "As an action, a creature can consume or administer this item. A creature at 0 hit points regains 2d4 + 2 hit points. This cannot restore a dead creature."
+    }
+  }
+}

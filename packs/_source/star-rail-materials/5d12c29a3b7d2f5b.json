@@ -1,0 +1,50 @@
+{
+  "_id": "5d12c29a3b7d2f5b",
+  "name": "Deep Marrow Rock Salt",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181018.png",
+  "system": {
+    "description": {
+      "value": "<p>Salt crystals unearthed from the depths of the rift valley, revered by the farmers who toil on the land. Many keep one of these crystals in their homes, treasuring it as the \"bared spine marrow of Georios,\" a generous gift to the farmers. When reclaiming barren land, just a small sprinkling of this rock salt is enough to transform the barren soil into fertile ground, breathing life back into the earth. </p><p>\"Non-organic, non-organic, non-organic, non-organic, non-organic fertilizer is the best!\"</p><hr><h3>Crafting Material</h3><p>This is a crafting reagent used by Star Rail synthesis recipes.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Tier 2 Synthesis Material</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "181018",
+      "contentKind": "material",
+      "hasUsableEffect": false,
+      "originalHsrEffect": "Tier 2 Synthesis Material",
+      "gmDescription": "Tier 2 Synthesis Material",
+      "dndEffect": "This is a crafting reagent used by Star Rail synthesis recipes."
+    }
+  }
+}

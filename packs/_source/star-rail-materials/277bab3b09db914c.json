@@ -1,0 +1,50 @@
+{
+  "_id": "277bab3b09db914c",
+  "name": "Amber Huadiao Wine",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401018.png",
+  "system": {
+    "description": {
+      "value": "<p>Made with high-quality glutinous rice and yeast then combined with water from the Lunarescent Depths, the mixture is then stored over time to produce the unique flavor of amber huadiao Wine. Amber huadiao wine gains value with time. It is common to see ten-years-old, hundred-years-old, and even a thousand-years-old amber huadiao wine out in the market. The older it is, the more fragrant it gets.</p><p>\"When a daughter is born and wails for the first time, the father will make three jars of amber huadiao wine to be saved for the day she is married as a wedding gift.\"<br>\"My amber huadiao wine have been with me for five full centuries, but my daughter is still without a partner.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. Each creature first loses proficiency bonus hit points. Each affected creature gains temporary hit points equal to twice its proficiency bonus plus its level. The benefit begins when the next combat starts and lasts for 1 minute. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, immediately causes all allies to lose HP equal to 5% of their Max HP, and increases their Max HP by 24% for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "401018",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, immediately causes all allies to lose HP equal to 5% of their Max HP, and increases their Max HP by 24% for the next battle.",
+      "gmDescription": "Upon use, immediately causes all allies to lose HP equal to 5% of their Max HP, and increases their Max HP by 24% for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. Each creature first loses proficiency bonus hit points. Each affected creature gains temporary hit points equal to twice its proficiency bonus plus its level. The benefit begins when the next combat starts and lasts for 1 minute. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

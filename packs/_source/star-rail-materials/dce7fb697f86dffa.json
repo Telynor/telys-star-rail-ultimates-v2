@@ -1,0 +1,50 @@
+{
+  "_id": "dce7fb697f86dffa",
+  "name": "Northern Helm",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401034.png",
+  "system": {
+    "description": {
+      "value": "<p>Once belonged to a soldier of Aidonia, this helmet is crafted from the tanned mane of a direwolf. Its fearsome appearance alone is enough to sap the will of enemies who fear death.<br>Warriors who wore this helmet crept onto the battlefield like wild grass, and vanished like morning dew. </p><p>\"The living shall one day join the dead. The bridge across the Styx knows no order.\" — Aidonia</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Temporary hit points gained increase by proficiency bonus, and the creature has +1 AC while it has temporary hit points. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, all allies gain 18% increased Shield Effect for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "401034",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, all allies gain 18% increased Shield Effect for the next battle.",
+      "gmDescription": "Upon use, all allies gain 18% increased Shield Effect for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. Temporary hit points gained increase by proficiency bonus, and the creature has +1 AC while it has temporary hit points. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

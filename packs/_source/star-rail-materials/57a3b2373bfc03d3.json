@@ -1,0 +1,50 @@
+{
+  "_id": "57a3b2373bfc03d3",
+  "name": "Simple First-Aid Device",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/400007.png",
+  "system": {
+    "description": {
+      "value": "<p>It is tiny, but it does its job of stimulating the heart muscles and bringing the heart beat back on track.<br>A milestone in medicine that has saved countless lives.</p><p>\"If you've read up to this part, then you should go spend 30 minutes learning how to perform CPR. You won't find it useful most of the time, but when you do, you'll thank those 30 minutes.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, a creature can consume or administer this item. A creature at 0 hit points regains 1 hit points. This cannot restore a dead creature.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, immediately heals one selected downed character for 5% of their Max HP.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "common",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "400007",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, immediately heals one selected downed character for 5% of their Max HP.",
+      "gmDescription": "Upon use, immediately heals one selected downed character for 5% of their Max HP.",
+      "dndEffect": "As an action, a creature can consume or administer this item. A creature at 0 hit points regains 1 hit points. This cannot restore a dead creature."
+    }
+  }
+}

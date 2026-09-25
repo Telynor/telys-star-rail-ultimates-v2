@@ -1,0 +1,50 @@
+{
+  "_id": "f7ecd6c183460459",
+  "name": "Distinctive Tattered Feather",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/180013.png",
+  "system": {
+    "description": {
+      "value": "<p>A feather adorned with the Titan Aquila's symbol, often found on cliff faces near the heavens. Some believe these are ciliary feathers shed by Aquila, the hundred-eyed giant bird, while others think they are remnants of birds of prey that soared too high, caught in Aquila's gaze, and met their demise. In ancient times, Aquila's disciples collected these feathers in bulk, using them to craft the ceremonial priestly miter. Notably, the Titan symbol on the feathers fades if left exposed to the night air for too long. </p><p>\"If my love for you could be measured... it would surpass the number of Aquila's eyelashes!\"<br>\"...Though, now that I think about it, does the hundred-eyed giant bird even have eyelashes?\"</p><hr><h3>Crafting Material</h3><p>This is a crafting reagent used by Star Rail synthesis recipes.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Tier 1 Synthesis Material</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "common",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "180013",
+      "contentKind": "material",
+      "hasUsableEffect": false,
+      "originalHsrEffect": "Tier 1 Synthesis Material",
+      "gmDescription": "Tier 1 Synthesis Material",
+      "dndEffect": "This is a crafting reagent used by Star Rail synthesis recipes."
+    }
+  }
+}

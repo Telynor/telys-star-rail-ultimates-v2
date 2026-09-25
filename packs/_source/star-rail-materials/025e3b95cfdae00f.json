@@ -1,0 +1,50 @@
+{
+  "_id": "025e3b95cfdae00f",
+  "name": "\"Dreamlight\" Mixed Sweets",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401027.png",
+  "system": {
+    "description": {
+      "value": "<p>A specialty candy of Penacony, each piece concealing a unique filling. Some compare it to life, as you will never know its taste until you try it yourself.</p><p>\"This one is spicy!\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. At the start of each affected creature's turn roll 1d4: lose proficiency bonus hit points, regain proficiency bonus hit points, lose 5 Energy, or regain 5 Energy. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, all allies may consume or restore Energy or HP at the beginning of each turn for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "401027",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, all allies may consume or restore Energy or HP at the beginning of each turn for the next battle.",
+      "gmDescription": "Upon use, all allies may consume or restore Energy or HP at the beginning of each turn for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. The benefit begins when the next combat starts and lasts for 1 minute. At the start of each affected creature's turn roll 1d4: lose proficiency bonus hit points, regain proficiency bonus hit points, lose 5 Energy, or regain 5 Energy. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

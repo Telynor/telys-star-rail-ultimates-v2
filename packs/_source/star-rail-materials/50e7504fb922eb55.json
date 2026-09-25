@@ -1,0 +1,50 @@
+{
+  "_id": "50e7504fb922eb55",
+  "name": "Tian Dong",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/181013.png",
+  "system": {
+    "description": {
+      "value": "<p>While plants of the Tian Dong genus typically grow on land, Tian Dong plants of Scalegorge Waterscape stand out by extensively inhabiting the coastal areas of the Lunarescent Depths. Although artificial cultivation techniques for Tian Dong have become quite prevalent, there are still many who believe in the superstition that \"wild plants have stronger medicinal properties,\" causing significant trouble for the Pearlkeepers.</p><p>\"Plunderers of Tian Dong, to the Shackling Prison they will go.\"</p><hr><h3>Crafting Material</h3><p>This is a crafting reagent used by Star Rail synthesis recipes.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Tier 2 Synthesis Material</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "181013",
+      "contentKind": "material",
+      "hasUsableEffect": false,
+      "originalHsrEffect": "Tier 2 Synthesis Material",
+      "gmDescription": "Tier 2 Synthesis Material",
+      "dndEffect": "This is a crafting reagent used by Star Rail synthesis recipes."
+    }
+  }
+}

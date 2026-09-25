@@ -1,0 +1,50 @@
+{
+  "_id": "9cb836ab3e67de61",
+  "name": "Flaming Potent Tea",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/401015.png",
+  "system": {
+    "description": {
+      "value": "<p>A \"tea\" that is as colorful as stained glass and exudes a rich and enticing aroma. It is a beverage brewed and fermented from the essence of plants. It is a \"tea\" that can be ignited with just a spark. No matter how much the inspectors from the Realm-Keeping Commission interrogate him, the boss will always refer to this drink as a type of \"tea.\"</p><p>\"The commodity tax rate and business permit dictate that what we sell here can only be called 'tea.' Do you understand?\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, consume this item and choose the creatures in your Main Party who can see you. Each affected creature first loses hit points equal to its proficiency bonus. The benefit begins when the next combat starts and lasts for 1 minute. It has advantage on saving throws against being paralyzed or restrained and against cold effects. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, immediately causes all allies to lose HP equal to 5% of their Max HP, and increases their chance to resist Freeze by 30% for the next battle.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "401015",
+      "contentKind": "output",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, immediately causes all allies to lose HP equal to 5% of their Max HP, and increases their chance to resist Freeze by 30% for the next battle.",
+      "gmDescription": "Upon use, immediately causes all allies to lose HP equal to 5% of their Max HP, and increases their chance to resist Freeze by 30% for the next battle.",
+      "dndEffect": "As an action, consume this item and choose the creatures in your Main Party who can see you. Each affected creature first loses hit points equal to its proficiency bonus. The benefit begins when the next combat starts and lasts for 1 minute. It has advantage on saving throws against being paralyzed or restrained and against cold effects. A creature can benefit from only one synthesized pre-combat consumable at a time; a new one replaces the previous one."
+    }
+  }
+}

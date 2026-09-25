@@ -1,0 +1,50 @@
+{
+  "_id": "9af89c7cda6a7d0e",
+  "name": "Trash",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/408001.png",
+  "system": {
+    "description": {
+      "value": "<p>Worthless trash.<br>Better carry some with you.</p><p>\"Some say that in the deep retreats of the cosmos, an invisible portal will open to those carrying a piece of junk.\"</p><hr><h3>D&D 5e Effect</h3><p>As an action, a creature can consume or administer this item. The target loses hit points equal to its proficiency bonus. This cannot reduce it below 1 hit point.</p><section class=\"secret\"><h3>GM Description — Original HSR Effect</h3><p>Upon use, immediately causes a single ally to lose HP equal to 15% of their Max HP.</p></section>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "common",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "408001",
+      "contentKind": "material",
+      "hasUsableEffect": true,
+      "originalHsrEffect": "Upon use, immediately causes a single ally to lose HP equal to 15% of their Max HP.",
+      "gmDescription": "Upon use, immediately causes a single ally to lose HP equal to 15% of their Max HP.",
+      "dndEffect": "As an action, a creature can consume or administer this item. The target loses hit points equal to its proficiency bonus. This cannot reduce it below 1 hit point."
+    }
+  }
+}
