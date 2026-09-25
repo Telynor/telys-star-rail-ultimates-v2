@@ -18,16 +18,16 @@ const DEFAULT_RARITIES = [
 const DEFAULT_HUB_BUTTONS = [
   ["party","Main Character","fas fa-user-check",68,18],["quests","Missions","fas fa-clipboard-list",80,18],["abilities","Abilities","fas fa-circle-nodes",68,38],
   ["crafting","Synthesize","fas fa-flask",80,38],["eidolon-effects","Eidolons","fas fa-gem",68,58],["characters","Characters","fas fa-users",80,58],
-  ["gm","GM Panel","fas fa-sliders",68,78],["quest-manager","Mission Manager","fas fa-list-check",80,78],["configure-hub","Configure Phone","fas fa-mobile-screen",92,78],["contacts-config","Configure Contacts","fas fa-address-book",92,58]
+  ["gm","GM Panel","fas fa-sliders",68,78],["dm-combat","DM Combat","fas fa-crosshairs",56,78],["quest-manager","Mission Manager","fas fa-list-check",80,78],["configure-hub","Configure Phone","fas fa-mobile-screen",92,78],["contacts-config","Configure Contacts","fas fa-address-book",92,58]
 ].map(([action,label,icon,x,y])=>({action,label,icon,x,y,width:10,height:16}));
 const HUB_BUTTON_ACTIONS = [
   ["quests","Mission Log"],["party","Main Character Selector"],["abilities","Ability Bubbles"],["crafting","Party Crafting"],["eidolon-effects","Eidolon Effects"],
   ["check-kit","Check Kit"],["inventory","Main Character Inventory"],["messenger","HSR Messenger"],["sheet","Character Sheet Tab or Element"],
   ["orbs","Combat Party HUD"],["hud-designer","Combat HUD Designer"],["aha-config","Aha Instant Configuration"],["aha-toggle","Aha Instant Orb"],["skill-config","Skill Point Configuration"],
   ["elements","Element Manager"],["paths","Path Manager"],["eidolons","Eidolon Configuration"],["light-cone-generator","Light Cone Generator"],["quest-settings","Mission Settings"],
-  ["characters","Main Character Selector (GM)"],["gm","GM Panel"],["quest-manager","Mission Manager"],["contacts-config","Configure Contacts"],["configure-hub","Phone Hub Designer"]
+  ["characters","Main Character Selector (GM)"],["gm","GM Panel"],["dm-combat","HSR DM Combat menu"],["quest-manager","Mission Manager"],["contacts-config","Configure Contacts"],["configure-hub","Phone Hub Designer"]
 ].map(([value,label])=>({value,label}));
-const GM_ONLY_HUB_ACTIONS = new Set(["gm","quest-manager","contacts-config","configure-hub","characters","quest-settings","elements","paths","eidolons","light-cone-generator","aha-config","skill-config","hud-designer"]);
+const GM_ONLY_HUB_ACTIONS = new Set(["gm","dm-combat","quest-manager","contacts-config","configure-hub","characters","quest-settings","elements","paths","eidolons","light-cone-generator","aha-config","skill-config","hud-designer"]);
 const DEFAULT_HUB_CONFIG = {
   wallpaper:"",wallpaperFit:"cover",wallpaperX:50,wallpaperY:50,wallpaperScale:100,
   snap:true,gridSize:4,poseByActor:{},phoneByActor:{},buttons:DEFAULT_HUB_BUTTONS
@@ -42,6 +42,7 @@ function hubConfig(actor=null,profileKey=""){
     for(const key of ["wallpaper","wallpaperFit","wallpaperX","wallpaperY","wallpaperScale"]) if(actorConfig[key]!==undefined) merged[key]=actorConfig[key];
     if(Array.isArray(actorConfig.buttons)&&actorConfig.buttons.length) merged.buttons=actorConfig.buttons.map((button,index)=>({...DEFAULT_HUB_BUTTONS[index%DEFAULT_HUB_BUTTONS.length],...button}));
   }
+  if(profileKey==="__gm__"&&!merged.buttons.some(button=>button.action==="dm-combat"))merged.buttons.push({...DEFAULT_HUB_BUTTONS.find(button=>button.action==="dm-combat")});
   if(profileKey==="__gm__"&&!merged.buttons.some(button=>button.action==="contacts-config"))merged.buttons.push({...DEFAULT_HUB_BUTTONS.find(button=>button.action==="contacts-config")});
   return merged;
 }
@@ -302,6 +303,7 @@ class HSRHub extends FormApplication {
         "eidolon-effects": ["Eidolon Effects", () => api()?.openEidolonEffectsBrowser?.()],
         characters: ["Main Character", () => new PartyCharacterSelector().render(true)],
         gm: ["Star Rail GM Panel", () => api()?.openGMPanel?.()],
+        "dm-combat": ["HSR DM Combat menu", () => api()?.openDMCombatMenu?.()],
         "aha-config": ["Aha Instant Configuration", () => api()?.openAhaConfig?.()],
         "aha-toggle": ["Aha Instant Orb", async () => {
           const shown = await api()?.toggleAhaOrb?.();
@@ -326,11 +328,23 @@ class HSRHub extends FormApplication {
 
 class HSRHubConfig extends FormApplication {
   static get defaultOptions(){return foundry.utils.mergeObject(super.defaultOptions,{id:"tsru-hub-config",title:"HSR Phone Hub Designer",template:`modules/${MODULE_ID}/templates/hsr-hub-config.hbs`,width:1000,height:820,resizable:true,closeOnSubmit:true});}
-  getData(){const actors=game.actors.filter(actor=>actor.type==="character").sort((a,b)=>String(a.name).localeCompare(String(b.name))),dmPanel=this.actorId==="__gm__"||(!this.actorId&&game.user.isGM),actor=dmPanel?null:(actors.find(entry=>entry.id===this.actorId)||api()?.getSelectedMainCharacter?.()||actors[0]);this.actorId=dmPanel?"__gm__":(actor?.id||"__gm__");const config={...hubConfig(actor,this.actorId),...(this.configDraft??{})},pose={...hubPose(actor,config,this.actorId),...(this.poseDraft??{})};if(!this.buttonsDraft)this.buttonsDraft=clone(config.buttons);const buttons=this.buttonsDraft.map((button,index)=>({...button,double:Boolean(button.double),id:button.id||foundry.utils.randomID(),index,gmOnly:GM_ONLY_HUB_ACTIONS.has(button.action),actionOptions:HUB_BUTTON_ACTIONS.map(option=>({...option,selected:option.value===button.action})),sheetAction:button.action==="sheet",style:`left:${button.x}%;top:${button.y}%;width:${Number(button.width||10)*(button.double?2:1)}%;height:${button.height}%`}));this.buttonsDraft=buttons.map(({actionOptions,sheetAction,style,index,gmOnly,...button})=>button);return {config,dmPanel,profileName:dmPanel?"DM PANEL":actor?.name,actors:[{id:"__gm__",name:"DM PANEL",ownerLabel:"Game Master",selected:dmPanel},...actors.map(entry=>({id:entry.id,name:entry.name,ownerLabel:actorOwnerName(entry),selected:entry.id===this.actorId}))],actor,pose,buttons};}
+  getData(){const actors=game.actors.filter(actor=>actor.type==="character").sort((a,b)=>String(a.name).localeCompare(String(b.name))),dmPanel=this.actorId==="__gm__"||(!this.actorId&&game.user.isGM),actor=dmPanel?null:(actors.find(entry=>entry.id===this.actorId)||api()?.getSelectedMainCharacter?.()||actors[0]);this.actorId=dmPanel?"__gm__":(actor?.id||"__gm__");const config={...hubConfig(actor,this.actorId),...(this.configDraft??{})},pose={...hubPose(actor,config,this.actorId),...(this.poseDraft??{})};if(!this.buttonsDraft)this.buttonsDraft=clone(config.buttons);const buttons=this.buttonsDraft.map((button,index)=>({...button,double:Boolean(button.double),id:button.id||foundry.utils.randomID(),index,gmOnly:GM_ONLY_HUB_ACTIONS.has(button.action),actionOptions:HUB_BUTTON_ACTIONS.map(option=>({...option,selected:option.value===button.action})),sheetAction:button.action==="sheet",style:`left:${button.x}%;top:${button.y}%;width:${Number(button.width||10)*(button.double?2:1)}%;height:${button.height}%`}));this.buttonsDraft=buttons.map(({actionOptions,sheetAction,style,index,gmOnly,...button})=>button);return {config,dmPanel,profileName:dmPanel?"DM PANEL":actor?.name,actors:[{id:"__gm__",name:"DM PANEL",ownerLabel:"Game Master",selected:dmPanel},...actors.map(entry=>({id:entry.id,name:entry.name,ownerLabel:actorOwnerName(entry),selected:entry.id===this.actorId}))],wallpaperActors:actors.map(entry=>({id:entry.id,name:entry.name,img:entry.img,wallpaper:hubConfig(entry,entry.id).wallpaper,selected:entry.id===this.actorId})),actor,pose,buttons};}
   captureButtons(html){const form=html?.is?.("form")?html[0]:html?.find?.("form.tsru-hub-config-form")?.[0];if(!form)return;const expanded=foundry.utils.expandObject(Object.fromEntries(new FormData(form).entries()));this.configDraft={wallpaper:String(expanded.wallpaper||""),wallpaperFit:String(expanded.wallpaperFit||"cover"),wallpaperX:numberOr(expanded.wallpaperX,50),wallpaperY:numberOr(expanded.wallpaperY,50),wallpaperScale:numberOr(expanded.wallpaperScale,100),snap:Boolean(expanded.snap),gridSize:Number(expanded.gridSize)||4};this.poseDraft={image:String(expanded.poseImage||""),x:numberOr(expanded.poseX,50),y:numberOr(expanded.poseY,50),scale:numberOr(expanded.poseScale,100),flip:Boolean(expanded.poseFlip)};const current=Object.values(expanded.buttons??{});this.buttonsDraft=current.map((button,index)=>({...this.buttonsDraft[index],id:String(button.id||this.buttonsDraft[index]?.id||foundry.utils.randomID()),label:String(button.label||"New Button"),icon:String(button.icon||"fas fa-star"),action:String(button.action||"sheet"),target:String(button.target||""),double:String(button.double||"0")==="1",x:numberOr(button.x,0),y:numberOr(button.y,0),width:Math.max(4,numberOr(button.width,10)),height:Math.max(6,numberOr(button.height,16))}));}
   activateListeners(html){
     super.activateListeners(html);activatePickers(html);
     html.find('[name="actorId"]').on("change",event=>{this.actorId=String(event.currentTarget.value);this.buttonsDraft=null;this.configDraft=null;this.poseDraft=null;this.render(false);});
+    html.find("[data-select-phone-wallpaper]").on("click",event=>{this.actorId=event.currentTarget.dataset.selectPhoneWallpaper;this.buttonsDraft=null;this.configDraft=null;this.poseDraft=null;this.render(false);});
+    html.find("[data-save-phone-wallpaper]").on("click",async event=>{
+      if(!game.user.isGM)return;
+      const id=event.currentTarget.dataset.savePhoneWallpaper,actor=game.actors.get(id),row=event.currentTarget.closest("[data-phone-wallpaper-actor]");
+      if(actor?.type!=="character"||!row)return;
+      const wallpaper=String(row.querySelector("input[data-phone-wallpaper-path]")?.value||"").trim();
+      const stored=clone(game.settings.get(MODULE_ID,"hsrHubConfig")??{});stored.phoneByActor??={};
+      stored.phoneByActor[id]={...(stored.phoneByActor[id]??{}),wallpaper};
+      await game.settings.set(MODULE_ID,"hsrHubConfig",stored);
+      if(this.actorId===id){this.configDraft=null;this.poseDraft=null;this.buttonsDraft=null;}
+      refreshQuestWindows();this.render(false);ui.notifications.info(`Saved ${actor.name}'s phone wallpaper.`);
+    });
     html.find("[data-add-hub-button]").on("click",()=>{this.captureButtons(html);this.buttonsDraft.push({id:foundry.utils.randomID(),label:"New Button",icon:"fas fa-star",action:"sheet",target:"features",double:false,x:68,y:78,width:10,height:16});this.render(false);});
     html.find("[data-add-hub-preset]").on("click",event=>{this.captureButtons(html);const action=String(event.currentTarget.dataset.addHubPreset),presets={"check-kit":["Check Kit","fas fa-book-open"],inventory:["Inventory","fas fa-box-open"],messenger:["Messages","fas fa-comments"]},[label,icon]=presets[action]??["New Button","fas fa-star"],count=this.buttonsDraft.length;this.buttonsDraft.push({id:foundry.utils.randomID(),label,icon,action,target:"",x:68+(count%3)*11,y:78-Math.floor(count%6/3)*18,width:10,height:16});this.render(false);});
     html.find("[data-save-player-standard]").on("click",async()=>{this.captureButtons(html);const stored=clone(game.settings.get(MODULE_ID,"hsrHubConfig")??{});stored.standardPlayerButtons=clone(this.buttonsDraft);await game.settings.set(MODULE_ID,"hsrHubConfig",stored);ui.notifications.info("Saved this button format as the standard player phone layout.");});
@@ -642,6 +656,7 @@ function hubToolbarActions() {
     "tsru-talents": ["Talent", () => api()?.showTalentUI?.()],
     "tsru-hub-window": ["HSR Hub", openHub],
     "tsru-gm-panel": ["Star Rail GM Panel", () => api()?.openGMPanel?.()],
+    "tsru-dm-combat": ["HSR DM Combat menu", () => api()?.openDMCombatMenu?.()],
     "tsru-quest-manager": ["Mission Manager", () => new QuestManager().render(true)],
     "tsru-quest-settings": ["Mission Settings", () => new QuestSettings().render(true)],
     "tsru-aha-config": ["Aha Instant Configuration", () => api()?.openAhaConfig?.()],
@@ -678,6 +693,7 @@ function consolidateToolbar(controls) {
     ["tsru-abilities","Show All Ability Bubbles","fas fa-circle-nodes",true,toolbarAction("Ability Bubbles",()=>requireApiMethod("showAllAbilityBubbles")())],
     ["tsru-hub-window","Open HSR Hub","fas fa-grid-2",true,toolbarAction("HSR Hub",openHub)],
     ["tsru-gm-panel","Star Rail GM Panel","fas fa-sliders",game.user.isGM,toolbarAction("Star Rail GM Panel",()=>api()?.openGMPanel?.())],
+    ["tsru-dm-combat","HSR DM Combat menu","fas fa-crosshairs",game.user.isGM,toolbarAction("HSR DM Combat menu",()=>api()?.openDMCombatMenu?.())],
     ["tsru-quest-manager","Mission Manager","fas fa-list-check",game.user.isGM,toolbarAction("Mission Manager",()=>new QuestManager().render(true))],
     ["tsru-quest-settings","Mission Types & Rarities","fas fa-tags",game.user.isGM,toolbarAction("Mission Settings",()=>new QuestSettings().render(true))],
     ["tsru-aha-config","Aha Instant Configuration","fas fa-masks-theater",game.user.isGM,toolbarAction("Aha Instant Configuration",()=>api()?.openAhaConfig?.())],
@@ -687,7 +703,7 @@ function consolidateToolbar(controls) {
     ["tsru-paths","Manage Paths","fas fa-route",game.user.isGM,toolbarAction("Path Manager",()=>api()?.openPathManager?.())],
     ["tsru-eidolons","Configure Eidolon Layers","fas fa-gem",game.user.isGM,toolbarAction("Eidolon Configuration",()=>api()?.openEidolonConfig?.())]
   ].map(([name,title,icon,visible,handler])=>({name,title,icon,button:true,visible,onClick:handler,onChange:handler}));
-  if(game.user.isGM) hubTools=hubTools.filter(tool=>tool.name==="tsru-hub-window");
+  if(game.user.isGM) hubTools=hubTools.filter(tool=>["tsru-hub-window","tsru-dm-combat"].includes(tool.name));
   const hub={name:"tsru-hsr-hub",title:"HSR Hub",icon:"fas fa-rocket",order:89,layer:"controls",tools:hubTools};
   if(Array.isArray(controls)){const existing=controls.findIndex(c=>c.name===hub.name);if(existing>=0)controls.splice(existing,1);controls.push(hub);}
   else controls[hub.name]=hub;
@@ -728,7 +744,7 @@ Hooks.once("ready",()=>{
     if(payload?.type!=="questsChanged")return;refreshQuestWindows();
     if(payload.notify&&payload.sourceUserId!==game.user.id){const q=quests().find(x=>x.id===payload.questId);if(q&&visibleQuest(q))ui.notifications.info(q.status==="complete"?`Mission Complete: ${q.title}`:`New Mission: ${q.title}`);}
   });
-  Object.assign(game.modules.get(MODULE_ID).api??{}, {openHub,openMessenger:()=>new HSRMessenger().render(true),openContactConfig:()=>new HSRContactConfig().render(true),openQuestLog,openQuestManager:()=>new QuestManager().render(true),openQuestSettings:()=>new QuestSettings().render(true),openPartySelector:()=>new PartyCharacterSelector().render(true)});
+  Object.assign(game.modules.get(MODULE_ID).api??{}, {openHub,openMessenger:()=>new HSRMessenger().render(true),openContactConfig:()=>new HSRContactConfig().render(true),openQuestLog,openQuestManager:()=>new QuestManager().render(true),openQuestSettings:()=>new QuestSettings().render(true),openPartySelector:()=>new PartyCharacterSelector().render(true),openPhoneDesigner:()=>{const app=new HSRHubConfig();app.actorId="__gm__";app.render(true);},openCheckKit:()=>showHubKit(api()?.getSelectedMainCharacter?.()),openSelectedSheet:()=>openHubActorSheet(api()?.getSelectedMainCharacter?.()),openSelectedInventory:()=>openHubActorSheet(api()?.getSelectedMainCharacter?.(),"inventory")});
   registerHubToolbarFallback();
 });
 

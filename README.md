@@ -114,6 +114,14 @@ The modifier is calculated like a D&D ability modifier:
 
 When publishing a new version, change `version` and the release filename in `module.json`, then create a matching GitHub release tag.
 
+## Menu shortcuts and phone wallpapers
+
+Open **Game Settings → Configure Settings → Tely's Star Rail Ultimates → Menu Keyboard Shortcuts** to record a shortcut for each menu. Each user's shortcuts are personal; only GMs see and can bind GM menus. Existing Foundry and module shortcuts are checked before saving a new combination. The same actions are also available in Foundry's Configure Controls panel.
+
+In the **Phone Hub Designer**, use **Each Character's Wallpaper** to browse and save an image for each PC. Each card saves only that character's wallpaper. Select **Edit Phone** to set its crop, position, zoom, and button layout.
+
+In a character's GM-only **Character Settings → Enhanced Stance**, enable the controls and choose replacement Combat HUD, Skill, Talent, and initiative portraits. Check **Enhance Ultimate** for alternate splash and orb art, an alternate description, and an extra effect posted to chat. The GM panel then shows an ON/OFF button for that character; OFF immediately uses the original artwork and Ultimate text again.
+
 ## Star Rail Materials compendium maintenance
 
 The editable Item sources live in `packs/_source/star-rail-materials`; the normalized recipe source is `data/hsr-recipe-catalog.json`. After changing either the catalog or the conversion rules in `tools/build-star-rail-materials.mjs`, run `npm install` once and then `npm run build:materials` to rebuild the Foundry LevelDB pack and `data/star-rail-recipes.json`. HSR item and recipe IDs are stored in module flags so future additions can be deduplicated reliably. Increment `HSR_RECIPE_CATALOG_VERSION` when shipping catalog changes so existing worlds receive only newly bundled recipes without overwriting GM edits.

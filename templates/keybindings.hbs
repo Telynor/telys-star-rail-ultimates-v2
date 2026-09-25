@@ -1,0 +1,6 @@
+<form class="tsru-shortcut-settings">
+  <header><h2><i class="fas fa-keyboard"></i> Menu Shortcuts</h2><p>Click Record, press a combination, then Save. These shortcuts belong to your account. Conflicting keys cannot be saved.</p></header>
+  <div class="tsru-shortcut-groups">{{#each groups}}<section><h3>{{this.label}}</h3>
+    {{#each this.menus}}<div class="tsru-shortcut-row"><span>{{this.label}}</span><kbd>{{this.binding}}</kbd><button type="button" data-record-shortcut="{{this.id}}">Record</button><button type="button" data-save-shortcut="{{this.id}}" {{#unless this.ready}}disabled{{/unless}}>Save</button><button type="button" data-clear-shortcut="{{this.id}}" title="Remove shortcut" aria-label="Clear {{this.label}} shortcut"><i class="fas fa-trash"></i></button>{{#if this.warning}}<small class="tsru-shortcut-conflict"><i class="fas fa-triangle-exclamation"></i> Conflicts with {{this.warning}}</small>{{/if}}</div>{{/each}}
+  </section>{{/each}}</div>
+</form>

@@ -99,6 +99,17 @@ const DEFAULT_CONFIG = Object.freeze({
   elationActionText: "",
   ultimateScript: "",
   ultimateText: "",
+  enhancedStanceEnabled: false,
+  enhancedStanceActive: false,
+  enhancedHudPortrait: "",
+  enhancedSkillButtonImage: "",
+  enhancedTalentIcon: "",
+  enhancedCarouselImage: "",
+  enhancedUltimateEnabled: false,
+  enhancedSplashImage: "",
+  enhancedUltimateButtonImage: "",
+  enhancedUltimateText: "",
+  enhancedEffectText: "",
   splashImage: "",
   splashDuration: 1,
   splashX: 50,
@@ -372,6 +383,20 @@ function getConfig(actor) {
   return config;
 }
 
+// Visual overrides are applied only while the GM has enabled this stance.
+// The normal sheet configuration remains untouched and is restored immediately on exit.
+function getVisualConfig(actor) {
+  const config=getConfig(actor);
+  if(!config.enhancedStanceEnabled||!config.enhancedStanceActive)return config;
+  for(const [field,enhanced] of [["combatHudPortrait","enhancedHudPortrait"],["skillButtonImage","enhancedSkillButtonImage"],["talentIcon","enhancedTalentIcon"],["carouselImage","enhancedCarouselImage"]])if(config[enhanced])config[field]=config[enhanced];
+  if(config.enhancedUltimateEnabled){
+    if(config.enhancedUltimateButtonImage)config.ultimateButtonImage=config.enhancedUltimateButtonImage;
+    if(config.enhancedSplashImage)config.splashImage=config.enhancedSplashImage;
+    if(config.enhancedUltimateText)config.ultimateText=config.enhancedUltimateText;
+  }
+  return config;
+}
+
 function initiativePortraitPositionBounds(scalePercent){
   const scale=clamp(Number(scalePercent)||100,50,800);
   const travel=Math.max(1050,scale*1.5);
@@ -429,7 +454,9 @@ function effectiveToughnessWeaknesses(target) {
   const mode = toughnessWeaknessMode(target);
   if (mode === "none") return [];
   if (mode === "all") return getElements().map(element => element.id);
-  const {actor} = toughnessTargetParts(target);
+  const {actor, tokenDocument} = toughnessTargetParts(target);
+  const override = tokenDocument?.getFlag(MODULE_ID, "miniWeaknessOverride");
+  if (Array.isArray(override)) return override.filter(id => getElements().some(element => element.id === id));
   const config = getToughness(actor);
   return [...new Set([...config.weaknesses, ...temporaryToughnessWeaknesses(target)])];
 }
@@ -450,7 +477,7 @@ async function setTemporaryToughnessWeaknesses(target, elementIds) {
   const config = getToughness(actor);
   const valid = new Set(getElements().map(element => element.id));
   const temporaryWeaknesses = [...new Set(elementIds ?? [])].filter(id => valid.has(id) && !config.weaknesses.includes(id));
-  if (tokenDocument) await tokenDocument.setFlag(MODULE_ID, "temporaryWeaknesses", temporaryWeaknesses);
+  if (tokenDocument) { await tokenDocument.unsetFlag(MODULE_ID, "miniWeaknessOverride"); await tokenDocument.setFlag(MODULE_ID, "temporaryWeaknesses", temporaryWeaknesses); }
   else await actor.update({[`flags.${MODULE_ID}.toughness.temporaryWeaknesses`]: temporaryWeaknesses});
   await setToughnessWeaknessMode(target, "");
   refreshToughnessBars();
@@ -468,8 +495,8 @@ async function resetTemporaryToughnessWeaknesses(target = null) {
   for (const entry of targets) {
     const {actor, tokenDocument} = toughnessTargetParts(entry);
     const config = getToughness(actor);
-    if (!temporaryToughnessWeaknesses(entry).length && !toughnessWeaknessMode(entry)) continue;
-    if (tokenDocument) await tokenDocument.setFlag(MODULE_ID, "temporaryWeaknesses", []);
+    if (!temporaryToughnessWeaknesses(entry).length && !toughnessWeaknessMode(entry) && !tokenDocument?.getFlag(MODULE_ID,"miniWeaknessOverride")) continue;
+    if (tokenDocument) { await tokenDocument.unsetFlag(MODULE_ID,"miniWeaknessOverride"); await tokenDocument.setFlag(MODULE_ID, "temporaryWeaknesses", []); }
     else await actor.update({[`flags.${MODULE_ID}.toughness.temporaryWeaknesses`]: []});
     if (tokenDocument) await tokenDocument.unsetFlag(MODULE_ID, "weaknessMode");
     else await actor.unsetFlag(MODULE_ID, "weaknessMode");
@@ -807,7 +834,7 @@ function currentTalentPoints(actor) {
 }
 
 function talentPointLimits(actor) {
-  const config = getConfig(actor);
+  const config = getVisualConfig(actor);
   const trigger = Math.max(0, Math.floor(Number(config.talentPointsMax) || 0));
   return {trigger, overcap: Math.max(trigger, Math.floor(Number(config.talentPointsOvercapMax) || trigger))};
 }
@@ -1615,7 +1642,7 @@ class TalentPointHud {
     const toggle = this.element.querySelector("[data-talent-hud-toggle]");
     if (toggle) toggle.title = layout.minimized ? "Expand Talent Points" : "Minimize Talent Points";
     this.element.querySelector(".tsru-resource-list").innerHTML = actors.map(actor => {
-      const config = getConfig(actor);
+      const config = getVisualConfig(actor);
       return `<div class="tsru-resource-row"><img src="${escapeHTML(config.talentIcon || actor.img || "icons/svg/star.svg")}" alt=""><span class="tsru-resource-name">${escapeHTML(actor.name)}</span><button type="button" data-actor-id="${actor.id}" data-talent-delta="-1" title="Remove 1 Talent Point"><i class="fas fa-minus"></i></button><strong>${currentTalentPoints(actor)}/${Math.max(0, Number(config.talentPointsMax) || 0)}</strong><button type="button" data-actor-id="${actor.id}" data-talent-delta="1" title="Add 1 Talent Point"><i class="fas fa-plus"></i></button></div>`;
     }).join("");
     return this;
@@ -1660,7 +1687,7 @@ function activateStarRailActionDrag(element, actor, action) {
   element.draggable = true;
   element.classList.add("tsru-macro-draggable");
   element.addEventListener("dragstart", event => {
-    const config = getConfig(actor);
+    const config = getVisualConfig(actor);
     const actionDetails = {
       skill: {label: "Skill", img: config.skillButtonImage || actor.img},
       technique: {label: "Technique", img: config.techniqueButtonImage || actor.img},
@@ -1895,7 +1922,7 @@ async function saveTalentButtonLayout(actorId, changes) {
 
 async function showTalentPopup(actor) {
   if (!actor || (!game.user.isGM && !actor.isOwner)) return ui.notifications.error("You do not own this character.");
-  const config = getConfig(actor);
+  const config = getVisualConfig(actor);
   const {trigger, overcap} = talentPointLimits(actor);
   const body = await TextEditor.enrichHTML(config.talentText || "<em>No Talent description has been entered.</em>", {async:true,secrets:actor.isOwner,relativeTo:actor});
   const content = `<section class="tsru-talent-dialog" data-actor-id="${actor.id}"><header><img src="${escapeHTML(config.talentIcon || actor.img || "icons/svg/star.svg")}" alt=""><div><strong>${escapeHTML(actor.name)} — Talent</strong><span data-talent-count>${currentTalentPoints(actor)}/${trigger}${overcap > trigger ? ` (overcap ${overcap})` : ""}</span></div></header><div class="tsru-talent-description">${body}</div><footer><button type="button" data-talent-popup-delta="-1"><i class="fas fa-minus"></i></button><button type="button" data-talent-popup-delta="1"><i class="fas fa-plus"></i></button></footer></section>`;
@@ -1912,7 +1939,7 @@ async function showTalentPopup(actor) {
 class TalentButton {
   constructor(actor) { this.actor=actor; this.element=null; this.drag=null; this.resize=null; }
   render() {
-    const layout=talentButtonLayout(this.actor.id), config=getConfig(this.actor);
+    const layout=talentButtonLayout(this.actor.id), config=getVisualConfig(this.actor);
     if (!layout.visible) return this.destroy();
     if (!this.element) {
       this.element=document.createElement("div");
@@ -2152,7 +2179,7 @@ class SkillButton {
       this.activateListeners();
       activateStarRailActionDrag(this.element.querySelector(".tsru-skill-button"), this.actor, "skill");
     }
-    const config = getConfig(this.actor);
+    const config = getVisualConfig(this.actor);
     const element = getElements().find(entry => entry.id === config.elementId);
     const cost = Math.max(0, Math.floor(Number(config.skillPointCost) || 0));
     const available = getConfig(this.actor).skillEnabled && currentSkillPoints() >= cost && !state.skillLocks.has(this.actor.id);
@@ -2859,7 +2886,7 @@ class UltimateOrb {
   }
 
   render() {
-    const config = getConfig(this.actor);
+    const config = getVisualConfig(this.actor);
     if (!canObserveActor(this.actor)) return this.destroy();
     const layout = userLayout(this.actor.id);
     if (!layout.visible) return this.destroy();
@@ -3116,7 +3143,7 @@ async function handleBossPhaseDefeat(actor) {
 function carouselPortraitData(combatant) {
   if (isAhaCombatant(combatant)){const config=getAhaConfig(),scale=clamp(config.combatantImageScale,50,800),bounds=initiativePortraitPositionBounds(scale);return {image:config.combatantImage||config.buttonImage||DEFAULT_AHA_CONFIG.combatantImage,x:clamp(config.combatantImageX,bounds.min,bounds.max),y:clamp(config.combatantImageY,bounds.min,bounds.max),scale,flip:Boolean(config.combatantImageFlip)};}
   const actor=combatant?.actor;
-  const config=getConfig(actor);
+  const config=getVisualConfig(actor);
   return {image:config.carouselImage || actor?.img || combatant?.img || "icons/svg/mystery-man.svg",x:config.carouselImageX,y:config.carouselImageY,scale:config.carouselImageScale,flip:config.carouselImageFlip};
 }
 
@@ -3538,7 +3565,7 @@ class CombatPartyHud {
     }
     this.element.classList.remove("is-minimized");
     this.element.innerHTML = `<header class="tsru-combat-party-controls"><span class="tsru-combat-party-drag" data-tsru-hud-drag title="Drag combat party HUD"><i class="fas fa-grip-lines"></i></span><button type="button" data-tsru-hud-control="smaller" title="Make HUD smaller"><i class="fas fa-minus"></i></button><span>${Math.round(layout.scale * 100)}%</span><button type="button" data-tsru-hud-control="larger" title="Make HUD larger"><i class="fas fa-plus"></i></button><button type="button" data-tsru-hud-control="minimize" title="Minimize party HUD"><i class="fas fa-window-minimize"></i></button></header><div class="tsru-combat-party-line">${actors.map(actor => {
-      const config = getConfig(actor);
+      const config = getVisualConfig(actor);
       const hp = actor.system?.attributes?.hp ?? {};
       const hpValue = Math.max(0, Number(hp.value) || 0);
       const hpMax = Math.max(1, Number(hp.max) || 1);
@@ -3769,7 +3796,7 @@ async function insertUltimateTurn(actor, resume = {}) {
     tokenId: token?.id ?? null,
     sceneId: token?.parent?.id ?? canvas.scene?.id ?? null,
     initiative,
-    img: getConfig(actor).ultimateButtonImage || getConfig(actor).orbImage || actor.img,
+    img: getVisualConfig(actor).ultimateButtonImage || getVisualConfig(actor).orbImage || actor.img,
     flags: {[MODULE_ID]: {temporaryUltimate: true, resumeCombatantId: resume.combatantId ?? current?.id ?? null, resumeRound: resume.round ?? combat.round}}
   }]);
   if (!temporary) return null;
@@ -3816,7 +3843,9 @@ async function postAbilityText(actor, kind, text, {combatantId = ""} = {}) {
 }
 
 async function runUltimateScript(actor, combatantId = "") {
-  return postAbilityText(actor, "ultimate", getConfig(actor).ultimateText, {combatantId});
+  const config=getVisualConfig(actor),enhanced=config.enhancedStanceEnabled&&config.enhancedStanceActive&&config.enhancedUltimateEnabled&&String(config.enhancedEffectText||"").trim();
+  const text=enhanced?`${config.ultimateText}<h4>Enhanced Effect</h4><div>${config.enhancedEffectText}</div>`:config.ultimateText;
+  return postAbilityText(actor, "ultimate", text, {combatantId});
 }
 
 async function runSkillScript(actor) {
@@ -4033,7 +4062,7 @@ function retryUltimateSplashBroadcast(playbackId) {
 }
 
 function broadcastUltimateSplash(actor) {
-  const config = getConfig(actor);
+  const config = getVisualConfig(actor);
   const element = getElements().find(entry => entry.id === config.elementId);
   const splash = {actorName: actor.name, image: config.splashImage, duration: config.splashDuration, splashX: config.splashX, splashY: config.splashY, splashScale: config.splashScale, ultimateName: config.ultimateName, ultimateSubtitle: config.ultimateSubtitle, titleX: config.titleX, titleY: config.titleY, titleSize: config.titleSize, titleAlign: config.titleAlign, fontFile: config.fontFile, subtitleFontFile: config.subtitleFontFile, color: element?.chargeColor || DEFAULT_CONFIG.chargeColor};
   showSplash(splash);
@@ -5743,6 +5772,42 @@ async function finishActionAdvance(combat, advance) {
   } finally { state.suppressCombatHook = false; }
 }
 
+class DMCombatMenu extends FormApplication {
+  constructor(...args) { super(...args); this.tab = "talents"; this.scrollPositions = {}; }
+  static get defaultOptions() { return foundry.utils.mergeObject(super.defaultOptions, {id:"tsru-dm-combat", title:"HSR DM Combat menu", template:`modules/${MODULE_ID}/templates/dm-combat-menu.hbs`, width:480, height:560, minWidth:350, minHeight:260, resizable:true, closeOnSubmit:false, classes:["tsru-dm-combat-window"]}); }
+  getData() {
+    if (!game.user.isGM) return {};
+    const tabs=[{id:"talents",label:"Talents",icon:"fas fa-star"},{id:"weaknesses",label:"Weaknesses",icon:"fas fa-shield-halved"},{id:"stances",label:"Stances",icon:"fas fa-arrows-rotate"},{id:"phases",label:"Phases",icon:"fas fa-layer-group"}].map(tab=>({...tab,active:this.tab===tab.id}));
+    const talents=game.actors.filter(actor=>["character","npc"].includes(actor.type) && (getConfig(actor).talentText || getConfig(actor).talentPointsMax>0)).sort((a,b)=>a.name.localeCompare(b.name)).map(actor=>{const config=getConfig(actor);return {id:actor.id,name:actor.name,image:config.talentIcon||actor.img,description:plainAbilityText(config.talentText)||"No talent description configured.",points:currentTalentPoints(actor),maximum:config.talentPointsMax,hasPoints:actor.type==="character"&&config.talentPointsMax>0,eligible:Boolean(talentCombatForActor(actor))};});
+    const enemies=(canvas?.tokens?.placeables??[]).filter(token=>token.actor?.type==="npc").map(token=>{const target=token.document,permanent=getToughness(token.actor).weaknesses,active=effectiveToughnessWeaknesses(target),mode=toughnessWeaknessMode(target);return {uuid:target.uuid,name:token.name||token.actor.name,image:token.actor.img,locked:Boolean(target.getFlag(MODULE_ID,"miniWeaknessLocked")),modeLabel:mode==="all"?"All active":mode==="none"?"None active":"",elements:getElements().map(element=>({...element,permanent:permanent.includes(element.id),active:active.includes(element.id)}))};});
+    const stances=game.actors.filter(actor=>actor.type==="character"&&getConfig(actor).enhancedStanceEnabled).sort((a,b)=>a.name.localeCompare(b.name)).map(actor=>({id:actor.id,name:actor.name,image:actor.img,active:getConfig(actor).enhancedStanceActive}));
+    const bosses=new BossPhaseControl().bosses().map(({combatant,encounter,totalPhases,name})=>({id:combatant.id,name,image:combatant.actor?.img||combatant.img,current:encounter.currentPhase,total:totalPhases,phases:Array.from({length:totalPhases},(_,index)=>({number:index+1,active:encounter.currentPhase===index+1}))}));
+    return {tabs,talents,enemies,stances,bosses,talentsTab:this.tab==="talents",weaknessesTab:this.tab==="weaknesses",stancesTab:this.tab==="stances",phasesTab:this.tab==="phases",punchline:currentPunchline(),skillPoints:currentSkillPoints(),hasCombat:Boolean(game.combat?.started)};
+  }
+  refresh() { if (!this.rendered) return; const scroll=this.element?.find?.("[data-dm-scroll]")?.[0]; if(scroll)this.scrollPositions[this.tab]=scroll.scrollTop; this.render(false); }
+  activateListeners(html) {
+    super.activateListeners(html); if(!game.user.isGM){this.close();return;}
+    html.find("[data-dm-scroll]").scrollTop(this.scrollPositions[this.tab]||0).on("scroll",event=>{this.scrollPositions[this.tab]=event.currentTarget.scrollTop;});
+    html.find("[data-dm-tab]").on("click",event=>{this.tab=event.currentTarget.dataset.dmTab;this.render(false);});
+    html.find("[data-dm-talent-popup]").on("click",event=>{const actor=game.actors.get(event.currentTarget.dataset.dmTalentPopup);if(actor)showTalentPopup(actor);});
+    html.find("[data-dm-talent]").on("click",async event=>{const actor=game.actors.get(event.currentTarget.dataset.dmTalent);if(actor&&talentCombatForActor(actor)){await setTalentPoints(actor,currentTalentPoints(actor)+Number(event.currentTarget.dataset.delta));this.refresh();}});
+    html.find("[data-dm-stance]").on("click",async event=>{const actor=game.actors.get(event.currentTarget.dataset.dmStance);if(actor&&getConfig(actor).enhancedStanceEnabled){await actor.update({[`flags.${MODULE_ID}.ultimate.enhancedStanceActive`]:!getConfig(actor).enhancedStanceActive});this.refresh();}});
+    html.find("[data-dm-phase]").on("click",async event=>{const combatant=game.combat?.combatants.get(event.currentTarget.dataset.dmPhase);if(combatant){await switchBossPhase(combatant,Number(event.currentTarget.dataset.phase));this.refresh();}});
+    const tokenFor=async button=>fromUuid(button.dataset.dmElement||button.dataset.dmMode||button.dataset.dmReset||button.dataset.dmWeakLock).catch(()=>null);
+    html.find("[data-dm-weak-lock]").on("click",async event=>{const token=await tokenFor(event.currentTarget);if(token){await token.setFlag(MODULE_ID,"miniWeaknessLocked",!token.getFlag(MODULE_ID,"miniWeaknessLocked"));this.refresh();}});
+    html.find("[data-dm-element]").on("click",async event=>{const token=await tokenFor(event.currentTarget);if(!token||token.getFlag(MODULE_ID,"miniWeaknessLocked"))return;const id=event.currentTarget.dataset.element,selected=effectiveToughnessWeaknesses(token),next=selected.includes(id)?selected.filter(value=>value!==id):[...selected,id];await token.setFlag(MODULE_ID,"miniWeaknessOverride",next);await setToughnessWeaknessMode(token,"");this.refresh();});
+    html.find("[data-dm-mode]").on("click",async event=>{const token=await tokenFor(event.currentTarget);if(token&&!token.getFlag(MODULE_ID,"miniWeaknessLocked")){await setToughnessWeaknessMode(token,event.currentTarget.dataset.mode);this.refresh();}});
+    html.find("[data-dm-reset]").on("click",async event=>{const token=await tokenFor(event.currentTarget);if(token&&!token.getFlag(MODULE_ID,"miniWeaknessLocked")){await resetTemporaryToughnessWeaknesses(token);this.refresh();}});
+    html.find("[data-dm-resource]").on("click",async event=>{const {dmResource,delta}=event.currentTarget.dataset;if(dmResource==="skill")await setSkillPoints(currentSkillPoints()+Number(delta));else await setPunchline(currentPunchline()+Number(delta));this.refresh();});
+    html.find("[data-dm-turn]").on("click",async event=>{const combat=game.combat;if(!combat?.started)return;await (event.currentTarget.dataset.dmTurn==="next"?combat.nextTurn():combat.previousTurn());this.refresh();});
+    html.find("[data-dm-end]").on("click",async()=>{if(game.combat?.started)await game.combat.deleteDialog();this.refresh();});
+    html.find("[data-dm-advance]").on("click",()=>{const choices=(game.combat?.turns??[]).filter(entry=>!isElationActionCombatant(entry)&&!entry.getFlag(MODULE_ID,"temporaryUltimate")&&!entry.getFlag(MODULE_ID,"actionAdvance"));if(!choices.length)return ui.notifications.warn("No combatants are in initiative.");const options=choices.map(entry=>`<option value="${escapeHTML(entry.id)}">${escapeHTML(entry.name)}</option>`).join("");new Dialog({title:"Action Advance",content:`<form><p>Choose an actor in initiative or Aha Instant.</p><select name="combatant">${options}</select></form>`,buttons:{advance:{label:"Advance Action",callback:async dialog=>{const id=dialog.find('[name="combatant"]').val();if(id){await insertActionAdvanceTurn(id);this.refresh();}}},cancel:{label:"Cancel"}},default:"advance"}).render(true);});
+  }
+  async close(...args) { if(state.dmCombatMenu===this)state.dmCombatMenu=null;return super.close(...args); }
+  async _updateObject() {}
+}
+function openDMCombatMenu() { if(!game.user.isGM)return ui.notifications.warn("Only a GM can open the HSR DM Combat menu.");if(!state.dmCombatMenu)state.dmCombatMenu=new DMCombatMenu();state.dmCombatMenu.render(true); }
+
 class StarRailGMPanel extends FormApplication {
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
@@ -5761,7 +5826,7 @@ class StarRailGMPanel extends FormApplication {
     const collapsedCards = game.settings.get(MODULE_ID, "gmPanelCollapsedCards") ?? {};
     const canvasCharacterIds = new Set((canvas?.tokens?.placeables ?? []).filter(token => token.actor?.type === "character").map(token => token.actor.id));
     const characters = game.actors
-      .filter(actor => actor.type === "character" && (getConfig(actor).mainParty || canvasCharacterIds.has(actor.id)))
+      .filter(actor => actor.type === "character" && (getConfig(actor).mainParty || getConfig(actor).enhancedStanceEnabled || canvasCharacterIds.has(actor.id)))
       .map(actor => {
         const hasPlayerOwner=game.users.some(user=>!user.isGM && actor.testUserPermission(user,"OWNER"));
         return {actor, config:getConfig(actor), hasPlayerOwner, isGMPC:!hasPlayerOwner, talentCurrent: currentTalentPoints(actor), talentEligible: Boolean(talentCombatForActor(actor)), modifier: signedNumber(regenModifier(getConfig(actor))), collapsed: Boolean(collapsedCards[`character:${actor.id}`])};
@@ -5790,6 +5855,13 @@ class StarRailGMPanel extends FormApplication {
   }
   activateListeners(html) {
     super.activateListeners(html);
+    html.find("[data-toggle-enhanced-stance]").on("click",async event=>{
+      if(!game.user.isGM)return;
+      const actor=game.actors.get(event.currentTarget.dataset.toggleEnhancedStance),config=getConfig(actor);
+      if(!actor||actor.type!=="character"||!config.enhancedStanceEnabled)return;
+      await actor.update({[`flags.${MODULE_ID}.ultimate.enhancedStanceActive`]:!config.enhancedStanceActive});
+      this.render(false);
+    });
     html.find("[data-collapse-toggle]").on("click", async event => {
       const button = event.currentTarget;
       const key = button.dataset.collapseToggle;
@@ -6195,7 +6267,7 @@ function arrangeUltimateSettings(tab) {
   const party=byTitle("Party Membership"),energy=byTitle("Energy"),lock=party?.querySelector('[name="lockEnergyAfterUltimate"]')?.closest(".tsru-field");
   if(lock&&energy)energy.appendChild(lock);
   if(party)party.querySelector(":scope > h3").innerHTML='<i class="fas fa-users"></i> Party, Portraits &amp; HUD';
-  const order=["Element & Path","Energy","Manual Energy Override","Ultimate & Splash Artwork","Floating Ultimate Orb","Skill","Talent","Technique","Break Character","Boss Encounter","Party, Portraits & HUD","Elation & Punchline"];
+  const order=["Element & Path","Energy","Manual Energy Override","Ultimate & Splash Artwork","Floating Ultimate Orb","Enhanced Stance","Skill","Talent","Technique","Break Character","Boss Encounter","Party, Portraits & HUD","Elation & Punchline"];
   const nav=document.createElement("nav");nav.className="tsru-config-nav";nav.setAttribute("aria-label","Character settings sections");
   for(const title of order){const section=byTitle(title);if(!section)continue;panel.insertBefore(section,panel.querySelector(".tsru-sheet-actions"));const button=document.createElement("button");button.type="button";button.textContent=title.replace("Manual Energy Override","Set Energy").replace("Ultimate & Splash Artwork","Ultimate & Splash").replace("Party, Portraits & HUD","Party & Portraits");button.addEventListener("click",()=>{if(section.classList.contains("is-collapsed"))section.querySelector(".tsru-section-toggle")?.click();section.scrollIntoView({behavior:"smooth",block:"start"});});nav.appendChild(button);}
   panel.querySelector(".tsru-config-heading")?.after(nav);
@@ -6285,7 +6357,8 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
     data[field.name] = field.type === "checkbox" ? field.checked : field.value;
   });
   for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "skillPointCost", "talentPointsCurrent", "talentPointsMax", "talentPointsOvercapMax", "punchlineGain", "splashDuration", "splashX", "splashY", "splashScale", "titleX", "titleY", "titleSize", "combatHudPortraitX", "combatHudPortraitY", "combatHudPortraitScale", "messagingPortraitX", "messagingPortraitY", "messagingPortraitScale", "ultimateButtonX", "ultimateButtonY", "ultimateButtonScale", "bossPhaseCount", "bossPhase2TokenWidth", "bossPhase2TokenHeight", "bossPhase3TokenWidth", "bossPhase3TokenHeight", "bossHudPortraitX", "bossHudPortraitY", "bossHudPortraitScale", "bossHudWidth", "bossHudHealthHeight", "bossHudToughnessHeight"]) data[key] = Number(data[key]);
-  for (const key of ["enabled", "showPercent", "showHudPercent", "skillEnabled", "techniqueEnabled", "mainParty", "trialCharacter", "combatHudPortraitFlip", "ultimateButtonAdjustEnabled", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter", "isBoss", "bossInheritsMainPhaseCount", "carouselFrameColorOverride"]) data[key] = Boolean(data[key]);
+  for (const key of ["enabled", "showPercent", "showHudPercent", "skillEnabled", "techniqueEnabled", "mainParty", "trialCharacter", "combatHudPortraitFlip", "ultimateButtonAdjustEnabled", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter", "isBoss", "bossInheritsMainPhaseCount", "carouselFrameColorOverride", "enhancedStanceEnabled", "enhancedUltimateEnabled"]) data[key] = Boolean(data[key]);
+  if(!data.enhancedStanceEnabled)data.enhancedStanceActive=false;
   data.max = Math.max(1, data.max || 100);
   data.current = clamp(data.current, 0, data.max);
   const savedConfig = getConfig(actor);
@@ -6321,6 +6394,8 @@ function activateConfigListeners(actor, tab, app) {
   tab.find("input, select, textarea, button").prop("disabled", false);
   arrangeUltimateSettings(tab);
   initializeCollapsibleUltimateSections(actor, tab);
+  const updateEnhancedFields=()=>{const enabled=tab.find('[name="enhancedUltimateEnabled"]').prop("checked");tab.find(".tsru-enhanced-ultimate-fields").prop("hidden",!enabled).find("input,textarea,button").prop("disabled",!enabled);};
+  tab.find('[name="enhancedUltimateEnabled"]').on("change",updateEnhancedFields);updateEnhancedFields();
   tab.find("input:not([readonly])").prop("readonly", false);
   activateImageDrops(tab);
   const messengerPreview=tab.find("[data-messaging-portrait-preview]");
@@ -7219,6 +7294,8 @@ function registerApi() {
     resetTemporaryToughnessWeaknesses,
     insertActionAdvanceTurn,
     openGMPanel: openStarRailGMPanel,
+    openDMCombatMenu,
+    openBreakAppearance: () => new BreakAppearanceConfig().render(true),
     openAhaConfig: () => new AhaConfig().render(true),
     openSkillPointConfig: () => new SkillPointConfig().render(true),
     openTalentPointConfig: () => new TalentPointConfig().render(true),
@@ -7228,6 +7305,7 @@ function registerApi() {
     openLightConeGenerator,
     openCrafting,
     openRecipeManager:()=>new RecipeBrowser().render(true),
+    openCraftingClassifications:()=>new CraftingClassificationManager().render(true),
     openCombatHudDesigner,
     triggerSpecialAha,
     showSkillUI,
@@ -7488,15 +7566,24 @@ Hooks.on("renderChatMessage", (message, html) => {
 });
 Hooks.on("tsruEnergyChanged", (actor, before, after, reason) => dispatchTalentEvent("energyChanged", {sourceActor: actor, before, after, amount: after - before, reason}));
 Hooks.on("tsruPunchlineChanged", value => { state.gmPanel?.refreshLiveValues(); dispatchTalentEvent("punchlineChanged", {value}); });
+Hooks.on("tsruPunchlineChanged", () => state.dmCombatMenu?.refresh());
+Hooks.on("tsruSkillPointsChanged", () => state.dmCombatMenu?.refresh());
+Hooks.on("updateCombat", () => state.dmCombatMenu?.refresh());
+Hooks.on("createCombatant", () => state.dmCombatMenu?.refresh());
+Hooks.on("deleteCombatant", () => state.dmCombatMenu?.refresh());
+Hooks.on("updateToken", () => state.dmCombatMenu?.refresh());
 Hooks.on("tsruSkillPointsChanged", value => { state.gmPanel?.refreshLiveValues(); dispatchTalentEvent("skillPointsChanged", {value}); });
 Hooks.on("tsruTalentPointsChanged", (actor, before, after) => { refreshTalentCounter(actor); dispatchTalentEvent("talentPointsChanged", {sourceActor: actor, before, after, amount: after - before}); });
 Hooks.on("updateActor", (actor, changes, options) => {
+  state.dmCombatMenu?.refresh();
   refreshOrb(actor);
   refreshSkillUI();
   refreshTalentCounter(actor);
   refreshResourceHuds();
   refreshToughnessBars();
-  state.gmPanel?.refreshLiveValues();
+  const enhancedChanges=foundry.utils.getProperty(changes,`flags.${MODULE_ID}.ultimate`);
+  if(enhancedChanges && ["enhancedStanceEnabled","enhancedStanceActive","enhancedUltimateEnabled"].some(key=>Object.hasOwn(enhancedChanges,key)))state.gmPanel?.render(false);
+  else state.gmPanel?.refreshLiveValues();
   refreshCombatPartyHud();
   refreshUltimateHotbarMacros();
   refreshPunchlineHUD();
