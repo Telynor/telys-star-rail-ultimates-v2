@@ -102,11 +102,22 @@ const DEFAULT_CONFIG = Object.freeze({
   enhancedStanceEnabled: false,
   enhancedStanceActive: false,
   enhancedHudPortrait: "",
+  enhancedHudPortraitX: 50,
+  enhancedHudPortraitY: 50,
+  enhancedHudPortraitScale: 100,
+  enhancedHudPortraitFlip: false,
   enhancedSkillButtonImage: "",
   enhancedTalentIcon: "",
   enhancedCarouselImage: "",
+  enhancedCarouselImageX: 50,
+  enhancedCarouselImageY: 50,
+  enhancedCarouselImageScale: 100,
+  enhancedCarouselImageFlip: false,
   enhancedUltimateEnabled: false,
   enhancedSplashImage: "",
+  enhancedSplashX: 50,
+  enhancedSplashY: 50,
+  enhancedSplashScale: 100,
   enhancedUltimateButtonImage: "",
   enhancedUltimateText: "",
   enhancedEffectText: "",
@@ -373,10 +384,16 @@ function getConfig(actor) {
   config.bossHudWidth = clamp(config.bossHudWidth, 420, 1400);
   config.bossHudHealthHeight = clamp(config.bossHudHealthHeight, 12, 48);
   config.bossHudToughnessHeight = clamp(config.bossHudToughnessHeight, 4, 24);
+  config.enhancedHudPortraitScale = clamp(config.enhancedHudPortraitScale, 50, 300);
+  config.enhancedCarouselImageScale = clamp(config.enhancedCarouselImageScale, 50, 800);
   config.carouselImageScale = clamp(config.carouselImageScale, 50, 800);
   const carouselBounds=initiativePortraitPositionBounds(config.carouselImageScale);
   config.carouselImageX = clamp(config.carouselImageX, carouselBounds.min, carouselBounds.max);
   config.carouselImageY = clamp(config.carouselImageY, carouselBounds.min, carouselBounds.max);
+  const enhancedBounds=initiativePortraitPositionBounds(config.enhancedCarouselImageScale);
+  config.enhancedCarouselImageX=clamp(config.enhancedCarouselImageX,enhancedBounds.min,enhancedBounds.max);
+  config.enhancedCarouselImageY=clamp(config.enhancedCarouselImageY,enhancedBounds.min,enhancedBounds.max);
+  config.enhancedCarouselImageFlip=Boolean(config.enhancedCarouselImageFlip);
   config.carouselImageFlip = Boolean(config.carouselImageFlip);
   config.carouselFrameColorOverride = Boolean(config.carouselFrameColorOverride);
   if(!/^#[0-9a-f]{6}$/i.test(String(config.carouselFrameColor??"")))config.carouselFrameColor="#58dfee";
@@ -389,9 +406,11 @@ function getVisualConfig(actor) {
   const config=getConfig(actor);
   if(!config.enhancedStanceEnabled||!config.enhancedStanceActive)return config;
   for(const [field,enhanced] of [["combatHudPortrait","enhancedHudPortrait"],["skillButtonImage","enhancedSkillButtonImage"],["talentIcon","enhancedTalentIcon"],["carouselImage","enhancedCarouselImage"]])if(config[enhanced])config[field]=config[enhanced];
+  if(config.enhancedHudPortrait){for(const field of ["X","Y","Scale","Flip"])config[`combatHudPortrait${field}`]=config[`enhancedHudPortrait${field}`];}
+  if(config.enhancedCarouselImage){for(const field of ["X","Y","Scale","Flip"])config[`carouselImage${field}`]=config[`enhancedCarouselImage${field}`];}
   if(config.enhancedUltimateEnabled){
     if(config.enhancedUltimateButtonImage)config.ultimateButtonImage=config.enhancedUltimateButtonImage;
-    if(config.enhancedSplashImage)config.splashImage=config.enhancedSplashImage;
+    if(config.enhancedSplashImage){config.splashImage=config.enhancedSplashImage;for(const field of ["X","Y","Scale"])config[`splash${field}`]=config[`enhancedSplash${field}`];}
     if(config.enhancedUltimateText)config.ultimateText=config.enhancedUltimateText;
   }
   return config;
@@ -3147,27 +3166,30 @@ function carouselPortraitData(combatant) {
   return {image:config.carouselImage || actor?.img || combatant?.img || "icons/svg/mystery-man.svg",x:config.carouselImageX,y:config.carouselImageY,scale:config.carouselImageScale,flip:config.carouselImageFlip};
 }
 
-function openInitiativePortraitEditor(actor){
+function openInitiativePortraitEditor(actor,{enhanced=false}={}){
+  if(!game.user.isGM)return;
+  const prefix=enhanced?"enhancedCarouselImage":"carouselImage",editorKey=`${actor?.id}:${enhanced?"enhanced":"normal"}`;
   if(!actor)return;
-  const existing=state.initiativePortraitEditors.get(actor.id);
+  const existing=state.initiativePortraitEditors.get(editorKey);
   if(existing)return existing.bringToTop?.();
   const config=getConfig(actor),colors=getInitiativeFrameColors();
+  const art={carouselImage:config[prefix]||"",carouselImageX:config[`${prefix}X`],carouselImageY:config[`${prefix}Y`],carouselImageScale:config[`${prefix}Scale`],carouselImageFlip:config[`${prefix}Flip`]};
   const frameOverride=initiativeFrameOverrideEnabled(config),frameColor=frameOverride?(colors.find(entry=>entry.id===config.carouselFrameColorPreset)?.color||config.carouselFrameColor||"#58dfee"):"#58dfee";
   const content=`<form class="tsru-initiative-portrait-editor">
     <div class="tsru-initiative-editor-stage" data-initiative-editor-stage>
-      <button type="button" class="tsru-hsr-turn tsru-initiative-art-mask is-ally is-active ${frameOverride?"has-custom-frame":""}" style="--turn-color:${frameColor};--portrait-x:${config.carouselImageX}%;--portrait-y:${config.carouselImageY}%;--portrait-scale:${config.carouselImageScale/100};--portrait-flip:${config.carouselImageFlip?-1:1}"><span class="tsru-hsr-turn-pointer"><i></i></span><span class="tsru-hsr-turn-card"><span class="tsru-initiative-art-layer"><img src="${escapeHTML(config.carouselImage||actor.img||"icons/svg/mystery-man.svg")}" alt="${escapeHTML(actor.name)}" draggable="false"></span><b>${escapeHTML(actor.name)}</b><small>19</small></span></button>
+      <button type="button" class="tsru-hsr-turn tsru-initiative-art-mask is-ally is-active ${frameOverride?"has-custom-frame":""}" style="--turn-color:${frameColor};--portrait-x:${art.carouselImageX}%;--portrait-y:${art.carouselImageY}%;--portrait-scale:${art.carouselImageScale/100};--portrait-flip:${art.carouselImageFlip?-1:1}"><span class="tsru-hsr-turn-pointer"><i></i></span><span class="tsru-hsr-turn-card"><span class="tsru-initiative-art-layer"><img src="${escapeHTML(art.carouselImage||config.carouselImage||actor.img||"icons/svg/mystery-man.svg")}" alt="${escapeHTML(actor.name)}" draggable="false"></span><b>${escapeHTML(actor.name)}</b><small>19</small></span></button>
     </div>
     <p class="notes">Drop artwork into the preview, drag to reposition it, and use the mouse wheel to zoom. Every change saves automatically.</p>
-    <label><strong>Initiative portrait</strong><span class="tsru-file-control"><input type="text" name="carouselImage" value="${escapeHTML(config.carouselImage)}" placeholder="Use actor portrait"><button type="button" data-initiative-image-picker title="Browse Files"><i class="fas fa-file-import"></i></button></span></label>
-    <div class="tsru-initiative-editor-values"><label>X <input type="number" name="carouselImageX" value="${config.carouselImageX}"></label><label>Y <input type="number" name="carouselImageY" value="${config.carouselImageY}"></label><label>Scale <input type="number" name="carouselImageScale" min="50" max="800" value="${config.carouselImageScale}"></label><label>Flip <input type="checkbox" name="carouselImageFlip" ${config.carouselImageFlip?"checked":""}></label></div>
+    <label><strong>Initiative portrait</strong><span class="tsru-file-control"><input type="text" name="carouselImage" value="${escapeHTML(art.carouselImage)}" placeholder="Use actor portrait"><button type="button" data-initiative-image-picker title="Browse Files"><i class="fas fa-file-import"></i></button></span></label>
+    <div class="tsru-initiative-editor-values"><label>X <input type="number" name="carouselImageX" value="${art.carouselImageX}"></label><label>Y <input type="number" name="carouselImageY" value="${art.carouselImageY}"></label><label>Scale <input type="number" name="carouselImageScale" min="50" max="800" value="${art.carouselImageScale}"></label><label>Flip <input type="checkbox" name="carouselImageFlip" ${art.carouselImageFlip?"checked":""}></label></div>
     <div class="tsru-initiative-editor-status"><i class="fas fa-check"></i> <span>Saved</span></div>
   </form>`;
   let saveTimer=null,saving=false,pending=false,flushSave=()=>{},cleanupEditorEvents=()=>{};
-  const dialog=new Dialog({title:`${actor.name} — Initiative Portrait`,content,buttons:{close:{label:"Close"}},render:html=>{
+  const dialog=new Dialog({title:`${actor.name} — ${enhanced?"Enhanced ":""}Initiative Portrait`,content,buttons:{close:{label:"Close"}},render:html=>{
     const form=html.find(".tsru-initiative-portrait-editor"),stage=form.find("[data-initiative-editor-stage]")[0],image=stage?.querySelector("img"),card=stage?.querySelector(".tsru-hsr-turn"),status=form.find(".tsru-initiative-editor-status span");
     const values=({normalize=false}={})=>{const carouselImageScale=clamp(Number(form.find('[name="carouselImageScale"]').val())||100,50,800),bounds=initiativePortraitPositionBounds(carouselImageScale),data={carouselImage:String(form.find('[name="carouselImage"]').val()||""),carouselImageX:clamp(Number(form.find('[name="carouselImageX"]').val())||0,bounds.min,bounds.max),carouselImageY:clamp(Number(form.find('[name="carouselImageY"]').val())||0,bounds.min,bounds.max),carouselImageScale,carouselImageFlip:Boolean(form.find('[name="carouselImageFlip"]').prop("checked"))};form.find('[name="carouselImageX"],[name="carouselImageY"]').attr({min:bounds.min,max:bounds.max});if(normalize){form.find('[name="carouselImageX"]').val(Math.round(data.carouselImageX));form.find('[name="carouselImageY"]').val(Math.round(data.carouselImageY));form.find('[name="carouselImageScale"]').val(Math.round(data.carouselImageScale));}return data;};
-    const preview=()=>{const data=values();image.src=data.carouselImage||actor.img||"icons/svg/mystery-man.svg";card.style.setProperty("--portrait-x",`${data.carouselImageX}%`);card.style.setProperty("--portrait-y",`${data.carouselImageY}%`);card.style.setProperty("--portrait-scale",String(data.carouselImageScale/100));card.style.setProperty("--portrait-flip",data.carouselImageFlip?-1:1);};
-    const save=async()=>{if(saving){pending=true;return;}saving=true;pending=false;status.text("Saving…");const data=values();try{await actor.update({[`flags.${MODULE_ID}.ultimate.carouselImage`]:data.carouselImage,[`flags.${MODULE_ID}.ultimate.carouselImageX`]:data.carouselImageX,[`flags.${MODULE_ID}.ultimate.carouselImageY`]:data.carouselImageY,[`flags.${MODULE_ID}.ultimate.carouselImageScale`]:data.carouselImageScale,[`flags.${MODULE_ID}.ultimate.carouselImageFlip`]:data.carouselImageFlip},{tsruAutosave:true,render:false});refreshInitiativeCarousel();status.text("Saved");}catch(error){console.error(`${MODULE_ID} | Initiative portrait autosave failed`,error);status.text("Save failed");}finally{saving=false;if(pending)save();}};
+    const preview=()=>{const data=values();image.src=data.carouselImage||config.carouselImage||actor.img||"icons/svg/mystery-man.svg";card.style.setProperty("--portrait-x",`${data.carouselImageX}%`);card.style.setProperty("--portrait-y",`${data.carouselImageY}%`);card.style.setProperty("--portrait-scale",String(data.carouselImageScale/100));card.style.setProperty("--portrait-flip",data.carouselImageFlip?-1:1);};
+    const save=async()=>{if(saving){pending=true;return;}saving=true;pending=false;status.text("Saving…");const data=values();try{await actor.update({[`flags.${MODULE_ID}.ultimate.${prefix}`]:data.carouselImage,[`flags.${MODULE_ID}.ultimate.${prefix}X`]:data.carouselImageX,[`flags.${MODULE_ID}.ultimate.${prefix}Y`]:data.carouselImageY,[`flags.${MODULE_ID}.ultimate.${prefix}Scale`]:data.carouselImageScale,[`flags.${MODULE_ID}.ultimate.${prefix}Flip`]:data.carouselImageFlip},{tsruAutosave:true,render:false});refreshInitiativeCarousel();if(enhanced)syncEnhancedArtworkSheet(actor,Object.fromEntries(Object.entries(data).map(([field,value])=>[`${prefix}${field.slice("carouselImage".length)}`,value])));status.text("Saved");}catch(error){console.error(`${MODULE_ID} | Initiative portrait autosave failed`,error);status.text("Save failed");}finally{saving=false;if(pending)save();}};
     flushSave=save;const scheduleSave=()=>{values({normalize:true});preview();status.text("Unsaved changes…");window.clearTimeout(saveTimer);saveTimer=window.setTimeout(()=>{saveTimer=null;save();},180);};
     form.on("input change","input",scheduleSave);
     form.find("[data-initiative-image-picker]").on("click",event=>{event.preventDefault();new FilePicker({type:"image",current:values().carouselImage,callback:path=>form.find('[name="carouselImage"]').val(path).trigger("change")}).browse();});
@@ -3182,8 +3204,52 @@ function openInitiativePortraitEditor(actor){
     const onWheel=event=>{if(!inStage(event))return;event.preventDefault();event.stopImmediatePropagation();const input=form.find('[name="carouselImageScale"]'),current=values({normalize:true}).carouselImageScale,next=clamp(current+(event.deltaY<0?5:-5),50,800);input.val(next);scheduleSave();};
     document.addEventListener("dragover",onDragOver,true);document.addEventListener("drop",onDrop,true);document.addEventListener("pointerdown",onPointerDown,true);document.addEventListener("pointermove",onPointerMove,true);document.addEventListener("pointerup",finish,true);document.addEventListener("pointercancel",finish,true);document.addEventListener("wheel",onWheel,{capture:true,passive:false});
     cleanupEditorEvents=()=>{document.removeEventListener("dragover",onDragOver,true);document.removeEventListener("drop",onDrop,true);document.removeEventListener("pointerdown",onPointerDown,true);document.removeEventListener("pointermove",onPointerMove,true);document.removeEventListener("pointerup",finish,true);document.removeEventListener("pointercancel",finish,true);document.removeEventListener("wheel",onWheel,true);};preview();
-  },close:()=>{cleanupEditorEvents();if(saveTimer){window.clearTimeout(saveTimer);flushSave();}state.initiativePortraitEditors.delete(actor.id);}}, {width:520,height:"auto",resizable:true,classes:["tsru-initiative-editor-dialog"]});
-  state.initiativePortraitEditors.set(actor.id,dialog);dialog.render(true);
+  },close:()=>{cleanupEditorEvents();if(saveTimer){window.clearTimeout(saveTimer);flushSave();}state.initiativePortraitEditors.delete(editorKey);}}, {width:520,height:"auto",resizable:true,classes:["tsru-initiative-editor-dialog"]});
+  state.initiativePortraitEditors.set(editorKey,dialog);dialog.render(true);
+}
+
+function syncEnhancedArtworkSheet(actor,values){
+  const sheet=actor?.sheet?.element;
+  if(!sheet?.find)return;
+  for(const [name,value] of Object.entries(values)){
+    const input=sheet.find(`[name="${name}"]`);
+    if(input.length){if(typeof value==="boolean")input.prop("checked",value);else input.val(value);}
+  }
+}
+
+function openEnhancedArtworkEditor(actor,kind){
+  if(!game.user.isGM||!actor)return;
+  const key=`${actor.id}:enhanced-${kind}`,previous=state.enhancedArtworkEditors?.get(key);
+  if(previous)return previous.bringToTop?.();
+  if(!state.enhancedArtworkEditors)state.enhancedArtworkEditors=new Map();
+  const config=getConfig(actor),hud=kind==="hud",prefix=hud?"enhancedHudPortrait":"enhancedSplash",normal=hud?"combatHudPortrait":"splash",imageKey=hud?prefix:`${prefix}Image`;
+  const image=config[imageKey]||config[normal]||actor.img||"icons/svg/mystery-man.svg";
+  const x=config[`${prefix}X`],y=config[`${prefix}Y`],scale=config[`${prefix}Scale`];
+  const title=hud?"Enhanced Combat HUD Portrait":"Enhanced Ultimate Splash";
+  const preview=hud?`<div class="tsru-combat-hud-design-preview tsru-enhanced-art-preview" data-enhanced-preview></div>`:`<div class="tsru-splash-designer tsru-enhanced-art-preview" data-enhanced-preview><div class="tsru-splash-designer-media"></div><div class="tsru-title-card tsru-align-${escapeHTML(config.titleAlign||"left")}"><i class="tsru-title-square tsru-title-square-one"></i><i class="tsru-title-square tsru-title-square-two"></i><div class="tsru-title-copy"><div class="tsru-title-name">${escapeHTML(config.ultimateName||actor.name)}</div><div class="tsru-title-bar"><div class="tsru-title-subtitle">${escapeHTML(config.ultimateSubtitle||"")}</div></div></div></div><span class="tsru-splash-designer-help">Drag artwork · Scroll to zoom · Drop to replace</span></div>`;
+  const content=`<form class="tsru-enhanced-art-editor"><p>Drop an image into the preview, drag to position it, and scroll to zoom. Changes save automatically. Empty artwork uses the normal form.</p>${preview}<div class="tsru-file-control"><input type="text" name="image" value="${escapeHTML(config[imageKey]||"")}" placeholder="Use normal artwork"><button type="button" data-enhanced-browse title="Browse files"><i class="fas fa-file-import"></i></button></div><div class="tsru-initiative-editor-values"><label>X <input type="number" name="x" min="0" max="100" value="${x}"></label><label>Y <input type="number" name="y" min="0" max="100" value="${y}"></label><label>Zoom <input type="number" name="scale" min="${hud?50:25}" max="${hud?300:500}" value="${scale}"></label>${hud?`<label>Flip <input type="checkbox" name="flip" ${config.enhancedHudPortraitFlip?"checked":""}></label>`:""}</div><div class="tsru-initiative-editor-status"><i class="fas fa-check"></i> <span>Saved</span></div></form>`;
+  let timer=null,save=()=>Promise.resolve(),cleanup=()=>{};
+  const dialog=new Dialog({title:`${actor.name} — ${title}`,content,buttons:{close:{label:"Close"}},render:html=>{
+    const form=html.find(".tsru-enhanced-art-editor"),stage=form.find("[data-enhanced-preview]")[0],status=form.find(".tsru-initiative-editor-status span");
+    const values=()=>({image:String(form.find('[name="image"]').val()||""),x:clamp(Number(form.find('[name="x"]').val()),0,100),y:clamp(Number(form.find('[name="y"]').val()),0,100),scale:clamp(Number(form.find('[name="scale"]').val()),hud?50:25,hud?300:500),flip:Boolean(form.find('[name="flip"]').prop("checked"))});
+    const renderPreview=()=>{const v=values(),src=v.image||config[normal]||actor.img||"icons/svg/mystery-man.svg";
+      if(hud){const draft={...config,combatHudPortrait:src,combatHudPortraitX:v.x,combatHudPortraitY:v.y,combatHudPortraitScale:v.scale,combatHudPortraitFlip:v.flip};stage.innerHTML=combatHudDesignerPreview(actor,draft);}
+      else{stage.style.setProperty("--tsru-splash-x",`${v.x}%`);stage.style.setProperty("--tsru-splash-y",`${v.y}%`);stage.style.setProperty("--tsru-splash-scale",String(v.scale/100));stage.style.setProperty("--tsru-title-x",`${config.titleX}%`);stage.style.setProperty("--tsru-title-y",`${config.titleY}%`);stage.style.setProperty("--tsru-title-size",`${config.titleSize}px`);const media=stage.querySelector(".tsru-splash-designer-media"),current=media.firstElementChild,video=/\.(webm|mp4|m4v)(\?.*)?$/i.test(src);if(current?.getAttribute("src")!==src||Boolean(current?.tagName==="VIDEO")!==video)media.innerHTML=video?`<video src="${escapeHTML(src)}" autoplay muted loop playsinline></video>`:`<img src="${escapeHTML(src)}" alt="Enhanced Ultimate">`;loadSplashFont(config.fontFile).then(font=>stage.style.setProperty("--tsru-title-font",font)).catch(()=>{});}}
+    let saving=false,pending=false;
+    save=async()=>{if(saving){pending=true;return;}saving=true;pending=false;const v=values();status.text("Saving…");try{const changes={[`flags.${MODULE_ID}.ultimate.${imageKey}`]:v.image,[`flags.${MODULE_ID}.ultimate.${prefix}X`]:v.x,[`flags.${MODULE_ID}.ultimate.${prefix}Y`]:v.y,[`flags.${MODULE_ID}.ultimate.${prefix}Scale`]:v.scale};if(hud)changes[`flags.${MODULE_ID}.ultimate.${prefix}Flip`]=v.flip;await actor.update(changes,{tsruAutosave:true,render:false});syncEnhancedArtworkSheet(actor,Object.fromEntries(Object.entries(changes).map(([path,value])=>[path.split(".").at(-1),value])));refreshCombatPartyHud();refreshInitiativeCarousel();status.text("Saved");}catch(error){console.error(`${MODULE_ID} | Enhanced artwork save failed`,error);status.text("Save failed");}finally{saving=false;if(pending)save();}};
+    const changed=()=>{renderPreview();status.text("Unsaved changes…");window.clearTimeout(timer);timer=window.setTimeout(()=>{timer=null;save();},180);};form.on("input change","input",changed);
+    form.find("[data-enhanced-browse]").on("click",event=>{event.preventDefault();new FilePicker({type:hud?"image":"imagevideo",current:values().image,callback:path=>form.find('[name="image"]').val(path).trigger("change")}).browse();});
+    const inside=event=>event.composedPath?.().includes(stage)||stage.contains(event.target);
+    let drag=null;const onDown=event=>{if(event.button!==0||!inside(event)||event.target.closest?.("button"))return;event.preventDefault();const v=values();drag={id:event.pointerId,x:event.clientX,y:event.clientY,startX:v.x,startY:v.y,rect:stage.getBoundingClientRect()};stage.setPointerCapture?.(event.pointerId);};
+    const onMove=event=>{if(!drag||drag.id!==event.pointerId)return;event.preventDefault();form.find('[name="x"]').val(Math.round(clamp(drag.startX+(event.clientX-drag.x)/Math.max(1,drag.rect.width)*100,0,100)));form.find('[name="y"]').val(Math.round(clamp(drag.startY+(event.clientY-drag.y)/Math.max(1,drag.rect.height)*100,0,100)));changed();};
+    const onUp=event=>{if(drag?.id===event.pointerId){stage.releasePointerCapture?.(event.pointerId);drag=null;}};
+    const onWheel=event=>{if(!inside(event))return;event.preventDefault();const input=form.find('[name="scale"]');input.val(clamp(values().scale+(event.deltaY<0?5:-5),hud?50:25,hud?300:500));changed();};
+    const onDrop=event=>{if(!inside(event))return;event.preventDefault();event.stopImmediatePropagation();stage.classList.remove("is-dragover");const path=droppedAssetPath(event);if(path)form.find('[name="image"]').val(path).trigger("change");};
+    const onDragOver=event=>{if(inside(event)){event.preventDefault();stage.classList.add("is-dragover");}};
+    for(const [name,handler] of [["pointerdown",onDown],["pointermove",onMove],["pointerup",onUp],["pointercancel",onUp],["dragover",onDragOver],["drop",onDrop]])document.addEventListener(name,handler,true);document.addEventListener("wheel",onWheel,{capture:true,passive:false});
+    cleanup=()=>{for(const [name,handler] of [["pointerdown",onDown],["pointermove",onMove],["pointerup",onUp],["pointercancel",onUp],["dragover",onDragOver],["drop",onDrop]])document.removeEventListener(name,handler,true);document.removeEventListener("wheel",onWheel,true);};renderPreview();
+  },close:()=>{cleanup();if(timer){window.clearTimeout(timer);save();}state.enhancedArtworkEditors.delete(key);}}, {width:640,height:"auto",resizable:true,classes:["tsru-enhanced-art-dialog"]});
+  state.enhancedArtworkEditors.set(key,dialog);dialog.render(true);
 }
 
 function carouselTurnKind(combatant) {
@@ -3464,13 +3530,15 @@ function combatPartyActors() {
   const actors = Array.from(combat.combatants ?? []).filter(combatant => {
     if (!game.user.isGM && (combatant.hidden || combatant.token?.hidden)) return false;
     const actor = combatant.actor;
-    if (!actor || actor.type !== "character" || !getConfig(actor).mainParty || seen.has(actor.id)) return false;
+    if (!actor || actor.type !== "character" || seen.has(actor.id)) return false;
     seen.add(actor.id);
     return true;
   }).map(combatant => combatant.actor);
+  const partyActors=actors.filter(actor=>getConfig(actor).mainParty);
+  const lineup=partyActors.length?partyActors:actors;
   const playerOwned = actor => game.users.some(user => !user.isGM && actor.testUserPermission(user, "OWNER"));
-  const players = actors.filter(playerOwned);
-  const gmpcs = actors.filter(actor => !playerOwned(actor));
+  const players = lineup.filter(playerOwned);
+  const gmpcs = lineup.filter(actor => !playerOwned(actor));
   const byName = (a, b) => String(a.name).localeCompare(String(b.name), undefined, {sensitivity: "base"});
   const selections = game.settings.get(MODULE_ID, "partySelections") ?? {};
   const selectedIds = new Set(Object.entries(selections)
@@ -3549,8 +3617,8 @@ class CombatPartyHud {
     this.element.style.setProperty("--hud-user-scale", layout.scale);
     if (Number.isFinite(layout.x) && Number.isFinite(layout.y)) {
       this.element.style.setProperty("--hud-translate", "0px");
-      this.element.style.left = `${clamp(layout.x, 0, window.innerWidth - 50)}px`;
-      this.element.style.top = `${clamp(layout.y, 0, window.innerHeight - 30)}px`;
+      this.element.style.left = `${clamp(layout.x, 0, Math.max(0,window.innerWidth - 180))}px`;
+      this.element.style.top = `${clamp(layout.y, 0, Math.max(0,window.innerHeight - 95))}px`;
       this.element.style.bottom = "auto";
     } else {
       this.element.style.setProperty("--hud-translate", "-50%");
@@ -6356,8 +6424,8 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
   tab.find("[name]").each((_index, field) => {
     data[field.name] = field.type === "checkbox" ? field.checked : field.value;
   });
-  for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "skillPointCost", "talentPointsCurrent", "talentPointsMax", "talentPointsOvercapMax", "punchlineGain", "splashDuration", "splashX", "splashY", "splashScale", "titleX", "titleY", "titleSize", "combatHudPortraitX", "combatHudPortraitY", "combatHudPortraitScale", "messagingPortraitX", "messagingPortraitY", "messagingPortraitScale", "ultimateButtonX", "ultimateButtonY", "ultimateButtonScale", "bossPhaseCount", "bossPhase2TokenWidth", "bossPhase2TokenHeight", "bossPhase3TokenWidth", "bossPhase3TokenHeight", "bossHudPortraitX", "bossHudPortraitY", "bossHudPortraitScale", "bossHudWidth", "bossHudHealthHeight", "bossHudToughnessHeight"]) data[key] = Number(data[key]);
-  for (const key of ["enabled", "showPercent", "showHudPercent", "skillEnabled", "techniqueEnabled", "mainParty", "trialCharacter", "combatHudPortraitFlip", "ultimateButtonAdjustEnabled", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter", "isBoss", "bossInheritsMainPhaseCount", "carouselFrameColorOverride", "enhancedStanceEnabled", "enhancedUltimateEnabled"]) data[key] = Boolean(data[key]);
+  for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "skillPointCost", "talentPointsCurrent", "talentPointsMax", "talentPointsOvercapMax", "punchlineGain", "splashDuration", "splashX", "splashY", "splashScale", "titleX", "titleY", "titleSize", "combatHudPortraitX", "combatHudPortraitY", "combatHudPortraitScale", "enhancedHudPortraitX", "enhancedHudPortraitY", "enhancedHudPortraitScale", "enhancedCarouselImageX", "enhancedCarouselImageY", "enhancedCarouselImageScale", "enhancedSplashX", "enhancedSplashY", "enhancedSplashScale", "messagingPortraitX", "messagingPortraitY", "messagingPortraitScale", "ultimateButtonX", "ultimateButtonY", "ultimateButtonScale", "bossPhaseCount", "bossPhase2TokenWidth", "bossPhase2TokenHeight", "bossPhase3TokenWidth", "bossPhase3TokenHeight", "bossHudPortraitX", "bossHudPortraitY", "bossHudPortraitScale", "bossHudWidth", "bossHudHealthHeight", "bossHudToughnessHeight"]) data[key] = Number(data[key]);
+  for (const key of ["enabled", "showPercent", "showHudPercent", "skillEnabled", "techniqueEnabled", "mainParty", "trialCharacter", "combatHudPortraitFlip", "enhancedHudPortraitFlip", "enhancedCarouselImageFlip", "ultimateButtonAdjustEnabled", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter", "isBoss", "bossInheritsMainPhaseCount", "carouselFrameColorOverride", "enhancedStanceEnabled", "enhancedUltimateEnabled"]) data[key] = Boolean(data[key]);
   if(!data.enhancedStanceEnabled)data.enhancedStanceActive=false;
   data.max = Math.max(1, data.max || 100);
   data.current = clamp(data.current, 0, data.max);
@@ -6375,6 +6443,9 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
   data.bossHudPortraitX=clamp(data.bossHudPortraitX,0,100);data.bossHudPortraitY=clamp(data.bossHudPortraitY,0,100);data.bossHudPortraitScale=clamp(data.bossHudPortraitScale,50,400);data.bossHudWidth=clamp(data.bossHudWidth,420,1400);data.bossHudHealthHeight=clamp(data.bossHudHealthHeight,12,48);data.bossHudToughnessHeight=clamp(data.bossHudToughnessHeight,4,24);
   data.carouselFrameColor=/^#[0-9a-f]{6}$/i.test(String(data.carouselFrameColor??""))?String(data.carouselFrameColor):"#58dfee";
   data.messagingPortraitX=clamp(data.messagingPortraitX,0,100);data.messagingPortraitY=clamp(data.messagingPortraitY,0,100);data.messagingPortraitScale=clamp(data.messagingPortraitScale,50,400);
+  data.enhancedHudPortraitX=clamp(data.enhancedHudPortraitX,0,100);data.enhancedHudPortraitY=clamp(data.enhancedHudPortraitY,0,100);data.enhancedHudPortraitScale=clamp(data.enhancedHudPortraitScale,50,300);
+  data.enhancedCarouselImageScale=clamp(data.enhancedCarouselImageScale,50,800);const enhancedBounds=initiativePortraitPositionBounds(data.enhancedCarouselImageScale);data.enhancedCarouselImageX=clamp(data.enhancedCarouselImageX,enhancedBounds.min,enhancedBounds.max);data.enhancedCarouselImageY=clamp(data.enhancedCarouselImageY,enhancedBounds.min,enhancedBounds.max);
+  data.enhancedSplashX=clamp(data.enhancedSplashX,0,100);data.enhancedSplashY=clamp(data.enhancedSplashY,0,100);data.enhancedSplashScale=clamp(data.enhancedSplashScale,25,500);
   data.carouselFrameColorPreset=String(data.carouselFrameColorPreset||"");
   data.talentCombatId = talentCombatForActor(actor)?.id ?? "";
   await actor.update({[`flags.${MODULE_ID}.ultimate`]: data}, {tsruAutosave: !notify, render: false});
@@ -6477,6 +6548,9 @@ function activateConfigListeners(actor, tab, app) {
     input.val(next).trigger("input");
   });
   tab.find("[data-action='open-initiative-portrait-editor']").on("click.tsru-initiative-preview",event=>{event.preventDefault();openInitiativePortraitEditor(actor);});
+  tab.find("[data-action='open-enhanced-initiative-editor']").on("click",event=>{event.preventDefault();openInitiativePortraitEditor(actor,{enhanced:true});});
+  tab.find("[data-action='open-enhanced-hud-editor']").on("click",event=>{event.preventDefault();openEnhancedArtworkEditor(actor,"hud");});
+  tab.find("[data-action='open-enhanced-splash-editor']").on("click",event=>{event.preventDefault();openEnhancedArtworkEditor(actor,"splash");});
   const ultimatePreview = tab.find("[data-tsru-ultimate-preview]");
   let ultimateDrag = null;
   ultimatePreview.on("pointerdown.tsru-ultimate-crop", "button", event => {
@@ -7801,6 +7875,7 @@ Hooks.on("createCombatant", combatant => {
 });
 
 Hooks.on("combatStart", async combat => {
+  if(game.combat?.id===combat.id){await saveCombatPartyHudLayout({minimized:false});refreshCombatPartyHud();}
   refreshCombatPartyHud();
   refreshPunchlineHUD();
   refreshSkillUI();
