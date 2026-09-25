@@ -1,0 +1,47 @@
+{
+  "_id": "f439b1f6f97038a2",
+  "name": "Variable Dice",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/238.png",
+  "system": {
+    "description": {
+      "value": "<p>Use to reassign the upgrade counts for subsidiary stats of fully enhanced 5-star Relics and randomize their values.</p><p><strong>Use:</strong> Reassigns and randomizes the upgrade distributions of a fully enhanced 5-star Relic's subsidiary stats.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail — Nameless Honor"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "238",
+      "hsrRarity": 5,
+      "sourceTrack": "Nameless Gift / Nameless Honor"
+    }
+  }
+}

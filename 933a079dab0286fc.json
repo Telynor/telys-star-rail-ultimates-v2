@@ -1,0 +1,47 @@
+{
+  "_id": "933a079dab0286fc",
+  "name": "Tracks of Destiny",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/241.png",
+  "system": {
+    "description": {
+      "value": "<p>Advanced level-up material for Traces.</p><p><strong>Use:</strong> Used to activate high-level Traces.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail — Nameless Honor"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "241",
+      "hsrRarity": 5,
+      "sourceTrack": "Nameless Gift / Nameless Honor"
+    }
+  }
+}

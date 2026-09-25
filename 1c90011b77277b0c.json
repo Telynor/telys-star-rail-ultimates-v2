@@ -1,0 +1,47 @@
+{
+  "_id": "1c90011b77277b0c",
+  "name": "Fuel",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/201.png",
+  "system": {
+    "description": {
+      "value": "<p>A canister filled with dreams and courage. This fuel carries the power of the Trailblaze and restores the energy needed to continue the journey.</p><p><strong>Use:</strong> Replenishes 60 Trailblaze Power.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail — Nameless Honor"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "201",
+      "hsrRarity": 4,
+      "sourceTrack": "Nameless Gift / Nameless Honor"
+    }
+  }
+}

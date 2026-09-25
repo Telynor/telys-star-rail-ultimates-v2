@@ -1,0 +1,21 @@
+<form class="tsru-recipe-manager">
+  <header><div><h2><i class="fas fa-hammer"></i> Crafting Recipes</h2><p>Drop Item documents into ingredient and output slots. Recipe cards are created in the Items directory.</p></div><button type="button" data-action="add-recipe"><i class="fas fa-plus"></i> New Recipe</button></header>
+  <div class="tsru-recipe-editor-list">
+    {{#each recipes}}
+    <fieldset class="tsru-recipe-editor">
+      <legend>Recipe {{add @index 1}}</legend>
+      <div class="tsru-recipe-heading"><img src="{{this.img}}"><label>Name<input type="text" value="{{this.name}}" data-recipe-index="{{@index}}" data-recipe-field="name"></label><label>Card artwork<input type="text" value="{{this.img}}" data-recipe-index="{{@index}}" data-recipe-field="img"></label></div>
+      <label>Classification<select data-recipe-index="{{@index}}" data-recipe-field="classificationId">{{#each this.classificationOptions}}<option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.name}}</option>{{/each}}</select></label>
+      <label>Description<textarea data-recipe-index="{{@index}}" data-recipe-field="description">{{this.description}}</textarea></label>
+      <section><h3>Ingredients</h3><div class="tsru-crafting-drop" data-crafting-drop="ingredient" data-recipe-index="{{@index}}"><i class="fas fa-hand-pointer"></i> Drop ingredient Items here</div>
+        <div class="tsru-recipe-items">{{#each this.ingredients}}<div><img src="{{this.img}}"><strong>{{this.name}}</strong><label>Qty <input type="number" min="1" value="{{this.quantity}}" data-recipe-index="{{this.recipeIndex}}" data-ingredient-quantity="{{this.ingredientIndex}}"></label><button type="button" data-action="remove-ingredient" data-recipe-index="{{this.recipeIndex}}" data-ingredient-index="{{this.ingredientIndex}}"><i class="fas fa-trash"></i></button></div>{{else}}<em>No ingredients configured.</em>{{/each}}</div>
+      </section>
+      <section><h3>Crafted Result</h3><div class="tsru-crafting-drop" data-crafting-drop="output" data-recipe-index="{{@index}}"><i class="fas fa-box-open"></i> Drop the output Item here</div>
+        {{#if this.output}}<div class="tsru-recipe-output"><img src="{{this.output.img}}"><strong>{{this.output.name}}</strong><label>Produces <input type="number" min="1" value="{{this.output.quantity}}" data-recipe-index="{{@index}}" data-output-quantity></label></div>{{/if}}
+      </section>
+      <footer><button type="button" data-action="create-recipe-card" data-recipe-index="{{@index}}"><i class="fas fa-scroll"></i> Create Recipe Card</button><button type="button" class="danger" data-action="remove-recipe" data-recipe-index="{{@index}}"><i class="fas fa-trash"></i> Delete Recipe</button></footer>
+    </fieldset>
+    {{else}}<p class="notes">No recipes yet. Create one, then drag Items into it.</p>{{/each}}
+  </div>
+  <button type="button" class="tsru-save-recipes" data-action="save-recipes"><i class="fas fa-save"></i> Save All Recipes</button>
+</form>

@@ -1,0 +1,35 @@
+<form class="tsru-hub-config-form">
+  <header><h2><i class="fas fa-mobile-screen"></i> HSR Phone Hub Designer</h2><p>Choose any player character to view and edit their phone exactly as they will see it. Drag buttons and character artwork in the preview; use the mouse wheel over the character to zoom.</p></header>
+  <div class="tsru-hub-config-fields">
+    <label>Player character<select name="actorId">{{#each actors}}<option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.name}} — {{this.ownerLabel}}</option>{{/each}}</select></label>
+    <label>Pose image<span class="tsru-file-control"><input type="text" name="poseImage" value="{{pose.image}}"><button type="button" class="file-picker" data-type="image" data-target="poseImage"><i class="fas fa-file-import"></i></button></span></label>
+    <label>X<input type="number" name="poseX" value="{{pose.x}}" min="-100" max="200"></label><label>Y<input type="number" name="poseY" value="{{pose.y}}" min="-100" max="200"></label><label>Zoom<input type="number" name="poseScale" value="{{pose.scale}}" min="20" max="500"></label><label>Flip<input type="checkbox" name="poseFlip" {{checked pose.flip}}></label>
+    <label>Phone wallpaper<span class="tsru-file-control"><input type="text" name="wallpaper" value="{{config.wallpaper}}"><button type="button" class="file-picker" data-type="image" data-target="wallpaper"><i class="fas fa-file-import"></i></button></span></label>
+    <label>Wallpaper fit<select name="wallpaperFit"><option value="cover">Cover</option><option value="contain">Contain</option><option value="100% 100%">Stretch</option></select></label>
+    <label>Wallpaper X<input type="number" name="wallpaperX" value="{{config.wallpaperX}}" min="0" max="100"></label><label>Wallpaper Y<input type="number" name="wallpaperY" value="{{config.wallpaperY}}" min="0" max="100"></label><label>Wallpaper zoom<input type="number" name="wallpaperScale" value="{{config.wallpaperScale}}" min="25" max="400"></label>
+    <label>Snap to grid<input type="checkbox" name="snap" {{checked config.snap}}></label><button type="button" data-toggle-hub-snap><i class="fas fa-magnet"></i> {{#if config.snap}}Disable Snapping{{else}}Enable Snapping{{/if}}</button><label>Grid size<input type="number" name="gridSize" value="{{config.gridSize}}" min="1" max="25"></label>
+  </div>
+  <section class="tsru-hub-button-builder">
+    <header><h3><i class="fas fa-grid-2-plus"></i> Phone Buttons</h3><div class="tsru-hub-quick-add"><button type="button" data-save-player-standard><i class="fas fa-bookmark"></i> Save as Player Standard</button><button type="button" data-load-player-standard><i class="fas fa-copy"></i> Load Standard</button><button type="button" data-apply-player-standard><i class="fas fa-users-gear"></i> Apply Standard to All PCs</button><button type="button" data-add-hub-preset="check-kit"><i class="fas fa-book-open"></i> Check Kit</button><button type="button" data-add-hub-preset="inventory"><i class="fas fa-box-open"></i> Inventory</button><button type="button" data-add-hub-preset="messenger"><i class="fas fa-comments"></i> Messenger</button><button type="button" data-add-hub-button><i class="fas fa-plus"></i> Add a Button</button></div></header>
+    <div class="tsru-hub-button-editor-list">
+      {{#each buttons}}<article class="tsru-hub-button-editor {{#if this.sheetAction}}is-sheet-action{{/if}} {{#if this.gmOnly}}is-gm-only{{/if}}" data-hub-button-editor>
+        <input type="hidden" name="buttons.{{this.index}}.id" value="{{this.id}}">
+        <label>Label<input type="text" name="buttons.{{this.index}}.label" value="{{this.label}}"></label>
+        <label>Icon class<input type="text" name="buttons.{{this.index}}.icon" value="{{this.icon}}" placeholder="fas fa-star"></label>
+        <label>Opens<select name="buttons.{{this.index}}.action" data-hub-button-action>{{#each this.actionOptions}}<option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>{{/each}}</select></label>
+        <label class="tsru-hub-sheet-target">Sheet tab / CSS element<input type="text" name="buttons.{{this.index}}.target" value="{{this.target}}" list="tsru-sheet-targets" placeholder="inventory, spells, features, or .css-selector"></label>
+        <label>Width %<input type="number" name="buttons.{{this.index}}.width" value="{{this.width}}" min="4" max="100" step="1" data-hub-button-size></label>
+        <label>Height %<input type="number" name="buttons.{{this.index}}.height" value="{{this.height}}" min="6" max="100" step="1" data-hub-button-size></label>
+        <input type="hidden" name="buttons.{{this.index}}.double" value="{{#if this.double}}1{{else}}0{{/if}}"><button type="button" class="tsru-double-length {{#if this.double}}active{{/if}}" data-toggle-hub-double="{{this.index}}" title="{{#if this.double}}Return to single width{{else}}Make this button two spaces wide{{/if}}"><i class="fas fa-arrows-left-right"></i> {{#if this.double}}Single Length{{else}}Make Double Length{{/if}}</button>
+        <button type="button" class="danger" data-remove-hub-button="{{this.index}}" title="Delete button"><i class="fas fa-trash"></i></button>
+      </article>{{/each}}
+    </div>
+    <datalist id="tsru-sheet-targets"><option value="inventory"><option value="features"><option value="spells"><option value="effects"><option value="biography"><option value="tsru-ultimate"><option value="tsru-eidolons"></datalist>
+  </section>
+  <div class="tsru-hub-designer-preview" data-hub-designer-preview style="--hub-wallpaper:url('{{config.wallpaper}}');--hub-wallpaper-fit:{{config.wallpaperFit}};--hub-wallpaper-x:{{config.wallpaperX}}%;--hub-wallpaper-y:{{config.wallpaperY}}%;--hub-wallpaper-scale:{{config.wallpaperScale}};">
+    <div class="tsru-hub-designer-canvas" data-hub-designer-canvas>
+      {{#unless dmPanel}}<div class="tsru-hub-config-pose" data-hub-pose-preview style="--pose-x:{{pose.x}}%;--pose-y:{{pose.y}}%;--pose-scale:{{pose.scale}};--pose-flip:{{#if pose.flip}}-1{{else}}1{{/if}};"><img src="{{pose.image}}" alt=""></div>{{/unless}}<div class="tsru-hub-config-phone" data-hub-wallpaper-preview title="Drop a wallpaper here, drag to reposition, and use the mouse wheel to zoom"><strong class="tsru-hub-config-profile-name">{{profileName}}</strong><small class="tsru-wallpaper-edit-hint"><i class="fas fa-crop-simple"></i> Drop · Drag · Scroll to crop</small></div>
+      {{#each buttons}}<button type="button" class="tsru-hub-config-button {{#if this.gmOnly}}is-gm-only{{/if}} {{#if this.double}}is-double{{/if}}" data-hub-button-index="{{this.index}}" style="{{this.style}}"><i class="{{this.icon}}"></i><span>{{this.label}}</span><b data-hub-button-resize title="Resize button"></b></button><input type="hidden" name="buttons.{{this.index}}.x" value="{{this.x}}"><input type="hidden" name="buttons.{{this.index}}.y" value="{{this.y}}">{{/each}}
+    </div>
+  </div><button type="submit"><i class="fas fa-save"></i> Save {{profileName}}'s Phone Hub</button>
+</form>

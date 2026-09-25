@@ -32,6 +32,7 @@ A Foundry Virtual Tabletop v14 module for D&D 5e that recreates Honkai: Star Rai
 
 ## Features
 
+- A reusable **Star Rail Materials** Item compendium containing the unique loot rewards from Nameless Gift and Nameless Honor, with original icons and clean descriptions.
 - A movable and resizable circular Ultimate orb for every configured player character.
 - Bottom-to-top animated Energy fill.
 - Element-defined charging and fully charged colors inherited by every assigned character.
@@ -107,6 +108,10 @@ The modifier is calculated like a D&D ability modifier:
 ## Updating
 
 When publishing a new version, change `version` and the release filename in `module.json`, then create a matching GitHub release tag.
+
+## Star Rail Materials compendium maintenance
+
+The editable Item sources live in `packs/_source/star-rail-materials`. After changing the material definitions in `tools/build-star-rail-materials.mjs`, run `npm install` once and then `npm run build:materials` to rebuild the Foundry LevelDB pack. HSR item IDs are stored in module flags so future additions can be deduplicated reliably.
 - Cinematic Ultimate title cards with configurable title/subtitle placement, custom TTF/OTF/WOFF fonts, geometric accents, and live preview
 - Title-card squares and underline automatically inherit the assigned Element's charging color
 - Editable Energy Regen ability card beside the six standard character abilities; all automatic Energy gains use its D&amp;D-style modifier

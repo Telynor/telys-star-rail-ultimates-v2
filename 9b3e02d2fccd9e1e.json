@@ -1,0 +1,47 @@
+{
+  "_id": "9b3e02d2fccd9e1e",
+  "name": "Condensed Aether",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/222.png",
+  "system": {
+    "description": {
+      "value": "<p>A can of Aether refined through special techniques.</p><p><strong>Use:</strong> Provides 2,000 Light Cone EXP.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail — Nameless Honor"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "uncommon",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "222",
+      "hsrRarity": 3,
+      "sourceTrack": "Nameless Gift / Nameless Honor"
+    }
+  }
+}

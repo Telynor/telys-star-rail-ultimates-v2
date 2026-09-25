@@ -1,0 +1,47 @@
+{
+  "_id": "78f40e901617319a",
+  "name": "Refined Aether",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/223.png",
+  "system": {
+    "description": {
+      "value": "<p>A canister of Aether extracted and distilled using special procedures.</p><p><strong>Use:</strong> Provides 6,000 Light Cone EXP.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail — Nameless Honor"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "223",
+      "hsrRarity": 4,
+      "sourceTrack": "Nameless Gift / Nameless Honor"
+    }
+  }
+}

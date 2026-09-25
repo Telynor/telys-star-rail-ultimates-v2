@@ -1,0 +1,47 @@
+{
+  "_id": "a8943a40b092cfd0",
+  "name": "Tears of Dreams",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/110101.png",
+  "system": {
+    "description": {
+      "value": "<p>Sealed thoughts and feelings. Can substitute Path Materials when they are insufficient. The substitution ratio varies depending on the material's rarity.</p><p><strong>Use:</strong> Substitutes for Path Materials when they are insufficient; the required amount varies by material rarity.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail — Nameless Honor"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "110101",
+      "hsrRarity": 4,
+      "sourceTrack": "Nameless Gift / Nameless Honor"
+    }
+  }
+}

@@ -1,0 +1,15 @@
+<form class="tsru-quest-settings-form">
+  <header><h2>Mission Interface Configuration</h2><p>Categories are displayed in ascending order. Every image field accepts any Foundry-accessible image path.</p></header>
+  <fieldset><legend>All Missions Button</legend><div class="tsru-file-control"><input name="questAllIcon" value="{{allIcon}}"><button type="button" class="file-picker" data-type="image" data-target="questAllIcon"><i class="fas fa-file-import"></i></button></div></fieldset>
+  <fieldset><legend>Mission Types</legend>
+    <div class="tsru-config-table tsru-type-table"><b>On</b><b>Name / Tooltip</b><b>Order</b><b>Button Icon</b><b>Mission Background</b><b></b>
+    {{#each types}}<input type="checkbox" name="types.{{@index}}.enabled" {{checked this.enabled}}><input name="types.{{@index}}.name" value="{{this.name}}"><input type="number" name="types.{{@index}}.order" value="{{this.order}}"><div class="tsru-file-control"><input name="types.{{@index}}.icon" value="{{this.icon}}"><button type="button" class="file-picker" data-type="image" data-target="types.{{@index}}.icon"><i class="fas fa-file-import"></i></button></div><div class="tsru-file-control"><input name="types.{{@index}}.background" value="{{this.background}}"><button type="button" class="file-picker" data-type="image" data-target="types.{{@index}}.background"><i class="fas fa-file-import"></i></button></div><button type="button" data-remove-type="{{@index}}"><i class="fas fa-trash"></i></button><input type="hidden" name="types.{{@index}}.id" value="{{this.id}}">{{/each}}
+    </div><button type="button" data-add-type><i class="fas fa-plus"></i> Add Mission Type</button>
+  </fieldset>
+  <fieldset><legend>Reward Rarity Hierarchy</legend><p>Ascending order controls the reward-preview sorting. Higher-order rewards appear later.</p>
+    <div class="tsru-config-table tsru-rarity-table"><b>Name</b><b>Order</b><b>Color</b><b>Frame Background</b><b></b>
+    {{#each rarities}}<input name="rarities.{{@index}}.name" value="{{this.name}}"><input type="number" name="rarities.{{@index}}.order" value="{{this.order}}"><input type="color" name="rarities.{{@index}}.color" value="{{this.color}}"><div class="tsru-file-control"><input name="rarities.{{@index}}.background" value="{{this.background}}"><button type="button" class="file-picker" data-type="image" data-target="rarities.{{@index}}.background"><i class="fas fa-file-import"></i></button></div><button type="button" data-remove-rarity="{{@index}}"><i class="fas fa-trash"></i></button><input type="hidden" name="rarities.{{@index}}.id" value="{{this.id}}">{{/each}}
+    </div><button type="button" data-add-rarity><i class="fas fa-plus"></i> Add Rarity</button>
+  </fieldset>
+  <footer><button type="submit"><i class="fas fa-save"></i> Save Mission Configuration</button></footer>
+</form>

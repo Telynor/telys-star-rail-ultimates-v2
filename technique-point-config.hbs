@@ -1,0 +1,10 @@
+<form class="tsru-config-form tsru-technique-point-config" autocomplete="off">
+  <div class="tsru-config-section">
+    <h3><i class="fas fa-bolt"></i> Shared Technique Points</h3>
+    <p class="notes">Technique Points are shared by the party. A Technique spends 1 point and is unavailable whenever initiative is active.</p>
+    <div class="tsru-field"><label><strong>Maximum</strong><small>Maximum shared Technique Points.</small></label><input type="number" name="maximum" min="1" step="1" value="{{config.maximum}}"></div>
+    <div class="tsru-field"><label><strong>Starting value</strong><small>Default for a newly configured world.</small></label><input type="number" name="starting" min="0" max="{{config.maximum}}" step="1" value="{{config.starting}}"></div>
+    <div class="tsru-field"><label><strong>Current points</strong><small>Set or refill the current shared pool.</small></label><input type="number" name="current" min="0" max="{{config.maximum}}" step="1" value="{{current}}"></div>
+  </div>
+  <footer class="sheet-footer flexrow"><button type="submit"><i class="fas fa-save"></i> Save Technique Configuration</button></footer>
+</form>

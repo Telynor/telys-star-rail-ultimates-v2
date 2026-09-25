@@ -1,0 +1,47 @@
+{
+  "_id": "4c1db9791a9159d2",
+  "name": "Self-Modeling Resin",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/star-rail-materials/236.png",
+  "system": {
+    "description": {
+      "value": "<p>A rare material used for customizing Relics.</p><p><strong>Use:</strong> Used when synthesizing customized Relics.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail — Nameless Honor"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "unidentified": {
+      "description": ""
+    },
+    "properties": [],
+    "type": {
+      "value": "material",
+      "subtype": ""
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "hsrItemId": "236",
+      "hsrRarity": 5,
+      "sourceTrack": "Nameless Gift / Nameless Honor"
+    }
+  }
+}
