@@ -35,6 +35,9 @@ A Foundry Virtual Tabletop v14 module for D&D 5e that recreates Honkai: Star Rai
 - A reusable **Star Rail Materials** Item compendium containing Nameless Honor materials plus 95 HSR synthesis outputs, every required reagent, and a green unlock card for every bundled recipe.
 - Original HSR artwork for crafted items and reagents, with the original HSR effect retained in a GM-only description and a restrained D&D 5e adaptation shown to players.
 - Automatic, non-destructive installation of bundled HSR recipes into Party Crafting. Existing GM-customized recipes are preserved, and every card unlocks its corresponding recipe through the normal party-wide redemption rules.
+- The GM recipe menu lists and searches recipes; each opens in its own editor, and New Recipe opens a separate editor.
+- The GM Mission Manager shows mission cards by type. New missions begin hidden until activated, and missions completed after reward distribution move into the player's Archived Missions tab.
+- Character sheet settings group Energy, Ultimate, splash artwork, and orb controls together with quick section navigation. Phone wallpapers appear inside the app screen behind the buttons.
 - A movable and resizable circular Ultimate orb for every configured player character.
 - Bottom-to-top animated Energy fill.
 - Element-defined charging and fully charged colors inherited by every assigned character.

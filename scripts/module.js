@@ -5319,26 +5319,32 @@ async function droppedCraftingItem(event) {
 }
 
 class RecipeManager extends FormApplication {
-  static get defaultOptions(){return foundry.utils.mergeObject(super.defaultOptions,{id:"tsru-recipe-manager",title:"Tely's Star Rail Ultimates — Recipes",template:`modules/${MODULE_ID}/templates/recipe-manager.hbs`,width:720,height:760,resizable:true,closeOnSubmit:false});}
-  getData(){const classifications=getCraftingClassifications();return {recipes:foundry.utils.deepClone(this._recipesOverride??getCraftingRecipes()).map((recipe,recipeIndex)=>({...recipe,recipeIndex,classificationOptions:classifications.map(entry=>({...entry,selected:entry.id===(recipe.classificationId||"other")})),ingredients:(recipe.ingredients??[]).map((ingredient,ingredientIndex)=>({...ingredient,recipeIndex,ingredientIndex}))}))};}
-  recipes(){return this._recipesOverride??foundry.utils.deepClone(getCraftingRecipes());}
-  async save(){await game.settings.set(MODULE_ID,"craftingRecipes",this.recipes());ui.notifications.info("Crafting recipes saved.");state.craftingApp?.render({force:false});}
+  constructor(recipeId=null,onSaved=null){super();this.recipeId=recipeId;this.onSaved=onSaved;this.draft=foundry.utils.deepClone(getCraftingRecipes().find(recipe=>recipe.id===recipeId)??{id:foundry.utils.randomID(),name:"New Recipe",img:`modules/${MODULE_ID}/assets/star-rail-materials/404001.png`,description:"",classificationId:getCraftingClassifications()[0]?.id||"other",ingredients:[],output:null});}
+  static get defaultOptions(){return foundry.utils.mergeObject(super.defaultOptions,{id:"tsru-recipe-editor",title:"Crafting Recipe",template:`modules/${MODULE_ID}/templates/recipe-editor.hbs`,width:720,height:760,resizable:true,closeOnSubmit:false});}
+  getData(){const classifications=getCraftingClassifications();return {recipes:this.recipes().map((recipe,recipeIndex)=>({...recipe,recipeIndex,classificationOptions:classifications.map(entry=>({...entry,selected:entry.id===(recipe.classificationId||"other")})),ingredients:(recipe.ingredients??[]).map((ingredient,ingredientIndex)=>({...ingredient,recipeIndex,ingredientIndex}))}))};}
+  recipes(){return this._recipesOverride??[foundry.utils.deepClone(this.draft)];}
+  async save(){const recipe=this.recipes()[0];if(!recipe?.name?.trim()){ui.notifications.warn("Give the recipe a name before saving.");return false;}const all=getCraftingRecipes(),index=all.findIndex(entry=>entry.id===recipe.id);if(index<0)all.push(recipe);else all[index]=recipe;await game.settings.set(MODULE_ID,"craftingRecipes",all);this.draft=foundry.utils.deepClone(recipe);this._recipesOverride=null;this.onSaved?.();ui.notifications.info(`Saved ${recipe.name}.`);state.craftingApp?.render({force:false});return true;}
   activateListeners(html){
     super.activateListeners(html);
     html.find("[data-recipe-field]").on("change",event=>{const recipes=this.recipes(),recipe=recipes[Number(event.currentTarget.dataset.recipeIndex)];if(!recipe)return;const field=event.currentTarget.dataset.recipeField;recipe[field]=event.currentTarget.type==="number"?Math.max(1,Number(event.currentTarget.value)||1):event.currentTarget.value;this._recipesOverride=recipes;});
     html.find("[data-ingredient-quantity]").on("change",event=>{const recipes=this.recipes(),recipe=recipes[Number(event.currentTarget.dataset.recipeIndex)],ingredient=recipe?.ingredients?.[Number(event.currentTarget.dataset.ingredientQuantity)];if(ingredient)ingredient.quantity=Math.max(1,Number(event.currentTarget.value)||1);this._recipesOverride=recipes;});
     html.find("[data-output-quantity]").on("change",event=>{const recipes=this.recipes(),recipe=recipes[Number(event.currentTarget.dataset.recipeIndex)];if(recipe?.output)recipe.output.quantity=Math.max(1,Number(event.currentTarget.value)||1);this._recipesOverride=recipes;});
-    html.find("[data-action='add-recipe']").on("click",()=>{const recipes=this.recipes();recipes.push({id:foundry.utils.randomID(),name:"New Recipe",img:"icons/svg/forge.svg",description:"",classificationId:getCraftingClassifications()[0]?.id||"other",ingredients:[],output:null});this._recipesOverride=recipes;this.render(true);});
-    html.find("[data-action='remove-recipe']").on("click",event=>{const recipes=this.recipes();recipes.splice(Number(event.currentTarget.dataset.recipeIndex),1);this._recipesOverride=recipes;this.render(true);});
+    html.find("[data-action='remove-recipe']").on("click",async()=>{if(!await Dialog.confirm({title:"Delete Recipe",content:`<p>Delete <strong>${escapeHTML(this.recipes()[0]?.name||"this recipe")}</strong>? Existing recipe cards will no longer unlock it.</p>`}))return;await game.settings.set(MODULE_ID,"craftingRecipes",getCraftingRecipes().filter(entry=>entry.id!==this.recipes()[0]?.id));this.onSaved?.();this.close();});
     html.find("[data-action='remove-ingredient']").on("click",event=>{const recipes=this.recipes(),recipe=recipes[Number(event.currentTarget.dataset.recipeIndex)];recipe?.ingredients?.splice(Number(event.currentTarget.dataset.ingredientIndex),1);this._recipesOverride=recipes;this.render(true);});
     html.find("[data-crafting-drop]").on("dragover",event=>{event.preventDefault();event.currentTarget.classList.add("is-dragover");}).on("dragleave",event=>event.currentTarget.classList.remove("is-dragover")).on("drop",async event=>{event.preventDefault();event.currentTarget.classList.remove("is-dragover");const item=await droppedCraftingItem(event);if(!item)return ui.notifications.warn("Drop an Item document here.");const recipes=this.recipes(),recipe=recipes[Number(event.currentTarget.dataset.recipeIndex)];if(!recipe)return;if(event.currentTarget.dataset.craftingDrop==="ingredient")recipe.ingredients.push(craftingItemSnapshot(item));else recipe.output=craftingItemSnapshot(item);this._recipesOverride=recipes;this.render(true);});
     html.find("[data-action='save-recipes']").on("click",()=>this.save());
-    html.find("[data-action='create-recipe-card']").on("click",async event=>{await this.save();const recipe=this.recipes()[Number(event.currentTarget.dataset.recipeIndex)];if(!recipe)return;await Item.create({name:`Recipe: ${recipe.name}`,type:"loot",img:recipe.img||recipe.output?.img||"icons/svg/book.svg",system:{quantity:1,description:{value:`<p>Redeem this card in the Crafting menu to unlock <strong>${escapeHTML(recipe.name)}</strong>.</p>`}},flags:{[MODULE_ID]:{recipeCard:{recipeId:recipe.id}}}});ui.notifications.info(`Created Recipe: ${recipe.name} in the Items directory.`);});
+    html.find("[data-action='create-recipe-card']").on("click",async event=>{if(!await this.save())return;const recipe=this.recipes()[Number(event.currentTarget.dataset.recipeIndex)];if(!recipe)return;await Item.create({name:`Recipe: ${recipe.name}`,type:"loot",img:recipe.img||recipe.output?.img||"icons/svg/book.svg",system:{quantity:1,description:{value:`<p>Redeem this card in the Crafting menu to unlock <strong>${escapeHTML(recipe.name)}</strong>.</p>`}},flags:{[MODULE_ID]:{recipeCard:{recipeId:recipe.id}}}});ui.notifications.info(`Created Recipe: ${recipe.name} in the Items directory.`);});
   }
   async _updateObject(){return this.save();}
 }
 
-class RecipeMenu extends FormApplication {render(){new RecipeManager().render(true);return this;}}
+class RecipeBrowser extends FormApplication {
+  static get defaultOptions(){return foundry.utils.mergeObject(super.defaultOptions,{id:"tsru-recipe-browser",title:"Crafting Recipes — GM",template:`modules/${MODULE_ID}/templates/recipe-manager.hbs`,width:800,height:700,resizable:true});}
+  getData(){const categories=new Map(getCraftingClassifications().map(entry=>[entry.id,entry.name]));const recipes=getCraftingRecipes().map(recipe=>({...recipe,categoryName:categories.get(recipe.classificationId)||"Other",ingredientCount:recipe.ingredients?.length||0,outputName:recipe.output?.name||"No result assigned",searchText:`${recipe.name} ${recipe.description||""} ${categories.get(recipe.classificationId)||""}`.toLowerCase()})).sort((a,b)=>a.name.localeCompare(b.name));return {recipes,total:recipes.length};}
+  activateListeners(html){super.activateListeners(html);html.find("[data-recipe-search]").on("input",event=>{const query=String(event.currentTarget.value||"").toLowerCase().trim();html.find("[data-recipe-row]").each((_index,row)=>row.hidden=Boolean(query&&!row.dataset.search.includes(query)));});html.find("[data-open-recipe]").on("click",event=>new RecipeManager(event.currentTarget.dataset.openRecipe,()=>this.render(false)).render(true));html.find("[data-new-recipe]").on("click",()=>new RecipeManager(null,()=>this.render(false)).render(true));}
+  async _updateObject(){}
+}
+class RecipeMenu extends FormApplication {render(){new RecipeBrowser().render(true);return this;}}
 
 class CraftingClassificationManager extends FormApplication{
   static get defaultOptions(){return foundry.utils.mergeObject(super.defaultOptions,{id:"tsru-crafting-classifications",title:"Crafting Item Classifications",template:`modules/${MODULE_ID}/templates/crafting-classifications.hbs`,width:560,height:"auto",resizable:true,closeOnSubmit:false});}
@@ -5913,7 +5919,7 @@ class StarRailGMPanel extends FormApplication {
       if (target === "skills") new SkillPointConfig().render(true);
       if (target === "elements") new ElementManager().render(true);
       if (target === "paths") new PathManager().render(true);
-      if (target === "recipes") new RecipeManager().render(true);
+      if (target === "recipes") new RecipeBrowser().render(true);
       if (target === "eidolons") new EidolonAppearanceConfig().render(true);
       if (target === "eidolon-effects") openEidolonEffectsBrowser();
     });
@@ -6088,7 +6094,7 @@ async function injectUltimateTab(app, html) {
     addSheetConfigFallback(app, root, actor);
     return;
   }
-  nav.append(`<a class="item control tsru-tab-control" data-action="tab" data-tab="tsru-ultimate" data-group="primary" data-tooltip="Ultimate Configuration" aria-label="Ultimate Configuration"><i class="fas fa-burst"></i><span class="tsru-tab-label">Ultimate</span></a>`);
+  nav.append(`<a class="item control tsru-tab-control" data-action="tab" data-tab="tsru-ultimate" data-group="primary" data-tooltip="HSR Character Settings" aria-label="HSR Character Settings"><i class="fas fa-burst"></i><span class="tsru-tab-label">HSR Settings</span></a>`);
   const config = getConfig(actor);
   const elements = getElements().map(entry => ({...entry, selected: entry.id === config.elementId}));
   const paths = getPaths().map(entry => ({...entry, selected: entry.id === config.pathId}));
@@ -6139,7 +6145,7 @@ function addSheetConfigFallback(app, root, actor) {
     ? root.closest(".window-app").find(".window-header").first()
     : root.find(".window-header").first();
   if (!header.length) return console.warn(`${MODULE_ID} | Could not add Ultimate tab or fallback button to`, app);
-  const button = $(`<button type="button" class="header-control icon tsru-config-fallback" data-tooltip="Ultimate Configuration" aria-label="Ultimate Configuration"><i class="fas fa-burst"></i></button>`);
+  const button = $(`<button type="button" class="header-control icon tsru-config-fallback" data-tooltip="HSR Character Settings" aria-label="HSR Character Settings"><i class="fas fa-burst"></i></button>`);
   header.find(".window-controls").prepend(button);
   button.on("click", () => openUltimateConfig(actor, app));
 }
@@ -6167,7 +6173,7 @@ async function openUltimateConfig(actor, sheetApp = null) {
     bossPhase2: config.bossPhaseCount === 2,
     bossPhase3: config.bossPhaseCount === 3
   });
-  const dialog = new Dialog({title: `${actor.name} — Ultimate Configuration`, content, buttons: {close: {label: "Close"}}}, {width: 620, height: 760, resizable: true, classes: ["tsru-config-dialog"]});
+  const dialog = new Dialog({title: `${actor.name} — HSR Character Settings`, content, buttons: {close: {label: "Close"}}}, {width: 620, height: 760, resizable: true, classes: ["tsru-config-dialog"]});
   Hooks.once("renderDialog", rendered => {
     if (rendered !== dialog) return;
     const root = rendered.element.find(".tsru-sheet-tab").addClass("active");
@@ -6178,7 +6184,21 @@ async function openUltimateConfig(actor, sheetApp = null) {
 
 function ultimateSectionStateKey(section, index) {
   const title = section.querySelector(":scope > h3")?.textContent?.trim()?.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "section";
-  return `${index}-${title}`;
+  return title;
+}
+
+function arrangeUltimateSettings(tab) {
+  const root=tab?.jquery?tab[0]:tab, panel=root?.querySelector(".tsru-config-panel");
+  if(!panel||panel.querySelector(".tsru-config-nav"))return;
+  const sections=[...panel.querySelectorAll(":scope > .tsru-config-section")];
+  const byTitle=title=>sections.find(section=>section.querySelector(":scope > h3")?.textContent?.trim().startsWith(title));
+  const party=byTitle("Party Membership"),energy=byTitle("Energy"),lock=party?.querySelector('[name="lockEnergyAfterUltimate"]')?.closest(".tsru-field");
+  if(lock&&energy)energy.appendChild(lock);
+  if(party)party.querySelector(":scope > h3").innerHTML='<i class="fas fa-users"></i> Party, Portraits &amp; HUD';
+  const order=["Element & Path","Energy","Manual Energy Override","Ultimate & Splash Artwork","Floating Ultimate Orb","Skill","Talent","Technique","Break Character","Boss Encounter","Party, Portraits & HUD","Elation & Punchline"];
+  const nav=document.createElement("nav");nav.className="tsru-config-nav";nav.setAttribute("aria-label","Character settings sections");
+  for(const title of order){const section=byTitle(title);if(!section)continue;panel.insertBefore(section,panel.querySelector(".tsru-sheet-actions"));const button=document.createElement("button");button.type="button";button.textContent=title.replace("Manual Energy Override","Set Energy").replace("Ultimate & Splash Artwork","Ultimate & Splash").replace("Party, Portraits & HUD","Party & Portraits");button.addEventListener("click",()=>{if(section.classList.contains("is-collapsed"))section.querySelector(".tsru-section-toggle")?.click();section.scrollIntoView({behavior:"smooth",block:"start"});});nav.appendChild(button);}
+  panel.querySelector(".tsru-config-heading")?.after(nav);
 }
 
 async function saveUltimateSectionStates(actorId, states) {
@@ -6299,6 +6319,7 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
 
 function activateConfigListeners(actor, tab, app) {
   tab.find("input, select, textarea, button").prop("disabled", false);
+  arrangeUltimateSettings(tab);
   initializeCollapsibleUltimateSections(actor, tab);
   tab.find("input:not([readonly])").prop("readonly", false);
   activateImageDrops(tab);
@@ -7206,7 +7227,7 @@ function registerApi() {
     openEidolonEffectsBrowser,
     openLightConeGenerator,
     openCrafting,
-    openRecipeManager:()=>new RecipeManager().render(true),
+    openRecipeManager:()=>new RecipeBrowser().render(true),
     openCombatHudDesigner,
     triggerSpecialAha,
     showSkillUI,
