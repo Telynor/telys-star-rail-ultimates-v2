@@ -6207,12 +6207,14 @@ async function finishActionAdvance(combat, advance) {
 
 function combatTalentGroups() {
   const combat=game.combat,scene=canvas?.scene;
-  if (!combat?.started || !scene || (combat.scene?.id ?? combat.sceneId) !== scene.id) return [];
+  if (!combat?.started || !scene) return [];
+  const combatSceneId=typeof combat.scene==="string"?combat.scene:(combat.scene?.id??combat.sceneId);
+  if (combatSceneId && combatSceneId!==scene.id) return [];
   const tokens=new Map((canvas.tokens?.placeables??[]).map(token=>[token.document.id,token]));
   const groups=[{label:"Main Party",talents:[]},{label:"GM Main Party",talents:[]},{label:"NPC Player Characters",talents:[]}];
   const seen=new Set();
   for (const combatant of combat.combatants) {
-    const token=tokens.get(combatant.tokenId),actor=token?.actor;
+    const token=tokens.get(combatant.tokenId??combatant.token?.id),actor=token?.actor??token?.document?.actor;
     if (!actor || !["character","npc"].includes(actor.type) || seen.has(actor.id)) continue;
     const config=getConfig(actor);
     if (!config.talentText && !(config.talentPointsMax>0)) continue;
