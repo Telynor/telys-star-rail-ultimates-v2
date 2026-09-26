@@ -108,9 +108,17 @@ const DEFAULT_CONFIG = Object.freeze({
   enhancedTransitionInX: 0,
   enhancedTransitionInY: 0,
   enhancedTransitionInScale: 100,
+  enhancedTransitionInContrast: 100,
+  enhancedTransitionInSaturation: 100,
+  enhancedTransitionInBrightness: 100,
+  enhancedTransitionInHue: 0,
   enhancedTransitionOutX: 0,
   enhancedTransitionOutY: 0,
   enhancedTransitionOutScale: 100,
+  enhancedTransitionOutContrast: 100,
+  enhancedTransitionOutSaturation: 100,
+  enhancedTransitionOutBrightness: 100,
+  enhancedTransitionOutHue: 0,
   enhancedHudPortrait: "",
   enhancedHudPortraitX: 50,
   enhancedHudPortraitY: 50,
@@ -434,12 +442,14 @@ function playEnhancedTokenTransition(actor,entering){
   const config=getConfig(actor),source=String((entering?config.enhancedTransitionInGif:config.enhancedTransitionOutGif)||"").trim();
   const prefix=entering?"enhancedTransitionIn":"enhancedTransitionOut";
   const offsetX=clamp(config[`${prefix}X`],-300,300)/100,offsetY=clamp(config[`${prefix}Y`],-300,300)/100,scale=clamp(config[`${prefix}Scale`],10,500)/100;
+  const filter=enhancedTransitionFilter(config,prefix);
   if(!source||!canvas?.ready)return Promise.resolve();
   const tokens=(canvas.tokens?.placeables??[]).filter(token=>token.document?.actorId===actor.id);
   if(!tokens.length)return Promise.resolve();
   const duration=clamp(config.enhancedTransitionDuration,0.2,15)*1000;
   return Promise.all(tokens.map(token=>new Promise(resolve=>{
     const image=document.createElement("img");image.className="tsru-enhanced-token-transition";image.alt="";image.setAttribute("aria-hidden","true");
+    image.style.filter=filter;
     image.src=`${source}${source.includes("?")?"&":"?"}tsruTransition=${Date.now()}`;
     document.body.appendChild(image);
     let frame=0,finished=false;const started=performance.now();
@@ -466,6 +476,12 @@ function playEnhancedTokenTransition(actor,entering){
   }))).then(()=>{});
 }
 
+function enhancedTransitionFilter(config,prefix){
+  const contrast=clamp(config[`${prefix}Contrast`],0,300),saturation=clamp(config[`${prefix}Saturation`],0,300);
+  const brightness=clamp(config[`${prefix}Brightness`],0,300),hue=clamp(config[`${prefix}Hue`],-180,180);
+  return `contrast(${contrast}%) saturate(${saturation}%) brightness(${brightness}%) hue-rotate(${hue}deg)`;
+}
+
 // Token images are changed on placed TokenDocuments only. Each token keeps its
 // own original texture in a persistent flag, so a stance toggle never alters
 // the actor prototype or another character's artwork.
@@ -480,12 +496,18 @@ async function syncEnhancedTokenArtwork(actor){
       if(enhanced){
         if(!original){
           const current=String(token.texture?.src||"");
-          if(current===image)continue;
-          await token.update({"texture.src":image,[`flags.${MODULE_ID}.enhancedStanceOriginalToken`]:{actorId:actor.id,src:current}});
+          const fallback=String(actor.prototypeToken?.texture?.src||"");
+          if(current===image&&(!fallback||fallback===image))continue;
+          await token.update({"texture.src":image,[`flags.${MODULE_ID}.enhancedStanceOriginalToken`]:{actorId:actor.id,src:current===image?fallback:current}});
         }else if(original.actorId===actor.id&&token.texture?.src!==image)await token.update({"texture.src":image});
       }else if(original?.actorId===actor.id){
-        if(token.texture?.src!==original.src)await token.update({"texture.src":original.src});
+        const restored=String(original.src||actor.prototypeToken?.texture?.src||"");
+        if(restored&&token.texture?.src!==restored)await token.update({"texture.src":restored});
         await token.unsetFlag(MODULE_ID,"enhancedStanceOriginalToken");
+      }else if(image&&token.texture?.src===image){
+        // Recover tokens left in enhanced artwork by an older interrupted toggle.
+        const fallback=String(actor.prototypeToken?.texture?.src||"");
+        if(fallback&&fallback!==image)await token.update({"texture.src":fallback});
       }
     }
   }
@@ -5991,7 +6013,7 @@ class DMCombatMenu extends FormApplication {
     html.find("[data-dm-tab]").on("click",event=>{this.tab=event.currentTarget.dataset.dmTab;this.render(false);});
     html.find("[data-dm-talent-popup]").on("click",event=>{const actor=game.actors.get(event.currentTarget.dataset.dmTalentPopup);if(actor)showTalentPopup(actor);});
     html.find("[data-dm-talent]").on("click",async event=>{const actor=game.actors.get(event.currentTarget.dataset.dmTalent);if(actor&&talentCombatForActor(actor)){await setTalentPoints(actor,currentTalentPoints(actor)+Number(event.currentTarget.dataset.delta));this.refresh();}});
-    html.find("[data-dm-stance]").on("click",async event=>{const actor=game.actors.get(event.currentTarget.dataset.dmStance);if(actor&&getConfig(actor).enhancedStanceEnabled){if(state.skillLocks.has(actor.id)||state.ultimateLocks.has(actor.id))return ui.notifications.warn("Finish the current Skill or Ultimate before changing stance.");await actor.update({[`flags.${MODULE_ID}.ultimate.enhancedStanceActive`]:!getConfig(actor).enhancedStanceActive});this.refresh();}});
+    html.find("[data-dm-stance]").on("click",async event=>{const button=event.currentTarget,actor=game.actors.get(button.dataset.dmStance);if(actor&&getConfig(actor).enhancedStanceEnabled){if(state.skillLocks.has(actor.id)||state.ultimateLocks.has(actor.id))return ui.notifications.warn("Finish the current Skill or Ultimate before changing stance.");if(button.disabled)return;button.disabled=true;try{await actor.update({[`flags.${MODULE_ID}.ultimate.enhancedStanceActive`]:!getConfig(actor).enhancedStanceActive});this.refresh();}catch(error){button.disabled=false;ui.notifications.error(`Could not change ${actor.name}'s stance: ${error.message}`);}}});
     html.find("[data-dm-phase]").on("click",async event=>{const combatant=game.combat?.combatants.get(event.currentTarget.dataset.dmPhase);if(combatant){await switchBossPhase(combatant,Number(event.currentTarget.dataset.phase));this.refresh();}});
     const tokenFor=async button=>fromUuid(button.dataset.dmElement||button.dataset.dmMode||button.dataset.dmReset||button.dataset.dmWeakLock).catch(()=>null);
     html.find("[data-dm-weak-lock]").on("click",async event=>{const token=await tokenFor(event.currentTarget);if(token){await token.setFlag(MODULE_ID,"miniWeaknessLocked",!token.getFlag(MODULE_ID,"miniWeaknessLocked"));this.refresh();}});
@@ -6057,11 +6079,12 @@ class StarRailGMPanel extends FormApplication {
     super.activateListeners(html);
     html.find("[data-toggle-enhanced-stance]").on("click",async event=>{
       if(!game.user.isGM)return;
-      const actor=game.actors.get(event.currentTarget.dataset.toggleEnhancedStance),config=getConfig(actor);
+      const button=event.currentTarget,actor=game.actors.get(button.dataset.toggleEnhancedStance),config=getConfig(actor);
       if(!actor||actor.type!=="character"||!config.enhancedStanceEnabled)return;
       if(state.skillLocks.has(actor.id)||state.ultimateLocks.has(actor.id))return ui.notifications.warn("Finish the current Skill or Ultimate before changing stance.");
-      await actor.update({[`flags.${MODULE_ID}.ultimate.enhancedStanceActive`]:!config.enhancedStanceActive});
-      this.render(false);
+      if(button.disabled)return;button.disabled=true;
+      try{await actor.update({[`flags.${MODULE_ID}.ultimate.enhancedStanceActive`]:!config.enhancedStanceActive});this.render(false);}
+      catch(error){button.disabled=false;ui.notifications.error(`Could not change ${actor.name}'s stance: ${error.message}`);}
     });
     html.find("[data-collapse-toggle]").on("click", async event => {
       const button = event.currentTarget;
@@ -6557,7 +6580,7 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
   tab.find("[name]").each((_index, field) => {
     data[field.name] = field.type === "checkbox" ? field.checked : field.value;
   });
-  for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "skillPointCost", "talentPointsCurrent", "talentPointsMax", "talentPointsOvercapMax", "punchlineGain", "splashDuration", "splashX", "splashY", "splashScale", "titleX", "titleY", "titleSize", "combatHudPortraitX", "combatHudPortraitY", "combatHudPortraitScale", "enhancedHudPortraitX", "enhancedHudPortraitY", "enhancedHudPortraitScale", "enhancedCarouselImageX", "enhancedCarouselImageY", "enhancedCarouselImageScale", "enhancedSplashX", "enhancedSplashY", "enhancedSplashScale", "enhancedTransitionDuration", "enhancedTransitionInX", "enhancedTransitionInY", "enhancedTransitionInScale", "enhancedTransitionOutX", "enhancedTransitionOutY", "enhancedTransitionOutScale", "messagingPortraitX", "messagingPortraitY", "messagingPortraitScale", "ultimateButtonX", "ultimateButtonY", "ultimateButtonScale", "bossPhaseCount", "bossPhase2TokenWidth", "bossPhase2TokenHeight", "bossPhase3TokenWidth", "bossPhase3TokenHeight", "bossHudPortraitX", "bossHudPortraitY", "bossHudPortraitScale", "bossHudWidth", "bossHudHealthHeight", "bossHudToughnessHeight"]) data[key] = Number(data[key]);
+  for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "skillPointCost", "talentPointsCurrent", "talentPointsMax", "talentPointsOvercapMax", "punchlineGain", "splashDuration", "splashX", "splashY", "splashScale", "titleX", "titleY", "titleSize", "combatHudPortraitX", "combatHudPortraitY", "combatHudPortraitScale", "enhancedHudPortraitX", "enhancedHudPortraitY", "enhancedHudPortraitScale", "enhancedCarouselImageX", "enhancedCarouselImageY", "enhancedCarouselImageScale", "enhancedSplashX", "enhancedSplashY", "enhancedSplashScale", "enhancedTransitionDuration", "enhancedTransitionInX", "enhancedTransitionInY", "enhancedTransitionInScale", "enhancedTransitionOutX", "enhancedTransitionOutY", "enhancedTransitionOutScale", "enhancedTransitionInContrast", "enhancedTransitionInSaturation", "enhancedTransitionInBrightness", "enhancedTransitionInHue", "enhancedTransitionOutContrast", "enhancedTransitionOutSaturation", "enhancedTransitionOutBrightness", "enhancedTransitionOutHue", "messagingPortraitX", "messagingPortraitY", "messagingPortraitScale", "ultimateButtonX", "ultimateButtonY", "ultimateButtonScale", "bossPhaseCount", "bossPhase2TokenWidth", "bossPhase2TokenHeight", "bossPhase3TokenWidth", "bossPhase3TokenHeight", "bossHudPortraitX", "bossHudPortraitY", "bossHudPortraitScale", "bossHudWidth", "bossHudHealthHeight", "bossHudToughnessHeight"]) data[key] = Number(data[key]);
   for (const key of ["enabled", "showPercent", "showHudPercent", "skillEnabled", "techniqueEnabled", "mainParty", "trialCharacter", "combatHudPortraitFlip", "enhancedHudPortraitFlip", "enhancedCarouselImageFlip", "ultimateButtonAdjustEnabled", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter", "isBoss", "bossInheritsMainPhaseCount", "carouselFrameColorOverride", "enhancedStanceEnabled", "enhancedUltimateEnabled"]) data[key] = Boolean(data[key]);
   if(!data.enhancedStanceEnabled)data.enhancedStanceActive=false;
   data.max = Math.max(1, data.max || 100);
@@ -6579,7 +6602,7 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
   data.enhancedHudPortraitX=clamp(data.enhancedHudPortraitX,0,100);data.enhancedHudPortraitY=clamp(data.enhancedHudPortraitY,0,100);data.enhancedHudPortraitScale=clamp(data.enhancedHudPortraitScale,50,300);
   data.enhancedCarouselImageScale=clamp(data.enhancedCarouselImageScale,50,800);const enhancedBounds=initiativePortraitPositionBounds(data.enhancedCarouselImageScale);data.enhancedCarouselImageX=clamp(data.enhancedCarouselImageX,enhancedBounds.min,enhancedBounds.max);data.enhancedCarouselImageY=clamp(data.enhancedCarouselImageY,enhancedBounds.min,enhancedBounds.max);
   data.enhancedTransitionDuration=clamp(data.enhancedTransitionDuration,0.2,15);
-  for(const prefix of ["enhancedTransitionIn","enhancedTransitionOut"]){data[`${prefix}X`]=clamp(data[`${prefix}X`],-300,300);data[`${prefix}Y`]=clamp(data[`${prefix}Y`],-300,300);data[`${prefix}Scale`]=clamp(data[`${prefix}Scale`],10,500);}
+  for(const prefix of ["enhancedTransitionIn","enhancedTransitionOut"]){data[`${prefix}X`]=clamp(data[`${prefix}X`],-300,300);data[`${prefix}Y`]=clamp(data[`${prefix}Y`],-300,300);data[`${prefix}Scale`]=clamp(data[`${prefix}Scale`],10,500);for(const key of ["Contrast","Saturation","Brightness"])data[`${prefix}${key}`]=clamp(data[`${prefix}${key}`],0,300);data[`${prefix}Hue`]=clamp(data[`${prefix}Hue`],-180,180);}
   data.enhancedSplashX=clamp(data.enhancedSplashX,0,100);data.enhancedSplashY=clamp(data.enhancedSplashY,0,100);data.enhancedSplashScale=clamp(data.enhancedSplashScale,25,500);
   data.carouselFrameColorPreset=String(data.carouselFrameColorPreset||"");
   data.talentCombatId = talentCombatForActor(actor)?.id ?? "";
@@ -6695,7 +6718,8 @@ function activateConfigListeners(actor, tab, app) {
     const refresh=()=>{
       const source=String(field("Gif").val()||"").trim();if(overlay.attr("src")!==source)overlay.attr("src",source);
       const x=clamp(Number(field("X").val())||0,-300,300),y=clamp(Number(field("Y").val())||0,-300,300),scale=clamp(Number(field("Scale").val())||100,10,500);
-      overlay.css({left:`calc(50% + ${x}px)`,top:`calc(50% + ${y}px)`,width:`${scale}px`,height:`${scale}px`});
+      const draft={};for(const suffix of ["Contrast","Saturation","Brightness","Hue"])draft[`${prefix}${suffix}`]=Number(field(suffix).val());
+      overlay.css({left:`calc(50% + ${x}px)`,top:`calc(50% + ${y}px)`,width:`${scale}px`,height:`${scale}px`,filter:enhancedTransitionFilter(draft,prefix)});
     };
     editor.on("input change","input",refresh);tab.on(`input.tsru-transition-${prefix} change.tsru-transition-${prefix}`,`[name="${prefix}Gif"]`,refresh);refresh();
     if(prefix==="enhancedTransitionOut")tab.on("input.tsru-out-token change.tsru-out-token",'[name="enhancedTokenImage"]',event=>editor.find(".tsru-transition-token").attr("src",event.currentTarget.value||normalToken));
@@ -7814,7 +7838,8 @@ Hooks.on("updateActor", (actor, changes, options) => {
   refreshTalentCounter(actor);
   refreshResourceHuds();
   refreshToughnessBars();
-  const enhancedChanges=foundry.utils.getProperty(changes,`flags.${MODULE_ID}.ultimate`);
+  const expandedChanges=foundry.utils.expandObject(changes);
+  const enhancedChanges=foundry.utils.getProperty(expandedChanges,`flags.${MODULE_ID}.ultimate`);
   state.enhancedStanceSeen??=new Map();
   const active=Boolean(getConfig(actor).enhancedStanceActive);
   const prior=state.enhancedStanceSeen.get(actor.id);
