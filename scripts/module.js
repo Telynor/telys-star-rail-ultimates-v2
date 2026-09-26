@@ -531,6 +531,31 @@ function receiveBlowUpTatsuo(payload){
   window.setTimeout(()=>state.blowUpTatsuoEvents.delete(payload.eventId),30000);
   playBlowUpTatsuo(payload.config);
 }
+function triggerBlowUpTatsuo(){
+  if(!game.user.isGM)return ui.notifications.warn("Only a GM can trigger Blow Up Tatsuo.");
+  const config=normalizeBlowUpTatsuo(game.settings.get(MODULE_ID,"blowUpTatsuo")),player=game.users.get(config.playerId);
+  if(!player||player.isGM)return ui.notifications.warn("Choose a player in Blow Up Tatsuo settings first.");
+  if(!config.gif)return ui.notifications.warn("Choose an animated GIF or WebP in Blow Up Tatsuo settings first.");
+  const payload={type:"blowUpTatsuo",requestingUserId:game.user.id,eventId:foundry.utils.randomID(),config};
+  receiveBlowUpTatsuo(payload);
+  game.socket.emit(SOCKET,payload);
+}
+function showBlowUpTatsuoButton(){
+  if(!game.user.isGM)return ui.notifications.warn("Only a GM can place the Blow Up Tatsuo button.");
+  const existing=document.getElementById("tsru-blow-up-floating");
+  if(existing){existing.focus();return existing;}
+  const wrapper=document.createElement("div");wrapper.id="tsru-blow-up-floating";
+  wrapper.innerHTML='<button type="button" class="tsru-blow-up-trigger"><i class="fas fa-bomb"></i> Blow Up Tatsuo</button><button type="button" class="tsru-blow-up-close" aria-label="Remove Blow Up Tatsuo button" title="Remove button">×</button>';
+  document.body.appendChild(wrapper);
+  wrapper.querySelector(".tsru-blow-up-trigger").addEventListener("click",triggerBlowUpTatsuo);
+  wrapper.querySelector(".tsru-blow-up-close").addEventListener("click",()=>wrapper.remove());
+  let drag;
+  wrapper.addEventListener("pointerdown",event=>{if(event.button!==0||event.target.closest(".tsru-blow-up-close"))return;drag={x:event.clientX,y:event.clientY,left:wrapper.getBoundingClientRect().left,top:wrapper.getBoundingClientRect().top,moved:false};wrapper.setPointerCapture(event.pointerId);});
+  wrapper.addEventListener("pointermove",event=>{if(!drag)return;const dx=event.clientX-drag.x,dy=event.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>4)drag.moved=true;if(!drag.moved)return;wrapper.style.left=`${clamp(drag.left+dx,0,window.innerWidth-wrapper.offsetWidth)}px`;wrapper.style.top=`${clamp(drag.top+dy,0,window.innerHeight-wrapper.offsetHeight)}px`;wrapper.style.right="auto";});
+  wrapper.addEventListener("pointerup",event=>{if(drag?.moved){event.preventDefault();wrapper.querySelector(".tsru-blow-up-trigger").addEventListener("click",suppress,{once:true,capture:true});}drag=null;});
+  function suppress(event){event.stopImmediatePropagation();event.preventDefault();}
+  return wrapper;
+}
 
 // Token images are changed on placed TokenDocuments only. Each token keeps its
 // own original texture in a persistent flag, so a stance toggle never alters
@@ -6177,17 +6202,37 @@ async function finishActionAdvance(combat, advance) {
   } finally { state.suppressCombatHook = false; }
 }
 
+function combatTalentGroups() {
+  const combat=game.combat,scene=canvas?.scene;
+  if (!combat?.started || !scene || (combat.scene?.id ?? combat.sceneId) !== scene.id) return [];
+  const tokens=new Map((canvas.tokens?.placeables??[]).map(token=>[token.document.id,token]));
+  const groups=[{label:"Main Party",talents:[]},{label:"GM Main Party",talents:[]},{label:"NPC Player Characters",talents:[]}];
+  const seen=new Set();
+  for (const combatant of combat.combatants) {
+    const token=tokens.get(combatant.tokenId),actor=token?.actor;
+    if (!actor || !["character","npc"].includes(actor.type) || seen.has(actor.id)) continue;
+    const config=getConfig(actor);
+    if (!config.talentText && !(config.talentPointsMax>0)) continue;
+    seen.add(actor.id);
+    const playerOwned=game.users.some(user=>!user.isGM && actor.testUserPermission(user,"OWNER"));
+    const group=actor.type==="character"&&config.mainParty?(playerOwned?groups[0]:groups[1]):groups[2];
+    group.talents.push({id:actor.id,name:actor.name,image:token.document.texture?.src||actor.img,description:plainAbilityText(config.talentText)||"No talent description configured.",points:currentTalentPoints(actor),maximum:config.talentPointsMax,hasPoints:actor.type==="character"&&config.talentPointsMax>0,eligible:Boolean(talentCombatForActor(actor))});
+  }
+  for (const group of groups) group.talents.sort((a,b)=>a.name.localeCompare(b.name)||a.id.localeCompare(b.id));
+  return groups.filter(group=>group.talents.length);
+}
+
 class DMCombatMenu extends FormApplication {
   constructor(...args) { super(...args); this.tab = "talents"; this.scrollPositions = {}; }
   static get defaultOptions() { return foundry.utils.mergeObject(super.defaultOptions, {id:"tsru-dm-combat", title:"HSR DM Combat menu", template:`modules/${MODULE_ID}/templates/dm-combat-menu.hbs`, width:480, height:560, minWidth:350, minHeight:260, resizable:true, closeOnSubmit:false, classes:["tsru-dm-combat-window"]}); }
   getData() {
     if (!game.user.isGM) return {};
     const tabs=[{id:"talents",label:"Talents",icon:"fas fa-star"},{id:"weaknesses",label:"Weaknesses",icon:"fas fa-shield-halved"},{id:"stances",label:"Stances",icon:"fas fa-arrows-rotate"},{id:"phases",label:"Phases",icon:"fas fa-layer-group"}].map(tab=>({...tab,active:this.tab===tab.id}));
-    const talents=game.actors.filter(actor=>["character","npc"].includes(actor.type) && (getConfig(actor).talentText || getConfig(actor).talentPointsMax>0)).sort((a,b)=>a.name.localeCompare(b.name)).map(actor=>{const config=getConfig(actor);return {id:actor.id,name:actor.name,image:config.talentIcon||actor.img,description:plainAbilityText(config.talentText)||"No talent description configured.",points:currentTalentPoints(actor),maximum:config.talentPointsMax,hasPoints:actor.type==="character"&&config.talentPointsMax>0,eligible:Boolean(talentCombatForActor(actor))};});
+    const talentGroups=combatTalentGroups();
     const enemies=(canvas?.tokens?.placeables??[]).filter(token=>token.actor?.type==="npc").map(token=>{const target=token.document,permanent=getToughness(token.actor).weaknesses,active=effectiveToughnessWeaknesses(target),mode=toughnessWeaknessMode(target);return {uuid:target.uuid,name:token.name||token.actor.name,image:token.actor.img,locked:Boolean(target.getFlag(MODULE_ID,"miniWeaknessLocked")),modeLabel:mode==="all"?"All active":mode==="none"?"None active":"",elements:getElements().map(element=>({...element,permanent:permanent.includes(element.id),active:active.includes(element.id)}))};});
     const stances=game.actors.filter(actor=>actor.type==="character"&&getConfig(actor).enhancedStanceEnabled).sort((a,b)=>a.name.localeCompare(b.name)).map(actor=>({id:actor.id,name:actor.name,image:actor.img,active:getConfig(actor).enhancedStanceActive}));
     const bosses=new BossPhaseControl().bosses().map(({combatant,encounter,totalPhases,name})=>({id:combatant.id,name,image:combatant.actor?.img||combatant.img,current:encounter.currentPhase,total:totalPhases,phases:Array.from({length:totalPhases},(_,index)=>({number:index+1,active:encounter.currentPhase===index+1}))}));
-    return {tabs,talents,enemies,stances,bosses,talentsTab:this.tab==="talents",weaknessesTab:this.tab==="weaknesses",stancesTab:this.tab==="stances",phasesTab:this.tab==="phases",punchline:currentPunchline(),skillPoints:currentSkillPoints(),hasCombat:Boolean(game.combat?.started)};
+    return {tabs,talentGroups,enemies,stances,bosses,talentsTab:this.tab==="talents",weaknessesTab:this.tab==="weaknesses",stancesTab:this.tab==="stances",phasesTab:this.tab==="phases",punchline:currentPunchline(),skillPoints:currentSkillPoints(),hasCombat:Boolean(game.combat?.started)};
   }
   refresh() { if (!this.rendered) return; const scroll=this.element?.find?.("[data-dm-scroll]")?.[0]; if(scroll)this.scrollPositions[this.tab]=scroll.scrollTop; this.render(false); }
   activateListeners(html) {
@@ -6260,6 +6305,8 @@ class StarRailGMPanel extends FormApplication {
   }
   activateListeners(html) {
     super.activateListeners(html);
+    html.find('[data-action="place-blow-up-tatsuo"]').on("click",showBlowUpTatsuoButton);
+    html.find('[data-action="configure-blow-up-tatsuo"]').on("click",()=>new BlowUpTatsuoConfig().render(true));
     html.find("[data-toggle-enhanced-stance]").on("click",async event=>{
       if(!game.user.isGM)return;
       const button=event.currentTarget,actor=game.actors.get(button.dataset.toggleEnhancedStance),config=getConfig(actor);
@@ -7801,6 +7848,8 @@ function registerApi() {
     resetTemporaryToughnessWeaknesses,
     insertActionAdvanceTurn,
     openGMPanel: openStarRailGMPanel,
+    showBlowUpTatsuoButton,
+    triggerBlowUpTatsuo,
     openDMCombatMenu,
     openBreakAppearance: () => new BreakAppearanceConfig().render(true),
     openAhaConfig: () => new AhaConfig().render(true),
@@ -8081,6 +8130,9 @@ Hooks.on("updateCombat", () => state.dmCombatMenu?.refresh());
 Hooks.on("createCombatant", () => state.dmCombatMenu?.refresh());
 Hooks.on("deleteCombatant", () => state.dmCombatMenu?.refresh());
 Hooks.on("updateToken", () => state.dmCombatMenu?.refresh());
+Hooks.on("createToken", () => state.dmCombatMenu?.refresh());
+Hooks.on("deleteToken", () => state.dmCombatMenu?.refresh());
+Hooks.on("updateCombatant", () => state.dmCombatMenu?.refresh());
 Hooks.on("tsruSkillPointsChanged", value => { state.gmPanel?.refreshLiveValues(); dispatchTalentEvent("skillPointsChanged", {value}); });
 Hooks.on("tsruTalentPointsChanged", (actor, before, after) => { refreshTalentCounter(actor); dispatchTalentEvent("talentPointsChanged", {sourceActor: actor, before, after, amount: after - before}); });
 Hooks.on("updateActor", (actor, changes, options) => {
