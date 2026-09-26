@@ -268,12 +268,13 @@ class HSRHub extends FormApplication {
     const visibleButton=button=>game.user.isGM?(gmPanel?!playerOnly.has(button.action):!gmOnly.has(button.action)):!gmOnly.has(button.action);
     const buttons=config.buttons.filter(visibleButton).map(button=>{const double=Boolean(button.double),width=Math.min(100,Number(button.width||10)*(double?2:1)),top=Math.max(0,Number(button.y||0)-18);return {...button,double,id:button.id||button.action,gmOnly:gmOnly.has(button.action),style:`left:${button.x}%;top:${top}vh;width:${width}%;height:${button.height}vh`};});
     const contentHeight=Math.max(78,...buttons.map(button=>Math.max(0,Number(button.y||0)-18)+Number(button.height||16)));
-    return {gm:game.user.isGM,player:!game.user.isGM,gmPanel,actor,pose,profileImage:hubProfileImage(actor),config,wallpaperFit:config.wallpaperFit==="100% 100%"?"fill":(["cover","contain"].includes(config.wallpaperFit)?config.wallpaperFit:"cover"),contentHeight,phoneChoices:[{id:"",name:"DM PANEL",selected:!actor},...actors.map(entry=>({id:entry.id,name:`${entry.name} — ${actorOwnerName(entry)}`,selected:entry.id===actor?.id}))],buttons};
+    return {gm:game.user.isGM,player:!game.user.isGM,gmPanel,actor,pose,profileImage:hubProfileImage(actor),config,unreadMessages:messengerUnreadCount(),wallpaperFit:config.wallpaperFit==="100% 100%"?"fill":(["cover","contain"].includes(config.wallpaperFit)?config.wallpaperFit:"cover"),contentHeight,phoneChoices:[{id:"",name:"DM PANEL",selected:!actor},...actors.map(entry=>({id:entry.id,name:`${entry.name} — ${actorOwnerName(entry)}`,selected:entry.id===actor?.id}))],buttons};
   }
   activateListeners(html) {
     super.activateListeners(html);
     this.element.appendTo(document.body).addClass("tsru-phone-hub-window");
     html.find("[data-action='close-phone-hub']").on("click",()=>this.close());
+    html.find("[data-hub-unread]").on("click",openMessengerNotifications);
     html.find("[data-gm-phone-view]").on("change",event=>{this.viewActorId=String(event.currentTarget.value||"");this.render(false);});
     html.find("[data-action='configure-viewed-phone']").on("click",()=>{const app=new HSRHubConfig();app.actorId=this.viewActorId||"__gm__";app.render(true);});
     html.find(".tsru-phone-scroll").on("wheel",event=>{
@@ -377,6 +378,22 @@ class HSRHubConfig extends FormApplication {
 
 function messengerThreads(){return clone(game.settings.get(MODULE_ID,"hsrMessengerThreads")??[]);}
 async function saveMessengerThreads(threads){await game.settings.set(MODULE_ID,"hsrMessengerThreads",threads);}
+function visibleMessengerThreads(){const threads=messengerThreads();return game.user.isGM?threads:threads.filter(thread=>(thread.participantIds??[]).includes(game.user.id));}
+function messengerReadState(){return game.user.getFlag(MODULE_ID,"hsrMessengerRead")??{};}
+function unreadThreadMessages(thread,read=messengerReadState()){
+  const messages=thread.messages??[],marker=read[thread.id],lastIndex=messages.findIndex(message=>message.id===marker?.id);
+  const unseen=lastIndex>=0?messages.slice(lastIndex+1):messages.filter(message=>Number(message.createdAt||0)>Number(marker?.at||0));
+  return unseen.filter(message=>message.senderUserId!==game.user.id);
+}
+function messengerUnreadCount(){const read=messengerReadState();return visibleMessengerThreads().reduce((total,thread)=>total+unreadThreadMessages(thread,read).length,0);}
+function messengerFirstUnreadThreadId(){const read=messengerReadState();return visibleMessengerThreads().filter(thread=>unreadThreadMessages(thread,read).length).sort((a,b)=>Number(b.updatedAt||0)-Number(a.updatedAt||0))[0]?.id||"";}
+async function markMessengerThreadRead(threadId){const thread=visibleMessengerThreads().find(entry=>entry.id===threadId),last=thread?.messages?.at(-1);if(!last)return;const read=messengerReadState();if(read[threadId]?.id===last.id)return;await game.user.setFlag(MODULE_ID,"hsrMessengerRead",{...read,[threadId]:{id:last.id,at:Number(last.createdAt)||Date.now()}});}
+function openMessengerNotifications(){
+  const read=messengerReadState(),items=visibleMessengerThreads().flatMap(thread=>unreadThreadMessages(thread,read).map(message=>({thread,message}))).sort((a,b)=>Number(b.message.createdAt||0)-Number(a.message.createdAt||0)).slice(0,20);
+  if(!items.length){const app=new HSRMessenger();app.threadId=messengerFirstUnreadThreadId();app.render(true);return;}
+  const rows=items.map(({thread,message})=>{const actor=game.actors.get(message.speakerActorId),portrait=messengerPortrait(actor);return `<button type="button" data-unread-thread="${esc(thread.id)}"><span class="tsru-notification-avatar"><img src="${esc(portrait.portrait)}" alt=""><i></i></span><span><strong>${esc(actor?.name||message.speakerName||thread.title)}</strong><small>${esc(message.text)}</small></span><i class="fas fa-chevron-right"></i></button>`}).join("");
+  const dialog=new Dialog({title:"Incoming Message Notification",content:`<section class="tsru-messenger-notifications"><h2>Incoming Message Notification</h2><div>${rows}</div></section>`,buttons:{close:{label:"Close"}},render:html=>html.find("[data-unread-thread]").on("click",event=>{const app=new HSRMessenger();app.threadId=event.currentTarget.dataset.unreadThread;app.render(true);dialog.close();})},{width:520,height:"auto",resizable:true});dialog.render(true);
+}
 function messengerPortrait(actor){const config=actor?.getFlag(MODULE_ID,"ultimate")??{};return {portrait:String(config.messagingPortrait||actor?.img||"icons/svg/mystery-man.svg"),portraitX:Number(config.messagingPortraitX??50),portraitY:Number(config.messagingPortraitY??50),portraitScale:Number(config.messagingPortraitScale??100)};}
 function messengerActors(){return game.actors.filter(actor=>["character","npc"].includes(actor.type)).sort((a,b)=>a.name.localeCompare(b.name));}
 function messengerContactIds(){return new Set(game.settings.get(MODULE_ID,"hsrMessengerContacts")??[]);}
@@ -389,17 +406,17 @@ class HSRContactConfig extends FormApplication {
 }
 
 class HSRMessenger extends Application {
-  static get defaultOptions(){return foundry.utils.mergeObject(super.defaultOptions,{id:"tsru-hsr-messenger",title:"HSR Messenger",template:`modules/${MODULE_ID}/templates/hsr-messenger.hbs`,width:920,height:700,resizable:true});}
+  static get defaultOptions(){return foundry.utils.mergeObject(super.defaultOptions,{id:"tsru-hsr-messenger",title:"HSR Messenger",template:`modules/${MODULE_ID}/templates/hsr-messenger.hbs`,width:920,height:700,resizable:true,classes:["tsru-messenger-window"]});}
   getData(){
-    const all=messengerThreads(),visible=(game.user.isGM?all:all.filter(thread=>(thread.participantIds??[]).includes(game.user.id))).sort((a,b)=>Number(b.updatedAt||0)-Number(a.updatedAt||0));
+    const visible=visibleMessengerThreads().sort((a,b)=>Number(b.updatedAt||0)-Number(a.updatedAt||0)),read=messengerReadState();
     if(!visible.some(thread=>thread.id===this.threadId))this.threadId=visible[0]?.id||"";
     const selected=visible.find(thread=>thread.id===this.threadId);
     const speakers=messengerActors();
     if(!speakers.some(actor=>actor.id===this.speakerActorId))this.speakerActorId=api()?.getSelectedMainCharacter?.()?.id||speakers[0]?.id||"";
-    const messages=[...(selected?.messages??[])].sort((a,b)=>Number(b.createdAt||0)-Number(a.createdAt||0)).map(message=>{const actor=game.actors.get(message.speakerActorId),portrait=messengerPortrait(actor);return {...message,...portrait,speakerName:actor?.name||message.speakerName||"Unknown",mine:message.senderUserId===game.user.id,time:new Date(Number(message.createdAt)||Date.now()).toLocaleString()};});
+    const messages=[...(selected?.messages??[])].sort((a,b)=>Number(a.createdAt||0)-Number(b.createdAt||0)).map(message=>{const actor=game.actors.get(message.speakerActorId),portrait=messengerPortrait(actor);return {...message,...portrait,speakerName:actor?.name||message.speakerName||"Unknown",mine:message.senderUserId===game.user.id,time:new Date(Number(message.createdAt)||Date.now()).toLocaleString()};});
     const memberNames=(selected?.memberActorIds??[]).map(id=>game.actors.get(id)?.name).filter(Boolean),fallbackNames=(selected?.participantIds??[]).map(id=>game.users.get(id)?.name).filter(Boolean);
     const selectedData=selected?{...selected,messages,participantNames:(memberNames.length?memberNames:fallbackNames).join(", ")}:null,contactIds=messengerContactIds(),contacts=speakers.filter(actor=>contactIds.has(actor.id)).map(actor=>({...messengerPortrait(actor),id:actor.id,name:actor.name,img:actor.img}));
-    return {isGM:game.user.isGM,contactsView:this.view==="contacts",messagesView:this.view!=="contacts",contacts,threads:visible.map(thread=>({id:thread.id,title:thread.title,selected:thread.id===this.threadId,preview:String(thread.messages?.at(-1)?.text||"No messages").slice(0,70)})),selected:selectedData,speakers:speakers.map(actor=>({id:actor.id,name:actor.name,selected:actor.id===this.speakerActorId}))};
+    return {isGM:game.user.isGM,contactsView:this.view==="contacts",messagesView:this.view!=="contacts",contacts,threads:visible.map(thread=>{const last=thread.messages?.at(-1),speaker=game.actors.get(last?.speakerActorId||thread.contactActorId||thread.memberActorIds?.[0]),portrait=messengerPortrait(speaker),unread=unreadThreadMessages(thread,read).length;return {id:thread.id,title:thread.title,selected:thread.id===this.threadId,preview:String(last?.text||"No messages").slice(0,70),portrait:portrait.portrait,unread,hasUnread:unread>0};}),selected:selectedData,speakers:speakers.map(actor=>({id:actor.id,name:actor.name,selected:actor.id===this.speakerActorId})),unreadMessages:messengerUnreadCount()};
   }
   activateListeners(html){
     super.activateListeners(html);
@@ -414,7 +431,8 @@ class HSRMessenger extends Application {
     html.find("[data-delete-message]").on("click",event=>this.deleteMessage(String(event.currentTarget.dataset.deleteMessage)));
     html.find('[name="messageText"]').on("keydown",event=>{if(event.key==="Enter"&&!event.shiftKey){event.preventDefault();this.sendMessage(html);}});
     html.find("[data-action='delete-thread']").on("click",()=>this.deleteThread());
-    const scroller=html.find(".tsru-messenger-messages")[0];if(scroller)scroller.scrollTop=0;
+    const scroller=html.find(".tsru-messenger-messages")[0];if(scroller)scroller.scrollTop=scroller.scrollHeight;
+    if(this.view!=="contacts"&&this.threadId)markMessengerThreadRead(this.threadId).catch(error=>console.error(`${MODULE_ID} | Could not mark conversation read`,error));
   }
   viewContacts(){this.view="contacts";this.render(false);}
   async openContact(actorId){
@@ -752,6 +770,7 @@ Hooks.on("getSceneControlButtons",consolidateToolbar);
 Hooks.on("updateSetting", setting => {
   if (["questTypes", "questRarities", "quests", "questAllIcon"].some(key => setting?.key === `${MODULE_ID}.${key}`)) refreshQuestWindows();
   if(setting?.key===`${MODULE_ID}.hsrHubConfig`)for(const app of Object.values(ui.windows??{}))if(["tsru-hub","tsru-hub-config"].includes(app.options?.id))app.render(false);
-  if(setting?.key===`${MODULE_ID}.hsrMessengerThreads`)for(const app of Object.values(ui.windows??{}))if(app.options?.id==="tsru-hsr-messenger")app.render(false);
+  if(setting?.key===`${MODULE_ID}.hsrMessengerThreads`)for(const app of Object.values(ui.windows??{}))if(["tsru-hsr-messenger","tsru-hub"].includes(app.options?.id))app.render(false);
   if(setting?.key===`${MODULE_ID}.hsrMessengerContacts`)for(const app of Object.values(ui.windows??{}))if(["tsru-hsr-messenger","tsru-hsr-contact-config"].includes(app.options?.id))app.render(false);
 });
+Hooks.on("updateUser",(user,changed)=>{if(user.id!==game.user.id||!foundry.utils.hasProperty(changed,`flags.${MODULE_ID}.hsrMessengerRead`))return;for(const app of Object.values(ui.windows??{}))if(["tsru-hsr-messenger","tsru-hub"].includes(app.options?.id))app.render(false);});
