@@ -493,7 +493,7 @@ function blowUpTatsuoTokens(playerId){
   const player=game.users.get(playerId);
   if(!player||player.isGM||!canvas?.ready)return [];
   return (canvas.tokens?.placeables??[]).filter(token=>{
-    const actor=game.actors.get(token.document?.actorId);
+    const actor=token.actor??game.actors.get(token.document?.actorId);
     return actor?.type==="character"&&actor.testUserPermission(player,"OWNER");
   });
 }
@@ -537,7 +537,10 @@ function triggerBlowUpTatsuo(){
   if(!player||player.isGM)return ui.notifications.warn("Choose a player in Blow Up Tatsuo settings first.");
   if(!config.gif)return ui.notifications.warn("Choose an animated GIF or WebP in Blow Up Tatsuo settings first.");
   const payload={type:"blowUpTatsuo",requestingUserId:game.user.id,eventId:foundry.utils.randomID(),config};
-  receiveBlowUpTatsuo(payload);
+  const count=playBlowUpTatsuo(config);
+  if(!count)ui.notifications.warn(`No character tokens owned by ${player.name} are on your active scene. Sending the animation to connected players on their scenes.`);
+  state.blowUpTatsuoEvents??=new Set();state.blowUpTatsuoEvents.add(payload.eventId);
+  window.setTimeout(()=>state.blowUpTatsuoEvents.delete(payload.eventId),30000);
   game.socket.emit(SOCKET,payload);
 }
 function showBlowUpTatsuoButton(){
@@ -550,7 +553,7 @@ function showBlowUpTatsuoButton(){
   wrapper.querySelector(".tsru-blow-up-trigger").addEventListener("click",triggerBlowUpTatsuo);
   wrapper.querySelector(".tsru-blow-up-close").addEventListener("click",()=>wrapper.remove());
   let drag;
-  wrapper.addEventListener("pointerdown",event=>{if(event.button!==0||event.target.closest(".tsru-blow-up-close"))return;drag={x:event.clientX,y:event.clientY,left:wrapper.getBoundingClientRect().left,top:wrapper.getBoundingClientRect().top,moved:false};wrapper.setPointerCapture(event.pointerId);});
+  wrapper.addEventListener("pointerdown",event=>{if(event.button!==0||event.target.closest(".tsru-blow-up-close"))return;drag={x:event.clientX,y:event.clientY,left:wrapper.getBoundingClientRect().left,top:wrapper.getBoundingClientRect().top,moved:false};event.target.closest(".tsru-blow-up-trigger")?.setPointerCapture(event.pointerId);});
   wrapper.addEventListener("pointermove",event=>{if(!drag)return;const dx=event.clientX-drag.x,dy=event.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>4)drag.moved=true;if(!drag.moved)return;wrapper.style.left=`${clamp(drag.left+dx,0,window.innerWidth-wrapper.offsetWidth)}px`;wrapper.style.top=`${clamp(drag.top+dy,0,window.innerHeight-wrapper.offsetHeight)}px`;wrapper.style.right="auto";});
   wrapper.addEventListener("pointerup",event=>{if(drag?.moved){event.preventDefault();wrapper.querySelector(".tsru-blow-up-trigger").addEventListener("click",suppress,{once:true,capture:true});}drag=null;});
   function suppress(event){event.stopImmediatePropagation();event.preventDefault();}
@@ -6555,8 +6558,7 @@ class BlowUpTatsuoConfig extends FormApplication {
       button.disabled=true;
       try{
         await game.settings.set(MODULE_ID,"blowUpTatsuo",config);
-        const payload={type:"blowUpTatsuo",requestingUserId:game.user.id,eventId:foundry.utils.randomID(),config};
-        receiveBlowUpTatsuo(payload);game.socket.emit(SOCKET,payload);
+        triggerBlowUpTatsuo();
       }catch(error){console.error(`${MODULE_ID} | Blow Up Tatsuo failed`,error);ui.notifications.error(`Could not play the animation: ${error.message}`);}
       finally{button.disabled=false;}
     });
