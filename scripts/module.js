@@ -482,6 +482,53 @@ function enhancedTransitionFilter(config,prefix){
   return `contrast(${contrast}%) saturate(${saturation}%) brightness(${brightness}%) hue-rotate(${hue}deg)`;
 }
 
+const DEFAULT_BLOW_UP_TATSUO={playerId:"",gif:"",x:0,y:0,scale:100,hue:0,saturation:100,brightness:100,duration:2};
+function normalizeBlowUpTatsuo(config={}){
+  return {playerId:String(config.playerId||""),gif:String(config.gif||"").trim(),x:clamp(config.x,-300,300),y:clamp(config.y,-300,300),scale:clamp(config.scale??100,10,500),hue:clamp(config.hue,-180,180),saturation:clamp(config.saturation??100,0,300),brightness:clamp(config.brightness??100,0,300),duration:clamp(config.duration??2,0.2,15)};
+}
+function blowUpTatsuoTokens(playerId){
+  const player=game.users.get(playerId);
+  if(!player||player.isGM||!canvas?.ready)return [];
+  return (canvas.tokens?.placeables??[]).filter(token=>{
+    const actor=game.actors.get(token.document?.actorId);
+    return actor?.type==="character"&&actor.testUserPermission(player,"OWNER");
+  });
+}
+function playBlowUpTatsuo(config){
+  const settings=normalizeBlowUpTatsuo(config),tokens=blowUpTatsuoTokens(settings.playerId);
+  if(!settings.gif||!tokens.length)return 0;
+  for(const token of tokens){
+    const overlay=document.createElement("img");overlay.className="tsru-enhanced-token-transition";overlay.alt="";overlay.setAttribute("aria-hidden","true");
+    overlay.style.filter=`hue-rotate(${settings.hue}deg) saturate(${settings.saturation}%) brightness(${settings.brightness}%)`;
+    overlay.src=`${settings.gif}${settings.gif.includes("?")?"&":"?"}tsruBlast=${Date.now()}-${token.id}`;
+    document.body.appendChild(overlay);
+    const started=performance.now();let frame=0;
+    const finish=()=>{cancelAnimationFrame(frame);overlay.remove();};
+    overlay.onerror=finish;
+    const track=()=>{
+      if(!token.parent||!canvas?.ready||performance.now()-started>=settings.duration*1000)return finish();
+      const view=canvas.app?.view??canvas.app?.canvas??canvas.app?.renderer?.view,bounds=view?.getBoundingClientRect?.(),point=canvas.stage?.toGlobal?.(token.center);
+      if(!bounds||!point)return finish();
+      const renderer=canvas.app?.renderer?.screen,rx=bounds.width/Math.max(1,renderer?.width??view.width??bounds.width),ry=bounds.height/Math.max(1,renderer?.height??view.height??bounds.height);
+      const width=token.w*canvas.stage.scale.x*rx,height=token.h*canvas.stage.scale.y*ry;
+      overlay.style.left=`${bounds.left+point.x*rx+settings.x/100*width}px`;
+      overlay.style.top=`${bounds.top+point.y*ry+settings.y/100*height}px`;
+      overlay.style.width=`${width*settings.scale/100}px`;overlay.style.height=`${height*settings.scale/100}px`;
+      frame=requestAnimationFrame(track);
+    };
+    frame=requestAnimationFrame(track);
+  }
+  return tokens.length;
+}
+function receiveBlowUpTatsuo(payload){
+  if(!game.users.get(payload.requestingUserId)?.isGM||!payload.eventId)return;
+  state.blowUpTatsuoEvents??=new Set();
+  if(state.blowUpTatsuoEvents.has(payload.eventId))return;
+  state.blowUpTatsuoEvents.add(payload.eventId);
+  window.setTimeout(()=>state.blowUpTatsuoEvents.delete(payload.eventId),30000);
+  playBlowUpTatsuo(payload.config);
+}
+
 // Token images are changed on placed TokenDocuments only. Each token keeps its
 // own original texture in a persistent flag, so a stance toggle never alters
 // the actor prototype or another character's artwork.
@@ -4377,6 +4424,7 @@ async function executeUltimate(actorId, requestingUserId, expectedEnhanced=undef
 
 async function onSocket(payload) {
   if (!payload?.type) return;
+  if(payload.type==="blowUpTatsuo"){receiveBlowUpTatsuo(payload);return;}
   if(payload.type==="craftRecipe"&&isAuthority()){
     const result=await executeCraftRecipe(payload.recipeId,payload.actorId,payload.requestingUserId,payload.craftCount);
     game.socket.emit(SOCKET,{type:"craftingResult",targetUserId:payload.requestingUserId,...result});return;
@@ -6270,7 +6318,55 @@ function openStarRailGMPanel() {
   }
 }
 
+class BlowUpTatsuoConfig extends FormApplication {
+  static get defaultOptions(){return foundry.utils.mergeObject(super.defaultOptions,{id:"tsru-blow-up-tatsuo",title:"Blow Up Tatsuo",template:`modules/${MODULE_ID}/templates/blow-up-tatsuo.hbs`,width:570,height:"auto",resizable:true,closeOnSubmit:false});}
+  getData(){
+    const config=normalizeBlowUpTatsuo(game.settings.get(MODULE_ID,"blowUpTatsuo"));
+    const players=game.users.filter(user=>!user.isGM).map(user=>({id:user.id,name:user.name,selected:user.id===config.playerId}));
+    return {config,players};
+  }
+  activateListeners(html){
+    super.activateListeners(html);
+    const field=name=>html.find(`[name="${name}"]`),stage=html.find("[data-tsru-blast-stage]"),overlay=stage.find(".tsru-transition-overlay");
+    const current=()=>normalizeBlowUpTatsuo(Object.fromEntries(["playerId","gif","x","y","scale","hue","saturation","brightness","duration"].map(key=>[key,field(key).val()])));
+    const preview=()=>{
+      const config=current(),player=game.users.get(config.playerId);
+      const actor=game.actors.find(entry=>entry.type==="character"&&player&&entry.testUserPermission(player,"OWNER"));
+      const token=canvas?.tokens?.placeables?.find(entry=>entry.document?.actorId===actor?.id);
+      stage.find(".tsru-transition-token").attr("src",token?.document?.texture?.src||actor?.prototypeToken?.texture?.src||"icons/svg/mystery-man.svg");
+      if(overlay.attr("src")!==config.gif)overlay.attr("src",config.gif);
+      overlay.css({left:`calc(50% + ${config.x}px)`,top:`calc(50% + ${config.y}px)`,width:`${config.scale}px`,height:`${config.scale}px`,filter:`hue-rotate(${config.hue}deg) saturate(${config.saturation}%) brightness(${config.brightness}%)`});
+      html.find("[data-tsru-blast-count]").text(player?`${game.actors.filter(entry=>entry.type==="character"&&entry.testUserPermission(player,"OWNER")).length} owned character(s)`:"Select a player");
+    };
+    html.on("input change","[name]",preview);preview();
+    html.find("[data-tsru-blast-browse]").on("click",()=>new FilePicker({type:"image",current:field("gif").val(),callback:path=>field("gif").val(path).trigger("change")}).browse());
+    let drag=null;
+    stage.on("pointerdown",event=>{if(event.button!==0)return;event.preventDefault();drag={x:event.clientX,y:event.clientY,startX:current().x,startY:current().y};event.currentTarget.setPointerCapture?.(event.pointerId);})
+      .on("pointermove",event=>{if(!drag)return;const factor=300/Math.max(1,stage[0].getBoundingClientRect().width);field("x").val(Math.round(clamp(drag.startX+(event.clientX-drag.x)*factor,-300,300)));field("y").val(Math.round(clamp(drag.startY+(event.clientY-drag.y)*factor,-300,300))).trigger("input");})
+      .on("pointerup pointercancel",()=>{drag=null;})
+      .on("wheel",event=>{event.preventDefault();field("scale").val(clamp(current().scale+(event.originalEvent.deltaY<0?10:-10),10,500)).trigger("input");})
+      .on("dragover",event=>{event.preventDefault();stage.addClass("is-dragover");}).on("dragleave",()=>stage.removeClass("is-dragover"))
+      .on("drop",event=>{event.preventDefault();stage.removeClass("is-dragover");const path=droppedAssetPath(event);if(path&&/\.(gif|webp)(?:[?#]|$)/i.test(path))field("gif").val(path).trigger("change");else ui.notifications.warn("Drop an animated GIF or WebP file.");});
+    html.find("[data-tsru-blast-trigger]").on("click",async event=>{
+      const button=event.currentTarget,config=current(),player=game.users.get(config.playerId);
+      if(!player||player.isGM)return ui.notifications.warn("Choose a player first.");
+      if(!config.gif)return ui.notifications.warn("Choose an animated GIF or WebP first.");
+      if(!game.actors.some(actor=>actor.type==="character"&&actor.testUserPermission(player,"OWNER")))return ui.notifications.warn("This player owns no character actors.");
+      button.disabled=true;
+      try{
+        await game.settings.set(MODULE_ID,"blowUpTatsuo",config);
+        const payload={type:"blowUpTatsuo",requestingUserId:game.user.id,eventId:foundry.utils.randomID(),config};
+        receiveBlowUpTatsuo(payload);game.socket.emit(SOCKET,payload);
+      }catch(error){console.error(`${MODULE_ID} | Blow Up Tatsuo failed`,error);ui.notifications.error(`Could not play the animation: ${error.message}`);}
+      finally{button.disabled=false;}
+    });
+  }
+  async _updateObject(_event,data){if(!game.user.isGM)return;await game.settings.set(MODULE_ID,"blowUpTatsuo",normalizeBlowUpTatsuo(data));ui.notifications.info("Blow Up Tatsuo settings saved.");}
+}
+
 function registerSettings() {
+  game.settings.register(MODULE_ID,"blowUpTatsuo",{scope:"world",config:false,type:Object,default:foundry.utils.deepClone(DEFAULT_BLOW_UP_TATSUO)});
+  game.settings.registerMenu(MODULE_ID,"blowUpTatsuoMenu",{name:"Blow Up Tatsuo",label:"Configure and Blow Up Tatsuo",hint:"Choose a player and preview the animation over all character tokens they own.",icon:"fas fa-bomb",type:BlowUpTatsuoConfig,restricted:true});
   game.settings.register(MODULE_ID, "elements", {scope: "world", config: false, type: Array, default: []});
   game.settings.register(MODULE_ID, "paths", {scope: "world", config: false, type: Array, default: DEFAULT_PATHS.map(path => ({...path}))});
   game.settings.register(MODULE_ID,"craftingRecipes",{scope:"world",config:false,type:Array,default:[]});
