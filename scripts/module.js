@@ -105,6 +105,12 @@ const DEFAULT_CONFIG = Object.freeze({
   enhancedTransitionInGif: "",
   enhancedTransitionOutGif: "",
   enhancedTransitionDuration: 1.5,
+  enhancedTransitionInX: 0,
+  enhancedTransitionInY: 0,
+  enhancedTransitionInScale: 100,
+  enhancedTransitionOutX: 0,
+  enhancedTransitionOutY: 0,
+  enhancedTransitionOutScale: 100,
   enhancedHudPortrait: "",
   enhancedHudPortraitX: 50,
   enhancedHudPortraitY: 50,
@@ -426,6 +432,8 @@ function getVisualConfig(actor) {
 // frame so it stays centered on the token while the token or viewport moves.
 function playEnhancedTokenTransition(actor,entering){
   const config=getConfig(actor),source=String((entering?config.enhancedTransitionInGif:config.enhancedTransitionOutGif)||"").trim();
+  const prefix=entering?"enhancedTransitionIn":"enhancedTransitionOut";
+  const offsetX=clamp(config[`${prefix}X`],-300,300)/100,offsetY=clamp(config[`${prefix}Y`],-300,300)/100,scale=clamp(config[`${prefix}Scale`],10,500)/100;
   if(!source||!canvas?.ready)return Promise.resolve();
   const tokens=(canvas.tokens?.placeables??[]).filter(token=>token.document?.actorId===actor.id);
   if(!tokens.length)return Promise.resolve();
@@ -446,10 +454,11 @@ function playEnhancedTokenTransition(actor,entering){
       const renderer=canvas.app?.renderer?.screen;
       const ratioX=bounds.width/Math.max(1,renderer?.width??view.width??bounds.width);
       const ratioY=bounds.height/Math.max(1,renderer?.height??view.height??bounds.height);
-      image.style.left=`${bounds.left+projected.x*ratioX}px`;
-      image.style.top=`${bounds.top+projected.y*ratioY}px`;
-      image.style.width=`${Math.max(0,token.w*canvas.stage.scale.x*ratioX)}px`;
-      image.style.height=`${Math.max(0,token.h*canvas.stage.scale.y*ratioY)}px`;
+      const width=Math.max(0,token.w*canvas.stage.scale.x*ratioX),height=Math.max(0,token.h*canvas.stage.scale.y*ratioY);
+      image.style.left=`${bounds.left+projected.x*ratioX+offsetX*width}px`;
+      image.style.top=`${bounds.top+projected.y*ratioY+offsetY*height}px`;
+      image.style.width=`${width*scale}px`;
+      image.style.height=`${height*scale}px`;
       if(performance.now()-started>=duration)return finish();
       frame=requestAnimationFrame(track);
     };
@@ -6548,7 +6557,7 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
   tab.find("[name]").each((_index, field) => {
     data[field.name] = field.type === "checkbox" ? field.checked : field.value;
   });
-  for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "skillPointCost", "talentPointsCurrent", "talentPointsMax", "talentPointsOvercapMax", "punchlineGain", "splashDuration", "splashX", "splashY", "splashScale", "titleX", "titleY", "titleSize", "combatHudPortraitX", "combatHudPortraitY", "combatHudPortraitScale", "enhancedHudPortraitX", "enhancedHudPortraitY", "enhancedHudPortraitScale", "enhancedCarouselImageX", "enhancedCarouselImageY", "enhancedCarouselImageScale", "enhancedSplashX", "enhancedSplashY", "enhancedSplashScale", "enhancedTransitionDuration", "messagingPortraitX", "messagingPortraitY", "messagingPortraitScale", "ultimateButtonX", "ultimateButtonY", "ultimateButtonScale", "bossPhaseCount", "bossPhase2TokenWidth", "bossPhase2TokenHeight", "bossPhase3TokenWidth", "bossPhase3TokenHeight", "bossHudPortraitX", "bossHudPortraitY", "bossHudPortraitScale", "bossHudWidth", "bossHudHealthHeight", "bossHudToughnessHeight"]) data[key] = Number(data[key]);
+  for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "skillPointCost", "talentPointsCurrent", "talentPointsMax", "talentPointsOvercapMax", "punchlineGain", "splashDuration", "splashX", "splashY", "splashScale", "titleX", "titleY", "titleSize", "combatHudPortraitX", "combatHudPortraitY", "combatHudPortraitScale", "enhancedHudPortraitX", "enhancedHudPortraitY", "enhancedHudPortraitScale", "enhancedCarouselImageX", "enhancedCarouselImageY", "enhancedCarouselImageScale", "enhancedSplashX", "enhancedSplashY", "enhancedSplashScale", "enhancedTransitionDuration", "enhancedTransitionInX", "enhancedTransitionInY", "enhancedTransitionInScale", "enhancedTransitionOutX", "enhancedTransitionOutY", "enhancedTransitionOutScale", "messagingPortraitX", "messagingPortraitY", "messagingPortraitScale", "ultimateButtonX", "ultimateButtonY", "ultimateButtonScale", "bossPhaseCount", "bossPhase2TokenWidth", "bossPhase2TokenHeight", "bossPhase3TokenWidth", "bossPhase3TokenHeight", "bossHudPortraitX", "bossHudPortraitY", "bossHudPortraitScale", "bossHudWidth", "bossHudHealthHeight", "bossHudToughnessHeight"]) data[key] = Number(data[key]);
   for (const key of ["enabled", "showPercent", "showHudPercent", "skillEnabled", "techniqueEnabled", "mainParty", "trialCharacter", "combatHudPortraitFlip", "enhancedHudPortraitFlip", "enhancedCarouselImageFlip", "ultimateButtonAdjustEnabled", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter", "isBoss", "bossInheritsMainPhaseCount", "carouselFrameColorOverride", "enhancedStanceEnabled", "enhancedUltimateEnabled"]) data[key] = Boolean(data[key]);
   if(!data.enhancedStanceEnabled)data.enhancedStanceActive=false;
   data.max = Math.max(1, data.max || 100);
@@ -6570,6 +6579,7 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
   data.enhancedHudPortraitX=clamp(data.enhancedHudPortraitX,0,100);data.enhancedHudPortraitY=clamp(data.enhancedHudPortraitY,0,100);data.enhancedHudPortraitScale=clamp(data.enhancedHudPortraitScale,50,300);
   data.enhancedCarouselImageScale=clamp(data.enhancedCarouselImageScale,50,800);const enhancedBounds=initiativePortraitPositionBounds(data.enhancedCarouselImageScale);data.enhancedCarouselImageX=clamp(data.enhancedCarouselImageX,enhancedBounds.min,enhancedBounds.max);data.enhancedCarouselImageY=clamp(data.enhancedCarouselImageY,enhancedBounds.min,enhancedBounds.max);
   data.enhancedTransitionDuration=clamp(data.enhancedTransitionDuration,0.2,15);
+  for(const prefix of ["enhancedTransitionIn","enhancedTransitionOut"]){data[`${prefix}X`]=clamp(data[`${prefix}X`],-300,300);data[`${prefix}Y`]=clamp(data[`${prefix}Y`],-300,300);data[`${prefix}Scale`]=clamp(data[`${prefix}Scale`],10,500);}
   data.enhancedSplashX=clamp(data.enhancedSplashX,0,100);data.enhancedSplashY=clamp(data.enhancedSplashY,0,100);data.enhancedSplashScale=clamp(data.enhancedSplashScale,25,500);
   data.carouselFrameColorPreset=String(data.carouselFrameColorPreset||"");
   data.talentCombatId = talentCombatForActor(actor)?.id ?? "";
@@ -6674,6 +6684,29 @@ function activateConfigListeners(actor, tab, app) {
   });
   tab.find("[data-action='open-initiative-portrait-editor']").on("click.tsru-initiative-preview",event=>{event.preventDefault();openInitiativePortraitEditor(actor);});
   tab.on("input.tsru-enhanced-token change.tsru-enhanced-token","[name=enhancedTokenImage]",event=>tab.find("[data-enhanced-token-preview] img").attr("src",event.currentTarget.value||actor.prototypeToken?.texture?.src||actor.img||"icons/svg/mystery-man.svg"));
+  for(const prefix of ["enhancedTransitionIn","enhancedTransitionOut"]){
+    const editor=tab.find(`[data-transition-editor="${prefix}"]`),stage=editor.find("[data-transition-stage]"),overlay=editor.find(".tsru-transition-overlay");
+    if(!stage.length)continue;
+    const placed=canvas?.tokens?.placeables?.find(token=>token.document?.actorId===actor.id);
+    const original=placed?.document?.getFlag?.(MODULE_ID,"enhancedStanceOriginalToken")?.src;
+    const normalToken=original||actor.prototypeToken?.texture?.src||actor.img||"icons/svg/mystery-man.svg";
+    editor.find(".tsru-transition-token").attr("src",prefix==="enhancedTransitionOut"?(String(tab.find('[name="enhancedTokenImage"]').val()||"").trim()||normalToken):normalToken);
+    const field=suffix=>tab.find(`[name="${prefix}${suffix}"]`);
+    const refresh=()=>{
+      const source=String(field("Gif").val()||"").trim();if(overlay.attr("src")!==source)overlay.attr("src",source);
+      const x=clamp(Number(field("X").val())||0,-300,300),y=clamp(Number(field("Y").val())||0,-300,300),scale=clamp(Number(field("Scale").val())||100,10,500);
+      overlay.css({left:`calc(50% + ${x}px)`,top:`calc(50% + ${y}px)`,width:`${scale}px`,height:`${scale}px`});
+    };
+    editor.on("input change","input",refresh);tab.on(`input.tsru-transition-${prefix} change.tsru-transition-${prefix}`,`[name="${prefix}Gif"]`,refresh);refresh();
+    if(prefix==="enhancedTransitionOut")tab.on("input.tsru-out-token change.tsru-out-token",'[name="enhancedTokenImage"]',event=>editor.find(".tsru-transition-token").attr("src",event.currentTarget.value||normalToken));
+    let drag=null;
+    stage.on("pointerdown",event=>{if(event.button!==0)return;event.preventDefault();drag={x:event.clientX,y:event.clientY,startX:Number(field("X").val())||0,startY:Number(field("Y").val())||0};event.currentTarget.setPointerCapture?.(event.pointerId);})
+      .on("pointermove",event=>{if(!drag)return;const rect=stage[0].getBoundingClientRect(),factor=300/Math.max(1,rect.width);field("X").val(Math.round(clamp(drag.startX+(event.clientX-drag.x)*factor,-300,300)));field("Y").val(Math.round(clamp(drag.startY+(event.clientY-drag.y)*factor,-300,300))).trigger("input");})
+      .on("pointerup pointercancel",()=>{if(!drag)return;drag=null;field("X").trigger("change");})
+      .on("wheel",event=>{event.preventDefault();field("Scale").val(clamp((Number(field("Scale").val())||100)+(event.originalEvent.deltaY<0?10:-10),10,500)).trigger("change");})
+      .on("dragover",event=>{event.preventDefault();stage.addClass("is-dragover");}).on("dragleave",()=>stage.removeClass("is-dragover"))
+      .on("drop",event=>{event.preventDefault();stage.removeClass("is-dragover");const path=droppedAssetPath(event);if(path&&/\.(gif|webp)(?:[?#]|$)/i.test(path))field("Gif").val(path).trigger("change");else ui.notifications.warn("Drop an animated GIF or WebP file.");});
+  }
   tab.find("[data-action='open-enhanced-initiative-editor']").on("click",event=>{event.preventDefault();openInitiativePortraitEditor(actor,{enhanced:true});});
   tab.find("[data-action='open-enhanced-hud-editor']").on("click",event=>{event.preventDefault();openEnhancedArtworkEditor(actor,"hud");});
   tab.find("[data-action='open-enhanced-splash-editor']").on("click",event=>{event.preventDefault();openEnhancedArtworkEditor(actor,"splash");});
