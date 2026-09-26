@@ -1,6 +1,6 @@
 <form class="tsru-messenger-new-thread">
   <label>Group chat name<input type="text" name="title" value="New Group Chat" required></label>
   <label>Find a character<input type="search" data-group-search placeholder="Type an NPC or player character name…"></label>
-  <fieldset><legend>NPCs and Player Characters</legend>{{#each actors}}<label data-group-actor data-group-name="{{this.name}}"><input type="checkbox" name="memberActorIds" value="{{this.id}}"><img src="{{this.img}}" alt=""><span><strong>{{this.name}}</strong><small>{{this.type}}</small></span></label>{{/each}}</fieldset>
-  <p>Player owners of selected characters can read and reply. The GM can speak as any actor.</p>
+  <fieldset><legend>NPCs and Player Characters</legend>{{#each actors}}<label data-group-actor data-group-name="{{this.name}}"><input type="checkbox" name="memberActorIds" value="{{this.id}}" {{#if this.selected}}checked{{/if}} {{#if this.locked}}disabled{{/if}}><img src="{{this.img}}" alt=""><span><strong>{{this.name}}</strong><small>{{this.type}}</small></span></label>{{/each}}</fieldset>
+  <p>{{#if isGM}}Player owners of selected characters can read and reply. The GM can speak as any actor.{{else}}Choose player characters and NPCs from your contacts. Their players can read and reply.{{/if}}</p>
 </form>

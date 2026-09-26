@@ -397,6 +397,8 @@ function openMessengerNotifications(){
 function messengerPortrait(actor){const config=actor?.getFlag(MODULE_ID,"ultimate")??{};return {portrait:String(config.messagingPortrait||actor?.img||"icons/svg/mystery-man.svg"),portraitX:Number(config.messagingPortraitX??50),portraitY:Number(config.messagingPortraitY??50),portraitScale:Number(config.messagingPortraitScale??100)};}
 function messengerActors(){return game.actors.filter(actor=>["character","npc"].includes(actor.type)).sort((a,b)=>a.name.localeCompare(b.name));}
 function messengerContactIds(){return new Set(game.settings.get(MODULE_ID,"hsrMessengerContacts")??[]);}
+function messengerPlayerOwners(actor){return actor?.type==="character"?game.users.filter(user=>!user.isGM&&actor.testUserPermission(user,"OWNER")):[];}
+function messengerPcOnly(thread){return (thread.memberActorIds??[]).length>=2&&(thread.memberActorIds??[]).every(id=>messengerPlayerOwners(game.actors.get(id)).length>0)&&new Set(thread.participantIds??[]).size>=2;}
 
 class HSRContactConfig extends FormApplication {
   static get defaultOptions(){return foundry.utils.mergeObject(super.defaultOptions,{id:"tsru-hsr-contact-config",title:"Configure Messenger Contacts",template:`modules/${MODULE_ID}/templates/hsr-contact-config.hbs`,width:620,height:720,resizable:true,closeOnSubmit:true});}
@@ -408,15 +410,16 @@ class HSRContactConfig extends FormApplication {
 class HSRMessenger extends Application {
   static get defaultOptions(){return foundry.utils.mergeObject(super.defaultOptions,{id:"tsru-hsr-messenger",title:"HSR Messenger",template:`modules/${MODULE_ID}/templates/hsr-messenger.hbs`,width:920,height:700,resizable:true,classes:["tsru-messenger-window"]});}
   getData(){
-    const visible=visibleMessengerThreads().sort((a,b)=>Number(b.updatedAt||0)-Number(a.updatedAt||0)),read=messengerReadState();
+    const visible=visibleMessengerThreads().filter(thread=>!game.user.isGM||!this.pcOnlyView||messengerPcOnly(thread)).sort((a,b)=>Number(b.updatedAt||0)-Number(a.updatedAt||0)),read=messengerReadState();
     if(!visible.some(thread=>thread.id===this.threadId))this.threadId=visible[0]?.id||"";
     const selected=visible.find(thread=>thread.id===this.threadId);
-    const speakers=messengerActors();
+    const memberIds=new Set(selected?.memberActorIds??[]);
+    const speakers=messengerActors().sort((a,b)=>Number(memberIds.has(b.id))-Number(memberIds.has(a.id))||a.name.localeCompare(b.name));
     if(!speakers.some(actor=>actor.id===this.speakerActorId))this.speakerActorId=api()?.getSelectedMainCharacter?.()?.id||speakers[0]?.id||"";
     const messages=[...(selected?.messages??[])].sort((a,b)=>Number(a.createdAt||0)-Number(b.createdAt||0)).map(message=>{const actor=game.actors.get(message.speakerActorId),portrait=messengerPortrait(actor);return {...message,...portrait,speakerName:actor?.name||message.speakerName||"Unknown",mine:message.senderUserId===game.user.id,time:new Date(Number(message.createdAt)||Date.now()).toLocaleString()};});
     const memberNames=(selected?.memberActorIds??[]).map(id=>game.actors.get(id)?.name).filter(Boolean),fallbackNames=(selected?.participantIds??[]).map(id=>game.users.get(id)?.name).filter(Boolean);
     const selectedData=selected?{...selected,messages,participantNames:(memberNames.length?memberNames:fallbackNames).join(", ")}:null,contactIds=messengerContactIds(),contacts=speakers.filter(actor=>contactIds.has(actor.id)).map(actor=>({...messengerPortrait(actor),id:actor.id,name:actor.name,img:actor.img}));
-    return {isGM:game.user.isGM,contactsView:this.view==="contacts",messagesView:this.view!=="contacts",contacts,threads:visible.map(thread=>{const last=thread.messages?.at(-1),speaker=game.actors.get(last?.speakerActorId||thread.contactActorId||thread.memberActorIds?.[0]),portrait=messengerPortrait(speaker),unread=unreadThreadMessages(thread,read).length;return {id:thread.id,title:thread.title,selected:thread.id===this.threadId,preview:String(last?.text||"No messages").slice(0,70),portrait:portrait.portrait,unread,hasUnread:unread>0};}),selected:selectedData,speakers:speakers.map(actor=>({id:actor.id,name:actor.name,selected:actor.id===this.speakerActorId})),unreadMessages:messengerUnreadCount()};
+    return {isGM:game.user.isGM,pcOnlyView:Boolean(this.pcOnlyView),contactsView:this.view==="contacts",messagesView:this.view!=="contacts",contacts,threads:visible.map(thread=>{const last=thread.messages?.at(-1),speaker=game.actors.get(last?.speakerActorId||thread.contactActorId||thread.memberActorIds?.[0]),portrait=messengerPortrait(speaker),unread=unreadThreadMessages(thread,read).length;return {id:thread.id,title:thread.title,selected:thread.id===this.threadId,preview:String(last?.text||"No messages").slice(0,70),portrait:portrait.portrait,unread,hasUnread:unread>0};}),selected:selectedData,speakers:speakers.map(actor=>({id:actor.id,name:actor.name,selected:actor.id===this.speakerActorId})),unreadMessages:messengerUnreadCount()};
   }
   activateListeners(html){
     super.activateListeners(html);
@@ -426,7 +429,8 @@ class HSRMessenger extends Application {
     html.find("[data-contact-id]").on("click",event=>this.openContact(String(event.currentTarget.dataset.contactId)));
     html.find("[data-action='configure-contacts']").on("click",()=>{if(game.user.isGM)new HSRContactConfig().render(true);});
     html.find("[data-contact-search]").on("input",event=>{const query=String(event.currentTarget.value||"").trim().toLowerCase();html.find("[data-contact-id]").each((_index,row)=>row.hidden=Boolean(query&&!String(row.dataset.contactName||"").toLowerCase().includes(query)));});
-    html.find("[data-action='new-thread']").on("click",()=>game.user.isGM?this.createGroupChat():this.viewContacts());
+    html.find("[data-action='new-thread']").on("click",()=>this.createGroupChat());
+    html.find("[data-action='pc-only']").on("click",()=>{this.pcOnlyView=!this.pcOnlyView;this.render(false);});
     html.find("[data-action='send-message']").on("click",()=>this.sendMessage(html));
     html.find("[data-delete-message]").on("click",event=>this.deleteMessage(String(event.currentTarget.dataset.deleteMessage)));
     html.find('[name="messageText"]').on("keydown",event=>{if(event.key==="Enter"&&!event.shiftKey){event.preventDefault();this.sendMessage(html);}});
@@ -448,8 +452,21 @@ class HSRMessenger extends Application {
     ui.notifications.info(`Opening a conversation with ${contact.name}…`);
   }
   async createGroupChat(){
-    if(!game.user.isGM)return this.viewContacts();const actors=messengerActors().map(actor=>({id:actor.id,name:actor.name,img:actor.img,type:actor.type})),content=await renderTemplate(`modules/${MODULE_ID}/templates/hsr-messenger-new.hbs`,{actors});
-    new Dialog({title:"Make Group Chat",content,buttons:{create:{label:"Make Group Chat",icon:'<i class="fas fa-users"></i>',callback:async html=>{const root=html?.[0]??html,title=String(root.querySelector('[name="title"]')?.value||"New Group Chat").trim(),memberActorIds=[...root.querySelectorAll('[name="memberActorIds"]:checked')].map(input=>input.value);if(memberActorIds.length<2)return ui.notifications.warn("Choose at least two NPCs or player characters.");const participantIds=new Set();for(const id of memberActorIds){const actor=game.actors.get(id);for(const user of game.users)if(!user.isGM&&actor?.testUserPermission(user,"OWNER"))participantIds.add(user.id);}const threads=messengerThreads(),thread={id:foundry.utils.randomID(),title,memberActorIds,participantIds:[...participantIds],createdBy:game.user.id,createdAt:Date.now(),updatedAt:Date.now(),messages:[]};threads.push(thread);await saveMessengerThreads(threads);this.threadId=thread.id;this.view="messages";this.render(false);}},cancel:{label:"Cancel"}},default:"create",render:html=>{html.find("[data-group-search]").on("input",event=>{const query=String(event.currentTarget.value||"").trim().toLowerCase();html.find("[data-group-actor]").each((_index,row)=>row.hidden=Boolean(query&&!String(row.dataset.groupName||"").toLowerCase().includes(query)));});}}).render(true);
+    const mainActor=api()?.getSelectedMainCharacter?.(),contactIds=messengerContactIds();
+    if(!game.user.isGM&&!mainActor)return ui.notifications.warn("Select a main character first.");
+    const actors=messengerActors().filter(actor=>game.user.isGM||actor.id===mainActor.id||messengerPlayerOwners(actor).length||contactIds.has(actor.id)).map(actor=>({id:actor.id,name:actor.name,img:actor.img,type:actor.type,selected:!game.user.isGM&&actor.id===mainActor.id,locked:!game.user.isGM&&actor.id===mainActor.id}));
+    const content=await renderTemplate(`modules/${MODULE_ID}/templates/hsr-messenger-new.hbs`,{actors,isGM:game.user.isGM});
+    new Dialog({title:"Make Group Chat",content,buttons:{create:{label:"Make Group Chat",icon:'<i class="fas fa-users"></i>',callback:async html=>{
+      const root=html?.[0]??html,title=String(root.querySelector('[name="title"]')?.value||"New Group Chat").trim().slice(0,120),memberActorIds=[...new Set([...root.querySelectorAll('[name="memberActorIds"]:checked')].map(input=>input.value))];
+      if(memberActorIds.length<2)return ui.notifications.warn("Choose at least two characters.");
+      if(!game.user.isGM){
+        if(!partyAuthority())return ui.notifications.error("An active GM is required to start a group chat.");
+        game.socket.emit(SOCKET,{type:"messengerCreateGroup",userId:game.user.id,mainActorId:mainActor.id,title,memberActorIds,requestedThreadId:foundry.utils.randomID()});
+        ui.notifications.info("Opening group chat…");return;
+      }
+      const participantIds=new Set();for(const id of memberActorIds)for(const user of messengerPlayerOwners(game.actors.get(id)))participantIds.add(user.id);
+      const threads=messengerThreads(),thread={id:foundry.utils.randomID(),title,memberActorIds,participantIds:[...participantIds],createdBy:game.user.id,createdAt:Date.now(),updatedAt:Date.now(),messages:[]};threads.push(thread);await saveMessengerThreads(threads);this.threadId=thread.id;this.view="messages";this.render(false);
+    }},cancel:{label:"Cancel"}},default:"create",render:html=>{html.find("[data-group-search]").on("input",event=>{const query=String(event.currentTarget.value||"").trim().toLowerCase();html.find("[data-group-actor]").each((_index,row)=>row.hidden=Boolean(query&&!String(row.dataset.groupName||"").toLowerCase().includes(query)));});}}).render(true);
   }
   async sendMessage(html){
     const text=String(html.find('[name="messageText"]').val()||"").trim();if(!text||!this.threadId)return;
@@ -745,6 +762,13 @@ Hooks.once("ready",()=>{
   game.socket.on(SOCKET,async payload=>{
     if(payload?.type==="selectPartyCharacter" && game.user.isGM && partyAuthority()?.id===game.user.id) { await applyPartySelection(payload.userId,payload.actorId); return; }
     if(payload?.type==="partySelectionChanged") { if(payload.userId===game.user.id) await api()?.setLocalMainCharacter?.(payload.actorId); for(const app of Object.values(ui.windows??{})) if(["tsru-party-selector","tsru-quest-manager","tsru-gm-panel","tsru-hub"].includes(app.options?.id)) app.render(false); if(payload.userId===game.user.id) ui.notifications.info("Your main character and party status were updated."); return; }
+    if(payload?.type==="messengerCreateGroup" && game.user.isGM && partyAuthority()?.id===game.user.id){
+      const user=game.users.get(String(payload.userId||"")),mainActor=game.actors.get(String(payload.mainActorId||"")),ids=[...new Set(Array.isArray(payload.memberActorIds)?payload.memberActorIds.map(String):[])],contacts=messengerContactIds();
+      if(!user||user.isGM||!mainActor?.testUserPermission(user,"OWNER")||ids.length<2||ids.length>30||!ids.includes(mainActor.id)||ids.some(id=>{const actor=game.actors.get(id);return !actor||!(messengerPlayerOwners(actor).length||contacts.has(id));}))return;
+      const participantIds=new Set();for(const id of ids)for(const owner of messengerPlayerOwners(game.actors.get(id)))participantIds.add(owner.id);
+      const now=Date.now(),thread={id:foundry.utils.randomID(),title:String(payload.title||"New Group Chat").trim().slice(0,120)||"New Group Chat",memberActorIds:ids,participantIds:[...participantIds],createdBy:user.id,createdAt:now,updatedAt:now,messages:[]},threads=messengerThreads();threads.push(thread);await saveMessengerThreads(threads);
+      game.socket.emit(SOCKET,{type:"messengerThreadOpened",userId:user.id,threadId:thread.id});return;
+    }
     if(payload?.type==="messengerOpenContact" && game.user.isGM && partyAuthority()?.id===game.user.id){
       const user=game.users.get(String(payload.userId||"")),mainActor=game.actors.get(String(payload.mainActorId||"")),contact=game.actors.get(String(payload.contactActorId||""));
       if(!user||user.isGM||!mainActor||!contact||!mainActor.testUserPermission(user,"OWNER")||!messengerContactIds().has(contact.id))return;

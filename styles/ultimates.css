@@ -1975,3 +1975,16 @@ body.tsru-hide-scene-navigation #scene-navigation,body.tsru-hide-scene-navigatio
 .tsru-hub-unread{position:fixed;z-index:9;top:18px;right:calc(4.5% + 75px);display:grid;place-items:center;width:40px;height:40px;margin:0;padding:0;border:1px solid #e5d5a8;border-radius:50%;background:#151b27e8;color:#f8e1a1;font-size:19px;box-shadow:0 2px 10px #000a}.tsru-hub-unread .tsru-hub-unread-dot{right:-2px;top:-3px}.tsru-hub-unread:hover{background:#2c3442;color:#fff}
 @media(max-width:900px){.tsru-hub-unread{right:73px}.tsru-messenger-message-page{gap:6px;padding:5px;grid-template-columns:minmax(160px,35%) minmax(0,1fr)}.tsru-messenger-thread-list>button{grid-template-columns:35px minmax(0,1fr) auto;gap:5px}.tsru-messenger-thread-avatar,.tsru-messenger-thread-avatar img{width:33px;height:33px}.tsru-messenger-messages{padding:10px}}
 .tsru-messenger-notifications{padding:14px;color:#202329;background:#e6e8ea}.tsru-messenger-notifications h2{margin:0 0 8px;padding-bottom:8px;border-bottom:1px solid #bdc3ca;font-size:20px}.tsru-messenger-notifications>div{max-height:420px;overflow:auto}.tsru-messenger-notifications [data-unread-thread]{display:grid;grid-template-columns:48px minmax(0,1fr) 20px;align-items:center;gap:11px;width:100%;min-height:72px;margin:0;padding:8px 5px;border:0;border-bottom:1px solid #c9cdd1;border-radius:0;background:transparent;color:#252a30;text-align:left}.tsru-messenger-notifications [data-unread-thread]:hover{background:#d5dade}.tsru-notification-avatar{position:relative;width:46px;height:46px}.tsru-notification-avatar img{width:46px;height:46px;border-radius:50%;object-fit:cover}.tsru-notification-avatar i{position:absolute;right:-3px;top:-4px;width:17px;height:17px;border-radius:50%;background:#e52b3c;border:2px solid #fff}.tsru-notification-avatar i:after{content:'!';position:absolute;inset:0;color:white;font:bold 12px/13px sans-serif;text-align:center}.tsru-messenger-notifications [data-unread-thread]>span:nth-child(2){display:grid;gap:3px;min-width:0}.tsru-messenger-notifications [data-unread-thread] small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#66707a;font-size:13px}
+
+/* Keep the speaker picker above a usable, full-width message composer. */
+.tsru-messenger-conversation>footer{grid-template-columns:minmax(0,1fr) 72px;align-items:end}
+.tsru-messenger-conversation>footer.is-gm>label{grid-column:1/-1;min-width:0}
+.tsru-messenger-conversation>footer.is-gm>label select{width:100%;min-width:0;box-sizing:border-box}
+.tsru-messenger-conversation>footer textarea{grid-column:1;width:100%;min-width:0;box-sizing:border-box}
+.tsru-messenger-conversation>footer button[data-action="send-message"]{grid-column:2;width:72px;min-width:0;height:48px;white-space:nowrap}
+.tsru-messenger-conversation>footer.is-player{grid-template-columns:minmax(0,1fr) 48px}
+.tsru-messenger-conversation>footer.is-player button[data-action="send-message"]{width:48px}
+.tsru-messenger-sidebar>header{gap:8px;flex-wrap:wrap}
+.tsru-messenger-sidebar-actions{display:flex;gap:6px;flex-wrap:wrap}
+.tsru-messenger-sidebar-actions button{font-size:11px;padding:4px 7px}
+.tsru-messenger-sidebar-actions button.active{background:#e8d8a4;color:#171b21}
