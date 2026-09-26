@@ -194,6 +194,7 @@ const state = {
   ultimateQueues: new Map(),
   splashBroadcasts: new Map(),
   receivedSplashIds: new Set(),
+  splashPlaybackPromises: new Map(),
   lastTargetsByActor: new Map(),
   recentToughness: new Map(),
   lastDamageDisplay: null,
@@ -208,6 +209,8 @@ const state = {
   suppressCombatHook: false,
   lastAhaTurnKey: "",
   ahaVideoCache: {source: "", objectUrl: "", promise: null},
+  splashAssetCache: new Map(),
+  splashPreloadStatus: new Map(),
   partyCombatHud: null,
   bossHud: null,
   bossPhaseControl: null,
@@ -3968,18 +3971,119 @@ async function loadSplashFont(fontFile) {
   return `"${family}", Arial, sans-serif`;
 }
 
+function configuredSplashAssets(){
+  if(!game.user?.isGM)return [];
+  return [...new Set(Array.from(game.actors).flatMap(actor=>{
+    const config=getConfig(actor);
+    return [config.splashImage,config.enhancedSplashImage].map(value=>String(value||"").trim()).filter(Boolean);
+  }))];
+}
+
+async function waitForSplashMedia(source){
+  if(!/\.(webm|mp4|m4v)(?:[?#]|$)/i.test(source)){
+    const image=new Image();image.src=source;await image.decode();return;
+  }
+  const video=document.createElement("video");video.preload="auto";video.muted=true;
+  await new Promise((resolve,reject)=>{
+    const timer=window.setTimeout(()=>reject(new Error("Video preload timed out")),30000);
+    video.onloadeddata=()=>{window.clearTimeout(timer);resolve();};
+    video.onerror=()=>{window.clearTimeout(timer);reject(new Error("Video could not load"));};
+    video.src=source;video.load();
+  });
+  video.removeAttribute("src");video.load();
+}
+
+// Cache Storage keeps full files on this browser when available. Object URLs
+// keep decoded artwork ready for the current session, including GIF and WebP.
+async function preloadSplashAsset(source,{refresh=false}={}){
+  source=String(source||"").trim();if(!source)return "";
+  const existing=state.splashAssetCache.get(source);
+  if(existing?.promise)return existing.promise;
+  if(existing?.url&&!refresh)return existing.url;
+  const pending=(async()=>{
+    const url=resolveAssetUrl(source);
+    let cache=null,response=null;
+    if("caches" in window){try{cache=await caches.open(`${MODULE_ID}-splash-v1`);if(!refresh)response=await cache.match(url);}catch(error){console.warn(`${MODULE_ID} | Browser splash cache unavailable`,error);}}
+    if(!response){
+      const controller=new AbortController(),timer=window.setTimeout(()=>controller.abort(),30000);
+      try{response=await fetch(url,{cache:refresh?"reload":"force-cache",signal:controller.signal});}
+      finally{window.clearTimeout(timer);}
+      if(!response.ok)throw new Error(`HTTP ${response.status}`);
+      if(cache)cache.put(url,response.clone()).catch(error=>console.warn(`${MODULE_ID} | Could not persist splash artwork`,error));
+    }
+    const blob=await response.blob();if(!blob.size)throw new Error("Empty artwork file");
+    const objectUrl=URL.createObjectURL(blob);
+    try{
+      if(!/\.(webm|mp4|m4v)(?:[?#]|$)/i.test(source)){
+        const image=new Image();image.src=objectUrl;await image.decode();
+      }
+    }catch(error){URL.revokeObjectURL(objectUrl);throw error;}
+    const previous=state.splashAssetCache.get(source)?.url;
+    state.splashAssetCache.set(source,{url:objectUrl,promise:null});
+    if(previous&&previous!==objectUrl)URL.revokeObjectURL(previous);
+    return objectUrl;
+  })().catch(error=>{
+    state.splashAssetCache.delete(source);
+    console.warn(`${MODULE_ID} | Could not preload splash artwork: ${source}`,error);
+    return waitForSplashMedia(source).then(()=>{state.splashAssetCache.set(source,{url:source,promise:null,fallback:true});return source;}).catch(fallbackError=>{
+      console.warn(`${MODULE_ID} | Splash artwork is unavailable: ${source}`,fallbackError);
+      return source;
+    });
+  });
+  state.splashAssetCache.set(source,{url:existing?.url||"",promise:pending});
+  return pending;
+}
+
+async function preloadSplashManifest(urls,{refresh=false,onProgress}={}){
+  const assets=[...new Set((Array.isArray(urls)?urls:[]).filter(value=>typeof value==="string"&&value.trim()))];
+  let cursor=0,completed=0,failed=0;
+  const worker=async()=>{
+    while(cursor<assets.length){
+      const source=assets[cursor++];await preloadSplashAsset(source,{refresh});
+      if(!state.splashAssetCache.get(source)?.url)failed++;
+      completed++;onProgress?.({completed,total:assets.length,failed});
+    }
+  };
+  await Promise.all(Array.from({length:Math.min(3,assets.length)},worker));
+  return {completed,total:assets.length,failed};
+}
+
+function broadcastSplashPreload({refresh=false,targetUserId=null}={}){
+  if(!isAuthority())return;
+  const urls=configuredSplashAssets(),batchId=foundry.utils.randomID();
+  game.socket.emit(SOCKET,{type:"preloadSplashManifest",sourceUserId:game.user.id,targetUserId,batchId,urls,refresh});
+  state.splashPreloadStatus.set(game.user.id,{completed:0,total:urls.length,failed:0});
+  preloadSplashManifest(urls,{refresh,onProgress:status=>{state.splashPreloadStatus.set(game.user.id,status);state.splashPreloadMenu?.updateStatus();}}).then(status=>{state.splashPreloadStatus.set(game.user.id,status);state.splashPreloadMenu?.updateStatus();});
+  return batchId;
+}
+
+function requestSplashPreload(){
+  if(game.user.isGM)return;
+  const gm=activeGM();if(!gm||state.splashPreloadRequestedFrom===gm.id)return;
+  state.splashPreloadRequestedFrom=gm.id;
+  game.socket.emit(SOCKET,{type:"requestSplashPreload",sourceUserId:game.user.id});
+}
+
+function queueSplashPreloadBroadcast(){
+  if(!isAuthority())return;
+  window.clearTimeout(state.splashPreloadBroadcastTimer);
+  state.splashPreloadBroadcastTimer=window.setTimeout(()=>broadcastSplashPreload(),650);
+}
+
 async function showSplash({actorName, image, duration = 1, splashX = 50, splashY = 50, splashScale = 100, ultimateName = "Ultimate", ultimateSubtitle = "", titleX = 17, titleY = 78, titleSize = 48, titleAlign = "left", fontFile = "", subtitleFontFile = "", color = DEFAULT_CONFIG.chargeColor}) {
   if (!image) return;
+  const sequence=state.splashSequence=(state.splashSequence||0)+1;
+  const [playbackImage,loadedTitleFont,loadedSubtitleFont]=await Promise.all([
+    preloadSplashAsset(image),
+    loadSplashFont(fontFile).catch(error=>{console.warn(`${MODULE_ID} | Could not load splash font`,error);return "Arial, sans-serif";}),
+    loadSplashFont(subtitleFontFile||fontFile).catch(error=>{console.warn(`${MODULE_ID} | Could not load subtitle font`,error);return "Arial, sans-serif";})
+  ]);
+  if(sequence!==state.splashSequence)return;
   document.querySelectorAll(".tsru-splash").forEach(element => element.remove());
   const splash = document.createElement("div");
   splash.className = "tsru-splash";
   const isVideo = /\.(webm|mp4|m4v)(\?.*)?$/i.test(image);
-  let fontFamily = "Arial, sans-serif";
-  let subtitleFontFamily = "Arial, sans-serif";
-  try { fontFamily = await loadSplashFont(fontFile); }
-  catch (error) { console.warn(`${MODULE_ID} | Could not load splash font`, error); }
-  try { subtitleFontFamily = await loadSplashFont(subtitleFontFile || fontFile); }
-  catch (error) { console.warn(`${MODULE_ID} | Could not load subtitle font`, error); }
+  const fontFamily=loadedTitleFont,subtitleFontFamily=loadedSubtitleFont;
   const x = clamp(titleX, 0, 100);
   const y = clamp(titleY, 0, 100);
   const size = clamp(titleSize, 16, 140);
@@ -3994,8 +4098,19 @@ async function showSplash({actorName, image, duration = 1, splashX = 50, splashY
   splash.style.setProperty("--tsru-splash-x", `${clamp(splashX, 0, 100)}%`);
   splash.style.setProperty("--tsru-splash-y", `${clamp(splashY, 0, 100)}%`);
   splash.style.setProperty("--tsru-splash-scale", String(clamp(splashScale, 25, 500) / 100));
-  splash.innerHTML = `<div class="tsru-splash-backdrop"></div><div class="tsru-splash-media"><div class="tsru-splash-artwork"><div class="tsru-splash-artboard">${isVideo ? `<video src="${escapeHTML(image)}" autoplay muted playsinline></video>` : `<img src="${escapeHTML(image)}" alt="${escapeHTML(actorName)} Ultimate">`}</div></div><div class="tsru-title-card tsru-align-${align}"><i class="tsru-title-square tsru-title-square-one"></i><i class="tsru-title-square tsru-title-square-two"></i><div class="tsru-title-copy"><div class="tsru-title-name">${escapeHTML(ultimateName || actorName || "Ultimate")}</div><div class="tsru-title-bar">${ultimateSubtitle ? `<div class="tsru-title-subtitle">${escapeHTML(ultimateSubtitle)}</div>` : ""}</div></div></div></div>`;
+  splash.innerHTML = `<div class="tsru-splash-backdrop"></div><div class="tsru-splash-media"><div class="tsru-splash-artwork"><div class="tsru-splash-artboard">${isVideo ? `<video src="${escapeHTML(playbackImage)}" preload="auto" muted playsinline></video>` : `<img src="${escapeHTML(playbackImage)}" alt="${escapeHTML(actorName)} Ultimate">`}</div></div><div class="tsru-title-card tsru-align-${align}"><i class="tsru-title-square tsru-title-square-one"></i><i class="tsru-title-square tsru-title-square-two"></i><div class="tsru-title-copy"><div class="tsru-title-name">${escapeHTML(ultimateName || actorName || "Ultimate")}</div><div class="tsru-title-bar">${ultimateSubtitle ? `<div class="tsru-title-subtitle">${escapeHTML(ultimateSubtitle)}</div>` : ""}</div></div></div></div>`;
   appendToCanvasLayer(splash);
+  if(isVideo){
+    const video=splash.querySelector("video");
+    await new Promise(resolve=>{
+      if(video.readyState>=2)return resolve();
+      const timer=window.setTimeout(resolve,10000);
+      const done=()=>{window.clearTimeout(timer);resolve();};
+      video.addEventListener("loadeddata",done,{once:true});video.addEventListener("error",done,{once:true});
+    });
+    if(sequence!==state.splashSequence){splash.remove();return;}
+    video.play().catch(error=>console.warn(`${MODULE_ID} | Splash video could not play`,error));
+  }
   requestAnimationFrame(() => splash.classList.add("show"));
   window.setTimeout(() => {
     splash.classList.remove("show");
@@ -4424,6 +4539,22 @@ async function executeUltimate(actorId, requestingUserId, expectedEnhanced=undef
 
 async function onSocket(payload) {
   if (!payload?.type) return;
+  if(payload.type==="requestSplashPreload"&&isAuthority()){
+    const requester=game.users.get(payload.sourceUserId);
+    if(requester?.active)broadcastSplashPreload({targetUserId:requester.id});
+    return;
+  }
+  if(payload.type==="preloadSplashManifest"){
+    if(payload.sourceUserId===game.user.id||payload.targetUserId&&payload.targetUserId!==game.user.id)return;
+    if(!game.users.get(payload.sourceUserId)?.isGM)return;
+    game.socket.emit(SOCKET,{type:"splashPreloadStatus",sourceUserId:game.user.id,targetUserId:payload.sourceUserId,status:{completed:0,total:payload.urls?.length??0,failed:0}});
+    const status=await preloadSplashManifest(payload.urls,{refresh:Boolean(payload.refresh)});
+    game.socket.emit(SOCKET,{type:"splashPreloadStatus",sourceUserId:game.user.id,targetUserId:payload.sourceUserId,status});
+    return;
+  }
+  if(payload.type==="splashPreloadStatus"&&payload.targetUserId===game.user.id&&isAuthority()){
+    state.splashPreloadStatus.set(payload.sourceUserId,payload.status);state.splashPreloadMenu?.updateStatus();return;
+  }
   if(payload.type==="blowUpTatsuo"){receiveBlowUpTatsuo(payload);return;}
   if(payload.type==="craftRecipe"&&isAuthority()){
     const result=await executeCraftRecipe(payload.recipeId,payload.actorId,payload.requestingUserId,payload.craftCount);
@@ -4603,7 +4734,11 @@ async function onSocket(payload) {
       state.receivedSplashIds.add(playbackId);
       window.setTimeout(() => state.receivedSplashIds.delete(playbackId), 60000);
     }
-    if (!alreadyReceived) await showSplash(payload);
+    if (!alreadyReceived) {
+      const pending=showSplash(payload);
+      if(playbackId)state.splashPlaybackPromises.set(playbackId,pending);
+      try{await pending;}finally{if(playbackId)state.splashPlaybackPromises.delete(playbackId);}
+    }else if(playbackId&&state.splashPlaybackPromises.has(playbackId))await state.splashPlaybackPromises.get(playbackId);
     if (playbackId) game.socket.emit(SOCKET, {type: "ultimateSplashAck", playbackId, sourceUserId: game.user.id, targetUserId: payload.sourceUserId});
     return;
   }
@@ -6318,6 +6453,24 @@ function openStarRailGMPanel() {
   }
 }
 
+class SplashPreloadMenu extends FormApplication {
+  static get defaultOptions(){return foundry.utils.mergeObject(super.defaultOptions,{id:"tsru-splash-preload",title:"Preload Splash Artwork",template:`modules/${MODULE_ID}/templates/splash-preload.hbs`,width:520,height:"auto",closeOnSubmit:false});}
+  getData(){
+    return {assetCount:configuredSplashAssets().length,clients:game.users.filter(user=>user.active).map(user=>{
+      const status=state.splashPreloadStatus.get(user.id);
+      return {name:user.name,progress:status?`${status.completed}/${status.total}${status.failed?` (${status.failed} failed)`:""}`:"Waiting for preload"};
+    })};
+  }
+  activateListeners(html){
+    super.activateListeners(html);
+    state.splashPreloadMenu=this;
+    html.find("[data-tsru-refresh-splashes]").on("click",event=>{event.currentTarget.disabled=true;broadcastSplashPreload({refresh:true});this.render(false);});
+  }
+  updateStatus(){if(this.rendered)this.render(false);}
+  async _updateObject(){}
+  async close(...args){if(state.splashPreloadMenu===this)state.splashPreloadMenu=null;return super.close(...args);}
+}
+
 class BlowUpTatsuoConfig extends FormApplication {
   static get defaultOptions(){return foundry.utils.mergeObject(super.defaultOptions,{id:"tsru-blow-up-tatsuo",title:"Blow Up Tatsuo",template:`modules/${MODULE_ID}/templates/blow-up-tatsuo.hbs`,width:570,height:"auto",resizable:true,closeOnSubmit:false});}
   getData(){
@@ -6365,6 +6518,7 @@ class BlowUpTatsuoConfig extends FormApplication {
 }
 
 function registerSettings() {
+  game.settings.registerMenu(MODULE_ID,"splashPreloadMenu",{name:"Preload Splash Artwork",label:"Preload Splash Artwork",hint:"Download all configured normal and enhanced splash art to connected players' browsers before playback.",icon:"fas fa-images",type:SplashPreloadMenu,restricted:true});
   game.settings.register(MODULE_ID,"blowUpTatsuo",{scope:"world",config:false,type:Object,default:foundry.utils.deepClone(DEFAULT_BLOW_UP_TATSUO)});
   game.settings.registerMenu(MODULE_ID,"blowUpTatsuoMenu",{name:"Blow Up Tatsuo",label:"Configure and Blow Up Tatsuo",hint:"Choose a player and preview the animation over all character tokens they own.",icon:"fas fa-bomb",type:BlowUpTatsuoConfig,restricted:true});
   game.settings.register(MODULE_ID, "elements", {scope: "world", config: false, type: Array, default: []});
@@ -7700,6 +7854,8 @@ Hooks.once("ready", async () => {
   await ensureStarRailCraftingContent();
   if(isAuthority())for(const actor of game.actors.filter(entry=>entry.type==="character"))await syncAllEidolonFeatures(actor);
   game.socket.on(SOCKET, onSocket);
+  state.splashArtworkByActor=new Map(game.actors.map(actor=>[actor.id,[getConfig(actor).splashImage,getConfig(actor).enhancedSplashImage].join("\n")]));
+  if(isAuthority())broadcastSplashPreload();else requestSplashPreload();
   registerApi();
   applySceneNavigationVisibility();
   let controlsDockQueued=false;
@@ -7928,6 +8084,10 @@ Hooks.on("updateToken", () => state.dmCombatMenu?.refresh());
 Hooks.on("tsruSkillPointsChanged", value => { state.gmPanel?.refreshLiveValues(); dispatchTalentEvent("skillPointsChanged", {value}); });
 Hooks.on("tsruTalentPointsChanged", (actor, before, after) => { refreshTalentCounter(actor); dispatchTalentEvent("talentPointsChanged", {sourceActor: actor, before, after, amount: after - before}); });
 Hooks.on("updateActor", (actor, changes, options) => {
+  if(isAuthority()&&state.splashArtworkByActor){
+    const images=[getConfig(actor).splashImage,getConfig(actor).enhancedSplashImage].join("\n");
+    if(images!==state.splashArtworkByActor.get(actor.id)){state.splashArtworkByActor.set(actor.id,images);queueSplashPreloadBroadcast();}
+  }
   state.dmCombatMenu?.refresh();
   refreshOrb(actor);
   refreshSkillUI();
@@ -7985,9 +8145,10 @@ Hooks.on("updateActor", (actor, changes, options) => {
 Hooks.on("updateToken", token => { refreshToughnessBars(); refreshResourceHuds(); refreshCombatPartyHud(); refreshBossHud(); refreshInitiativeCarousel(); if(isAuthority()&&token.actor)handleBossPhaseDefeat(token.actor).catch(error=>console.error(`${MODULE_ID} | Boss token phase check failed`,error)); state.gmPanel?.render(false); });
 Hooks.on("targetToken", user => { if (user.id === game.user.id) state.gmPanel?.refreshTargetHighlights(); });
 Hooks.on("controlToken", () => state.gmPanel?.refreshTargetHighlights());
-Hooks.on("deleteActor", actor => { state.orbs.get(actor.id)?.destroy(); state.skillButtons.get(actor.id)?.destroy(); state.talentButtons.get(actor.id)?.destroy(); state.techniqueButtons.get(actor.id)?.destroy(); refreshResourceHuds(); });
+Hooks.on("createActor",actor=>{if(isAuthority()&&state.splashArtworkByActor){state.splashArtworkByActor.set(actor.id,[getConfig(actor).splashImage,getConfig(actor).enhancedSplashImage].join("\n"));queueSplashPreloadBroadcast();}});
+Hooks.on("deleteActor", actor => { state.splashArtworkByActor?.delete(actor.id);if(isAuthority())queueSplashPreloadBroadcast();state.orbs.get(actor.id)?.destroy(); state.skillButtons.get(actor.id)?.destroy(); state.talentButtons.get(actor.id)?.destroy(); state.techniqueButtons.get(actor.id)?.destroy(); refreshResourceHuds(); });
 for(const hook of ["createItem","updateItem","deleteItem"])Hooks.on(hook,()=>state.craftingApp?.render({force:false}));
-Hooks.on("updateUser", user => { if (user.id === game.user.id) { refreshAllOrbs(); refreshSkillUI(); refreshResourceHuds(); refreshCombatPartyHud(); refreshInitiativeCarousel(); } });
+Hooks.on("updateUser", user => { if (user.id === game.user.id) { refreshAllOrbs(); refreshSkillUI(); refreshResourceHuds(); refreshCombatPartyHud(); refreshInitiativeCarousel(); }if(!game.user.isGM&&user.isGM&&user.active)requestSplashPreload(); });
 Hooks.on("updateSetting", setting => {
   if (setting?.key?.startsWith(`${MODULE_ID}.skillPoint`)) refreshSkillUI();
   if (setting?.key === `${MODULE_ID}.talentPointConfig`) {

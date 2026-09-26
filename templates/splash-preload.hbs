@@ -1,0 +1,7 @@
+<form class="tsru-splash-preload">
+  <p>The module downloads normal and enhanced splash artwork when each player connects. The image is fully loaded before its Ultimate splash timer starts.</p>
+  <p><strong>{{assetCount}}</strong> distinct splash files configured in this world.</p>
+  <div class="tsru-splash-preload-status"><strong>Connected clients</strong><ul>{{#each clients}}<li><span>{{name}}</span><span>{{progress}}</span></li>{{/each}}</ul></div>
+  <button type="button" data-tsru-refresh-splashes><i class="fas fa-arrows-rotate"></i> Refresh Artwork on All Connected Clients</button>
+  <p class="notes">Use Refresh after replacing an image at the same file path. Each browser stores its own copy when storage is available; a player who joins later downloads the artwork on connection.</p>
+</form>
