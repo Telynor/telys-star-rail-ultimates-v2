@@ -1962,6 +1962,22 @@ body.tsru-hide-scene-navigation #scene-navigation,body.tsru-hide-scene-navigatio
 .tsru-enhanced-token-preview{display:grid;place-items:center;width:96px;height:96px;margin:8px 0;border:1px solid rgba(187,218,218,.45);border-radius:6px;background:radial-gradient(circle,#344550,#14222b)}.tsru-enhanced-token-preview img{display:block;width:88px;height:88px;border:0;object-fit:contain}
 .tsru-enhanced-token-transition{position:fixed;z-index:111;display:block;max-width:none;max-height:none;object-fit:contain;transform:translate(-50%,-50%);pointer-events:none;user-select:none;clip-path:inset(0)}
 
+/* Full width recipe rows within the left synthesis catalog. */
+.tsru-synthesis-catalog .tsru-recipe-grid{grid-template-columns:minmax(0,1fr);gap:7px}
+.tsru-synthesis-catalog .tsru-recipe-tile{display:grid;grid-template-columns:58px minmax(0,1fr) auto;align-items:center;gap:10px;aspect-ratio:auto;min-height:66px;padding:5px 11px;border-radius:5px!important;text-align:left}
+.tsru-synthesis-catalog .tsru-recipe-tile img{display:block;width:52px;height:52px;padding:4px;border:1px solid rgba(211,233,228,.28);border-radius:50%;background:radial-gradient(circle,rgba(183,211,205,.2),transparent 72%);object-fit:contain;object-position:center center}
+.tsru-synthesis-catalog .tsru-recipe-tile span{position:static;min-width:0;padding:0;background:transparent;font-size:12px;font-weight:600;text-overflow:ellipsis}
+.tsru-synthesis-catalog .tsru-recipe-tile b{position:static;min-width:25px;padding:2px 5px;text-align:center}
+.tsru-product-orbit img{display:block;margin:auto;object-position:center center}
+.tsru-recipe-browser-list>.tsru-recipe-browser-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;border:1px solid #5b6571;background:#1b2430}
+.tsru-recipe-browser-row>button{display:grid;grid-template-columns:52px minmax(0,1fr) 18px;align-items:center;gap:10px;min-width:0;min-height:70px;margin:0;padding:8px;border:0;background:transparent;color:#f5f0de;text-align:left}
+.tsru-recipe-browser-row>button:hover{background:#303946}
+.tsru-recipe-browser-row>button img{width:52px;height:52px;object-fit:contain}
+.tsru-recipe-browser-row>button span{display:grid;gap:4px;min-width:0}
+.tsru-recipe-browser-row>button strong,.tsru-recipe-browser-row>button small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tsru-recipe-browser-row>button small{color:#c5cbd3}
+.tsru-recipe-party-toggle{display:flex;align-items:center;gap:6px;margin:0 10px;white-space:nowrap;color:#e5dab8;font-size:12px;cursor:pointer}
+
 .tsru-transition-stage{position:relative;width:300px;height:300px;max-width:100%;margin:8px auto;overflow:hidden;border:1px solid #819aa0;border-radius:8px;background:repeating-conic-gradient(#24323b 0 25%,#30424d 0 50%) 50%/24px 24px;touch-action:none;cursor:grab}.tsru-transition-stage:active{cursor:grabbing}.tsru-transition-token{position:absolute;left:50%;top:50%;width:100px;height:100px;transform:translate(-50%,-50%);object-fit:contain;pointer-events:none}.tsru-transition-overlay{position:absolute;left:50%;top:50%;width:100px;height:100px;transform:translate(-50%,-50%);object-fit:contain;pointer-events:none;max-width:none;max-height:none}.tsru-transition-overlay:not([src]),.tsru-transition-overlay[src=""]{display:none}.tsru-transition-controls{display:flex;flex-wrap:wrap;gap:8px}.tsru-transition-controls label{flex:1 1 110px}.tsru-transition-controls input{width:100%}.tsru-transition-stage.is-dragover{outline:2px solid #70d6ed}
 .tsru-blow-up-tatsuo{padding:12px}.tsru-blow-up-tatsuo .form-group{display:flex;align-items:center;gap:12px;margin:10px 0}.tsru-blow-up-tatsuo .form-group>label{flex:0 0 145px}.tsru-blow-up-tatsuo .form-group>select,.tsru-blow-up-tatsuo .form-group>.tsru-file-control{flex:1}.tsru-blast-stage{width:300px;height:300px}.tsru-blast-actions{display:flex;gap:10px;margin-top:14px}.tsru-blast-actions button{flex:1}
 #tsru-blow-up-floating{position:fixed;z-index:125;top:120px;right:30px;display:flex;align-items:center;gap:4px;padding:5px;border:1px solid #d4b66e;border-radius:8px;background:#172a32;box-shadow:0 5px 20px #0009;cursor:grab;touch-action:none;user-select:none}#tsru-blow-up-floating:active{cursor:grabbing}#tsru-blow-up-floating button{border:1px solid #a68d5b;border-radius:5px;color:#f7e6bc;background:#324851;cursor:pointer}#tsru-blow-up-floating .tsru-blow-up-trigger{padding:7px 10px;font-weight:bold}#tsru-blow-up-floating .tsru-blow-up-close{width:25px;height:29px}

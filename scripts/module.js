@@ -2631,6 +2631,7 @@ async function executeCraftRecipe(recipeId,actorId,requestingUserId,craftCount=1
   if(state.craftingLocks.has("party"))return {ok:false,message:"The party is already crafting. Please try again."};
   const requester=game.users.get(requestingUserId),actor=game.actors.get(actorId),recipe=getCraftingRecipes().find(entry=>entry.id===recipeId);
   if(!requester||!actor||!recipe)return {ok:false,message:"The recipe or receiving character no longer exists."};
+  if(!requester.isGM&&recipe.partyAvailable===false)return {ok:false,message:"This recipe is not currently available to the party."};
   if(!getConfig(actor).mainParty||(!requester.isGM&&!actor.testUserPermission(requester,"OWNER")))return {ok:false,message:"Choose one of your Main Party characters to receive the result."};
   if(!requester.isGM&&!actorUnlockedRecipes(actor).has(recipeId))return {ok:false,message:"That recipe has not been unlocked."};
   if(!recipe.output?.itemData&&!recipe.output?.uuid)return {ok:false,message:"This recipe has no configured output item."};
@@ -5802,8 +5803,8 @@ class RecipeManager extends FormApplication {
 
 class RecipeBrowser extends FormApplication {
   static get defaultOptions(){return foundry.utils.mergeObject(super.defaultOptions,{id:"tsru-recipe-browser",title:"Crafting Recipes — GM",template:`modules/${MODULE_ID}/templates/recipe-manager.hbs`,width:800,height:700,resizable:true});}
-  getData(){const categories=new Map(getCraftingClassifications().map(entry=>[entry.id,entry.name]));const recipes=getCraftingRecipes().map(recipe=>({...recipe,categoryName:categories.get(recipe.classificationId)||"Other",ingredientCount:recipe.ingredients?.length||0,outputName:recipe.output?.name||"No result assigned",searchText:`${recipe.name} ${recipe.description||""} ${categories.get(recipe.classificationId)||""}`.toLowerCase()})).sort((a,b)=>a.name.localeCompare(b.name));return {recipes,total:recipes.length};}
-  activateListeners(html){super.activateListeners(html);html.find("[data-recipe-search]").on("input",event=>{const query=String(event.currentTarget.value||"").toLowerCase().trim();html.find("[data-recipe-row]").each((_index,row)=>row.hidden=Boolean(query&&!row.dataset.search.includes(query)));});html.find("[data-open-recipe]").on("click",event=>new RecipeManager(event.currentTarget.dataset.openRecipe,()=>this.render(false)).render(true));html.find("[data-new-recipe]").on("click",()=>new RecipeManager(null,()=>this.render(false)).render(true));}
+  getData(){const categories=new Map(getCraftingClassifications().map(entry=>[entry.id,entry.name]));const recipes=getCraftingRecipes().map(recipe=>({...recipe,partyAvailable:recipe.partyAvailable!==false,categoryName:categories.get(recipe.classificationId)||"Other",ingredientCount:recipe.ingredients?.length||0,outputName:recipe.output?.name||"No result assigned",searchText:`${recipe.name} ${recipe.description||""} ${categories.get(recipe.classificationId)||""}`.toLowerCase()})).sort((a,b)=>a.name.localeCompare(b.name));return {recipes,total:recipes.length};}
+  activateListeners(html){super.activateListeners(html);html.find("[data-recipe-search]").on("input",event=>{const query=String(event.currentTarget.value||"").toLowerCase().trim();html.find("[data-recipe-row]").each((_index,row)=>row.hidden=Boolean(query&&!row.dataset.search.includes(query)));});html.find("[data-open-recipe]").on("click",event=>new RecipeManager(event.currentTarget.dataset.openRecipe,()=>this.render(false)).render(true));html.find("[data-new-recipe]").on("click",()=>new RecipeManager(null,()=>this.render(false)).render(true));html.find("[data-recipe-party-toggle]").on("change",async event=>{if(!game.user.isGM)return;const input=event.currentTarget,recipes=getCraftingRecipes(),recipe=recipes.find(entry=>entry.id===input.dataset.recipePartyToggle);if(!recipe)return;input.disabled=true;try{recipe.partyAvailable=input.checked;await game.settings.set(MODULE_ID,"craftingRecipes",recipes);this.render(false);}catch(error){input.checked=!input.checked;input.disabled=false;ui.notifications.error(`Could not update recipe availability: ${error.message}`);}});}
   async _updateObject(){}
 }
 class RecipeMenu extends FormApplication {render(){new RecipeBrowser().render(true);return this;}}
@@ -5824,7 +5825,7 @@ class CraftingApplication extends foundry.applications.api.HandlebarsApplication
   static PARTS={main:{template:`modules/${MODULE_ID}/templates/crafting.hbs`}};
   async _prepareContext(){
     const recipes=getCraftingRecipes(),classifications=getCraftingClassifications(),userActors=craftingUserActors(),unlocked=new Set(userActors.flatMap(actor=>[...actorUnlockedRecipes(actor)]));
-    const visible=(game.user.isGM?recipes:recipes.filter(recipe=>unlocked.has(recipe.id))).map(recipe=>({...recipe,classificationId:recipe.classificationId||"other"}));
+    const visible=(game.user.isGM?recipes:recipes.filter(recipe=>recipe.partyAvailable!==false&&unlocked.has(recipe.id))).map(recipe=>({...recipe,classificationId:recipe.classificationId||"other"}));
     const filtered=this.selectedCategory==="all"?visible:visible.filter(recipe=>recipe.classificationId===this.selectedCategory);
     if(!filtered.some(recipe=>recipe.id===this.selectedRecipeId))this.selectedRecipeId=filtered[0]?.id||"";
     const chosen=visible.find(recipe=>recipe.id===this.selectedRecipeId),craftCount=clamp(Math.floor(Number(this.craftCount)||1),1,99);
