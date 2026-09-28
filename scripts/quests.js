@@ -692,6 +692,14 @@ function toolbarAction(label, callback) {
   return () => runUiAction(label, callback);
 }
 
+function openBattlePass(){
+  if(!game.modules.get("telys-battle-pass")?.active||typeof window.TelyBattlePass?.open!=="function"){
+    ui.notifications.warn("Enable Tely's Battle Pass to open it from the HSR Hub.");
+    return;
+  }
+  return window.TelyBattlePass.open();
+}
+
 function hubToolbarActions() {
   return {
     "tsru-quest-log": ["Mission Log", openQuestLog],
@@ -700,6 +708,7 @@ function hubToolbarActions() {
     "tsru-skills": ["Skills & Skill Points", () => api()?.showSkillUI?.()],
     "tsru-talents": ["Talent", () => api()?.showTalentUI?.()],
     "tsru-hub-window": ["HSR Hub", openHub],
+    "tsru-battle-pass": ["Tely's Battle Pass", openBattlePass],
     "tsru-gm-panel": ["Star Rail GM Panel", () => api()?.openGMPanel?.()],
     "tsru-dm-combat": ["HSR DM Combat menu", () => api()?.openDMCombatMenu?.()],
     "tsru-quest-manager": ["Mission Manager", () => new QuestManager().render(true)],
@@ -737,10 +746,7 @@ function consolidateToolbar(controls) {
     ["tsru-orbs","Show Combat Party HUD","fas fa-users",game.user.isGM,toolbarAction("Combat Party HUD",()=>api()?.showUltimateUI?.())],
     ["tsru-abilities","Show All Ability Bubbles","fas fa-circle-nodes",true,toolbarAction("Ability Bubbles",()=>requireApiMethod("showAllAbilityBubbles")())],
     ["tsru-hub-window","Open HSR Hub","fas fa-grid-2",true,toolbarAction("HSR Hub",openHub)],
-    ["tsru-battle-pass","Tely's Battle Pass","fas fa-gift",true,toolbarAction("Tely's Battle Pass",()=>{
-      if(!game.modules.get("telys-battle-pass")?.active||typeof window.TelyBattlePass?.open!=="function")return ui.notifications.warn("Enable Tely's Battle Pass to open it from the HSR Hub.");
-      return window.TelyBattlePass.open();
-    })],
+    ["tsru-battle-pass","Tely's Battle Pass","fas fa-gift",true,toolbarAction("Tely's Battle Pass",openBattlePass)],
     ["tsru-gm-panel","Star Rail GM Panel","fas fa-sliders",game.user.isGM,toolbarAction("Star Rail GM Panel",()=>api()?.openGMPanel?.())],
     ["tsru-dm-combat","HSR DM Combat menu","fas fa-crosshairs",game.user.isGM,toolbarAction("HSR DM Combat menu",()=>api()?.openDMCombatMenu?.())],
     ["tsru-quest-manager","Mission Manager","fas fa-list-check",game.user.isGM,toolbarAction("Mission Manager",()=>new QuestManager().render(true))],
