@@ -18,11 +18,10 @@ const DEFAULT_RARITIES = [
 const DEFAULT_HUB_BUTTONS = [
   ["party","Main Character","fas fa-user-check",68,18],["quests","Missions","fas fa-clipboard-list",80,18],["abilities","Abilities","fas fa-circle-nodes",68,38],
   ["crafting","Synthesize","fas fa-flask",80,38],["eidolon-effects","Eidolons","fas fa-gem",68,58],["characters","Characters","fas fa-users",80,58],
-  ["gm","GM Panel","fas fa-sliders",68,78],["dm-combat","DM Combat","fas fa-crosshairs",56,78],["quest-manager","Mission Manager","fas fa-list-check",80,78],["configure-hub","Configure Phone","fas fa-mobile-screen",92,78],["contacts-config","Configure Contacts","fas fa-address-book",92,58],
-  ["battle-pass","Battle Pass","fas fa-gift",68,98]
+  ["gm","GM Panel","fas fa-sliders",68,78],["dm-combat","DM Combat","fas fa-crosshairs",56,78],["quest-manager","Mission Manager","fas fa-list-check",80,78],["configure-hub","Configure Phone","fas fa-mobile-screen",92,78],["contacts-config","Configure Contacts","fas fa-address-book",92,58]
 ].map(([action,label,icon,x,y])=>({action,label,icon,x,y,width:10,height:16}));
 const HUB_BUTTON_ACTIONS = [
-  ["quests","Mission Log"],["party","Main Character Selector"],["abilities","Ability Bubbles"],["crafting","Party Crafting"],["battle-pass","Tely's Battle Pass"],["eidolon-effects","Eidolon Effects"],
+  ["quests","Mission Log"],["party","Main Character Selector"],["abilities","Ability Bubbles"],["crafting","Party Crafting"],["eidolon-effects","Eidolon Effects"],
   ["check-kit","Check Kit"],["inventory","Main Character Inventory"],["messenger","HSR Messenger"],["sheet","Character Sheet Tab or Element"],
   ["orbs","Combat Party HUD"],["hud-designer","Combat HUD Designer"],["aha-config","Aha Instant Configuration"],["aha-toggle","Aha Instant Orb"],["skill-config","Skill Point Configuration"],
   ["elements","Element Manager"],["paths","Path Manager"],["eidolons","Eidolon Configuration"],["light-cone-generator","Light Cone Generator"],["quest-settings","Mission Settings"],
@@ -37,26 +36,24 @@ const DEFAULT_HUB_CONFIG = {
 function hubConfig(actor=null,profileKey=""){
   const saved=clone(game.settings.get(MODULE_ID,"hsrHubConfig")??{});
   const merged=foundry.utils.mergeObject(clone(DEFAULT_HUB_CONFIG),saved,{inplace:false,insertKeys:true,overwrite:true});
-  merged.buttons=(Array.isArray(saved.buttons)&&saved.buttons.length?saved.buttons:DEFAULT_HUB_BUTTONS).map((button,index)=>({...DEFAULT_HUB_BUTTONS[index%DEFAULT_HUB_BUTTONS.length],...button}));
+  merged.buttons=(Array.isArray(saved.buttons)&&saved.buttons.length?saved.buttons:DEFAULT_HUB_BUTTONS).filter(button=>button.action!=="battle-pass").map((button,index)=>({...DEFAULT_HUB_BUTTONS[index%DEFAULT_HUB_BUTTONS.length],...button}));
   const actorConfig=saved.phoneByActor?.[profileKey||actor?.id]??null;
   if(actorConfig){
     for(const key of ["wallpaper","wallpaperFit","wallpaperX","wallpaperY","wallpaperScale"]) if(actorConfig[key]!==undefined) merged[key]=actorConfig[key];
-    if(Array.isArray(actorConfig.buttons)&&actorConfig.buttons.length) merged.buttons=actorConfig.buttons.map((button,index)=>({...DEFAULT_HUB_BUTTONS[index%DEFAULT_HUB_BUTTONS.length],...button}));
+    if(Array.isArray(actorConfig.buttons)&&actorConfig.buttons.length) merged.buttons=actorConfig.buttons.filter(button=>button.action!=="battle-pass").map((button,index)=>({...DEFAULT_HUB_BUTTONS[index%DEFAULT_HUB_BUTTONS.length],...button}));
   }
   if(profileKey==="__gm__"&&!merged.buttons.some(button=>button.action==="dm-combat"))merged.buttons.push({...DEFAULT_HUB_BUTTONS.find(button=>button.action==="dm-combat")});
   if(profileKey==="__gm__"&&!merged.buttons.some(button=>button.action==="contacts-config"))merged.buttons.push({...DEFAULT_HUB_BUTTONS.find(button=>button.action==="contacts-config")});
   return merged;
 }
 
-async function addBattlePassToExistingPhones(){
+async function removeBattlePassFromPhones(){
   if(!game.user.isGM)return;
   const stored=clone(game.settings.get(MODULE_ID,"hsrHubConfig")??{});
-  if(stored.battlePassButtonInstalled)return;
-  const button=DEFAULT_HUB_BUTTONS.find(entry=>entry.action==="battle-pass");
-  for(const buttons of [stored.buttons,...Object.values(stored.phoneByActor??{}).map(entry=>entry?.buttons)]){
-    if(Array.isArray(buttons)&&!buttons.some(entry=>entry.action==="battle-pass"))buttons.push({...button});
-  }
-  stored.battlePassButtonInstalled=true;
+  if(stored.battlePassMovedToRail)return;
+  for(const owner of [stored,...Object.values(stored.phoneByActor??{})])if(Array.isArray(owner?.buttons))owner.buttons=owner.buttons.filter(button=>button.action!=="battle-pass");
+  if(Array.isArray(stored.standardPlayerButtons))stored.standardPlayerButtons=stored.standardPlayerButtons.filter(button=>button.action!=="battle-pass");
+  stored.battlePassMovedToRail=true;
   await game.settings.set(MODULE_ID,"hsrHubConfig",stored);
 }
 
@@ -310,10 +307,6 @@ class HSRHub extends FormApplication {
         "hud-designer": ["Combat HUD Designer", () => api()?.openCombatHudDesigner?.()],
         abilities: ["Ability Bubbles", () => requireApiMethod("showAllAbilityBubbles")()],
         crafting: ["Party Crafting", () => api()?.openCrafting?.()],
-        "battle-pass": ["Tely's Battle Pass", () => {
-          if(!game.modules.get("telys-battle-pass")?.active||typeof window.TelyBattlePass?.open!=="function")return ui.notifications.warn("Enable Tely's Battle Pass to open it from the HSR Hub.");
-          window.TelyBattlePass.open();
-        }],
         "check-kit": ["Check Kit", () => showHubKit(mainActor)],
         inventory: ["Inventory", () => openHubActorSheet(mainActor,"inventory")],
         messenger: ["HSR Messenger", () => new HSRMessenger().render(true)],
@@ -364,7 +357,7 @@ class HSRHubConfig extends FormApplication {
       refreshQuestWindows();this.render(false);ui.notifications.info(`Saved ${actor.name}'s phone wallpaper.`);
     });
     html.find("[data-add-hub-button]").on("click",()=>{this.captureButtons(html);this.buttonsDraft.push({id:foundry.utils.randomID(),label:"New Button",icon:"fas fa-star",action:"sheet",target:"features",double:false,x:68,y:78,width:10,height:16});this.render(false);});
-    html.find("[data-add-hub-preset]").on("click",event=>{this.captureButtons(html);const action=String(event.currentTarget.dataset.addHubPreset),presets={"check-kit":["Check Kit","fas fa-book-open"],inventory:["Inventory","fas fa-box-open"],messenger:["Messages","fas fa-comments"],"battle-pass":["Battle Pass","fas fa-gift"]},[label,icon]=presets[action]??["New Button","fas fa-star"],count=this.buttonsDraft.length;this.buttonsDraft.push({id:foundry.utils.randomID(),label,icon,action,target:"",x:68+(count%3)*11,y:78-Math.floor(count%6/3)*18,width:10,height:16});this.render(false);});
+    html.find("[data-add-hub-preset]").on("click",event=>{this.captureButtons(html);const action=String(event.currentTarget.dataset.addHubPreset),presets={"check-kit":["Check Kit","fas fa-book-open"],inventory:["Inventory","fas fa-box-open"],messenger:["Messages","fas fa-comments"]},[label,icon]=presets[action]??["New Button","fas fa-star"],count=this.buttonsDraft.length;this.buttonsDraft.push({id:foundry.utils.randomID(),label,icon,action,target:"",x:68+(count%3)*11,y:78-Math.floor(count%6/3)*18,width:10,height:16});this.render(false);});
     html.find("[data-save-player-standard]").on("click",async()=>{this.captureButtons(html);const stored=clone(game.settings.get(MODULE_ID,"hsrHubConfig")??{});stored.standardPlayerButtons=clone(this.buttonsDraft);await game.settings.set(MODULE_ID,"hsrHubConfig",stored);ui.notifications.info("Saved this button format as the standard player phone layout.");});
     html.find("[data-load-player-standard]").on("click",()=>{this.captureButtons(html);const standard=game.settings.get(MODULE_ID,"hsrHubConfig")?.standardPlayerButtons;if(!Array.isArray(standard)||!standard.length)return ui.notifications.warn("No standard player phone layout has been saved yet.");this.buttonsDraft=clone(standard);this.render(false);});
     html.find("[data-apply-player-standard]").on("click",async()=>{const stored=clone(game.settings.get(MODULE_ID,"hsrHubConfig")??{}),standard=stored.standardPlayerButtons;if(!Array.isArray(standard)||!standard.length)return ui.notifications.warn("Save a standard player phone layout first.");const playerActors=game.actors.filter(actor=>actor.type==="character"&&game.users.some(user=>!user.isGM&&actor.testUserPermission(user,"OWNER")));if(!playerActors.length)return ui.notifications.warn("No player-owned characters were found.");const confirmed=await Dialog.confirm({title:"Apply Standard Player Phone",content:`<p>Replace the button format and layout for <strong>${playerActors.length}</strong> player-owned characters? Their wallpapers and phone-pose artwork will be preserved.</p>`});if(!confirmed)return;stored.phoneByActor??={};for(const actor of playerActors)stored.phoneByActor[actor.id]={...(stored.phoneByActor[actor.id]??{}),buttons:clone(standard)};await game.settings.set(MODULE_ID,"hsrHubConfig",stored);refreshQuestWindows();ui.notifications.info(`Applied the standard phone layout to ${playerActors.length} player characters.`);});
@@ -744,6 +737,10 @@ function consolidateToolbar(controls) {
     ["tsru-orbs","Show Combat Party HUD","fas fa-users",game.user.isGM,toolbarAction("Combat Party HUD",()=>api()?.showUltimateUI?.())],
     ["tsru-abilities","Show All Ability Bubbles","fas fa-circle-nodes",true,toolbarAction("Ability Bubbles",()=>requireApiMethod("showAllAbilityBubbles")())],
     ["tsru-hub-window","Open HSR Hub","fas fa-grid-2",true,toolbarAction("HSR Hub",openHub)],
+    ["tsru-battle-pass","Tely's Battle Pass","fas fa-gift",true,toolbarAction("Tely's Battle Pass",()=>{
+      if(!game.modules.get("telys-battle-pass")?.active||typeof window.TelyBattlePass?.open!=="function")return ui.notifications.warn("Enable Tely's Battle Pass to open it from the HSR Hub.");
+      return window.TelyBattlePass.open();
+    })],
     ["tsru-gm-panel","Star Rail GM Panel","fas fa-sliders",game.user.isGM,toolbarAction("Star Rail GM Panel",()=>api()?.openGMPanel?.())],
     ["tsru-dm-combat","HSR DM Combat menu","fas fa-crosshairs",game.user.isGM,toolbarAction("HSR DM Combat menu",()=>api()?.openDMCombatMenu?.())],
     ["tsru-quest-manager","Mission Manager","fas fa-list-check",game.user.isGM,toolbarAction("Mission Manager",()=>new QuestManager().render(true))],
@@ -755,7 +752,7 @@ function consolidateToolbar(controls) {
     ["tsru-paths","Manage Paths","fas fa-route",game.user.isGM,toolbarAction("Path Manager",()=>api()?.openPathManager?.())],
     ["tsru-eidolons","Configure Eidolon Layers","fas fa-gem",game.user.isGM,toolbarAction("Eidolon Configuration",()=>api()?.openEidolonConfig?.())]
   ].map(([name,title,icon,visible,handler])=>({name,title,icon,button:true,visible,onClick:handler,onChange:handler}));
-  if(game.user.isGM) hubTools=hubTools.filter(tool=>["tsru-hub-window","tsru-dm-combat"].includes(tool.name));
+  if(game.user.isGM) hubTools=hubTools.filter(tool=>["tsru-hub-window","tsru-battle-pass","tsru-dm-combat"].includes(tool.name));
   const hub={name:"tsru-hsr-hub",title:"HSR Hub",icon:"fas fa-rocket",order:89,layer:"controls",tools:hubTools};
   if(Array.isArray(controls)){const existing=controls.findIndex(c=>c.name===hub.name);if(existing>=0)controls.splice(existing,1);controls.push(hub);}
   else controls[hub.name]=hub;
@@ -776,7 +773,7 @@ Hooks.once("init",()=>{
 });
 
 Hooks.once("ready",()=>{
-  addBattlePassToExistingPhones().catch(error=>console.error(`${MODULE_ID} | Could not add Battle Pass phone button`,error));
+  removeBattlePassFromPhones().catch(error=>console.error(`${MODULE_ID} | Could not remove Battle Pass phone button`,error));
   game.socket.on(SOCKET,async payload=>{
     if(payload?.type==="selectPartyCharacter" && game.user.isGM && partyAuthority()?.id===game.user.id) { await applyPartySelection(payload.userId,payload.actorId); return; }
     if(payload?.type==="partySelectionChanged") { if(payload.userId===game.user.id) await api()?.setLocalMainCharacter?.(payload.actorId); for(const app of Object.values(ui.windows??{})) if(["tsru-party-selector","tsru-quest-manager","tsru-gm-panel","tsru-hub"].includes(app.options?.id)) app.render(false); if(payload.userId===game.user.id) ui.notifications.info("Your main character and party status were updated."); return; }
