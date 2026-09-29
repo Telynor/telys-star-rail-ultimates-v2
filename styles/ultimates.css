@@ -2037,3 +2037,7 @@ body.tsru-hide-scene-navigation #scene-navigation,body.tsru-hide-scene-navigatio
 .tsru-adjusted-crit-edit h3{grid-column:1/-1;margin:0;color:#edce87}
 .tsru-adjusted-crit-edit label{display:grid;gap:3px;color:#e0e6ea}
 .tsru-adjusted-crit-edit input{width:100%;min-width:0;color:#fff;background:#273644}
+
+.tsru-combat-stat-row{display:grid;grid-template-columns:minmax(140px,1fr) minmax(85px,1fr) 32px;gap:6px;align-items:center;margin:4px 0;color:#f3f0e8}
+.tsru-combat-stat-row input{width:100%;min-width:0;color:#fff;background:#273644}
+.tsru-combat-stat-row button{width:32px;margin:0;color:#ffe5a6;background:#243642}

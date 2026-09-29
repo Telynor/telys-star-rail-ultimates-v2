@@ -1,3 +1,4 @@
+import {showCombatStats} from './combat-stats.mjs';
 const MODULE_ID = "telys-star-rail-ultimates";
 const SOCKET = `module.${MODULE_ID}`;
 const HSR_RECIPE_CATALOG_VERSION = "4.5.0";
@@ -6232,42 +6233,12 @@ function combatTalentGroups() {
 }
 
 function showAdjustedCombatStats() {
-  const combat = game.combat;
-  if (!game.user.isGM || !combat?.started) return ui.notifications.warn("Start combat to view adjusted PC stats.");
-  const actors = [...new Map([...combat.combatants].filter(entry => !isAhaCombatant(entry) && !isElationActionCombatant(entry) && !isTalentTurnCombatant(entry)).map(entry => entry.actor).filter(actor => actor?.type === "character").map(actor => [actor.id, actor])).values()].sort((a, b) => a.name.localeCompare(b.name));
-  if (!actors.length) return ui.notifications.warn("No PC actors are in this combat.");
-  const safe = value => escapeHTML(String(value ?? "—"));
-  const signed = value => Number.isFinite(Number(value)) ? `${Number(value) >= 0 ? "+" : ""}${Number(value)}` : String(value ?? "—");
-  const label = key => String(key).replace(/([a-z])([A-Z])/g, "$1 $2").replace(/Pct$/," %").replace(/^./, first => first.toUpperCase());
-  const cell = (name, value) => `<div><span>${safe(name)}</span><b>${safe(value)}</b></div>`;
-  const section = (title, rows) => `<section><h3>${safe(title)}</h3><div class="tsru-adjusted-stat-grid">${rows.join("")}</div></section>`;
-  const cards = actors.map(actor => {
-    const system = actor.system, attributes = system.attributes ?? {}, hp = attributes.hp ?? {}, movement = attributes.movement ?? {};
-    const abilities = Object.entries(system.abilities ?? {}).map(([key, ability]) => cell(key.toUpperCase(), `${ability.value ?? "—"} (${signed(ability.mod)}) · save ${signed(ability.save?.total ?? ability.save ?? ability.mod)}`));
-    const skills = Object.entries(system.skills ?? {}).sort(([a], [b]) => a.localeCompare(b)).map(([key, skill]) => cell(game.i18n.localize(CONFIG.DND5E?.skills?.[key]?.label ?? key), signed(skill.total ?? skill.mod ?? skill.bonus)));
-    const attacks = Object.entries(system.bonuses ?? {}).filter(([key]) => ["mwak","rwak","msak","rsak","spell"].includes(key)).map(([key, bonus]) => cell(`${key.toUpperCase()} attack`, bonus.attack || "0"));
-    const sourceActor = game.actors.get(actor.id) ?? actor;
-    const snapshot = window.TelysPlanar?.criticalSnapshot?.(sourceActor);
-    const planarBonuses = snapshot?.adjustedBonuses ?? {};
-    const critical = snapshot ? [cell("Sheet crit threshold",snapshot.base),cell("Relic and set reduction",`-${snapshot.bonus}`),cell("Effective crit threshold",`${snapshot.threshold}–20`),cell("Cumulative crit damage bonus",`+${snapshot.critDamageBonus}`)] : [cell("Planar calculation","Update Planar Ornaments to v1.0.13")];
-    const manualCrit = sourceActor.getFlag(MODULE_ID, "planarCritAdjustment") ?? {};
-    const hasOverride=Number.isInteger(Number(manualCrit.threshold)) && Number(manualCrit.threshold)>=2 && Number(manualCrit.threshold)<=20;
-    const editCrit = `<section class="tsru-adjusted-crit-edit"><h3>Manual crit adjustment</h3><label>Critical threshold (d20)<input type="number" name="critThreshold.${safe(actor.id)}" min="2" max="20" step="1" value="${safe(snapshot?.threshold ?? 20)}" data-explicit="${hasOverride}"></label><button type="button" data-reset-crit="${safe(actor.id)}" data-automatic="${safe(snapshot?.automatic ?? 20)}">Use automatic threshold</button><label>Manual crit damage bonus<input type="number" name="critBonus.${safe(actor.id)}" min="-20" max="20" step="1" value="${safe(manualCrit.bonus ?? manualCrit.dice ?? 0)}"></label></section>`;
-    const planar = Object.entries(planarBonuses).filter(([key, value]) => !["critRate","critRange","critDamageBonus","critDamageDice"].includes(key) && Number(value) !== 0).sort(([a], [b]) => a.localeCompare(b)).map(([key, value]) => cell(label(key), signed(value)));
-    const hsr = getConfig(actor);
-    return `<details class="tsru-adjusted-stat-card"><summary><img src="${safe(actor.img)}" alt="">${safe(actor.name)}</summary><div class="tsru-adjusted-stat-body">${section("Combat",[cell("HP", `${hp.value ?? "—"} / ${hp.max ?? "—"}`),cell("AC",attributes.ac?.value),cell("Speed",`${movement.walk ?? "—"} ft`),cell("Initiative",signed(attributes.init?.total ?? attributes.init?.mod ?? attributes.init?.bonus)),cell("Proficiency",signed(attributes.prof))])}${section("Abilities and saves",abilities)}${section("Skills",skills)}${section("Attack bonuses",attacks)}${section("Critical",critical)}${editCrit}${section("Star Rail",[cell("Break Effect",hsr.breakEffectScore),cell("Energy Regen",hsr.regenScore)])}${section("Applied planar bonuses",planar.length?planar:[cell("Planar ornaments","None")])}</div></details>`;
-  }).join("");
-  new Dialog({title:"Adjusted PC Combat Stats",content:`<div class="tsru-adjusted-stats"><p>Crit thresholds come from the character’s attack sheet, minus equipped planar ornaments and set effects. The preview uses the lowest sheet threshold; different attacks can have different bases. A manual threshold applies to every attack. The cumulative critical damage bonus adds flat damage on critical hits; the manual bonus adjusts that total.</p>${cards}</div>`,buttons:{save:{label:"Save Crit Adjustments",callback:async html=>{
-    if(typeof window.TelysPlanar?.criticalSnapshot!=="function")return ui.notifications.error("Update Planar Ornaments to v1.0.13 before saving crit adjustments.");
-    const adjustments=actors.map(actor=>{const field=html.find(`[name="critThreshold.${actor.id}"]`)[0];return {actor:game.actors.get(actor.id)??actor,threshold:Number(field?.value),explicit:field?.dataset.explicit==="true",bonus:Number(html.find(`[name="critBonus.${actor.id}"]`).val())}});
-    const invalid=adjustments.find(({threshold,bonus})=>!Number.isInteger(threshold)||threshold<2||threshold>20||!Number.isInteger(bonus)||bonus < -20||bonus > 20);
-    if(invalid)return ui.notifications.error(`Invalid crit adjustment for ${invalid.actor.name}.`);
-    for(const {actor,threshold,explicit,bonus} of adjustments){await actor.setFlag(MODULE_ID,"planarCritAdjustment",{threshold:explicit?threshold:null,rate:0,bonus});actor.prepareData();}
-    ui.notifications.info("Crit adjustments saved for combat PCs.");
-  }},close:{label:"Close"}},render:html=>{
-    html.find('[name^="critThreshold."]').on("input",event=>{event.currentTarget.dataset.explicit="true";});
-    html.find('[data-reset-crit]').on("click",event=>{const input=html.find(`[name="critThreshold.${event.currentTarget.dataset.resetCrit}"]`)[0];if(input){input.value=event.currentTarget.dataset.automatic;input.dataset.explicit="false";}});
-  }},{width:760,height:700,resizable:true}).render(true);
+  const combat=game.combat;
+  if(!game.user.isGM||!combat?.started)return ui.notifications.warn("Start combat to view adjusted PC stats.");
+  const eligible=c=>!isAhaCombatant(c)&&!isElationActionCombatant(c)&&!isTalentTurnCombatant(c)&&c.actor?.type==='character';
+  const actors=[...new Map([...combat.combatants].filter(eligible).map(c=>[c.actor.uuid,c.actor])).values()].sort((a,b)=>a.name.localeCompare(b.name));
+  if(!actors.length)return ui.notifications.warn("No PC actors are in this combat.");
+  showCombatStats({actors,getConfig,isCombatant:actor=>game.combat?.id===combat.id&&[...combat.combatants].some(c=>eligible(c)&&c.actor?.uuid===actor.uuid)});
 }
 
 class DMCombatMenu extends FormApplication {
