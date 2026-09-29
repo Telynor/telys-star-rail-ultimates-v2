@@ -2014,3 +2014,7 @@ body.tsru-hide-scene-navigation #scene-navigation,body.tsru-hide-scene-navigatio
 /* Render the builder wallpaper as a real layer so scaling updates inside the phone crop. */
 .tsru-hub-config-phone[data-hub-wallpaper-preview]::before{content:none}
 .tsru-hub-config-phone .tsru-hub-config-wallpaper{position:absolute;z-index:0;inset:0;background-color:#090a0b;background-image:linear-gradient(#08090a22,#08090a55),var(--hub-wallpaper);background-repeat:no-repeat;background-position:var(--hub-wallpaper-x) var(--hub-wallpaper-y);background-size:cover,var(--hub-wallpaper-fit);transform:scale(var(--hub-wallpaper-zoom,1));transform-origin:var(--hub-wallpaper-x) var(--hub-wallpaper-y);pointer-events:none}
+
+/* The preview uses the same image path as the wallpaper field. */
+.tsru-hub-config-phone img.tsru-hub-config-wallpaper{position:absolute;z-index:0;inset:0;display:block;width:100%;height:100%;max-width:none;max-height:none;object-fit:cover;object-position:var(--hub-wallpaper-x) var(--hub-wallpaper-y);transform:scale(var(--hub-wallpaper-zoom,1));transform-origin:var(--hub-wallpaper-x) var(--hub-wallpaper-y);pointer-events:none}
+.tsru-hub-config-phone img.tsru-hub-config-wallpaper[src=""]{display:none}
