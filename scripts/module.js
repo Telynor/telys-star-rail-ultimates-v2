@@ -1184,7 +1184,7 @@ class PunchlineMeter {
   render() {
     const config = getAhaConfig();
     const layout = punchlineLayout();
-    if (!combatHasInitiative() || !config.elationEnabled || (!punchlineOverrideEnabled() && !combatHasLivingElation()) || !layout.visible) return this.destroy();
+    if (!combatHasInitiative() || !config.elationEnabled || !layout.visible) return this.destroy();
     if (!this.element) {
       this.element = document.createElement("div");
       this.element.className = "tsru-punchline-meter";
@@ -1220,7 +1220,7 @@ class PunchlineMeter {
 }
 
 function refreshPunchlineHUD() {
-  if (!combatHasInitiative() || !getAhaConfig().elationEnabled || (!punchlineOverrideEnabled() && !combatHasLivingElation()) || !punchlineLayout().visible) { state.punchlineMeter?.destroy(); return; }
+  if (!combatHasInitiative() || !getAhaConfig().elationEnabled || !punchlineLayout().visible) { state.punchlineMeter?.destroy(); return; }
   if (!state.punchlineMeter) state.punchlineMeter = new PunchlineMeter();
   state.punchlineMeter.render();
 }
@@ -6228,6 +6228,28 @@ function combatTalentGroups() {
   return groups.filter(group=>group.talents.length);
 }
 
+function showAdjustedCombatStats() {
+  const combat = game.combat;
+  if (!game.user.isGM || !combat?.started) return ui.notifications.warn("Start combat to view adjusted PC stats.");
+  const actors = [...new Map([...combat.combatants].filter(entry => !isAhaCombatant(entry) && !isElationActionCombatant(entry) && !isTalentTurnCombatant(entry)).map(entry => entry.actor).filter(actor => actor?.type === "character").map(actor => [actor.id, actor])).values()].sort((a, b) => a.name.localeCompare(b.name));
+  if (!actors.length) return ui.notifications.warn("No PC actors are in this combat.");
+  const safe = value => escapeHTML(String(value ?? "—"));
+  const signed = value => Number.isFinite(Number(value)) ? `${Number(value) >= 0 ? "+" : ""}${Number(value)}` : String(value ?? "—");
+  const label = key => String(key).replace(/([a-z])([A-Z])/g, "$1 $2").replace(/Pct$/," %").replace(/^./, first => first.toUpperCase());
+  const cell = (name, value) => `<div><span>${safe(name)}</span><b>${safe(value)}</b></div>`;
+  const section = (title, rows) => `<section><h3>${safe(title)}</h3><div class="tsru-adjusted-stat-grid">${rows.join("")}</div></section>`;
+  const cards = actors.map(actor => {
+    const system = actor.system, attributes = system.attributes ?? {}, hp = attributes.hp ?? {}, movement = attributes.movement ?? {};
+    const abilities = Object.entries(system.abilities ?? {}).map(([key, ability]) => cell(key.toUpperCase(), `${ability.value ?? "—"} (${signed(ability.mod)}) · save ${signed(ability.save?.total ?? ability.save ?? ability.mod)}`));
+    const skills = Object.entries(system.skills ?? {}).sort(([a], [b]) => a.localeCompare(b)).map(([key, skill]) => cell(game.i18n.localize(CONFIG.DND5E?.skills?.[key]?.label ?? key), signed(skill.total ?? skill.mod ?? skill.bonus)));
+    const attacks = Object.entries(system.bonuses ?? {}).filter(([key]) => ["mwak","rwak","msak","rsak","spell"].includes(key)).map(([key, bonus]) => cell(`${key.toUpperCase()} attack`, bonus.attack || "0"));
+    const planar = Object.entries(actor._planarBonuses ?? {}).filter(([, value]) => Number(value) !== 0).sort(([a], [b]) => a.localeCompare(b)).map(([key, value]) => cell(label(key), signed(value)));
+    const hsr = getConfig(actor);
+    return `<article class="tsru-adjusted-stat-card"><h2><img src="${safe(actor.img)}" alt="">${safe(actor.name)}</h2>${section("Combat",[cell("HP", `${hp.value ?? "—"} / ${hp.max ?? "—"}`),cell("AC",attributes.ac?.value),cell("Speed",`${movement.walk ?? "—"} ft`),cell("Initiative",signed(attributes.init?.total ?? attributes.init?.mod ?? attributes.init?.bonus)),cell("Proficiency",signed(attributes.prof))])}${section("Abilities and saves",abilities)}${section("Skills",skills)}${section("Attack bonuses",attacks)}${section("Star Rail",[cell("Break Effect",hsr.breakEffectScore),cell("Energy Regen",hsr.regenScore)])}${section("Applied planar bonuses",planar.length?planar:[cell("Planar ornaments","None")])}</article>`;
+  }).join("");
+  new Dialog({title:"Adjusted PC Combat Stats",content:`<div class="tsru-adjusted-stats"><p>Live prepared actor stats, including applied planar ornament effects. Values update when this view is reopened.</p>${cards}</div>`,buttons:{close:{label:"Close"}}},{width:760,height:700,resizable:true}).render(true);
+}
+
 class DMCombatMenu extends FormApplication {
   constructor(...args) { super(...args); this.tab = "talents"; this.scrollPositions = {}; }
   static get defaultOptions() { return foundry.utils.mergeObject(super.defaultOptions, {id:"tsru-dm-combat", title:"HSR DM Combat menu", template:`modules/${MODULE_ID}/templates/dm-combat-menu.hbs`, width:480, height:560, minWidth:350, minHeight:260, resizable:true, closeOnSubmit:false, classes:["tsru-dm-combat-window"]}); }
@@ -6245,6 +6267,7 @@ class DMCombatMenu extends FormApplication {
     super.activateListeners(html); if(!game.user.isGM){this.close();return;}
     html.find("[data-dm-scroll]").scrollTop(this.scrollPositions[this.tab]||0).on("scroll",event=>{this.scrollPositions[this.tab]=event.currentTarget.scrollTop;});
     html.find("[data-dm-tab]").on("click",event=>{this.tab=event.currentTarget.dataset.dmTab;this.render(false);});
+    html.find("[data-dm-adjusted-stats]").on("click",showAdjustedCombatStats);
     html.find("[data-dm-talent-popup]").on("click",event=>{const actor=game.actors.get(event.currentTarget.dataset.dmTalentPopup);if(actor)showTalentPopup(actor);});
     html.find("[data-dm-talent]").on("click",async event=>{const actor=game.actors.get(event.currentTarget.dataset.dmTalent);if(actor&&talentCombatForActor(actor)){await setTalentPoints(actor,currentTalentPoints(actor)+Number(event.currentTarget.dataset.delta));this.refresh();}});
     html.find("[data-dm-stance]").on("click",async event=>{const button=event.currentTarget,actor=game.actors.get(button.dataset.dmStance);if(actor&&getConfig(actor).enhancedStanceEnabled){if(state.skillLocks.has(actor.id)||state.ultimateLocks.has(actor.id))return ui.notifications.warn("Finish the current Skill or Ultimate before changing stance.");if(button.disabled)return;button.disabled=true;try{await actor.update({[`flags.${MODULE_ID}.ultimate.enhancedStanceActive`]:!getConfig(actor).enhancedStanceActive});this.refresh();}catch(error){button.disabled=false;ui.notifications.error(`Could not change ${actor.name}'s stance: ${error.message}`);}}});
