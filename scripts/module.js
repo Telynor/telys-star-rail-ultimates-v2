@@ -185,6 +185,7 @@ const state = {
   ahaButton: null,
   ahaCombatantPromises: new Map(),
   punchlineMeter: null,
+  punchlineHiddenCombatId: null,
   pendingElationActions: new Map(),
   activeElationActions: new Set(),
   lastElationSequenceKey: "",
@@ -1169,6 +1170,8 @@ async function dispatchTalentEvent(type, detail = {}, eventKey = "") {
   return;
 }
 
+function punchlineVisibleInCombat() { return state.punchlineHiddenCombatId !== game.combat?.id; }
+
 function punchlineLayout() {
   return foundry.utils.mergeObject({x: 580, y: 145, size: 54, visible: true}, game.settings.get(MODULE_ID, "punchlineLayout") ?? {}, {inplace: false});
 }
@@ -1184,7 +1187,7 @@ class PunchlineMeter {
   render() {
     const config = getAhaConfig();
     const layout = punchlineLayout();
-    if (!combatHasInitiative() || !config.elationEnabled || !layout.visible) return this.destroy();
+    if (!combatHasInitiative() || !(config.elationEnabled || punchlineOverrideEnabled()) || !punchlineVisibleInCombat()) return this.destroy();
     if (!this.element) {
       this.element = document.createElement("div");
       this.element.className = "tsru-punchline-meter";
@@ -1214,13 +1217,13 @@ class PunchlineMeter {
     resize.addEventListener("pointerdown", event => { event.preventDefault(); this.resize = {startX: event.clientX, startSize: punchlineLayout().size}; resize.setPointerCapture(event.pointerId); });
     resize.addEventListener("pointermove", event => { if (!this.resize) return; this.element.style.setProperty("--tsru-punchline-size", `${clamp(this.resize.startSize + event.clientX - this.resize.startX, 30, 160)}px`); });
     resize.addEventListener("pointerup", async event => { if (!this.resize) return; const size = clamp(this.resize.startSize + event.clientX - this.resize.startX, 30, 160); this.resize = null; resize.releasePointerCapture(event.pointerId); await savePunchlineLayout({size: Math.round(size)}); this.render(); });
-    this.element.querySelector(".tsru-punchline-close").addEventListener("click", async () => { await savePunchlineLayout({visible: false}); this.destroy(); });
+    this.element.querySelector(".tsru-punchline-close").addEventListener("click", async () => { state.punchlineHiddenCombatId = game.combat?.id; await savePunchlineLayout({visible: false}); this.destroy(); });
   }
   destroy() { this.element?.remove(); this.element = null; if (state.punchlineMeter === this) state.punchlineMeter = null; }
 }
 
 function refreshPunchlineHUD() {
-  if (!combatHasInitiative() || !getAhaConfig().elationEnabled || !punchlineLayout().visible) { state.punchlineMeter?.destroy(); return; }
+  if (!combatHasInitiative() || !(getAhaConfig().elationEnabled || punchlineOverrideEnabled()) || !punchlineVisibleInCombat()) { state.punchlineMeter?.destroy(); return; }
   if (!state.punchlineMeter) state.punchlineMeter = new PunchlineMeter();
   state.punchlineMeter.render();
 }
@@ -5926,7 +5929,7 @@ class AhaConfig extends FormApplication {
     html.find("[data-color-for]").on("change", event => html.find(`[name="${event.currentTarget.dataset.colorFor}"]`).val(event.currentTarget.value));
     html.find("[data-action='preview-aha']").on("click", () => playAhaVideo({video: html.find('[name="video"]').val()}));
     html.find("[data-action='show-aha-button']").on("click", showAhaButton);
-    html.find("[data-action='show-punchline']").on("click", async () => { await savePunchlineLayout({visible: true}); refreshPunchlineHUD(); });
+    html.find("[data-action='show-punchline']").on("click", async () => { state.punchlineHiddenCombatId = null; await savePunchlineLayout({visible: true}); refreshPunchlineHUD(); });
     html.find("[data-action='reset-canvas-toughness']").on("click", resetCanvasToughness);
     const initiativePreview=html.find("[data-aha-initiative-preview]"),initiativeCard=initiativePreview.find(".tsru-hsr-turn"),initiativeImage=initiativePreview.find("img");
     const initiativeValues=()=>{const scale=clamp(Number(html.find('[name="combatantImageScale"]').val())||100,50,800),bounds=initiativePortraitPositionBounds(scale);return {image:String(html.find('[name="combatantImage"]').val()||DEFAULT_AHA_CONFIG.combatantImage),x:clamp(Number(html.find('[name="combatantImageX"]').val())||0,bounds.min,bounds.max),y:clamp(Number(html.find('[name="combatantImageY"]').val())||0,bounds.min,bounds.max),scale,flip:Boolean(html.find('[name="combatantImageFlip"]').prop("checked"))};};
@@ -6243,11 +6246,25 @@ function showAdjustedCombatStats() {
     const abilities = Object.entries(system.abilities ?? {}).map(([key, ability]) => cell(key.toUpperCase(), `${ability.value ?? "—"} (${signed(ability.mod)}) · save ${signed(ability.save?.total ?? ability.save ?? ability.mod)}`));
     const skills = Object.entries(system.skills ?? {}).sort(([a], [b]) => a.localeCompare(b)).map(([key, skill]) => cell(game.i18n.localize(CONFIG.DND5E?.skills?.[key]?.label ?? key), signed(skill.total ?? skill.mod ?? skill.bonus)));
     const attacks = Object.entries(system.bonuses ?? {}).filter(([key]) => ["mwak","rwak","msak","rsak","spell"].includes(key)).map(([key, bonus]) => cell(`${key.toUpperCase()} attack`, bonus.attack || "0"));
-    const planar = Object.entries(actor._planarBonuses ?? {}).filter(([, value]) => Number(value) !== 0).sort(([a], [b]) => a.localeCompare(b)).map(([key, value]) => cell(label(key), signed(value)));
+    const planarBonuses = actor._planarBonuses ?? {};
+    const critRate = Number(planarBonuses.critRate) || 0;
+    const critRange = Math.floor(Number(planarBonuses.critRange) || 0);
+    const critDice = Math.max(0, Math.floor(Number(planarBonuses.critDamageDice) || 0));
+    const critical = [cell("Crit Rate bonus", `${signed(critRate)}%`),cell("Extra crit damage dice", `+${critDice}`),...(critRange ? [cell("Crit range bonus", signed(critRange))] : [])];
+    const manualCrit = actor.getFlag(MODULE_ID, "planarCritAdjustment") ?? {};
+    const editCrit = `<section class="tsru-adjusted-crit-edit"><h3>Manual crit adjustment</h3><label>Crit Rate (%)<input type="number" name="critRate.${safe(actor.id)}" min="-95" max="95" step="5" value="${safe(manualCrit.rate ?? 0)}"></label><label>Extra crit damage dice<input type="number" name="critDice.${safe(actor.id)}" min="-20" max="20" step="1" value="${safe(manualCrit.dice ?? 0)}"></label></section>`;
+    const planar = Object.entries(planarBonuses).filter(([key, value]) => !["critRate","critRange","critDamageDice"].includes(key) && Number(value) !== 0).sort(([a], [b]) => a.localeCompare(b)).map(([key, value]) => cell(label(key), signed(value)));
     const hsr = getConfig(actor);
-    return `<article class="tsru-adjusted-stat-card"><h2><img src="${safe(actor.img)}" alt="">${safe(actor.name)}</h2>${section("Combat",[cell("HP", `${hp.value ?? "—"} / ${hp.max ?? "—"}`),cell("AC",attributes.ac?.value),cell("Speed",`${movement.walk ?? "—"} ft`),cell("Initiative",signed(attributes.init?.total ?? attributes.init?.mod ?? attributes.init?.bonus)),cell("Proficiency",signed(attributes.prof))])}${section("Abilities and saves",abilities)}${section("Skills",skills)}${section("Attack bonuses",attacks)}${section("Star Rail",[cell("Break Effect",hsr.breakEffectScore),cell("Energy Regen",hsr.regenScore)])}${section("Applied planar bonuses",planar.length?planar:[cell("Planar ornaments","None")])}</article>`;
+    return `<article class="tsru-adjusted-stat-card"><h2><img src="${safe(actor.img)}" alt="">${safe(actor.name)}</h2>${section("Combat",[cell("HP", `${hp.value ?? "—"} / ${hp.max ?? "—"}`),cell("AC",attributes.ac?.value),cell("Speed",`${movement.walk ?? "—"} ft`),cell("Initiative",signed(attributes.init?.total ?? attributes.init?.mod ?? attributes.init?.bonus)),cell("Proficiency",signed(attributes.prof))])}${section("Abilities and saves",abilities)}${section("Skills",skills)}${section("Attack bonuses",attacks)}${section("Critical",critical)}${editCrit}${section("Star Rail",[cell("Break Effect",hsr.breakEffectScore),cell("Energy Regen",hsr.regenScore)])}${section("Applied planar bonuses",planar.length?planar:[cell("Planar ornaments","None")])}</article>`;
   }).join("");
-  new Dialog({title:"Adjusted PC Combat Stats",content:`<div class="tsru-adjusted-stats"><p>Live prepared actor stats, including applied planar ornament effects. Values update when this view is reopened.</p>${cards}</div>`,buttons:{close:{label:"Close"}}},{width:760,height:700,resizable:true}).render(true);
+  new Dialog({title:"Adjusted PC Combat Stats",content:`<div class="tsru-adjusted-stats"><p>Live prepared actor stats, including applied planar ornament effects. Crit Rate adjusts the d20 critical threshold by one for each 5%. Extra crit damage dice use the attack’s damage die. Save adjustments to apply them to rolls.</p>${cards}</div>`,buttons:{save:{label:"Save Crit Adjustments",callback:async html=>{
+    if(!game.modules.get("telys-planar-ornaments")?.active)return ui.notifications.error("Enable the updated Planar Ornaments module to apply crit adjustments to rolls.");
+    const adjustments=actors.map(actor=>({actor,rate:Number(html.find(`[name="critRate.${actor.id}"]`).val()),dice:Number(html.find(`[name="critDice.${actor.id}"]`).val())}));
+    const invalid=adjustments.find(({rate,dice})=>!Number.isInteger(rate)||rate < -95||rate > 95||rate%5||!Number.isInteger(dice)||dice < -20||dice > 20);
+    if(invalid)return ui.notifications.error(`Invalid crit adjustment for ${invalid.actor.name}.`);
+    for(const {actor,rate,dice} of adjustments){await actor.setFlag(MODULE_ID,"planarCritAdjustment",{rate,dice});actor.prepareData();}
+    ui.notifications.info("Crit adjustments saved for combat PCs.");
+  }},close:{label:"Close"}}},{width:760,height:700,resizable:true}).render(true);
 }
 
 class DMCombatMenu extends FormApplication {
@@ -6268,6 +6285,7 @@ class DMCombatMenu extends FormApplication {
     html.find("[data-dm-scroll]").scrollTop(this.scrollPositions[this.tab]||0).on("scroll",event=>{this.scrollPositions[this.tab]=event.currentTarget.scrollTop;});
     html.find("[data-dm-tab]").on("click",event=>{this.tab=event.currentTarget.dataset.dmTab;this.render(false);});
     html.find("[data-dm-adjusted-stats]").on("click",showAdjustedCombatStats);
+    html.find("[data-dm-show-punchline]").on("click",async()=>{state.punchlineHiddenCombatId=null;await savePunchlineLayout({visible:true});if(!getAhaConfig().elationEnabled&&!punchlineOverrideEnabled())await game.settings.set(MODULE_ID,"punchlineOverride",true);refreshPunchlineHUD();});
     html.find("[data-dm-talent-popup]").on("click",event=>{const actor=game.actors.get(event.currentTarget.dataset.dmTalentPopup);if(actor)showTalentPopup(actor);});
     html.find("[data-dm-talent]").on("click",async event=>{const actor=game.actors.get(event.currentTarget.dataset.dmTalent);if(actor&&talentCombatForActor(actor)){await setTalentPoints(actor,currentTalentPoints(actor)+Number(event.currentTarget.dataset.delta));this.refresh();}});
     html.find("[data-dm-stance]").on("click",async event=>{const button=event.currentTarget,actor=game.actors.get(button.dataset.dmStance);if(actor&&getConfig(actor).enhancedStanceEnabled){if(state.skillLocks.has(actor.id)||state.ultimateLocks.has(actor.id))return ui.notifications.warn("Finish the current Skill or Ultimate before changing stance.");if(button.disabled)return;button.disabled=true;try{await actor.update({[`flags.${MODULE_ID}.ultimate.enhancedStanceActive`]:!getConfig(actor).enhancedStanceActive});this.refresh();}catch(error){button.disabled=false;ui.notifications.error(`Could not change ${actor.name}'s stance: ${error.message}`);}}});
@@ -8405,6 +8423,7 @@ Hooks.on("createCombatant", combatant => {
 });
 
 Hooks.on("combatStart", async combat => {
+  state.punchlineHiddenCombatId = null;
   if(game.combat?.id===combat.id){await saveCombatPartyHudLayout({minimized:false});refreshCombatPartyHud();}
   refreshCombatPartyHud();
   refreshPunchlineHUD();
