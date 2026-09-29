@@ -6246,25 +6246,28 @@ function showAdjustedCombatStats() {
     const abilities = Object.entries(system.abilities ?? {}).map(([key, ability]) => cell(key.toUpperCase(), `${ability.value ?? "—"} (${signed(ability.mod)}) · save ${signed(ability.save?.total ?? ability.save ?? ability.mod)}`));
     const skills = Object.entries(system.skills ?? {}).sort(([a], [b]) => a.localeCompare(b)).map(([key, skill]) => cell(game.i18n.localize(CONFIG.DND5E?.skills?.[key]?.label ?? key), signed(skill.total ?? skill.mod ?? skill.bonus)));
     const attacks = Object.entries(system.bonuses ?? {}).filter(([key]) => ["mwak","rwak","msak","rsak","spell"].includes(key)).map(([key, bonus]) => cell(`${key.toUpperCase()} attack`, bonus.attack || "0"));
-    const planarBonuses = actor._planarBonuses ?? {};
-    const critRate = Number(planarBonuses.critRate) || 0;
-    const critRange = Math.floor(Number(planarBonuses.critRange) || 0);
-    const critDice = Math.max(0, Math.floor(Number(planarBonuses.critDamageDice) || 0));
-    const critical = [cell("Crit Rate bonus", `${signed(critRate)}%`),cell("Extra crit damage dice", `+${critDice}`),...(critRange ? [cell("Crit range bonus", signed(critRange))] : [])];
-    const manualCrit = actor.getFlag(MODULE_ID, "planarCritAdjustment") ?? {};
-    const editCrit = `<section class="tsru-adjusted-crit-edit"><h3>Manual crit adjustment</h3><label>Crit Rate (%)<input type="number" name="critRate.${safe(actor.id)}" min="-95" max="95" step="5" value="${safe(manualCrit.rate ?? 0)}"></label><label>Extra crit damage dice<input type="number" name="critDice.${safe(actor.id)}" min="-20" max="20" step="1" value="${safe(manualCrit.dice ?? 0)}"></label></section>`;
+    const sourceActor = game.actors.get(actor.id) ?? actor;
+    const snapshot = window.TelysPlanar?.criticalSnapshot?.(sourceActor);
+    const planarBonuses = snapshot?.adjustedBonuses ?? {};
+    const critical = snapshot ? [cell("Sheet crit threshold",snapshot.base),cell("Relic and set reduction",`-${snapshot.bonus}`),cell("Effective crit threshold",`${snapshot.threshold}–20`),cell("Extra crit damage dice",`+${snapshot.critDice}`)] : [cell("Planar calculation","Update Planar Ornaments to v1.0.12")];
+    const manualCrit = sourceActor.getFlag(MODULE_ID, "planarCritAdjustment") ?? {};
+    const hasOverride=Number.isInteger(Number(manualCrit.threshold)) && Number(manualCrit.threshold)>=2 && Number(manualCrit.threshold)<=20;
+    const editCrit = `<section class="tsru-adjusted-crit-edit"><h3>Manual crit adjustment</h3><label>Critical threshold (d20)<input type="number" name="critThreshold.${safe(actor.id)}" min="2" max="20" step="1" value="${safe(snapshot?.threshold ?? 20)}" data-explicit="${hasOverride}"></label><button type="button" data-reset-crit="${safe(actor.id)}" data-automatic="${safe(snapshot?.automatic ?? 20)}">Use automatic threshold</button><label>Extra crit damage dice<input type="number" name="critDice.${safe(actor.id)}" min="-20" max="20" step="1" value="${safe(manualCrit.dice ?? 0)}"></label></section>`;
     const planar = Object.entries(planarBonuses).filter(([key, value]) => !["critRate","critRange","critDamageDice"].includes(key) && Number(value) !== 0).sort(([a], [b]) => a.localeCompare(b)).map(([key, value]) => cell(label(key), signed(value)));
     const hsr = getConfig(actor);
     return `<article class="tsru-adjusted-stat-card"><h2><img src="${safe(actor.img)}" alt="">${safe(actor.name)}</h2>${section("Combat",[cell("HP", `${hp.value ?? "—"} / ${hp.max ?? "—"}`),cell("AC",attributes.ac?.value),cell("Speed",`${movement.walk ?? "—"} ft`),cell("Initiative",signed(attributes.init?.total ?? attributes.init?.mod ?? attributes.init?.bonus)),cell("Proficiency",signed(attributes.prof))])}${section("Abilities and saves",abilities)}${section("Skills",skills)}${section("Attack bonuses",attacks)}${section("Critical",critical)}${editCrit}${section("Star Rail",[cell("Break Effect",hsr.breakEffectScore),cell("Energy Regen",hsr.regenScore)])}${section("Applied planar bonuses",planar.length?planar:[cell("Planar ornaments","None")])}</article>`;
   }).join("");
-  new Dialog({title:"Adjusted PC Combat Stats",content:`<div class="tsru-adjusted-stats"><p>Live prepared actor stats, including applied planar ornament effects. Crit Rate adjusts the d20 critical threshold by one for each 5%. Extra crit damage dice use the attack’s damage die. Save adjustments to apply them to rolls.</p>${cards}</div>`,buttons:{save:{label:"Save Crit Adjustments",callback:async html=>{
-    if(!game.modules.get("telys-planar-ornaments")?.active)return ui.notifications.error("Enable the updated Planar Ornaments module to apply crit adjustments to rolls.");
-    const adjustments=actors.map(actor=>({actor,rate:Number(html.find(`[name="critRate.${actor.id}"]`).val()),dice:Number(html.find(`[name="critDice.${actor.id}"]`).val())}));
-    const invalid=adjustments.find(({rate,dice})=>!Number.isInteger(rate)||rate < -95||rate > 95||rate%5||!Number.isInteger(dice)||dice < -20||dice > 20);
+  new Dialog({title:"Adjusted PC Combat Stats",content:`<div class="tsru-adjusted-stats"><p>Crit thresholds come from the character’s attack sheet, minus equipped planar ornaments and set effects. The preview uses the lowest sheet threshold; different attacks can have different bases. A manual threshold applies to every attack. Extra crit damage dice use the attack’s damage die.</p>${cards}</div>`,buttons:{save:{label:"Save Crit Adjustments",callback:async html=>{
+    if(typeof window.TelysPlanar?.criticalSnapshot!=="function")return ui.notifications.error("Update Planar Ornaments to v1.0.12 before saving crit adjustments.");
+    const adjustments=actors.map(actor=>{const field=html.find(`[name="critThreshold.${actor.id}"]`)[0];return {actor:game.actors.get(actor.id)??actor,threshold:Number(field?.value),explicit:field?.dataset.explicit==="true",dice:Number(html.find(`[name="critDice.${actor.id}"]`).val())}});
+    const invalid=adjustments.find(({threshold,dice})=>!Number.isInteger(threshold)||threshold<2||threshold>20||!Number.isInteger(dice)||dice < -20||dice > 20);
     if(invalid)return ui.notifications.error(`Invalid crit adjustment for ${invalid.actor.name}.`);
-    for(const {actor,rate,dice} of adjustments){await actor.setFlag(MODULE_ID,"planarCritAdjustment",{rate,dice});actor.prepareData();}
+    for(const {actor,threshold,explicit,dice} of adjustments){await actor.setFlag(MODULE_ID,"planarCritAdjustment",{threshold:explicit?threshold:null,rate:0,dice});actor.prepareData();}
     ui.notifications.info("Crit adjustments saved for combat PCs.");
-  }},close:{label:"Close"}}},{width:760,height:700,resizable:true}).render(true);
+  }},close:{label:"Close"}},render:html=>{
+    html.find('[name^="critThreshold."]').on("input",event=>{event.currentTarget.dataset.explicit="true";});
+    html.find('[data-reset-crit]').on("click",event=>{const input=html.find(`[name="critThreshold.${event.currentTarget.dataset.resetCrit}"]`)[0];if(input){input.value=event.currentTarget.dataset.automatic;input.dataset.explicit="false";}});
+  }},{width:760,height:700,resizable:true}).render(true);
 }
 
 class DMCombatMenu extends FormApplication {
