@@ -2004,3 +2004,9 @@ body.tsru-hide-scene-navigation #scene-navigation,body.tsru-hide-scene-navigatio
 .tsru-messenger-sidebar-actions{display:flex;gap:6px;flex-wrap:wrap}
 .tsru-messenger-sidebar-actions button{font-size:11px;padding:4px 7px}
 .tsru-messenger-sidebar-actions button.active{background:#e8d8a4;color:#171b21}
+
+/* Check Kit descriptions inherit readable text even when enriched HTML carries dark inline colors. */
+.tsru-kit-browser article{color:#f3f1e9}
+.tsru-kit-browser article>div,.tsru-kit-browser article>div *{color:#f3f1e9!important}
+.tsru-kit-browser article>div a{color:#9bdcff!important;text-decoration:underline}
+.tsru-kit-browser article>div :is(blockquote,td,th){background-color:#1a202a}
