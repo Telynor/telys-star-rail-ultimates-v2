@@ -2010,3 +2010,7 @@ body.tsru-hide-scene-navigation #scene-navigation,body.tsru-hide-scene-navigatio
 .tsru-kit-browser article>div,.tsru-kit-browser article>div *{color:#f3f1e9!important}
 .tsru-kit-browser article>div a{color:#9bdcff!important;text-decoration:underline}
 .tsru-kit-browser article>div :is(blockquote,td,th){background-color:#1a202a}
+
+/* Render the builder wallpaper as a real layer so scaling updates inside the phone crop. */
+.tsru-hub-config-phone[data-hub-wallpaper-preview]::before{content:none}
+.tsru-hub-config-phone .tsru-hub-config-wallpaper{position:absolute;z-index:0;inset:0;background-color:#090a0b;background-image:linear-gradient(#08090a22,#08090a55),var(--hub-wallpaper);background-repeat:no-repeat;background-position:var(--hub-wallpaper-x) var(--hub-wallpaper-y);background-size:cover,var(--hub-wallpaper-fit);transform:scale(var(--hub-wallpaper-zoom,1));transform-origin:var(--hub-wallpaper-x) var(--hub-wallpaper-y);pointer-events:none}
