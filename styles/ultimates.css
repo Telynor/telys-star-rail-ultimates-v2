@@ -2050,3 +2050,26 @@ body.tsru-hide-scene-navigation #scene-navigation,body.tsru-hide-scene-navigatio
 .tsru-light-cone-controls details {border:1px solid #586781;padding:10px;border-radius:6px;}
 .tsru-light-cone-controls summary {cursor:pointer;font-weight:bold;}
 .tsru-light-cone-control {margin:4px 8px;flex:none;}
+
+/* Shared GM editor styling. */
+.tsru-light-cone-controls .window-content,.tsru-adjusted-stats {background:#141d29;color:#f2f5fb;}
+.tsru-light-cone-controls h3,.tsru-adjusted-stats h3 {color:#f2d499;border:0;border-bottom:1px solid #46566c;padding:10px 0 6px;margin:12px 0 6px;}
+.tsru-light-cone-controls h4 {color:#d5e4fb;margin:14px 0 7px;}
+.tsru-panel-hint {color:#bdcbe0;line-height:1.5;font-size:13px;}
+.tsru-light-cone-controls label {padding:6px 0;line-height:1.4;}
+.tsru-light-cone-controls button,.tsru-adjusted-stats button {background:#293b52;color:#fff;border:1px solid #7688a3;border-radius:5px;}
+.tsru-light-cone-controls button:hover,.tsru-adjusted-stats button:hover {background:#3b526f;}
+.tsru-light-cone-controls details,.tsru-adjusted-stat-card {background:#1c293a;border:1px solid #556984;border-radius:8px;margin:8px 0;padding:10px;}
+.tsru-light-cone-controls summary,.tsru-adjusted-stat-card summary {color:#fff;cursor:pointer;}
+.tsru-effect-counters {display:flex;flex-wrap:wrap;gap:6px;}
+.tsru-effect-counters span {background:#263951;border-radius:4px;padding:5px 8px;color:#dfebff;}
+.tsru-adjusted-stat-body {padding:8px 4px;}
+.tsru-combat-stat-row,.tsru-stat-columns {display:grid;grid-template-columns:minmax(160px,1fr) 100px 85px 32px;gap:10px;align-items:center;}
+.tsru-combat-stat-row {padding:6px 8px;margin:2px 0;border-radius:4px;}
+.tsru-combat-stat-row:nth-child(even) {background:#223248;}
+.tsru-stat-columns {padding:12px 8px 4px;font-size:12px;color:#c5d3e7;}
+.tsru-stat-baseline {text-align:center;color:#cbd8eb;font-variant-numeric:tabular-nums;}
+.tsru-stat-section {margin-bottom:14px;}
+.tsru-adjusted-stat-card summary {display:flex;align-items:center;gap:10px;font-size:16px;font-weight:600;}
+.tsru-adjusted-stat-card summary img {width:36px;height:36px;object-fit:cover;border-radius:50%;}
+.tsru-dm-tabs {flex-wrap:wrap;}

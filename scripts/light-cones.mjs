@@ -554,7 +554,7 @@ export async function tickDots(a, key) {
     await save(a, s);
     await roll.toMessage({
       speaker: ChatMessage.getSpeaker({ actor: a }),
-      flavor: `${esc(a.name)} — ${esc(dot.type)}: ${dot.remaining} turns remaining`,
+      flavor: `${esc(a.name)} — ${esc(friendlyLabel(dot.type))}: ${dot.remaining} turns remaining`,
       flags: { [ID]: { lightConeDot: true } },
     });
   }
@@ -1770,6 +1770,39 @@ function rollCrit(config) {
   )
     options.disadvantage = true;
 }
+const friendlyLabel = value => ({windShear:"Wind Shear", enhancedBasic:"Enhanced Basic", followup:"Follow-up", reducedAC:"Reduced AC", implantedWeakness:"Implanted Weakness"}[value] ?? String(value).replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^./, c => c.toUpperCase()));
+const panelTips = {
+  target: "The active combatant receiving the damage or condition. Damage is applied to this creature, not the source.",
+  source: "The combatant who caused the DoT. Their equipped, matching-Path Light Cone can extend its initial duration or upgrade its damage die. Choose no source to use base damage only.",
+  type: "The DoT identity used by Light Cone conditions: Burn, Shock, Bleed, Wind Shear or Custom. This does not set the damage attribute.",
+  attribute: "The damage type passed to the creature’s damage handling, including its resistances and immunities. This is independent of the DoT identity.",
+  dice: "Number of dice rolled on each tick, from 1 to 20. For example, 2 dice with d6 rolls 2d6 each turn. DoTs cannot critically hit.",
+  die: "Base die rolled for each damage die. Eligible source Light Cones can upgrade it: d4 → d6 → d8 → d10 → d12. The live upgrade is recalculated each tick.",
+  turns: "Number of affected-creature turn starts that will deal damage, from 1 to 100. The first tick is on its next eligible turn start. Source duration bonuses apply when assigned. Zero removes a matching DoT without rolling.",
+  condition: "Reduced AC subtracts the magnitude from AC; Slowed subtracts it from walking speed in feet. Implanted Weakness and Other Debuff are tracked tags for cone checks; they do not add native weaknesses or penalties themselves.",
+  magnitude: "Amount subtracted for Reduced AC (AC points) or Slowed (feet). Other tracked condition types ignore this number.",
+};
+function explainPanel(html) {
+  for (const [name, tip] of Object.entries(panelTips)) {
+    const input = html.find(`[name="${name}"]`);
+    input.attr("title", tip).attr("aria-label", `${friendlyLabel(name)}. ${tip}`);
+    input.closest("label").attr("title", tip);
+  }
+  const detailTips = {
+    "[data-duration]": "Remaining damage ticks on this creature’s future turn starts. Changing this does not reapply source duration bonuses. Set zero to remove.",
+    "[data-remove-dot]": "Remove this DoT immediately, without rolling more damage.",
+    "[data-remove-mark]": "Remove this tracked condition and its associated penalty immediately.",
+    "[data-hp-consent]": "Allow Light Cones with ally HP costs to use this actor as a consenting participant. It does not spend HP by itself.",
+    "[data-cone-option=hpCost]": "Optional HP paid by this actor for supported HP-sacrifice cone interactions. Disabled means no optional sacrifice.",
+    "[data-cone-option=trailblazer]": "Identify the Trailblazer for cones whose effect depends on that character. No automatic name detection is used.",
+    "[data-cone-option=breakPartner]": "Choose the ally used by this cone’s Break Effect partner rule. Automatic selection uses the highest Break Effect ally.",
+    "[data-category]": "Classify this ability for Light Cone triggers. Unclassified does not trigger category-specific rules. Basic, Enhanced Basic, Skill, Ultimate, Follow-up, Elation and Break are distinct tags.",
+    "[data-owner]": "For a memosprite actor, select its summoner so summon, turn and attack events can reach the owner’s Light Cone. For ordinary characters choose Not a memosprite.",
+  };
+  for (const [selector, tip] of Object.entries(detailTips)) {
+    html.find(selector).attr("title", tip).closest("label").attr("title", tip);
+  }
+}
 export async function openPanel() {
   if (!game.user.isGM) return;
   const actors = combatActors();
@@ -1780,7 +1813,7 @@ export async function openPanel() {
     .map((a) => `<option value="${esc(a.uuid)}">${esc(a.name)}</option>`)
     .join("");
   const build = () =>
-    `<form><h3>Apply damage over time</h3><label>Target<select name="target">${options}</select></label><label>Source<select name="source"><option value="">No source / base damage only</option>${options}</select></label><label>DoT type<select name="type">${["custom", "burn", "shock", "bleed", "windShear"].map((x) => `<option>${x}</option>`).join("")}</select></label><label>Damage attribute<select name="attribute">${Object.entries(
+    `<form><p class="tsru-panel-hint">DoT means damage over time. Assign a target, damage and duration; the engine rolls and applies damage at that creature’s turn start. Effects clear after their last tick.</p><h3>Apply damage over time</h3><label>Target<select name="target">${options}</select></label><label>Source<select name="source"><option value="">No source / base damage only</option>${options}</select></label><label>DoT type<select name="type">${["custom", "burn", "shock", "bleed", "windShear"].map((x) => `<option value="${x}">${friendlyLabel(x)}</option>`).join("")}</select></label><label>Damage attribute<select name="attribute">${Object.entries(
       CONFIG.DND5E.damageTypes,
     )
       .map(
@@ -1793,16 +1826,16 @@ export async function openPanel() {
       .map((a) => {
         const s = runtime(a),
           c = cone(a);
-        return `<details><summary>${esc(a.name)} — ${esc(c?.item?.name ?? "No eligible cone")}</summary><p>Stacks: ${esc(JSON.stringify(s.stacks))}</p>${(s.dots ?? []).map((d) => `<p>${esc(d.type)} · ${d.dice}d${d.die} ${esc(d.attribute)} · ${d.remaining} turns <input data-duration="${d.id}" data-actor="${esc(a.uuid)}" type="number" value="${d.remaining}" min="0" max="100" style="width:60px"><button type="button" data-remove-dot="${d.id}" data-actor="${esc(a.uuid)}">Remove</button></p>`).join("")}${Object.entries(
+        return `<details><summary>${esc(a.name)} — ${esc(c?.item?.name ?? "No eligible cone")}</summary><h4 title="Counts stored by this actor’s Light Cone. Cooldown counters record the actor turn when an effect last triggered; other counts track progress or stacks.">Light Cone counters</h4><div class="tsru-effect-counters">${Object.entries(s.stacks ?? {}).map(([key,value]) => `<span title="${esc(key.endsWith('Cooldown') ? 'Actor turn count when this cooldown last triggered. A negative starting value makes the effect initially available.' : 'Stored stack or progress count used by this Light Cone’s rules.')}" >${esc(friendlyLabel(key))}: <b>${esc(value)}</b></span>`).join('') || '<span>No counters yet.</span>'}</div><h4>Active DoTs</h4>${(s.dots ?? []).map((d) => `<p><span title="DoT identity used for Light Cone rules; it is independent of the damage attribute.">${esc(friendlyLabel(d.type))}</span> · <span title="Base dice rolled each tick. Source Light Cone die upgrades are applied live when the tick rolls.">${d.dice}d${d.die}</span> <span title="Damage attribute used for resistance and immunity calculations.">${esc(friendlyLabel(d.attribute))}</span> · <span title="Number of future damage ticks remaining on this creature. The DoT clears after its final tick.">${d.remaining} ticks left</span> <input data-duration="${d.id}" data-actor="${esc(a.uuid)}" type="number" value="${d.remaining}" min="0" max="100" style="width:60px"><button type="button" data-remove-dot="${d.id}" data-actor="${esc(a.uuid)}">Remove</button></p>`).join("")}${Object.entries(
           s.marks ?? {},
         )
           .map(
             ([key, m]) =>
-              `<p>${esc(m.tag)} · ${m.remaining} turns <button type="button" data-remove-mark="${esc(key)}" data-actor="${esc(a.uuid)}">Remove</button></p>`,
+              `<p title="${esc(Object.entries(m.stats ?? {}).map(([k,v]) => `${friendlyLabel(k)}: ${v}`).join('; ') || 'Tracked debuff tag only; no automatic stat penalty.')}">${esc(friendlyLabel(m.tag))} · ${m.remaining} turns <button type="button" data-remove-mark="${esc(key)}" data-actor="${esc(a.uuid)}">Remove</button></p>`,
           )
           .join(
             "",
-          )}<h4>Cone options</h4><label>Consent to ally HP-cost interactions<input type="checkbox" data-hp-consent="${esc(a.uuid)}" ${a.getFlag(ID, "lightConeHPConsent") ? "checked" : ""}></label><label>HP sacrifice cost<select data-cone-option="hpCost" data-actor="${esc(a.uuid)}">${[0, 2, 4].map((n) => `<option value="${n}" ${number(a.getFlag(ID, "lightConeSettings")?.hpCost) === n ? "selected" : ""}>${n === 0 ? "Disabled" : n + " HP"}</option>`).join("")}</select></label><label>Trailblazer gate<select data-cone-option="trailblazer" data-actor="${esc(a.uuid)}"><option value="">Not configured</option>${actors.map((b) => `<option value="${esc(b.uuid)}" ${a.getFlag(ID, "lightConeSettings")?.trailblazer === b.uuid ? "selected" : ""}>${esc(b.name)}</option>`).join("")}</select></label><label>Break partner<select data-cone-option="breakPartner" data-actor="${esc(a.uuid)}"><option value="">Highest Break Effect ally</option>${friends(
+          )}<h4 title="Temporary stat bonuses granted by Light Cones. Remaining duration counts affected-character turns. Some named cone effects expire at the next turn start instead of turn end; a combat-duration effect lasts until combat ends or its source becomes ineligible.">Active Light Cone buffs</h4>${Object.entries(s.buffs ?? {}).map(([key,b]) => `<p title="${esc(Object.entries(b.stats ?? {}).map(([k,v]) => `${friendlyLabel(k)}: ${v}`).join('; '))}">${esc(friendlyLabel(key))} · ${b.indefinite ? 'For this combat' : `${b.remaining} turns remaining`}</p>`).join('') || '<p class="tsru-panel-hint">No active timed buffs.</p>'}<h4>Cone options</h4><label>Consent to ally HP-cost interactions<input type="checkbox" data-hp-consent="${esc(a.uuid)}" ${a.getFlag(ID, "lightConeHPConsent") ? "checked" : ""}></label><label>HP sacrifice cost<select data-cone-option="hpCost" data-actor="${esc(a.uuid)}">${[0, 2, 4].map((n) => `<option value="${n}" ${number(a.getFlag(ID, "lightConeSettings")?.hpCost) === n ? "selected" : ""}>${n === 0 ? "Disabled" : n + " HP"}</option>`).join("")}</select></label><label>Trailblazer gate<select data-cone-option="trailblazer" data-actor="${esc(a.uuid)}"><option value="">Not configured</option>${actors.map((b) => `<option value="${esc(b.uuid)}" ${a.getFlag(ID, "lightConeSettings")?.trailblazer === b.uuid ? "selected" : ""}>${esc(b.name)}</option>`).join("")}</select></label><label>Break partner<select data-cone-option="breakPartner" data-actor="${esc(a.uuid)}"><option value="">Highest Break Effect ally</option>${friends(
           a,
         )
           .filter((b) => b !== a)
@@ -1816,7 +1849,7 @@ export async function openPanel() {
           .filter((i) => i.type !== "loot")
           .map(
             (i) =>
-              `<label>${esc(i.name)}<select data-category="${esc(i.uuid)}"><option value="">Unclassified</option>${["basic", "enhancedBasic", "skill", "ultimate", "followup", "elation", "break"].map((t) => `<option value="${t}" ${i.getFlag(ID, "lightConeCategory") === t ? "selected" : ""}>${t}</option>`).join("")}</select></label>`,
+              `<label>${esc(i.name)}<select data-category="${esc(i.uuid)}"><option value="">Unclassified</option>${["basic", "enhancedBasic", "skill", "ultimate", "followup", "elation", "break"].map((t) => `<option value="${t}" ${i.getFlag(ID, "lightConeCategory") === t ? "selected" : ""}>${friendlyLabel(t)}</option>`).join("")}</select></label>`,
           )
           .join(
             "",
@@ -1835,6 +1868,7 @@ export async function openPanel() {
       content: build(),
       buttons: { close: { label: "Close" } },
       render: (html) => {
+        explainPanel(html);
         html.find("[data-dot-apply]").on("click", () =>
           enqueue(async () => {
             const val = (n) => html.find(`[name="${n}"]`).val(),
@@ -1968,11 +2002,7 @@ export function installLightCones(moduleApi) {
       );
   });
   Hooks.on("renderDMCombatMenu", (app, html) => {
-    const button = $(
-      '<button type="button" class="tsru-light-cone-control">Light Cones & DoT</button>',
-    );
-    button.on("click", openPanel);
-    html.find(".tsru-dm-tabs").after(button);
+    html.find("[data-dm-dot-panel]").on("click", openPanel);
   });
   Hooks.on("updateActor", (a, change) => {
     if (
