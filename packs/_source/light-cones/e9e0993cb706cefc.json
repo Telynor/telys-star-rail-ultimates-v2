@@ -1,0 +1,50 @@
+{
+  "_key": "!items!e9e0993cb706cefc",
+  "_id": "e9e0993cb706cefc",
+  "name": "Only Silence Remains",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21003.png",
+  "system": {
+    "description": {
+      "value": "<p>Attack bonus +1. While at most 2 enemies remain in combat, critical threshold −1.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching hunt Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "hunt"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "hunt",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21003.png",
+        "description": "Attack bonus +1. While at most 2 enemies remain in combat, critical threshold −1.",
+        "catalogId": "21003",
+        "draftId": 95,
+        "rarity": 4
+      }
+    }
+  }
+}

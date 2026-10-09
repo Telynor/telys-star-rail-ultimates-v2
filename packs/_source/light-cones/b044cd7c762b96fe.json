@@ -1,0 +1,50 @@
+{
+  "_key": "!items!b044cd7c762b96fe",
+  "_id": "b044cd7c762b96fe",
+  "name": "Indelible Promise",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21042.png",
+  "system": {
+    "description": {
+      "value": "<p>Break Effect score +2. Your Ultimate grants critical threshold −1 for 2 turns.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching destruction Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "destruction"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "destruction",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21042.png",
+        "description": "Break Effect score +2. Your Ultimate grants critical threshold −1 for 2 turns.",
+        "catalogId": "21042",
+        "draftId": 66,
+        "rarity": 4
+      }
+    }
+  }
+}

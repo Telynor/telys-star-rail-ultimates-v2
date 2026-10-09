@@ -1,0 +1,50 @@
+{
+  "_key": "!items!df63704d28e21f56",
+  "_id": "df63704d28e21f56",
+  "name": "Tomorrow, Together",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/22007.png",
+  "system": {
+    "description": {
+      "value": "<p>Critical damage bonus +2. Your Ultimate grants party Elation damage +2 until your next turn.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching elation Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "elation"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "elation",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/22007.png",
+        "description": "Critical damage bonus +2. Your Ultimate grants party Elation damage +2 until your next turn.",
+        "catalogId": "22007",
+        "draftId": 153,
+        "rarity": 4
+      }
+    }
+  }
+}

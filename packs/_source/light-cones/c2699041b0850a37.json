@@ -1,0 +1,50 @@
+{
+  "_key": "!items!c2699041b0850a37",
+  "_id": "c2699041b0850a37",
+  "name": "Dreamville Adventure",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21036.png",
+  "system": {
+    "description": {
+      "value": "<p>Your most recent Basic, Skill, or Ultimate grants allies +2 damage with that same ability category until you use another category. Does not stack with another copy.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching harmony Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "harmony"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "harmony",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21036.png",
+        "description": "Your most recent Basic, Skill, or Ultimate grants allies +2 damage with that same ability category until you use another category. Does not stack with another copy.",
+        "catalogId": "21036",
+        "draftId": 36,
+        "rarity": 4
+      }
+    }
+  }
+}

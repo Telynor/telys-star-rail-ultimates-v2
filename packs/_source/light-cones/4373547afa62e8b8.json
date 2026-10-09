@@ -1,0 +1,50 @@
+{
+  "_key": "!items!4373547afa62e8b8",
+  "_id": "4373547afa62e8b8",
+  "name": "Ninjutsu Inscription: Dazzling Evilbreaker",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23033.png",
+  "system": {
+    "description": {
+      "value": "<p>Break Effect score +3. Start combat with 5 Energy. Your Ultimate grants 2 Raiton charges; each Basic consumes one for +2 initiative next round, limited to one advancement per round.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching erudition Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "erudition"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "erudition",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23033.png",
+        "description": "Break Effect score +3. Start combat with 5 Energy. Your Ultimate grants 2 Raiton charges; each Basic consumes one for +2 initiative next round, limited to one advancement per round.",
+        "catalogId": "23033",
+        "draftId": 92,
+        "rarity": 5
+      }
+    }
+  }
+}

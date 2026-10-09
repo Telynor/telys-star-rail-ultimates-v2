@@ -1,0 +1,50 @@
+{
+  "_key": "!items!8758f11082391a06",
+  "_id": "8758f11082391a06",
+  "name": "Fine Fruit",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/20008.png",
+  "system": {
+    "description": {
+      "value": "<p>At combat start, restore 3 Energy to every ally, once per combat.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching abundance Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "abundance"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "abundance",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/20008.png",
+        "description": "At combat start, restore 3 Energy to every ally, once per combat.",
+        "catalogId": "20008",
+        "draftId": 45,
+        "rarity": 4
+      }
+    }
+  }
+}

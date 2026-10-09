@@ -1,0 +1,50 @@
+{
+  "_key": "!items!1f061e69abd38848",
+  "_id": "1f061e69abd38848",
+  "name": "Today's Good Luck",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21065.png",
+  "system": {
+    "description": {
+      "value": "<p>Critical threshold −1. Your Elation Skill grants Elation damage +1 per stack, capped at +2 for combat.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching elation Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "elation"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "elation",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21065.png",
+        "description": "Critical threshold −1. Your Elation Skill grants Elation damage +1 per stack, capped at +2 for combat.",
+        "catalogId": "21065",
+        "draftId": 152,
+        "rarity": 4
+      }
+    }
+  }
+}

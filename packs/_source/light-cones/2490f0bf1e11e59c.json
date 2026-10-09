@@ -1,0 +1,50 @@
+{
+  "_key": "!items!2490f0bf1e11e59c",
+  "_id": "2490f0bf1e11e59c",
+  "name": "Elation Brimming With Blessings",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/24006.png",
+  "system": {
+    "description": {
+      "value": "<p>Attack bonus +2. A Skill or Ultimate supporting an ally grants them Elation damage +3 for 2 turns.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching elation Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "elation"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "elation",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/24006.png",
+        "description": "Attack bonus +2. A Skill or Ultimate supporting an ally grants them Elation damage +3 for 2 turns.",
+        "catalogId": "24006",
+        "draftId": 39,
+        "rarity": 5
+      }
+    }
+  }
+}

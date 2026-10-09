@@ -1,0 +1,50 @@
+{
+  "_key": "!items!7221cfc462cde485",
+  "_id": "7221cfc462cde485",
+  "name": "Subscribe for More!",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21017.png",
+  "system": {
+    "description": {
+      "value": "<p>Basic and Skill damage +1; increase this bonus to +2 while your Energy is full.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching hunt Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "hunt"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "hunt",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21017.png",
+        "description": "Basic and Skill damage +1; increase this bonus to +2 while your Energy is full.",
+        "catalogId": "21017",
+        "draftId": 127,
+        "rarity": 4
+      }
+    }
+  }
+}

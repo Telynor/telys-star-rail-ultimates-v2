@@ -1,0 +1,50 @@
+{
+  "_key": "!items!75f97d10b01333c2",
+  "_id": "75f97d10b01333c2",
+  "name": "In the Name of the World",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23004.png",
+  "system": {
+    "description": {
+      "value": "<p>Deal +2 damage against debuffed enemies. Your Skill gains attack bonus +1 and Effect Hit bonus +1.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching nihility Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "nihility"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "nihility",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23004.png",
+        "description": "Deal +2 damage against debuffed enemies. Your Skill gains attack bonus +1 and Effect Hit bonus +1.",
+        "catalogId": "23004",
+        "draftId": 63,
+        "rarity": 5
+      }
+    }
+  }
+}

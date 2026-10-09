@@ -1,0 +1,50 @@
+{
+  "_key": "!items!1f9488be88a782ed",
+  "_id": "1f9488be88a782ed",
+  "name": "Woof! Walk Time!",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21026.png",
+  "system": {
+    "description": {
+      "value": "<p>Attack bonus +1. Direct hits deal +2 damage against tracked Burn or Bleed targets. Your Burn and Bleed DoTs gain +1 turn when applied.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching destruction Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "destruction"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "destruction",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21026.png",
+        "description": "Attack bonus +1. Direct hits deal +2 damage against tracked Burn or Bleed targets. Your Burn and Bleed DoTs gain +1 turn when applied.",
+        "catalogId": "21026",
+        "draftId": 168,
+        "rarity": 4
+      }
+    }
+  }
+}

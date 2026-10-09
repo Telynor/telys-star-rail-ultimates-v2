@@ -1,0 +1,50 @@
+{
+  "_key": "!items!d3180f74c08b3737",
+  "_id": "d3180f74c08b3737",
+  "name": "What Is Real?",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21035.png",
+  "system": {
+    "description": {
+      "value": "<p>Break Effect score +2. Your Basic restores 2 HP to you, once per turn.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching abundance Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "abundance"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "abundance",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21035.png",
+        "description": "Break Effect score +2. Your Basic restores 2 HP to you, once per turn.",
+        "catalogId": "21035",
+        "draftId": 164,
+        "rarity": 4
+      }
+    }
+  }
+}

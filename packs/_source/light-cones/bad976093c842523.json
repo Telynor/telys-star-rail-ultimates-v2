@@ -1,0 +1,50 @@
+{
+  "_key": "!items!bad976093c842523",
+  "_id": "bad976093c842523",
+  "name": "Cornucopia",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/20001.png",
+  "system": {
+    "description": {
+      "value": "<p>Skill and Ultimate healing restore +2 HP per recipient.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching abundance Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "abundance"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "abundance",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/20001.png",
+        "description": "Skill and Ultimate healing restore +2 HP per recipient.",
+        "catalogId": "20001",
+        "draftId": 25,
+        "rarity": 4
+      }
+    }
+  }
+}

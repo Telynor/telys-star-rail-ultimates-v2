@@ -2,7 +2,7 @@ name: Build Foundry Release
 
 on:
   push:
-    branches: [main]
+    branches: [main, light-cones-preview]
   workflow_dispatch:
 
 permissions:
@@ -27,6 +27,9 @@ jobs:
         run: |
           npm install --no-audit --no-fund
           npm run build:materials
+          node tools/fetch-light-cone-art.mjs
+          npm run build:light-cones
+          npm run test:light-cones
 
       - name: Create Foundry module ZIP
         shell: bash
@@ -39,10 +42,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
+          release_flags=()
+          if [[ "$GITHUB_REF_NAME" == "light-cones-preview" ]]; then release_flags+=(--prerelease); fi
           tag="${{ steps.version.outputs.tag }}"
           asset="telys-star-rail-ultimates-v${{ steps.version.outputs.version }}.zip"
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release upload "$tag" "$asset" module.json --clobber
           else
-            gh release create "$tag" "$asset" module.json --title "$tag" --generate-notes --target main
+            gh release create "$tag" "$asset" module.json --title "$tag" --generate-notes --target "$GITHUB_SHA" "${release_flags[@]}"
           fi

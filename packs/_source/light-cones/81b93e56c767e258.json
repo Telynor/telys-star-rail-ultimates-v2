@@ -1,0 +1,50 @@
+{
+  "_key": "!items!81b93e56c767e258",
+  "_id": "81b93e56c767e258",
+  "name": "Scent Alone Stays True",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23032.png",
+  "system": {
+    "description": {
+      "value": "<p>Break Effect score +3. An attacking Ultimate forces targets to make a Constitution save; failure gives +1 allied hit damage taken for 2 turns, or +2 if your total Break Effect bonus is at least +3.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching abundance Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "abundance"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "abundance",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23032.png",
+        "description": "Break Effect score +3. An attacking Ultimate forces targets to make a Constitution save; failure gives +1 allied hit damage taken for 2 turns, or +2 if your total Break Effect bonus is at least +3.",
+        "catalogId": "23032",
+        "draftId": 116,
+        "rarity": 5
+      }
+    }
+  }
+}

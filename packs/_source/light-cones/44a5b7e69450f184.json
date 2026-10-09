@@ -1,0 +1,50 @@
+{
+  "_key": "!items!44a5b7e69450f184",
+  "_id": "44a5b7e69450f184",
+  "name": "Mediation",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/20019.png",
+  "system": {
+    "description": {
+      "value": "<p>At combat start, grant party speed +10 feet for 1 turn. Multiple copies do not stack.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching harmony Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "harmony"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "harmony",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/20019.png",
+        "description": "At combat start, grant party speed +10 feet for 1 turn. Multiple copies do not stack.",
+        "catalogId": "20019",
+        "draftId": 80,
+        "rarity": 4
+      }
+    }
+  }
+}

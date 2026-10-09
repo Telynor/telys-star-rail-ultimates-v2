@@ -1,0 +1,50 @@
+{
+  "_key": "!items!5c24d81cdfaa5b6b",
+  "_id": "5c24d81cdfaa5b6b",
+  "name": "The Forever Victual",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/22005.png",
+  "system": {
+    "description": {
+      "value": "<p>Attack bonus +1. Your Skill grants another +1 attack bonus per stack, maximum 2 additional stacks, for combat.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching harmony Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "harmony"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "harmony",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/22005.png",
+        "description": "Attack bonus +1. Your Skill grants another +1 attack bonus per stack, maximum 2 additional stacks, for combat.",
+        "catalogId": "22005",
+        "draftId": 136,
+        "rarity": 4
+      }
+    }
+  }
+}

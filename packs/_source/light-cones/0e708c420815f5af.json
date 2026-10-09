@@ -1,0 +1,50 @@
+{
+  "_key": "!items!0e708c420815f5af",
+  "_id": "0e708c420815f5af",
+  "name": "Arrows",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/20000.png",
+  "system": {
+    "description": {
+      "value": "<p>Critical threshold −1 for your first 3 turns in combat.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching hunt Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "hunt"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "hunt",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/20000.png",
+        "description": "Critical threshold −1 for your first 3 turns in combat.",
+        "catalogId": "20000",
+        "draftId": 13,
+        "rarity": 4
+      }
+    }
+  }
+}

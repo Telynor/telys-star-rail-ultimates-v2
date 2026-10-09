@@ -1,0 +1,50 @@
+{
+  "_key": "!items!3b295929932843d3",
+  "_id": "3b295929932843d3",
+  "name": "Reminiscence",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/20022.png",
+  "system": {
+    "description": {
+      "value": "<p>Each memosprite turn grants you and it damage +1, capped at +3. Reset when it leaves the battlefield.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching remembrance Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "remembrance"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "remembrance",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/20022.png",
+        "description": "Each memosprite turn grants you and it damage +1, capped at +3. Reset when it leaves the battlefield.",
+        "catalogId": "20022",
+        "draftId": 109,
+        "rarity": 4
+      }
+    }
+  }
+}

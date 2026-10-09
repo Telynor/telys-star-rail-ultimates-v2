@@ -1,0 +1,50 @@
+{
+  "_key": "!items!eabfe04ba192dff4",
+  "_id": "eabfe04ba192dff4",
+  "name": "Carve the Moon, Weave the Clouds",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21032.png",
+  "system": {
+    "description": {
+      "value": "<p>At combat start and your turn start, randomly grant the party attack bonus +1, critical damage bonus +2, or Energy Regeneration score +1 until your next turn. Do not repeat the previous result. Ends if you fall unconscious.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching harmony Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "harmony"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "harmony",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21032.png",
+        "description": "At combat start and your turn start, randomly grant the party attack bonus +1, critical damage bonus +2, or Energy Regeneration score +1 until your next turn. Do not repeat the previous result. Ends if you fall unconscious.",
+        "catalogId": "21032",
+        "draftId": 20,
+        "rarity": 4
+      }
+    }
+  }
+}

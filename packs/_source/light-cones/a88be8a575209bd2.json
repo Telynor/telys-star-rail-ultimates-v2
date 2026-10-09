@@ -1,0 +1,50 @@
+{
+  "_key": "!items!a88be8a575209bd2",
+  "_id": "a88be8a575209bd2",
+  "name": "Welcome to the Cosmic City",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23057.png",
+  "system": {
+    "description": {
+      "value": "<p>Speed +10 feet and Elation damage +2. Your Ultimate grants 3 Punchline, then locks this trigger until you have used 3 Basics. Ultimate-triggered Punchline cannot retrigger the same effect.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching elation Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "elation"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "elation",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23057.png",
+        "description": "Speed +10 feet and Elation damage +2. Your Ultimate grants 3 Punchline, then locks this trigger until you have used 3 Basics. Ultimate-triggered Punchline cannot retrigger the same effect.",
+        "catalogId": "23057",
+        "draftId": 163,
+        "rarity": 5
+      }
+    }
+  }
+}

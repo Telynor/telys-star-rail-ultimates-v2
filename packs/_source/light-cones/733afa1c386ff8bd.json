@@ -1,0 +1,50 @@
+{
+  "_key": "!items!733afa1c386ff8bd",
+  "_id": "733afa1c386ff8bd",
+  "name": "If Time Were a Flower",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23038.png",
+  "system": {
+    "description": {
+      "value": "<p>Critical damage bonus +4. A follow-up restores 2 Energy and grants party critical damage bonus +2 for 2 turns, once per turn. Start combat with 3 Energy and that party buff.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching harmony Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "harmony"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "harmony",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23038.png",
+        "description": "Critical damage bonus +4. A follow-up restores 2 Energy and grants party critical damage bonus +2 for 2 turns, once per turn. Start combat with 3 Energy and that party buff.",
+        "catalogId": "23038",
+        "draftId": 61,
+        "rarity": 5
+      }
+    }
+  }
+}

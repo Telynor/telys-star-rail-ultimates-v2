@@ -1,0 +1,50 @@
+{
+  "_key": "!items!13354094ed66f529",
+  "_id": "13354094ed66f529",
+  "name": "I Shall Be My Own Sword",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23014.png",
+  "system": {
+    "description": {
+      "value": "<p>Critical damage bonus +4. When another ally is hit or loses HP, gain Eclipse, capped at 3. Your next attack consumes all stacks for +1 damage each; consuming 3 adds another +2 damage.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching destruction Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "destruction"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "destruction",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23014.png",
+        "description": "Critical damage bonus +4. When another ally is hit or loses HP, gain Eclipse, capped at 3. Your next attack consumes all stacks for +1 damage each; consuming 3 adds another +2 damage.",
+        "catalogId": "23014",
+        "draftId": 59,
+        "rarity": 5
+      }
+    }
+  }
+}

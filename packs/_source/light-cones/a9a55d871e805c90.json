@@ -1,0 +1,50 @@
+{
+  "_key": "!items!a9a55d871e805c90",
+  "_id": "a9a55d871e805c90",
+  "name": "Perfect Timing",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21014.png",
+  "system": {
+    "description": {
+      "value": "<p>Saving throws +1. Outgoing healing gains +1 per point of your total saving-throw item bonus, capped at +3.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching abundance Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "abundance"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "abundance",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21014.png",
+        "description": "Saving throws +1. Outgoing healing gains +1 per point of your total saving-throw item bonus, capped at +3.",
+        "catalogId": "21014",
+        "draftId": 100,
+        "rarity": 4
+      }
+    }
+  }
+}

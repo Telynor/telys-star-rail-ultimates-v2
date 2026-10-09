@@ -1,0 +1,50 @@
+{
+  "_key": "!items!7a8c43fdab03f1ed",
+  "_id": "7a8c43fdab03f1ed",
+  "name": "Time Waits for No One",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23013.png",
+  "system": {
+    "description": {
+      "value": "<p>Maximum HP +8 and outgoing healing +2. Record actual HP restored by your healing. The next allied attack adds half that amount as damage, capped at +4; consume the record. One trigger per turn, latest healing replaces the record.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching abundance Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "abundance"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "abundance",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23013.png",
+        "description": "Maximum HP +8 and outgoing healing +2. Record actual HP restored by your healing. The next allied attack adds half that amount as damage, capped at +4; consume the record. One trigger per turn, latest healing replaces the record.",
+        "catalogId": "23013",
+        "draftId": 148,
+        "rarity": 5
+      }
+    }
+  }
+}

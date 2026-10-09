@@ -1,0 +1,50 @@
+{
+  "_key": "!items!c113e0cdabca7189",
+  "_id": "c113e0cdabca7189",
+  "name": "Planetary Rendezvous",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21011.png",
+  "system": {
+    "description": {
+      "value": "<p>Allies sharing your configured damage element gain damage +1 with that element. Multiple copies do not stack.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching harmony Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "harmony"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "harmony",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21011.png",
+        "description": "Allies sharing your configured damage element gain damage +1 with that element. Multiple copies do not stack.",
+        "catalogId": "21011",
+        "draftId": 102,
+        "rarity": 4
+      }
+    }
+  }
+}

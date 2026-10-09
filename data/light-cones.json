@@ -1,0 +1,1622 @@
+[
+  {
+    "draftId": 1,
+    "id": "21060",
+    "name": "A Dream Scented in Wheat",
+    "rarity": 4,
+    "path": "erudition",
+    "description": "Critical threshold \u22121. Ultimate and follow-up hits deal +2 damage.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21060.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21060.png"
+  },
+  {
+    "draftId": 2,
+    "id": "23034",
+    "name": "A Grounded Ascent",
+    "rarity": 5,
+    "path": "harmony",
+    "description": "Supporting one ally with a Skill or Ultimate grants that ally Hymn: +1 damage per stack, maximum 3, for 3 turns. Gain 2 Energy per qualifying use; every second use restores 1 SP.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23034.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23034.png"
+  },
+  {
+    "draftId": 4,
+    "id": "21012",
+    "name": "A Secret Vow",
+    "rarity": 4,
+    "path": "destruction",
+    "description": "Deal +2 damage. Add another +2 against enemies whose current HP percentage is at least yours.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21012.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21012.png"
+  },
+  {
+    "draftId": 6,
+    "id": "23045",
+    "name": "A Thankless Coronation",
+    "rarity": 5,
+    "path": "destruction",
+    "description": "Critical damage bonus +4. After your Ultimate, attack bonus +2 for 2 turns. If maximum Energy is at least 60, gain 3 Energy and another +1 attack bonus.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23045.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23045.png"
+  },
+  {
+    "draftId": 7,
+    "id": "21058",
+    "name": "A Trail of Bygone Blood",
+    "rarity": 4,
+    "path": "destruction",
+    "description": "Critical threshold \u22121. Skill and Ultimate hits deal +2 damage.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21058.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21058.png"
+  },
+  {
+    "draftId": 8,
+    "id": "20014",
+    "name": "Adversarial",
+    "rarity": 4,
+    "path": "hunt",
+    "description": "Defeating an enemy grants +10 feet speed for 2 turns; refresh duration, do not stack.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/20014.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/20014.png"
+  },
+  {
+    "draftId": 9,
+    "id": "21045",
+    "name": "After the Charmony Fall",
+    "rarity": 4,
+    "path": "erudition",
+    "description": "Break Effect score +2. After your Ultimate, speed +10 feet for 2 turns.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21045.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21045.png"
+  },
+  {
+    "draftId": 10,
+    "id": "23024",
+    "name": "Along the Passing Shore",
+    "rarity": 5,
+    "path": "nihility",
+    "description": "Critical damage bonus +4. A hit marks its target until your next turn. Your subsequent hits against that target deal +2 damage, or +3 for an Ultimate.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23024.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23024.png"
+  },
+  {
+    "draftId": 11,
+    "id": "20003",
+    "name": "Amber",
+    "rarity": 4,
+    "path": "preservation",
+    "description": "AC +1. While below half maximum HP, gain another +1 AC.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/20003.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/20003.png"
+  },
+  {
+    "draftId": 12,
+    "id": "23018",
+    "name": "An Instant Before A Gaze",
+    "rarity": 5,
+    "path": "erudition",
+    "description": "Critical damage bonus +4. Ultimate hits gain +1 damage per 20 maximum Energy, capped at +3.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23018.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23018.png"
+  },
+  {
+    "draftId": 13,
+    "id": "20000",
+    "name": "Arrows",
+    "rarity": 4,
+    "path": "hunt",
+    "description": "Critical threshold \u22121 for your first 3 turns in combat.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/20000.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/20000.png"
+  },
+  {
+    "draftId": 14,
+    "id": "23020",
+    "name": "Baptism of Pure Thought",
+    "rarity": 5,
+    "path": "hunt",
+    "description": "Critical damage bonus +4, plus +1 per distinct enemy debuff, capped at +3. After your Ultimate, deal +2 damage and your follow-ups gain +2 additional damage for 2 turns.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23020.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23020.png"
+  },
+  {
+    "draftId": 15,
+    "id": "23010",
+    "name": "Before Dawn",
+    "rarity": 5,
+    "path": "erudition",
+    "description": "Critical damage bonus +4. Skill and Ultimate hits deal +2 damage. Using either stores one charge; your next follow-up consumes it for +3 damage.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23010.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23010.png"
+  },
+  {
+    "draftId": 16,
+    "id": "22000",
+    "name": "Before the Tutorial Mission Starts",
+    "rarity": 4,
+    "path": "nihility",
+    "description": "Effect Hit bonus +1. Hitting an enemy with reduced AC restores 2 Energy, once per turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/22000.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/22000.png"
+  },
+  {
+    "draftId": 17,
+    "id": "21044",
+    "name": "Boundless Choreo",
+    "rarity": 4,
+    "path": "nihility",
+    "description": "Critical threshold \u22121. Critical damage bonus +3 against targets with an active tracked Reduced AC or Slowed effect. The GM can assign either marker; mental adjustments are never inferred.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21044.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21044.png"
+  },
+  {
+    "draftId": 18,
+    "id": "23015",
+    "name": "Brighter Than the Sun",
+    "rarity": 5,
+    "path": "destruction",
+    "description": "Critical threshold \u22121. Each completed Basic grants one Dragon stack, maximum 2. Each stack lasts 2 wearer turns and grants attack bonus +1 and Energy Regeneration score +1. Display stacks and expiry in the GM panel; expire each independently.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23015.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23015.png"
+  },
+  {
+    "draftId": 19,
+    "id": "23003",
+    "name": "But the Battle Isn't Over",
+    "rarity": 5,
+    "path": "harmony",
+    "description": "Energy Regeneration score +2. Every second support Ultimate restores 1 SP. After your Skill, the next ally to take a turn gains +2 damage for that turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23003.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23003.png"
+  },
+  {
+    "draftId": 20,
+    "id": "21032",
+    "name": "Carve the Moon, Weave the Clouds",
+    "rarity": 4,
+    "path": "harmony",
+    "description": "At combat start and your turn start, randomly grant the party attack bonus +1, critical damage bonus +2, or Energy Regeneration score +1 until your next turn. Do not repeat the previous result. Ends if you fall unconscious.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21032.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21032.png"
+  },
+  {
+    "draftId": 21,
+    "id": "20005",
+    "name": "Chorus",
+    "rarity": 4,
+    "path": "harmony",
+    "description": "Party attack bonus +1 while you are conscious in combat. Multiple Chorus effects do not stack.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/20005.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/20005.png"
+  },
+  {
+    "draftId": 22,
+    "id": "20002",
+    "name": "Collapsing Sky",
+    "rarity": 4,
+    "path": "destruction",
+    "description": "Basic and Skill hits deal +1 damage.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/20002.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/20002.png"
+  },
+  {
+    "draftId": 24,
+    "id": "21043",
+    "name": "Concert for Two",
+    "rarity": 4,
+    "path": "preservation",
+    "description": "AC +1. Deal +1 damage per ally with temporary HP, capped at +3.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21043.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21043.png"
+  },
+  {
+    "draftId": 25,
+    "id": "20001",
+    "name": "Cornucopia",
+    "rarity": 4,
+    "path": "abundance",
+    "description": "Skill and Ultimate healing restore +2 HP per recipient.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/20001.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/20001.png"
+  },
+  {
+    "draftId": 26,
+    "id": "24001",
+    "name": "Cruising in the Stellar Sea",
+    "rarity": 5,
+    "path": "hunt",
+    "description": "Critical threshold \u22121, improving to \u22122 against enemies below half HP. Defeating an enemy grants attack bonus +2 for 2 turns.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/24001.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/24001.png"
+  },
+  {
+    "draftId": 27,
+    "id": "23030",
+    "name": "Dance at Sunset",
+    "rarity": 5,
+    "path": "destruction",
+    "description": "Critical damage bonus +4. Your Ultimate grants Firedance, maximum 2 stacks: follow-up damage +2 per stack for 2 turns. Once per turn, a hit can provoke the target until your next turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23030.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23030.png"
+  },
+  {
+    "draftId": 28,
+    "id": "21018",
+    "name": "Dance! Dance! Dance!",
+    "rarity": 4,
+    "path": "harmony",
+    "description": "Your Ultimate grants each ally +2 initiative for the next round, once per combat. This changes turn order; it does not grant another turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21018.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21018.png"
+  },
+  {
+    "draftId": 29,
+    "id": "20007",
+    "name": "Darting Arrow",
+    "rarity": 4,
+    "path": "hunt",
+    "description": "Defeating an enemy grants attack bonus +1 for 3 turns.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/20007.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/20007.png"
+  },
+  {
+    "draftId": 30,
+    "id": "20006",
+    "name": "Data Bank",
+    "rarity": 4,
+    "path": "erudition",
+    "description": "Ultimate hits deal +2 damage.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/20006.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/20006.png"
+  },
+  {
+    "draftId": 31,
+    "id": "21002",
+    "name": "Day One of My New Life",
+    "rarity": 4,
+    "path": "preservation",
+    "description": "AC +1. Conscious allies reduce incoming damage by 1 per hit. Multiple copies do not stack.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21002.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21002.png"
+  },
+  {
+    "draftId": 32,
+    "id": "23053",
+    "name": "Dazzled by a Flowery World",
+    "rarity": 5,
+    "path": "elation",
+    "description": "Critical damage bonus +4. Party SP capacity +1 per Elation ally, capped at +3. Spending SP adds +1 Elation damage per charge, capped at +4, until your next turn. Spending 4 SP in one turn grants party Elation damage +2 for 1 turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23053.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23053.png"
+  },
+  {
+    "draftId": 33,
+    "id": "20010",
+    "name": "Defense",
+    "rarity": 4,
+    "path": "preservation",
+    "description": "Your Ultimate restores 3 HP to you, once per turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/20010.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/20010.png"
+  },
+  {
+    "draftId": 34,
+    "id": "21039",
+    "name": "Destiny's Threads Forewoven",
+    "rarity": 4,
+    "path": "preservation",
+    "description": "Saving throws +1. Deal +1 damage for every 2 AC above 10, capped at +3.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21039.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21039.png"
+  },
+  {
+    "draftId": 35,
+    "id": "21048",
+    "name": "Dream's Montage",
+    "rarity": 4,
+    "path": "abundance",
+    "description": "Speed +5 feet. Hitting a target whose current toughness is exactly 0 restores 2 Energy, once per turn. Check toughness when the hit resolves.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21048.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21048.png"
+  },
+  {
+    "draftId": 36,
+    "id": "21036",
+    "name": "Dreamville Adventure",
+    "rarity": 4,
+    "path": "harmony",
+    "description": "Your most recent Basic, Skill, or Ultimate grants allies +2 damage with that same ability category until you use another category. Does not stack with another copy.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21036.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21036.png"
+  },
+  {
+    "draftId": 37,
+    "id": "23021",
+    "name": "Earthly Escapade",
+    "rarity": 5,
+    "path": "harmony",
+    "description": "Critical damage bonus +4. Party Mask grants critical threshold \u22121 and critical damage bonus +2 for 3 turns at combat start. After restoring 4 total SP, refresh Mask for 4 turns and reset the counter.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23021.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23021.png"
+  },
+  {
+    "draftId": 38,
+    "id": "23008",
+    "name": "Echoes of the Coffin",
+    "rarity": 5,
+    "path": "abundance",
+    "description": "Attack bonus +2. An attack restores 1 Energy per distinct target hit, capped at 3 per turn. Your Ultimate grants party speed +10 feet for 1 turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23008.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23008.png"
+  },
+  {
+    "draftId": 39,
+    "id": "24006",
+    "name": "Elation Brimming With Blessings",
+    "rarity": 5,
+    "path": "elation",
+    "description": "Attack bonus +2. A Skill or Ultimate supporting an ally grants them Elation damage +3 for 2 turns.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/24006.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/24006.png"
+  },
+  {
+    "draftId": 40,
+    "id": "23048",
+    "name": "Epoch Etched in Golden Blood",
+    "rarity": 5,
+    "path": "harmony",
+    "description": "Attack bonus +2. An attacking Ultimate restores 1 SP, once per turn. A supporting Skill grants its target Skill damage +3 for 3 turns.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23048.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23048.png"
+  },
+  {
+    "draftId": 41,
+    "id": "24004",
+    "name": "Eternal Calculus",
+    "rarity": 5,
+    "path": "erudition",
+    "description": "Attack bonus +1. After an attack, gain +1 attack bonus per distinct target hit, capped at +3, for your next attack. Hitting at least 3 enemies also grants speed +10 feet for 1 turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/24004.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/24004.png"
+  },
+  {
+    "draftId": 42,
+    "id": "21008",
+    "name": "Eyes of the Prey",
+    "rarity": 4,
+    "path": "nihility",
+    "description": "Effect Hit bonus +1. DoTs applied by you increase one die step: d4 \u2192 d6 \u2192 d8 \u2192 d10 \u2192 d12. No flat DoT damage bonus.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21008.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21008.png"
+  },
+  {
+    "draftId": 43,
+    "id": "21022",
+    "name": "Fermata",
+    "rarity": 4,
+    "path": "nihility",
+    "description": "Break Effect score +2. Direct hits against Shock or Wind Shear targets deal +2 damage. Your Shock and Wind Shear DoTs gain +1 turn when applied.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21022.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21022.png"
+  },
+  {
+    "draftId": 44,
+    "id": "21037",
+    "name": "Final Victor",
+    "rarity": 4,
+    "path": "hunt",
+    "description": "Attack bonus +1. Critical hits grant critical damage bonus +1 per stack, maximum 4, expiring at the end of your turn. The triggering critical uses only previously earned stacks.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21037.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21037.png"
+  },
+  {
+    "draftId": 45,
+    "id": "20008",
+    "name": "Fine Fruit",
+    "rarity": 4,
+    "path": "abundance",
+    "description": "At combat start, restore 3 Energy to every ally, once per combat.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/20008.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/20008.png"
+  },
+  {
+    "draftId": 46,
+    "id": "23039",
+    "name": "Flame of Blood, Blaze My Path",
+    "rarity": 5,
+    "path": "destruction",
+    "description": "Maximum HP +8 and incoming healing +2. A Skill or Ultimate may cost 2 HP for +2 damage, or 4 HP for +4 damage. This cannot reduce you below 1 HP.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23039.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23039.png"
+  },
+  {
+    "draftId": 47,
+    "id": "21038",
+    "name": "Flames Afar",
+    "rarity": 4,
+    "path": "destruction",
+    "description": "Losing or spending more than one quarter of maximum HP in one event restores 3 HP and grants damage +2 for 2 turns. Three-turn cooldown.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21038.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21038.png"
+  },
+  {
+    "draftId": 49,
+    "id": "23026",
+    "name": "Flowing Nightglow",
+    "rarity": 5,
+    "path": "harmony",
+    "description": "An ally's attack grants you Energy Regeneration score +1 per stack, capped at 5. Your Ultimate consumes all stacks to grant you attack bonus +2 and party damage +2 until your next turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23026.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23026.png"
+  },
+  {
+    "draftId": 50,
+    "id": "22006",
+    "name": "Fly Into a Pink Tomorrow",
+    "rarity": 4,
+    "path": "remembrance",
+    "description": "Critical damage bonus +2. If attuned by the configured Trailblazer actor, grant party damage +1 and that actor's enhanced Basic damage +3.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/22006.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/22006.png"
+  },
+  {
+    "draftId": 51,
+    "id": "22002",
+    "name": "For Tomorrow's Journey",
+    "rarity": 4,
+    "path": "harmony",
+    "description": "Attack bonus +1. After your Ultimate, deal +2 damage until the end of your next turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/22002.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/22002.png"
+  },
+  {
+    "draftId": 52,
+    "id": "21051",
+    "name": "Geniuses' Greetings",
+    "rarity": 4,
+    "path": "remembrance",
+    "description": "Attack bonus +1. Your Ultimate grants you and your memosprite Basic damage +2 for 3 turns.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21051.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21051.png"
+  },
+  {
+    "draftId": 53,
+    "id": "21020",
+    "name": "Geniuses' Repose",
+    "rarity": 4,
+    "path": "erudition",
+    "description": "Attack bonus +1. Defeating an enemy grants critical damage bonus +3 for 3 turns.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21020.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21020.png"
+  },
+  {
+    "draftId": 54,
+    "id": "21001",
+    "name": "Good Night and Sleep Well",
+    "rarity": 4,
+    "path": "nihility",
+    "description": "Direct hits deal +1 damage per distinct tracked debuff, capped at +3. Your DoTs gain one die step against targets with at least 2 distinct tracked debuffs, recalculated each tick; cap d12.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21001.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21001.png"
+  },
+  {
+    "draftId": 55,
+    "id": "22001",
+    "name": "Hey, Over Here",
+    "rarity": 4,
+    "path": "abundance",
+    "description": "Maximum HP +5. Your Skill grants outgoing healing +2 for 2 turns.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/22001.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/22001.png"
+  },
+  {
+    "draftId": 56,
+    "id": "20018",
+    "name": "Hidden Shadow",
+    "rarity": 4,
+    "path": "nihility",
+    "description": "Your Skill charges your next Basic hit to deal +2 damage. One stored charge; repeated Skills refresh it.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/20018.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/20018.png"
+  },
+  {
+    "draftId": 57,
+    "id": "21061",
+    "name": "Holiday Thermae Escapade",
+    "rarity": 4,
+    "path": "nihility",
+    "description": "Deal +1 damage. A hit forces a Constitution save; on failure, that target takes +1 damage from each qualifying allied hit for 2 turns. No duplicate stacking.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21061.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21061.png"
+  },
+  {
+    "draftId": 59,
+    "id": "23014",
+    "name": "I Shall Be My Own Sword",
+    "rarity": 5,
+    "path": "destruction",
+    "description": "Critical damage bonus +4. When another ally is hit or loses HP, gain Eclipse, capped at 3. Your next attack consumes all stacks for +1 damage each; consuming 3 adds another +2 damage.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23014.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23014.png"
+  },
+  {
+    "draftId": 60,
+    "id": "23031",
+    "name": "I Venture Forth to Hunt",
+    "rarity": 5,
+    "path": "hunt",
+    "description": "Critical threshold \u22121. Follow-ups grant Luminflux, maximum 2 stacks. Your Ultimate consumes the stacks for +2 damage each. Lose one stack at your turn end.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23031.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23031.png"
+  },
+  {
+    "draftId": 61,
+    "id": "23038",
+    "name": "If Time Were a Flower",
+    "rarity": 5,
+    "path": "harmony",
+    "description": "Critical damage bonus +4. A follow-up restores 2 Energy and grants party critical damage bonus +2 for 2 turns, once per turn. Start combat with 3 Energy and that party buff.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23038.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23038.png"
+  },
+  {
+    "draftId": 62,
+    "id": "21056",
+    "name": "In Pursuit of the Wind",
+    "rarity": 4,
+    "path": "harmony",
+    "description": "Party Break damage +2 while you are conscious in combat. Multiple copies do not stack.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21056.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21056.png"
+  },
+  {
+    "draftId": 63,
+    "id": "23004",
+    "name": "In the Name of the World",
+    "rarity": 5,
+    "path": "nihility",
+    "description": "Deal +2 damage against debuffed enemies. Your Skill gains attack bonus +1 and Effect Hit bonus +1.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23004.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23004.png"
+  },
+  {
+    "draftId": 64,
+    "id": "23001",
+    "name": "In the Night",
+    "rarity": 5,
+    "path": "hunt",
+    "description": "Critical threshold \u22121. Per 10 feet of speed above 30, gain Basic and Skill damage +1 and Ultimate critical damage bonus +1, capped at 3 steps.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23001.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23001.png"
+  },
+  {
+    "draftId": 65,
+    "id": "23007",
+    "name": "Incessant Rain",
+    "rarity": 5,
+    "path": "nihility",
+    "description": "Effect Hit bonus +2. Critical threshold \u22121 against enemies with at least 3 debuffs. Once per turn, a hit marks one target with Aether Code for 1 turn: allied hits against it deal +1 damage.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23007.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23007.png"
+  },
+  {
+    "draftId": 66,
+    "id": "21042",
+    "name": "Indelible Promise",
+    "rarity": 4,
+    "path": "destruction",
+    "description": "Break Effect score +2. Your Ultimate grants critical threshold \u22121 for 2 turns.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21042.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21042.png"
+  },
+  {
+    "draftId": 67,
+    "id": "23023",
+    "name": "Inherently Unjust Destiny",
+    "rarity": 5,
+    "path": "preservation",
+    "description": "AC +2. Granting an ally temporary HP gives you critical damage bonus +3 for 2 turns. Your follow-up forces a Constitution save; on failure, the target takes +1 allied hit damage for 2 turns.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23023.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23023.png"
+  },
+  {
+    "draftId": 68,
+    "id": "23037",
+    "name": "Into the Unreachable Veil",
+    "rarity": 5,
+    "path": "erudition",
+    "description": "Critical threshold \u22121. Your Ultimate grants Skill and Ultimate damage +3 for 3 turns. Spending at least 50 Energy on it also restores 1 SP.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23037.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23037.png"
+  },
+  {
+    "draftId": 69,
+    "id": "21041",
+    "name": "It's Showtime",
+    "rarity": 4,
+    "path": "nihility",
+    "description": "Applying a debuff grants damage +1 per stack, maximum 3, until your next turn. With an Effect Hit bonus of at least +3, also gain attack bonus +1.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21041.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21041.png"
+  },
+  {
+    "draftId": 70,
+    "id": "21053",
+    "name": "Journey, Forever Peaceful",
+    "rarity": 4,
+    "path": "preservation",
+    "description": "Temporary HP you grant increases by 3. Allies currently protected by your cone-enhanced temporary HP deal +1 damage.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21053.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21053.png"
+  },
+  {
+    "draftId": 71,
+    "id": "21009",
+    "name": "Landau's Choice",
+    "rarity": 4,
+    "path": "preservation",
+    "description": "Reduce incoming damage by 1 per hit. Once per turn, hitting an enemy can provoke it until your next turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21009.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21009.png"
+  },
+  {
+    "draftId": 72,
+    "id": "23043",
+    "name": "Lies Dance on the Breeze",
+    "rarity": 5,
+    "path": "nihility",
+    "description": "Speed +10 feet. After your attack, each target hit makes a Constitution save; failure reduces AC by 1 for 2 turns. At speed 50 feet or higher, reduce AC by 2 instead. No duplicate stacking.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23043.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23043.png"
+  },
+  {
+    "draftId": 73,
+    "id": "23041",
+    "name": "Life Should Be Cast to Flames",
+    "rarity": 5,
+    "path": "erudition",
+    "description": "Restore 2 Energy at your turn start. Deal +2 damage against enemies with an implanted weakness. Once per turn, a hit forces a Constitution save; failure gives AC \u22121 for 2 turns.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23041.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23041.png"
+  },
+  {
+    "draftId": 74,
+    "id": "20024",
+    "name": "Lingering Tear",
+    "rarity": 4,
+    "path": "elation",
+    "description": "At 10 or more Punchline, critical damage bonus +2.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/20024.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/20024.png"
+  },
+  {
+    "draftId": 75,
+    "id": "23042",
+    "name": "Long May Rainbows Adorn the Sky",
+    "rarity": 5,
+    "path": "remembrance",
+    "description": "Speed +10 feet. After a consenting ally spends HP, your next memosprite attack deals +3 damage. Its Skill forces a Constitution save; failure grants allied direct-hit damage +1 for 2 turns. No DoT bonus.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23042.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23042.png"
+  },
+  {
+    "draftId": 76,
+    "id": "23035",
+    "name": "Long Road Leads Home",
+    "rarity": 5,
+    "path": "nihility",
+    "description": "Break Effect score +2. Whenever an ally Breaks an enemy, that enemy gains Charring: +1 Break damage taken per stack, capped at 2, for 2 turns.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23035.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23035.png"
+  },
+  {
+    "draftId": 77,
+    "id": "20011",
+    "name": "Loop",
+    "rarity": 4,
+    "path": "nihility",
+    "description": "Direct hits deal +2 damage against targets with an active tracked Slowed marker. This is the module's speed-reduction effect, not a built-in D&D condition.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/20011.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/20011.png"
+  },
+  {
+    "draftId": 78,
+    "id": "23040",
+    "name": "Make Farewells More Beautiful",
+    "rarity": 5,
+    "path": "remembrance",
+    "description": "Maximum HP +8. Losing HP during your turn grants you and your memosprite damage +2 for 2 turns. When the memosprite disappears, gain +2 initiative next round, once per Ultimate cycle.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23040.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23040.png"
+  },
+  {
+    "draftId": 79,
+    "id": "21013",
+    "name": "Make the World Clamor",
+    "rarity": 4,
+    "path": "erudition",
+    "description": "Start combat with 5 additional Energy. Ultimate damage +2.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21013.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21013.png"
+  },
+  {
+    "draftId": 80,
+    "id": "20019",
+    "name": "Mediation",
+    "rarity": 4,
+    "path": "harmony",
+    "description": "At combat start, grant party speed +10 feet for 1 turn. Multiple copies do not stack.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/20019.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/20019.png"
+  },
+  {
+    "draftId": 81,
+    "id": "21004",
+    "name": "Memories of the Past",
+    "rarity": 4,
+    "path": "harmony",
+    "description": "Break Effect score +2. An attack restores 2 Energy, once per turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21004.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21004.png"
+  },
+  {
+    "draftId": 82,
+    "id": "24005",
+    "name": "Memory's Curtain Never Falls",
+    "rarity": 5,
+    "path": "remembrance",
+    "description": "Speed +10 feet. Your Skill grants party damage +2 for 3 turns.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/24005.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/24005.png"
+  },
+  {
+    "draftId": 83,
+    "id": "20012",
+    "name": "Meshing Cogs",
+    "rarity": 4,
+    "path": "harmony",
+    "description": "Attacking or being hit restores 2 Energy. Combined limit: once per turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/20012.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/20012.png"
+  },
+  {
+    "draftId": 84,
+    "id": "23005",
+    "name": "Moment of Victory",
+    "rarity": 5,
+    "path": "preservation",
+    "description": "AC +2 and Effect Hit bonus +1. Being hit grants another +1 AC until your next turn. Once per turn, a hit can provoke the target until your next turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23005.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23005.png"
+  },
+  {
+    "draftId": 85,
+    "id": "20015",
+    "name": "Multiplication",
+    "rarity": 4,
+    "path": "abundance",
+    "description": "After a Basic attack, gain +1 initiative for the next round, once per round. This grants no additional turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/20015.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/20015.png"
+  },
+  {
+    "draftId": 86,
+    "id": "21064",
+    "name": "Mushy Shroomy's Adventures",
+    "rarity": 4,
+    "path": "elation",
+    "description": "Elation damage +2. Your Elation Skill forces each target to make a Constitution save; failure gives Elation damage taken +2 for 2 turns.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21064.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21064.png"
+  },
+  {
+    "draftId": 87,
+    "id": "20016",
+    "name": "Mutual Demise",
+    "rarity": 4,
+    "path": "destruction",
+    "description": "While below 80% maximum HP, critical threshold \u22121.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/20016.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/20016.png"
+  },
+  {
+    "draftId": 88,
+    "id": "23050",
+    "name": "Never Forget Her Flame",
+    "rarity": 5,
+    "path": "nihility",
+    "description": "Break Effect score +3. Your Breaks and those of the configured Break partner deal +2 damage. Implanting a weakness restores 1 SP, once per Ultimate cycle. Default partner: conscious ally with highest Break Effect.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23050.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23050.png"
+  },
+  {
+    "draftId": 89,
+    "id": "23017",
+    "name": "Night of Fright",
+    "rarity": 5,
+    "path": "abundance",
+    "description": "Energy Regeneration score +2. An ally's Ultimate heals the lowest-HP-percentage ally for 3 HP, once per round. Your healing grants its recipient attack bonus +1 per stack, maximum 3, for 2 turns.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23017.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23017.png"
+  },
+  {
+    "draftId": 90,
+    "id": "23000",
+    "name": "Night on the Milky Way",
+    "rarity": 5,
+    "path": "erudition",
+    "description": "Attack bonus +1 per enemy in combat, capped at +3. Any allied Break grants you damage +2 until your next turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23000.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23000.png"
+  },
+  {
+    "draftId": 91,
+    "id": "22003",
+    "name": "Ninja Record: Sound Hunt",
+    "rarity": 4,
+    "path": "destruction",
+    "description": "Maximum HP +5. Losing or recovering HP grants critical damage bonus +3 for 2 turns, once per turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/22003.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/22003.png"
+  },
+  {
+    "draftId": 92,
+    "id": "23033",
+    "name": "Ninjutsu Inscription: Dazzling Evilbreaker",
+    "rarity": 5,
+    "path": "erudition",
+    "description": "Break Effect score +3. Start combat with 5 Energy. Your Ultimate grants 2 Raiton charges; each Basic consumes one for +2 initiative next round, limited to one advancement per round.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23033.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23033.png"
+  },
+  {
+    "draftId": 93,
+    "id": "21033",
+    "name": "Nowhere to Run",
+    "rarity": 4,
+    "path": "destruction",
+    "description": "Attack bonus +1. Defeating an enemy restores 3 HP to you, once per turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21033.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21033.png"
+  },
+  {
+    "draftId": 94,
+    "id": "24000",
+    "name": "On the Fall of an Aeon",
+    "rarity": 5,
+    "path": "destruction",
+    "description": "Each attack grants attack bonus +1, capped at +3 for the combat. Breaking an enemy grants damage +2 for 2 turns.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/24000.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/24000.png"
+  },
+  {
+    "draftId": 95,
+    "id": "21003",
+    "name": "Only Silence Remains",
+    "rarity": 4,
+    "path": "hunt",
+    "description": "Attack bonus +1. While at most 2 enemies remain in combat, critical threshold \u22121.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21003.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21003.png"
+  },
+  {
+    "draftId": 96,
+    "id": "20013",
+    "name": "Passkey",
+    "rarity": 4,
+    "path": "erudition",
+    "description": "Your Skill restores 2 Energy, once per turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/20013.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/20013.png"
+  },
+  {
+    "draftId": 97,
+    "id": "23019",
+    "name": "Past Self in Mirror",
+    "rarity": 5,
+    "path": "harmony",
+    "description": "Break Effect score +3. Your Ultimate grants party damage +2 for 3 turns; with Break Effect bonus at least +3, also restore 1 SP. Start combat with 3 Energy for every ally.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23019.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23019.png"
+  },
+  {
+    "draftId": 98,
+    "id": "21025",
+    "name": "Past and Future",
+    "rarity": 4,
+    "path": "harmony",
+    "description": "Your Skill grants the next ally to take a turn damage +2 for that turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21025.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21025.png"
+  },
+  {
+    "draftId": 99,
+    "id": "23006",
+    "name": "Patience Is All You Need",
+    "rarity": 5,
+    "path": "nihility",
+    "description": "Direct-hit damage +2. Attacks grant tracked speed +5 feet per stack, capped at +15 feet for combat. Once per turn, a hit forces a Constitution save; failure applies Shock: 1d4 Lightning damage for 1 target turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23006.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23006.png"
+  },
+  {
+    "draftId": 100,
+    "id": "21014",
+    "name": "Perfect Timing",
+    "rarity": 4,
+    "path": "abundance",
+    "description": "Saving throws +1. Outgoing healing gains +1 per point of your total saving-throw item bonus, capped at +3.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21014.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21014.png"
+  },
+  {
+    "draftId": 101,
+    "id": "20017",
+    "name": "Pioneering",
+    "rarity": 4,
+    "path": "preservation",
+    "description": "Breaking an enemy restores 3 HP to you, once per turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/20017.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/20017.png"
+  },
+  {
+    "draftId": 102,
+    "id": "21011",
+    "name": "Planetary Rendezvous",
+    "rarity": 4,
+    "path": "harmony",
+    "description": "Allies sharing your configured damage element gain damage +1 with that element. Multiple copies do not stack.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21011.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21011.png"
+  },
+  {
+    "draftId": 103,
+    "id": "21046",
+    "name": "Poised to Bloom",
+    "rarity": 4,
+    "path": "harmony",
+    "description": "Attack bonus +1. If at least two allies share a Path, those allies gain critical damage bonus +2. Multiple copies do not stack.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21046.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21046.png"
+  },
+  {
+    "draftId": 104,
+    "id": "21000",
+    "name": "Post-Op Conversation",
+    "rarity": 4,
+    "path": "abundance",
+    "description": "Energy Regeneration score +2. Ultimate healing restores +2 HP per recipient.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21000.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21000.png"
+  },
+  {
+    "draftId": 105,
+    "id": "21021",
+    "name": "Quid Pro Quo",
+    "rarity": 4,
+    "path": "abundance",
+    "description": "At your turn start, restore 3 Energy to one random other conscious ally below half Energy. Once per turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21021.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21021.png"
+  },
+  {
+    "draftId": 107,
+    "id": "23022",
+    "name": "Reforged Remembrance",
+    "rarity": 5,
+    "path": "nihility",
+    "description": "Effect Hit bonus +2. Hits against tracked Burn, Shock, Bleed, or Wind Shear grant one Prophet stack per distinct type, maximum 4 per combat. Each stack grants attack bonus +1. At 4, your DoTs gain one die step, recalculated each tick; cap d12.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23022.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23022.png"
+  },
+  {
+    "draftId": 108,
+    "id": "23059",
+    "name": "Reforged in Hellfire",
+    "rarity": 5,
+    "path": "nihility",
+    "description": "Maximum HP +8. Gain 5 Energy at your first combat turn. Your Skill marks its target for 2 turns: allied critical damage against it gains +2, and your own critical damage gains another +2.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23059.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23059.png"
+  },
+  {
+    "draftId": 109,
+    "id": "20022",
+    "name": "Reminiscence",
+    "rarity": 4,
+    "path": "remembrance",
+    "description": "Each memosprite turn grants you and it damage +1, capped at +3. Reset when it leaves the battlefield.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/20022.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/20022.png"
+  },
+  {
+    "draftId": 110,
+    "id": "21015",
+    "name": "Resolution Shines As Pearls of Sweat",
+    "rarity": 4,
+    "path": "nihility",
+    "description": "Once per turn, a hit forces a Constitution save. Failure applies Ensnared: AC \u22121 until the end of its next turn. Refreshes, does not stack.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21015.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21015.png"
+  },
+  {
+    "draftId": 111,
+    "id": "21031",
+    "name": "Return to Darkness",
+    "rarity": 4,
+    "path": "hunt",
+    "description": "Critical threshold \u22121. Once per turn, a critical hit may remove one removable beneficial effect if the target fails a Constitution save.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21031.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21031.png"
+  },
+  {
+    "draftId": 113,
+    "id": "21024",
+    "name": "River Flows in Spring",
+    "rarity": 4,
+    "path": "hunt",
+    "description": "Speed +5 feet and damage +1. Taking damage suppresses both until the end of your next turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21024.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21024.png"
+  },
+  {
+    "draftId": 114,
+    "id": "20020",
+    "name": "Sagacity",
+    "rarity": 4,
+    "path": "erudition",
+    "description": "Your Ultimate grants attack bonus +1 for 2 turns.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/20020.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/20020.png"
+  },
+  {
+    "draftId": 115,
+    "id": "23027",
+    "name": "Sailing Towards A Second Life",
+    "rarity": 5,
+    "path": "hunt",
+    "description": "Break Effect score +3 and Break damage +2. With total Break Effect bonus at least +3, speed +10 feet.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23027.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23027.png"
+  },
+  {
+    "draftId": 116,
+    "id": "23032",
+    "name": "Scent Alone Stays True",
+    "rarity": 5,
+    "path": "abundance",
+    "description": "Break Effect score +3. An attacking Ultimate forces targets to make a Constitution save; failure gives +1 allied hit damage taken for 2 turns, or +2 if your total Break Effect bonus is at least +3.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23032.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23032.png"
+  },
+  {
+    "draftId": 117,
+    "id": "21062",
+    "name": "See You at the End",
+    "rarity": 4,
+    "path": "hunt",
+    "description": "Critical damage bonus +2. Skill and follow-up hits deal +2 damage.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21062.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21062.png"
+  },
+  {
+    "draftId": 118,
+    "id": "20021",
+    "name": "Shadowburn",
+    "rarity": 4,
+    "path": "remembrance",
+    "description": "Your first memosprite summon in combat restores 1 SP and 3 Energy. Once per combat.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/20021.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/20021.png"
+  },
+  {
+    "draftId": 119,
+    "id": "21047",
+    "name": "Shadowed By Night",
+    "rarity": 4,
+    "path": "hunt",
+    "description": "Break Effect score +2. Combat start and your Breaks grant speed +10 feet for 2 turns. Break trigger limited to once per turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21047.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21047.png"
+  },
+  {
+    "draftId": 120,
+    "id": "21007",
+    "name": "Shared Feeling",
+    "rarity": 4,
+    "path": "abundance",
+    "description": "Outgoing healing +2. Your Skill restores 1 Energy to every ally, once per turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21007.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21007.png"
+  },
+  {
+    "draftId": 121,
+    "id": "20009",
+    "name": "Shattered Home",
+    "rarity": 4,
+    "path": "destruction",
+    "description": "Deal +2 damage against enemies above half maximum HP.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/20009.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/20009.png"
+  },
+  {
+    "draftId": 122,
+    "id": "23011",
+    "name": "She Already Shut Her Eyes",
+    "rarity": 5,
+    "path": "preservation",
+    "description": "Maximum HP +8 and Energy Regeneration score +2. Losing HP grants party damage +1 for 2 turns. At combat start, heal each ally for one quarter of their missing HP, rounded down, once per combat.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23011.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23011.png"
+  },
+  {
+    "draftId": 123,
+    "id": "23012",
+    "name": "Sleep Like the Dead",
+    "rarity": 5,
+    "path": "hunt",
+    "description": "Critical damage bonus +4. If a Basic or Skill attack misses a critical, critical threshold \u22122 until your next turn ends. Three-turn cooldown.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23012.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23012.png"
+  },
+  {
+    "draftId": 124,
+    "id": "20023",
+    "name": "Sneering",
+    "rarity": 4,
+    "path": "elation",
+    "description": "During Aha's Instant, your Elation hits deal +2 damage.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/20023.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/20023.png"
+  },
+  {
+    "draftId": 125,
+    "id": "24003",
+    "name": "Solitary Healing",
+    "rarity": 5,
+    "path": "nihility",
+    "description": "Break Effect score +3. Your Ultimate grants a 2-turn window: DoTs you apply during it gain +1 turn. An enemy defeated while carrying your DoT restores 3 Energy, once per turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/24003.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/24003.png"
+  },
+  {
+    "draftId": 126,
+    "id": "23002",
+    "name": "Something Irreplaceable",
+    "rarity": 5,
+    "path": "destruction",
+    "description": "Attack bonus +2. Being hit or defeating an enemy restores 3 HP and grants damage +2 until your next turn ends. Combined limit: once per turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23002.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23002.png"
+  },
+  {
+    "draftId": 127,
+    "id": "21017",
+    "name": "Subscribe for More!",
+    "rarity": 4,
+    "path": "hunt",
+    "description": "Basic and Skill damage +1; increase this bonus to +2 while your Energy is full.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21017.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21017.png"
+  },
+  {
+    "draftId": 129,
+    "id": "21052",
+    "name": "Sweat Now, Cry Less",
+    "rarity": 4,
+    "path": "remembrance",
+    "description": "Critical threshold \u22121. While your memosprite is present, you and it deal +2 damage.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21052.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21052.png"
+  },
+  {
+    "draftId": 130,
+    "id": "21010",
+    "name": "Swordplay",
+    "rarity": 4,
+    "path": "hunt",
+    "description": "Consecutive attacks against the same target grant damage +1 per stack, capped at +3. Gain one stack per attack after resolving it. Switching targets resets the stacks before damage.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21010.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21010.png"
+  },
+  {
+    "draftId": 131,
+    "id": "24002",
+    "name": "Texture of Memories",
+    "rarity": 5,
+    "path": "preservation",
+    "description": "Saving throws +1. Being hit without temporary HP grants 5 temporary HP lasting 2 turns, with a 3-turn cooldown. While you have temporary HP, reduce incoming damage by 1 per hit.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/24002.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/24002.png"
+  },
+  {
+    "draftId": 132,
+    "id": "21006",
+    "name": "The Birth of the Self",
+    "rarity": 4,
+    "path": "erudition",
+    "description": "Follow-up damage +2, increasing to +4 against enemies below half HP.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21006.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21006.png"
+  },
+  {
+    "draftId": 133,
+    "id": "21040",
+    "name": "The Day The Cosmos Fell",
+    "rarity": 4,
+    "path": "erudition",
+    "description": "Attack bonus +1. An attack hitting at least 2 targets weak to its element grants critical damage bonus +3 for 2 turns.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21040.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21040.png"
+  },
+  {
+    "draftId": 134,
+    "id": "23056",
+    "name": "The Finale of a Lie",
+    "rarity": 5,
+    "path": "hunt",
+    "description": "Critical threshold \u22121. At combat start and every fourth follow-up, gain attack bonus +2 for 3 turns and mark hit enemies: allied hits deal +1 damage for 3 turns. Refresh; do not stack.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23056.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23056.png"
+  },
+  {
+    "draftId": 135,
+    "id": "21057",
+    "name": "The Flower Remembers",
+    "rarity": 4,
+    "path": "remembrance",
+    "description": "You and your memosprite gain critical damage bonus +3.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21057.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21057.png"
+  },
+  {
+    "draftId": 136,
+    "id": "22005",
+    "name": "The Forever Victual",
+    "rarity": 4,
+    "path": "harmony",
+    "description": "Attack bonus +1. Your Skill grants another +1 attack bonus per stack, maximum 2 additional stacks, for combat.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/22005.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/22005.png"
+  },
+  {
+    "draftId": 137,
+    "id": "22004",
+    "name": "The Great Cosmic Enterprise",
+    "rarity": 4,
+    "path": "erudition",
+    "description": "Attack bonus +1. Deal +1 damage per distinct weakness on the target, capped at +3.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/22004.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/22004.png"
+  },
+  {
+    "draftId": 138,
+    "id": "23046",
+    "name": "The Hell Where Ideals Burn",
+    "rarity": 5,
+    "path": "hunt",
+    "description": "Critical threshold \u22121. Party SP capacity +1. Your Skill grants attack bonus +1 per stack, capped at +3 for combat.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23046.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23046.png"
+  },
+  {
+    "draftId": 139,
+    "id": "21005",
+    "name": "The Moles Welcome You",
+    "rarity": 4,
+    "path": "destruction",
+    "description": "Your first Basic, Skill, and Ultimate each grant attack bonus +1 for combat. Maximum +3; each category contributes once.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21005.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21005.png"
+  },
+  {
+    "draftId": 140,
+    "id": "21027",
+    "name": "The Seriousness of Breakfast",
+    "rarity": 4,
+    "path": "erudition",
+    "description": "Deal +1 damage. Defeating an enemy grants attack bonus +1 per stack, capped at +3 for combat.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21027.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21027.png"
+  },
+  {
+    "draftId": 141,
+    "id": "21054",
+    "name": "The Story's Next Page",
+    "rarity": 4,
+    "path": "remembrance",
+    "description": "Maximum HP +5. Your memosprite's attack grants outgoing healing +2 to you and it until your next turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21054.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21054.png"
+  },
+  {
+    "draftId": 142,
+    "id": "23009",
+    "name": "The Unreachable Side",
+    "rarity": 5,
+    "path": "destruction",
+    "description": "Critical threshold \u22121 and maximum HP +8. Being hit or spending HP charges your next attack for +3 damage. Only one charge can be stored.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23009.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23009.png"
+  },
+  {
+    "draftId": 143,
+    "id": "21030",
+    "name": "This Is Me!",
+    "rarity": 4,
+    "path": "preservation",
+    "description": "AC +1. Ultimate damage gains +1 per 2 AC above 10, capped at +3, once per target per Ultimate.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21030.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21030.png"
+  },
+  {
+    "draftId": 144,
+    "id": "23052",
+    "name": "This Love, Forever",
+    "rarity": 5,
+    "path": "remembrance",
+    "description": "Speed +10 feet. A memosprite Skill supporting an ally marks enemies for +1 allied hit damage taken for 2 turns. An enemy-targeting memosprite Skill grants party critical damage bonus +2 for 2 turns. When both effects coexist, increase each bonus by 1.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23052.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23052.png"
+  },
+  {
+    "draftId": 145,
+    "id": "23029",
+    "name": "Those Many Springs",
+    "rarity": 5,
+    "path": "nihility",
+    "description": "Effect Hit bonus +2. Once per turn, a hit forces a Constitution save; failure marks the target for allied direct-hit damage taken +1 for 2 turns, increasing to +2 while it carries a tracked DoT sourced to you. No DoT damage bonus.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23029.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23029.png"
+  },
+  {
+    "draftId": 146,
+    "id": "23051",
+    "name": "Though Worlds Apart",
+    "rarity": 5,
+    "path": "preservation",
+    "description": "Attack bonus +2. Your Ultimate heals every ally for 3 HP and the lowest-HP-percentage ally for another 3 HP. Party damage +2 for 3 turns; summoned allies gain +3 instead.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23051.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23051.png"
+  },
+  {
+    "draftId": 147,
+    "id": "23044",
+    "name": "Thus Burns the Dawn",
+    "rarity": 5,
+    "path": "destruction",
+    "description": "Speed +10 feet and damage +2. Your Ultimate grants another damage +2 until your next turn starts.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23044.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23044.png"
+  },
+  {
+    "draftId": 148,
+    "id": "23013",
+    "name": "Time Waits for No One",
+    "rarity": 5,
+    "path": "abundance",
+    "description": "Maximum HP +8 and outgoing healing +2. Record actual HP restored by your healing. The next allied attack adds half that amount as damage, capped at +4; consume the record. One trigger per turn, latest healing replaces the record.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23013.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23013.png"
+  },
+  {
+    "draftId": 149,
+    "id": "23036",
+    "name": "Time Woven Into Gold",
+    "rarity": 5,
+    "path": "remembrance",
+    "description": "Speed +10 feet. You or your memosprite attacking grants both critical damage bonus +1 per stack, capped at +6 for combat, once per turn. At 6 stacks, both gain Basic damage +2.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23036.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23036.png"
+  },
+  {
+    "draftId": 150,
+    "id": "23049",
+    "name": "To Evernight's Stars",
+    "rarity": 5,
+    "path": "remembrance",
+    "description": "Maximum HP +8. Your memosprite's Skill grants all allied memosprites damage +2 and you and your sprite damage +2 for 2 turns; these two grants do not double-stack on your sprite. Its disappearance restores 3 Energy, once per turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23049.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23049.png"
+  },
+  {
+    "draftId": 151,
+    "id": "21034",
+    "name": "Today Is Another Peaceful Day",
+    "rarity": 4,
+    "path": "erudition",
+    "description": "Deal +1 damage per 20 maximum Energy, capped at +3.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21034.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21034.png"
+  },
+  {
+    "draftId": 152,
+    "id": "21065",
+    "name": "Today's Good Luck",
+    "rarity": 4,
+    "path": "elation",
+    "description": "Critical threshold \u22121. Your Elation Skill grants Elation damage +1 per stack, capped at +2 for combat.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21065.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21065.png"
+  },
+  {
+    "draftId": 153,
+    "id": "22007",
+    "name": "Tomorrow, Together",
+    "rarity": 4,
+    "path": "elation",
+    "description": "Critical damage bonus +2. Your Ultimate grants party Elation damage +2 until your next turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/22007.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/22007.png"
+  },
+  {
+    "draftId": 154,
+    "id": "21016",
+    "name": "Trend of the Universal Market",
+    "rarity": 4,
+    "path": "preservation",
+    "description": "AC +1. Once per turn, an attacker hitting you makes a Constitution save; failure applies Burn: 1d4 Fire damage for 2 target turns.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21016.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21016.png"
+  },
+  {
+    "draftId": 155,
+    "id": "21019",
+    "name": "Under the Blue Sky",
+    "rarity": 4,
+    "path": "destruction",
+    "description": "Attack bonus +1. Defeating an enemy grants critical threshold \u22121 for 3 turns.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21019.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21019.png"
+  },
+  {
+    "draftId": 156,
+    "id": "23058",
+    "name": "Until the Flowers Bloom Again",
+    "rarity": 5,
+    "path": "elation",
+    "description": "Critical damage bonus +4 and Energy Regeneration score +2, increasing to +3 if maximum Energy is at least 60. Your Elation Skill forces a Constitution save; failure grants +2 allied hit damage taken for 2 turns.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23058.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23058.png"
+  },
+  {
+    "draftId": 157,
+    "id": "21055",
+    "name": "Unto Tomorrow's Morrow",
+    "rarity": 4,
+    "path": "abundance",
+    "description": "Outgoing healing +2. Allies above half maximum HP deal +1 damage while you are conscious in combat.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21055.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21055.png"
+  },
+  {
+    "draftId": 158,
+    "id": "21050",
+    "name": "Victory In a Blink",
+    "rarity": 4,
+    "path": "remembrance",
+    "description": "Critical damage bonus +2. A memosprite ability supporting an ally grants party damage +1 for 3 turns.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21050.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21050.png"
+  },
+  {
+    "draftId": 159,
+    "id": "20004",
+    "name": "Void",
+    "rarity": 4,
+    "path": "nihility",
+    "description": "Effect Hit bonus +1 for your first 3 turns in combat.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/20004.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/20004.png"
+  },
+  {
+    "draftId": 160,
+    "id": "21028",
+    "name": "Warmth Shortens Cold Nights",
+    "rarity": 4,
+    "path": "abundance",
+    "description": "Maximum HP +5. A Basic or Skill restores 1 HP to every ally, once per turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21028.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21028.png"
+  },
+  {
+    "draftId": 161,
+    "id": "21023",
+    "name": "We Are Wildfire",
+    "rarity": 4,
+    "path": "preservation",
+    "description": "At combat start, allies reduce incoming damage by 1 per hit for 5 turns and recover one fifth of missing HP, rounded down. Once per combat; multiple copies do not stack.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21023.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21023.png"
+  },
+  {
+    "draftId": 162,
+    "id": "21029",
+    "name": "We Will Meet Again",
+    "rarity": 4,
+    "path": "nihility",
+    "description": "A Basic or Skill deals +2 damage to one randomly selected target it hit, once per turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21029.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21029.png"
+  },
+  {
+    "draftId": 163,
+    "id": "23057",
+    "name": "Welcome to the Cosmic City",
+    "rarity": 5,
+    "path": "elation",
+    "description": "Speed +10 feet and Elation damage +2. Your Ultimate grants 3 Punchline, then locks this trigger until you have used 3 Basics. Ultimate-triggered Punchline cannot retrigger the same effect.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23057.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23057.png"
+  },
+  {
+    "draftId": 164,
+    "id": "21035",
+    "name": "What Is Real?",
+    "rarity": 4,
+    "path": "abundance",
+    "description": "Break Effect score +2. Your Basic restores 2 HP to you, once per turn.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21035.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21035.png"
+  },
+  {
+    "draftId": 165,
+    "id": "23054",
+    "name": "When She Decided to See",
+    "rarity": 5,
+    "path": "elation",
+    "description": "Speed +10 feet. At combat start or after a support Ultimate, party critical threshold \u22121 and critical damage bonus +2, plus your Energy Regeneration score +2, for 3 turns. Start combat with 3 Energy for each ally.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23054.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23054.png"
+  },
+  {
+    "draftId": 166,
+    "id": "23025",
+    "name": "Whereabouts Should Dreams Rest",
+    "rarity": 5,
+    "path": "destruction",
+    "description": "Break Effect score +3. Your Break marks the target for Break damage taken +2 and speed \u221210 feet for 2 turns. Refresh, do not stack.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23025.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23025.png"
+  },
+  {
+    "draftId": 167,
+    "id": "23047",
+    "name": "Why Does the Ocean Sing",
+    "rarity": 5,
+    "path": "nihility",
+    "description": "Effect Hit bonus +2. Applying a debuff grants tracked Enthrall, capped at 3 stacks for 3 target turns. At 2 or more stacks, all allied-source DoTs on that target gain one die step while the mark lasts; cap d12. An allied direct hit grants that ally speed +5 feet for 3 turns, once per turn. Ends if you fall unconscious.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23047.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23047.png"
+  },
+  {
+    "draftId": 168,
+    "id": "21026",
+    "name": "Woof! Walk Time!",
+    "rarity": 4,
+    "path": "destruction",
+    "description": "Attack bonus +1. Direct hits deal +2 damage against tracked Burn or Bleed targets. Your Burn and Bleed DoTs gain +1 turn when applied.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/21026.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/21026.png"
+  },
+  {
+    "draftId": 169,
+    "id": "23016",
+    "name": "Worrisome, Blissful",
+    "rarity": 5,
+    "path": "hunt",
+    "description": "Critical threshold \u22121 and follow-up damage +2. Your follow-up grants Tame, capped at 2 stacks: allied critical hits against that target gain +1 critical damage per stack for 2 turns.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23016.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23016.png"
+  },
+  {
+    "draftId": 170,
+    "id": "23028",
+    "name": "Yet Hope Is Priceless",
+    "rarity": 5,
+    "path": "erudition",
+    "description": "Critical threshold \u22121. Your follow-ups gain +1 damage per 3 points of total critical damage bonus, capped at +3. At combat start and after a Basic, Ultimate and follow-up damage +2 for 2 turns.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/23028.png",
+    "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23028.png"
+  }
+]

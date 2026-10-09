@@ -1,0 +1,50 @@
+{
+  "_key": "!items!52036c2cc5d006aa",
+  "_id": "52036c2cc5d006aa",
+  "name": "Swordplay",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21010.png",
+  "system": {
+    "description": {
+      "value": "<p>Consecutive attacks against the same target grant damage +1 per stack, capped at +3. Gain one stack per attack after resolving it. Switching targets resets the stacks before damage.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching hunt Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "hunt"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "hunt",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21010.png",
+        "description": "Consecutive attacks against the same target grant damage +1 per stack, capped at +3. Gain one stack per attack after resolving it. Switching targets resets the stacks before damage.",
+        "catalogId": "21010",
+        "draftId": 130,
+        "rarity": 4
+      }
+    }
+  }
+}

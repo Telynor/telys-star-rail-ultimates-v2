@@ -1,0 +1,50 @@
+{
+  "_key": "!items!6f8a541e79c35933",
+  "_id": "6f8a541e79c35933",
+  "name": "Patience Is All You Need",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23006.png",
+  "system": {
+    "description": {
+      "value": "<p>Direct-hit damage +2. Attacks grant tracked speed +5 feet per stack, capped at +15 feet for combat. Once per turn, a hit forces a Constitution save; failure applies Shock: 1d4 Lightning damage for 1 target turn.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching nihility Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "nihility"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "nihility",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23006.png",
+        "description": "Direct-hit damage +2. Attacks grant tracked speed +5 feet per stack, capped at +15 feet for combat. Once per turn, a hit forces a Constitution save; failure applies Shock: 1d4 Lightning damage for 1 target turn.",
+        "catalogId": "23006",
+        "draftId": 99,
+        "rarity": 5
+      }
+    }
+  }
+}

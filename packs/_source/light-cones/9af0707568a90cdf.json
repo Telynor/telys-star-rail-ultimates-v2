@@ -1,0 +1,50 @@
+{
+  "_key": "!items!9af0707568a90cdf",
+  "_id": "9af0707568a90cdf",
+  "name": "Void",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/20004.png",
+  "system": {
+    "description": {
+      "value": "<p>Effect Hit bonus +1 for your first 3 turns in combat.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching nihility Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "nihility"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "nihility",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/20004.png",
+        "description": "Effect Hit bonus +1 for your first 3 turns in combat.",
+        "catalogId": "20004",
+        "draftId": 159,
+        "rarity": 4
+      }
+    }
+  }
+}

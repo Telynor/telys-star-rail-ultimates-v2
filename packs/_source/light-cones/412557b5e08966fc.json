@@ -1,0 +1,50 @@
+{
+  "_key": "!items!412557b5e08966fc",
+  "_id": "412557b5e08966fc",
+  "name": "On the Fall of an Aeon",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/24000.png",
+  "system": {
+    "description": {
+      "value": "<p>Each attack grants attack bonus +1, capped at +3 for the combat. Breaking an enemy grants damage +2 for 2 turns.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching destruction Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "destruction"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "destruction",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/24000.png",
+        "description": "Each attack grants attack bonus +1, capped at +3 for the combat. Breaking an enemy grants damage +2 for 2 turns.",
+        "catalogId": "24000",
+        "draftId": 94,
+        "rarity": 5
+      }
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "_key": "!items!4999240a74e426c6",
+  "_id": "4999240a74e426c6",
+  "name": "The Great Cosmic Enterprise",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/22004.png",
+  "system": {
+    "description": {
+      "value": "<p>Attack bonus +1. Deal +1 damage per distinct weakness on the target, capped at +3.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching erudition Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "erudition"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "erudition",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/22004.png",
+        "description": "Attack bonus +1. Deal +1 damage per distinct weakness on the target, capped at +3.",
+        "catalogId": "22004",
+        "draftId": 137,
+        "rarity": 4
+      }
+    }
+  }
+}

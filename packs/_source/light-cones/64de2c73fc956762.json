@@ -1,0 +1,50 @@
+{
+  "_key": "!items!64de2c73fc956762",
+  "_id": "64de2c73fc956762",
+  "name": "Final Victor",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21037.png",
+  "system": {
+    "description": {
+      "value": "<p>Attack bonus +1. Critical hits grant critical damage bonus +1 per stack, maximum 4, expiring at the end of your turn. The triggering critical uses only previously earned stacks.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching hunt Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "hunt"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "hunt",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21037.png",
+        "description": "Attack bonus +1. Critical hits grant critical damage bonus +1 per stack, maximum 4, expiring at the end of your turn. The triggering critical uses only previously earned stacks.",
+        "catalogId": "21037",
+        "draftId": 44,
+        "rarity": 4
+      }
+    }
+  }
+}

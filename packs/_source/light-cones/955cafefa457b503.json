@@ -1,0 +1,50 @@
+{
+  "_key": "!items!955cafefa457b503",
+  "_id": "955cafefa457b503",
+  "name": "Never Forget Her Flame",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23050.png",
+  "system": {
+    "description": {
+      "value": "<p>Break Effect score +3. Your Breaks and those of the configured Break partner deal +2 damage. Implanting a weakness restores 1 SP, once per Ultimate cycle. Default partner: conscious ally with highest Break Effect.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching nihility Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "nihility"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "nihility",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23050.png",
+        "description": "Break Effect score +3. Your Breaks and those of the configured Break partner deal +2 damage. Implanting a weakness restores 1 SP, once per Ultimate cycle. Default partner: conscious ally with highest Break Effect.",
+        "catalogId": "23050",
+        "draftId": 88,
+        "rarity": 5
+      }
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "_key": "!items!a637a839a451c288",
+  "_id": "a637a839a451c288",
+  "name": "Mushy Shroomy's Adventures",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21064.png",
+  "system": {
+    "description": {
+      "value": "<p>Elation damage +2. Your Elation Skill forces each target to make a Constitution save; failure gives Elation damage taken +2 for 2 turns.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching elation Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "elation"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "elation",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21064.png",
+        "description": "Elation damage +2. Your Elation Skill forces each target to make a Constitution save; failure gives Elation damage taken +2 for 2 turns.",
+        "catalogId": "21064",
+        "draftId": 86,
+        "rarity": 4
+      }
+    }
+  }
+}

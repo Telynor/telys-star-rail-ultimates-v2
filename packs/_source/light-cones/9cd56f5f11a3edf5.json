@@ -1,0 +1,50 @@
+{
+  "_key": "!items!9cd56f5f11a3edf5",
+  "_id": "9cd56f5f11a3edf5",
+  "name": "Amber",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/20003.png",
+  "system": {
+    "description": {
+      "value": "<p>AC +1. While below half maximum HP, gain another +1 AC.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching preservation Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "preservation"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "preservation",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/20003.png",
+        "description": "AC +1. While below half maximum HP, gain another +1 AC.",
+        "catalogId": "20003",
+        "draftId": 11,
+        "rarity": 4
+      }
+    }
+  }
+}

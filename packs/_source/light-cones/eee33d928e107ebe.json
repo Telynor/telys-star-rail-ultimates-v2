@@ -1,0 +1,50 @@
+{
+  "_key": "!items!eee33d928e107ebe",
+  "_id": "eee33d928e107ebe",
+  "name": "An Instant Before A Gaze",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23018.png",
+  "system": {
+    "description": {
+      "value": "<p>Critical damage bonus +4. Ultimate hits gain +1 damage per 20 maximum Energy, capped at +3.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching erudition Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "erudition"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "erudition",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23018.png",
+        "description": "Critical damage bonus +4. Ultimate hits gain +1 damage per 20 maximum Energy, capped at +3.",
+        "catalogId": "23018",
+        "draftId": 12,
+        "rarity": 5
+      }
+    }
+  }
+}

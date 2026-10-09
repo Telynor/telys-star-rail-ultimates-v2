@@ -1,0 +1,50 @@
+{
+  "_key": "!items!e9a4cc5eb43bced9",
+  "_id": "e9a4cc5eb43bced9",
+  "name": "Post-Op Conversation",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21000.png",
+  "system": {
+    "description": {
+      "value": "<p>Energy Regeneration score +2. Ultimate healing restores +2 HP per recipient.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching abundance Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "abundance"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "abundance",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21000.png",
+        "description": "Energy Regeneration score +2. Ultimate healing restores +2 HP per recipient.",
+        "catalogId": "21000",
+        "draftId": 104,
+        "rarity": 4
+      }
+    }
+  }
+}

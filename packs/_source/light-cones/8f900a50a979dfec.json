@@ -1,0 +1,50 @@
+{
+  "_key": "!items!8f900a50a979dfec",
+  "_id": "8f900a50a979dfec",
+  "name": "Hidden Shadow",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/20018.png",
+  "system": {
+    "description": {
+      "value": "<p>Your Skill charges your next Basic hit to deal +2 damage. One stored charge; repeated Skills refresh it.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching nihility Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "nihility"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "nihility",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/20018.png",
+        "description": "Your Skill charges your next Basic hit to deal +2 damage. One stored charge; repeated Skills refresh it.",
+        "catalogId": "20018",
+        "draftId": 56,
+        "rarity": 4
+      }
+    }
+  }
+}

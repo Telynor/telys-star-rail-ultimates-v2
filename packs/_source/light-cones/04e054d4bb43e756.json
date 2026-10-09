@@ -1,0 +1,50 @@
+{
+  "_key": "!items!04e054d4bb43e756",
+  "_id": "04e054d4bb43e756",
+  "name": "Nowhere to Run",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21033.png",
+  "system": {
+    "description": {
+      "value": "<p>Attack bonus +1. Defeating an enemy restores 3 HP to you, once per turn.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching destruction Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "destruction"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "destruction",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21033.png",
+        "description": "Attack bonus +1. Defeating an enemy restores 3 HP to you, once per turn.",
+        "catalogId": "21033",
+        "draftId": 93,
+        "rarity": 4
+      }
+    }
+  }
+}

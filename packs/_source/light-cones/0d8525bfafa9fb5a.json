@@ -1,0 +1,50 @@
+{
+  "_key": "!items!0d8525bfafa9fb5a",
+  "_id": "0d8525bfafa9fb5a",
+  "name": "Good Night and Sleep Well",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21001.png",
+  "system": {
+    "description": {
+      "value": "<p>Direct hits deal +1 damage per distinct tracked debuff, capped at +3. Your DoTs gain one die step against targets with at least 2 distinct tracked debuffs, recalculated each tick; cap d12.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching nihility Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "nihility"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "nihility",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21001.png",
+        "description": "Direct hits deal +1 damage per distinct tracked debuff, capped at +3. Your DoTs gain one die step against targets with at least 2 distinct tracked debuffs, recalculated each tick; cap d12.",
+        "catalogId": "21001",
+        "draftId": 54,
+        "rarity": 4
+      }
+    }
+  }
+}

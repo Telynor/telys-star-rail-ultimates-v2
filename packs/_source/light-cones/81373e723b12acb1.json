@@ -1,0 +1,50 @@
+{
+  "_key": "!items!81373e723b12acb1",
+  "_id": "81373e723b12acb1",
+  "name": "Thus Burns the Dawn",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23044.png",
+  "system": {
+    "description": {
+      "value": "<p>Speed +10 feet and damage +2. Your Ultimate grants another damage +2 until your next turn starts.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching destruction Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "destruction"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "destruction",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23044.png",
+        "description": "Speed +10 feet and damage +2. Your Ultimate grants another damage +2 until your next turn starts.",
+        "catalogId": "23044",
+        "draftId": 147,
+        "rarity": 5
+      }
+    }
+  }
+}

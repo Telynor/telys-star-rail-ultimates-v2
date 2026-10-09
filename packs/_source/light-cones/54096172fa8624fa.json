@@ -1,0 +1,50 @@
+{
+  "_key": "!items!54096172fa8624fa",
+  "_id": "54096172fa8624fa",
+  "name": "Flame of Blood, Blaze My Path",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23039.png",
+  "system": {
+    "description": {
+      "value": "<p>Maximum HP +8 and incoming healing +2. A Skill or Ultimate may cost 2 HP for +2 damage, or 4 HP for +4 damage. This cannot reduce you below 1 HP.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching destruction Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "destruction"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "destruction",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23039.png",
+        "description": "Maximum HP +8 and incoming healing +2. A Skill or Ultimate may cost 2 HP for +2 damage, or 4 HP for +4 damage. This cannot reduce you below 1 HP.",
+        "catalogId": "23039",
+        "draftId": 46,
+        "rarity": 5
+      }
+    }
+  }
+}

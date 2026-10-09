@@ -1,0 +1,50 @@
+{
+  "_key": "!items!1b8957956e2c703c",
+  "_id": "1b8957956e2c703c",
+  "name": "Multiplication",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/20015.png",
+  "system": {
+    "description": {
+      "value": "<p>After a Basic attack, gain +1 initiative for the next round, once per round. This grants no additional turn.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching abundance Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "abundance"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "abundance",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/20015.png",
+        "description": "After a Basic attack, gain +1 initiative for the next round, once per round. This grants no additional turn.",
+        "catalogId": "20015",
+        "draftId": 85,
+        "rarity": 4
+      }
+    }
+  }
+}

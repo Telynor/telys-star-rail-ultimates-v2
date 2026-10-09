@@ -1,0 +1,50 @@
+{
+  "_key": "!items!49a494945e6f1b2e",
+  "_id": "49a494945e6f1b2e",
+  "name": "A Secret Vow",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21012.png",
+  "system": {
+    "description": {
+      "value": "<p>Deal +2 damage. Add another +2 against enemies whose current HP percentage is at least yours.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching destruction Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "destruction"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "destruction",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21012.png",
+        "description": "Deal +2 damage. Add another +2 against enemies whose current HP percentage is at least yours.",
+        "catalogId": "21012",
+        "draftId": 4,
+        "rarity": 4
+      }
+    }
+  }
+}

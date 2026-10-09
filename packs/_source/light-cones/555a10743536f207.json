@@ -1,0 +1,50 @@
+{
+  "_key": "!items!555a10743536f207",
+  "_id": "555a10743536f207",
+  "name": "Moment of Victory",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23005.png",
+  "system": {
+    "description": {
+      "value": "<p>AC +2 and Effect Hit bonus +1. Being hit grants another +1 AC until your next turn. Once per turn, a hit can provoke the target until your next turn.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching preservation Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "preservation"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "preservation",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23005.png",
+        "description": "AC +2 and Effect Hit bonus +1. Being hit grants another +1 AC until your next turn. Once per turn, a hit can provoke the target until your next turn.",
+        "catalogId": "23005",
+        "draftId": 84,
+        "rarity": 5
+      }
+    }
+  }
+}

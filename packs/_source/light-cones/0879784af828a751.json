@@ -1,0 +1,50 @@
+{
+  "_key": "!items!0879784af828a751",
+  "_id": "0879784af828a751",
+  "name": "Sneering",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/20023.png",
+  "system": {
+    "description": {
+      "value": "<p>During Aha's Instant, your Elation hits deal +2 damage.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching elation Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "elation"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "elation",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/20023.png",
+        "description": "During Aha's Instant, your Elation hits deal +2 damage.",
+        "catalogId": "20023",
+        "draftId": 124,
+        "rarity": 4
+      }
+    }
+  }
+}

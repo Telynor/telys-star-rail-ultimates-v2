@@ -1,0 +1,50 @@
+{
+  "_key": "!items!37d103dca6b0bd31",
+  "_id": "37d103dca6b0bd31",
+  "name": "Under the Blue Sky",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21019.png",
+  "system": {
+    "description": {
+      "value": "<p>Attack bonus +1. Defeating an enemy grants critical threshold −1 for 3 turns.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching destruction Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "destruction"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "destruction",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21019.png",
+        "description": "Attack bonus +1. Defeating an enemy grants critical threshold −1 for 3 turns.",
+        "catalogId": "21019",
+        "draftId": 155,
+        "rarity": 4
+      }
+    }
+  }
+}

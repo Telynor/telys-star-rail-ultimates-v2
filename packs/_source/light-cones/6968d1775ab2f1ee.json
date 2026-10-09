@@ -1,0 +1,50 @@
+{
+  "_key": "!items!6968d1775ab2f1ee",
+  "_id": "6968d1775ab2f1ee",
+  "name": "Boundless Choreo",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21044.png",
+  "system": {
+    "description": {
+      "value": "<p>Critical threshold −1. Critical damage bonus +3 against targets with an active tracked Reduced AC or Slowed effect. The GM can assign either marker; mental adjustments are never inferred.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching nihility Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "nihility"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "nihility",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21044.png",
+        "description": "Critical threshold −1. Critical damage bonus +3 against targets with an active tracked Reduced AC or Slowed effect. The GM can assign either marker; mental adjustments are never inferred.",
+        "catalogId": "21044",
+        "draftId": 17,
+        "rarity": 4
+      }
+    }
+  }
+}

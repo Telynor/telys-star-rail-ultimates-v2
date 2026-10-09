@@ -1,0 +1,50 @@
+{
+  "_key": "!items!4ebdaa65a5c323ed",
+  "_id": "4ebdaa65a5c323ed",
+  "name": "Worrisome, Blissful",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23016.png",
+  "system": {
+    "description": {
+      "value": "<p>Critical threshold −1 and follow-up damage +2. Your follow-up grants Tame, capped at 2 stacks: allied critical hits against that target gain +1 critical damage per stack for 2 turns.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching hunt Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "hunt"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "hunt",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23016.png",
+        "description": "Critical threshold −1 and follow-up damage +2. Your follow-up grants Tame, capped at 2 stacks: allied critical hits against that target gain +1 critical damage per stack for 2 turns.",
+        "catalogId": "23016",
+        "draftId": 169,
+        "rarity": 5
+      }
+    }
+  }
+}

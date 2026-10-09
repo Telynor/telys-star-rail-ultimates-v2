@@ -1,0 +1,50 @@
+{
+  "_key": "!items!1478a0fe657e9774",
+  "_id": "1478a0fe657e9774",
+  "name": "Chorus",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/20005.png",
+  "system": {
+    "description": {
+      "value": "<p>Party attack bonus +1 while you are conscious in combat. Multiple Chorus effects do not stack.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching harmony Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "harmony"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "harmony",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/20005.png",
+        "description": "Party attack bonus +1 while you are conscious in combat. Multiple Chorus effects do not stack.",
+        "catalogId": "20005",
+        "draftId": 21,
+        "rarity": 4
+      }
+    }
+  }
+}

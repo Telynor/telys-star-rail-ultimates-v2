@@ -1,0 +1,50 @@
+{
+  "_key": "!items!098f3ecc8a5a1e76",
+  "_id": "098f3ecc8a5a1e76",
+  "name": "Landau's Choice",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21009.png",
+  "system": {
+    "description": {
+      "value": "<p>Reduce incoming damage by 1 per hit. Once per turn, hitting an enemy can provoke it until your next turn.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching preservation Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "preservation"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "preservation",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21009.png",
+        "description": "Reduce incoming damage by 1 per hit. Once per turn, hitting an enemy can provoke it until your next turn.",
+        "catalogId": "21009",
+        "draftId": 71,
+        "rarity": 4
+      }
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "_key": "!items!43447b291ffe8773",
+  "_id": "43447b291ffe8773",
+  "name": "Return to Darkness",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21031.png",
+  "system": {
+    "description": {
+      "value": "<p>Critical threshold −1. Once per turn, a critical hit may remove one removable beneficial effect if the target fails a Constitution save.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching hunt Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "hunt"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "hunt",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21031.png",
+        "description": "Critical threshold −1. Once per turn, a critical hit may remove one removable beneficial effect if the target fails a Constitution save.",
+        "catalogId": "21031",
+        "draftId": 111,
+        "rarity": 4
+      }
+    }
+  }
+}

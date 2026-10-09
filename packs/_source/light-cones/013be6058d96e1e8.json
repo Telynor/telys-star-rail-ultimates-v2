@@ -1,0 +1,50 @@
+{
+  "_key": "!items!013be6058d96e1e8",
+  "_id": "013be6058d96e1e8",
+  "name": "River Flows in Spring",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21024.png",
+  "system": {
+    "description": {
+      "value": "<p>Speed +5 feet and damage +1. Taking damage suppresses both until the end of your next turn.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching hunt Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "hunt"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "hunt",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21024.png",
+        "description": "Speed +5 feet and damage +1. Taking damage suppresses both until the end of your next turn.",
+        "catalogId": "21024",
+        "draftId": 113,
+        "rarity": 4
+      }
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "_key": "!items!e5298c0729bc5a8e",
+  "_id": "e5298c0729bc5a8e",
+  "name": "Dream's Montage",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21048.png",
+  "system": {
+    "description": {
+      "value": "<p>Speed +5 feet. Hitting a target whose current toughness is exactly 0 restores 2 Energy, once per turn. Check toughness when the hit resolves.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching abundance Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "abundance"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "abundance",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21048.png",
+        "description": "Speed +5 feet. Hitting a target whose current toughness is exactly 0 restores 2 Energy, once per turn. Check toughness when the hit resolves.",
+        "catalogId": "21048",
+        "draftId": 35,
+        "rarity": 4
+      }
+    }
+  }
+}

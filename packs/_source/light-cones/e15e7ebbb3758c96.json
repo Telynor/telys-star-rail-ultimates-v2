@@ -1,0 +1,50 @@
+{
+  "_key": "!items!e15e7ebbb3758c96",
+  "_id": "e15e7ebbb3758c96",
+  "name": "Warmth Shortens Cold Nights",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21028.png",
+  "system": {
+    "description": {
+      "value": "<p>Maximum HP +5. A Basic or Skill restores 1 HP to every ally, once per turn.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching abundance Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "abundance"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "abundance",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21028.png",
+        "description": "Maximum HP +5. A Basic or Skill restores 1 HP to every ally, once per turn.",
+        "catalogId": "21028",
+        "draftId": 160,
+        "rarity": 4
+      }
+    }
+  }
+}

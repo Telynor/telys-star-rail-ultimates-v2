@@ -1,0 +1,50 @@
+{
+  "_key": "!items!3e4027f7021a21f2",
+  "_id": "3e4027f7021a21f2",
+  "name": "Darting Arrow",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/20007.png",
+  "system": {
+    "description": {
+      "value": "<p>Defeating an enemy grants attack bonus +1 for 3 turns.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching hunt Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "hunt"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "hunt",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/20007.png",
+        "description": "Defeating an enemy grants attack bonus +1 for 3 turns.",
+        "catalogId": "20007",
+        "draftId": 29,
+        "rarity": 4
+      }
+    }
+  }
+}

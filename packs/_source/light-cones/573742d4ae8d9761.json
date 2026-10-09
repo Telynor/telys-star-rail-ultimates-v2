@@ -1,0 +1,50 @@
+{
+  "_key": "!items!573742d4ae8d9761",
+  "_id": "573742d4ae8d9761",
+  "name": "The Finale of a Lie",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23056.png",
+  "system": {
+    "description": {
+      "value": "<p>Critical threshold −1. At combat start and every fourth follow-up, gain attack bonus +2 for 3 turns and mark hit enemies: allied hits deal +1 damage for 3 turns. Refresh; do not stack.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching hunt Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "hunt"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "hunt",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23056.png",
+        "description": "Critical threshold −1. At combat start and every fourth follow-up, gain attack bonus +2 for 3 turns and mark hit enemies: allied hits deal +1 damage for 3 turns. Refresh; do not stack.",
+        "catalogId": "23056",
+        "draftId": 134,
+        "rarity": 5
+      }
+    }
+  }
+}

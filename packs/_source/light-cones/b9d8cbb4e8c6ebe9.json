@@ -1,0 +1,50 @@
+{
+  "_key": "!items!b9d8cbb4e8c6ebe9",
+  "_id": "b9d8cbb4e8c6ebe9",
+  "name": "Day One of My New Life",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21002.png",
+  "system": {
+    "description": {
+      "value": "<p>AC +1. Conscious allies reduce incoming damage by 1 per hit. Multiple copies do not stack.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching preservation Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "preservation"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "preservation",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21002.png",
+        "description": "AC +1. Conscious allies reduce incoming damage by 1 per hit. Multiple copies do not stack.",
+        "catalogId": "21002",
+        "draftId": 31,
+        "rarity": 4
+      }
+    }
+  }
+}

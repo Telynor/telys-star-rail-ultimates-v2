@@ -1,0 +1,50 @@
+{
+  "_key": "!items!ad3c11262ad510b4",
+  "_id": "ad3c11262ad510b4",
+  "name": "Those Many Springs",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23029.png",
+  "system": {
+    "description": {
+      "value": "<p>Effect Hit bonus +2. Once per turn, a hit forces a Constitution save; failure marks the target for allied direct-hit damage taken +1 for 2 turns, increasing to +2 while it carries a tracked DoT sourced to you. No DoT damage bonus.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching nihility Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "nihility"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "nihility",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23029.png",
+        "description": "Effect Hit bonus +2. Once per turn, a hit forces a Constitution save; failure marks the target for allied direct-hit damage taken +1 for 2 turns, increasing to +2 while it carries a tracked DoT sourced to you. No DoT damage bonus.",
+        "catalogId": "23029",
+        "draftId": 145,
+        "rarity": 5
+      }
+    }
+  }
+}

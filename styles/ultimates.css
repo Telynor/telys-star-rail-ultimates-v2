@@ -2041,3 +2041,12 @@ body.tsru-hide-scene-navigation #scene-navigation,body.tsru-hide-scene-navigatio
 .tsru-combat-stat-row{display:grid;grid-template-columns:minmax(140px,1fr) minmax(85px,1fr) 32px;gap:6px;align-items:center;margin:4px 0;color:#f3f0e8}
 .tsru-combat-stat-row input{width:100%;min-width:0;color:#fff;background:#273644}
 .tsru-combat-stat-row button{width:32px;margin:0;color:#ffe5a6;background:#243642}
+/* Light Cone and DoT controls: keep inputs readable in the GM combat menu. */
+.tsru-light-cone-controls .dialog-content {overflow:auto;color:#eef3ff;}
+.tsru-light-cone-controls form {display:grid;gap:8px;}
+.tsru-light-cone-controls label {display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.tsru-light-cone-controls select,.tsru-light-cone-controls input {color:#eef3ff;background:#263249;border:1px solid #71819d;}
+.tsru-light-cone-controls select {max-width:65%;}
+.tsru-light-cone-controls details {border:1px solid #586781;padding:10px;border-radius:6px;}
+.tsru-light-cone-controls summary {cursor:pointer;font-weight:bold;}
+.tsru-light-cone-control {margin:4px 8px;flex:none;}

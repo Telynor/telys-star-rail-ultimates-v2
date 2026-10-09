@@ -1,0 +1,50 @@
+{
+  "_key": "!items!f2395a045f130385",
+  "_id": "f2395a045f130385",
+  "name": "Trend of the Universal Market",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21016.png",
+  "system": {
+    "description": {
+      "value": "<p>AC +1. Once per turn, an attacker hitting you makes a Constitution save; failure applies Burn: 1d4 Fire damage for 2 target turns.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching preservation Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "preservation"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "preservation",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21016.png",
+        "description": "AC +1. Once per turn, an attacker hitting you makes a Constitution save; failure applies Burn: 1d4 Fire damage for 2 target turns.",
+        "catalogId": "21016",
+        "draftId": 154,
+        "rarity": 4
+      }
+    }
+  }
+}

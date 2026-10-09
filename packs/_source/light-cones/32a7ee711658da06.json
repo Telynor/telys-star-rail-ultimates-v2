@@ -1,0 +1,50 @@
+{
+  "_key": "!items!32a7ee711658da06",
+  "_id": "32a7ee711658da06",
+  "name": "The Unreachable Side",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23009.png",
+  "system": {
+    "description": {
+      "value": "<p>Critical threshold −1 and maximum HP +8. Being hit or spending HP charges your next attack for +3 damage. Only one charge can be stored.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching destruction Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "destruction"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "destruction",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23009.png",
+        "description": "Critical threshold −1 and maximum HP +8. Being hit or spending HP charges your next attack for +3 damage. Only one charge can be stored.",
+        "catalogId": "23009",
+        "draftId": 142,
+        "rarity": 5
+      }
+    }
+  }
+}

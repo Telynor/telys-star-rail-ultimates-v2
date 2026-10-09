@@ -1,0 +1,50 @@
+{
+  "_key": "!items!ebc017a4889f4ecf",
+  "_id": "ebc017a4889f4ecf",
+  "name": "In the Night",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23001.png",
+  "system": {
+    "description": {
+      "value": "<p>Critical threshold −1. Per 10 feet of speed above 30, gain Basic and Skill damage +1 and Ultimate critical damage bonus +1, capped at 3 steps.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching hunt Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "hunt"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "hunt",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23001.png",
+        "description": "Critical threshold −1. Per 10 feet of speed above 30, gain Basic and Skill damage +1 and Ultimate critical damage bonus +1, capped at 3 steps.",
+        "catalogId": "23001",
+        "draftId": 64,
+        "rarity": 5
+      }
+    }
+  }
+}

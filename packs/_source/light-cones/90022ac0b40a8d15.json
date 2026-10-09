@@ -1,0 +1,50 @@
+{
+  "_key": "!items!90022ac0b40a8d15",
+  "_id": "90022ac0b40a8d15",
+  "name": "Whereabouts Should Dreams Rest",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23025.png",
+  "system": {
+    "description": {
+      "value": "<p>Break Effect score +3. Your Break marks the target for Break damage taken +2 and speed −10 feet for 2 turns. Refresh, do not stack.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching destruction Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "destruction"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "destruction",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23025.png",
+        "description": "Break Effect score +3. Your Break marks the target for Break damage taken +2 and speed −10 feet for 2 turns. Refresh, do not stack.",
+        "catalogId": "23025",
+        "draftId": 166,
+        "rarity": 5
+      }
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "_key": "!items!e87832393d669c2a",
+  "_id": "e87832393d669c2a",
+  "name": "Dance! Dance! Dance!",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21018.png",
+  "system": {
+    "description": {
+      "value": "<p>Your Ultimate grants each ally +2 initiative for the next round, once per combat. This changes turn order; it does not grant another turn.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching harmony Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "harmony"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "harmony",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21018.png",
+        "description": "Your Ultimate grants each ally +2 initiative for the next round, once per combat. This changes turn order; it does not grant another turn.",
+        "catalogId": "21018",
+        "draftId": 28,
+        "rarity": 4
+      }
+    }
+  }
+}

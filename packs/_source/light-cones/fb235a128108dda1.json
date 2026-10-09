@@ -1,0 +1,50 @@
+{
+  "_key": "!items!fb235a128108dda1",
+  "_id": "fb235a128108dda1",
+  "name": "Brighter Than the Sun",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23015.png",
+  "system": {
+    "description": {
+      "value": "<p>Critical threshold −1. Each completed Basic grants one Dragon stack, maximum 2. Each stack lasts 2 wearer turns and grants attack bonus +1 and Energy Regeneration score +1. Display stacks and expiry in the GM panel; expire each independently.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching destruction Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "destruction"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "destruction",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23015.png",
+        "description": "Critical threshold −1. Each completed Basic grants one Dragon stack, maximum 2. Each stack lasts 2 wearer turns and grants attack bonus +1 and Energy Regeneration score +1. Display stacks and expiry in the GM panel; expire each independently.",
+        "catalogId": "23015",
+        "draftId": 18,
+        "rarity": 5
+      }
+    }
+  }
+}

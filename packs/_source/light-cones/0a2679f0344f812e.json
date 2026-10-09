@@ -1,0 +1,50 @@
+{
+  "_key": "!items!0a2679f0344f812e",
+  "_id": "0a2679f0344f812e",
+  "name": "Inherently Unjust Destiny",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23023.png",
+  "system": {
+    "description": {
+      "value": "<p>AC +2. Granting an ally temporary HP gives you critical damage bonus +3 for 2 turns. Your follow-up forces a Constitution save; on failure, the target takes +1 allied hit damage for 2 turns.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching preservation Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "preservation"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "preservation",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23023.png",
+        "description": "AC +2. Granting an ally temporary HP gives you critical damage bonus +3 for 2 turns. Your follow-up forces a Constitution save; on failure, the target takes +1 allied hit damage for 2 turns.",
+        "catalogId": "23023",
+        "draftId": 67,
+        "rarity": 5
+      }
+    }
+  }
+}

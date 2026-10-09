@@ -1,0 +1,50 @@
+{
+  "_key": "!items!890c0e7e658dfdf3",
+  "_id": "890c0e7e658dfdf3",
+  "name": "Night on the Milky Way",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23000.png",
+  "system": {
+    "description": {
+      "value": "<p>Attack bonus +1 per enemy in combat, capped at +3. Any allied Break grants you damage +2 until your next turn.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching erudition Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "erudition"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "erudition",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23000.png",
+        "description": "Attack bonus +1 per enemy in combat, capped at +3. Any allied Break grants you damage +2 until your next turn.",
+        "catalogId": "23000",
+        "draftId": 90,
+        "rarity": 5
+      }
+    }
+  }
+}

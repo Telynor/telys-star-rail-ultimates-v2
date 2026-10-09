@@ -1,0 +1,50 @@
+{
+  "_key": "!items!0cb4ab1daf95595e",
+  "_id": "0cb4ab1daf95595e",
+  "name": "A Thankless Coronation",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23045.png",
+  "system": {
+    "description": {
+      "value": "<p>Critical damage bonus +4. After your Ultimate, attack bonus +2 for 2 turns. If maximum Energy is at least 60, gain 3 Energy and another +1 attack bonus.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching destruction Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "destruction"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "destruction",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23045.png",
+        "description": "Critical damage bonus +4. After your Ultimate, attack bonus +2 for 2 turns. If maximum Energy is at least 60, gain 3 Energy and another +1 attack bonus.",
+        "catalogId": "23045",
+        "draftId": 6,
+        "rarity": 5
+      }
+    }
+  }
+}

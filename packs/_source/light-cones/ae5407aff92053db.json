@@ -1,0 +1,50 @@
+{
+  "_key": "!items!ae5407aff92053db",
+  "_id": "ae5407aff92053db",
+  "name": "Flowing Nightglow",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23026.png",
+  "system": {
+    "description": {
+      "value": "<p>An ally's attack grants you Energy Regeneration score +1 per stack, capped at 5. Your Ultimate consumes all stacks to grant you attack bonus +2 and party damage +2 until your next turn.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching harmony Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "harmony"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "harmony",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23026.png",
+        "description": "An ally's attack grants you Energy Regeneration score +1 per stack, capped at 5. Your Ultimate consumes all stacks to grant you attack bonus +2 and party damage +2 until your next turn.",
+        "catalogId": "23026",
+        "draftId": 49,
+        "rarity": 5
+      }
+    }
+  }
+}

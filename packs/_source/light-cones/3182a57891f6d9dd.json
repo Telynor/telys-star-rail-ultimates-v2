@@ -1,0 +1,50 @@
+{
+  "_key": "!items!3182a57891f6d9dd",
+  "_id": "3182a57891f6d9dd",
+  "name": "Loop",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/20011.png",
+  "system": {
+    "description": {
+      "value": "<p>Direct hits deal +2 damage against targets with an active tracked Slowed marker. This is the module's speed-reduction effect, not a built-in D&D condition.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching nihility Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "nihility"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "nihility",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/20011.png",
+        "description": "Direct hits deal +2 damage against targets with an active tracked Slowed marker. This is the module's speed-reduction effect, not a built-in D&D condition.",
+        "catalogId": "20011",
+        "draftId": 77,
+        "rarity": 4
+      }
+    }
+  }
+}

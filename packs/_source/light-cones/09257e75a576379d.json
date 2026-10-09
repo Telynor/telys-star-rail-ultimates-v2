@@ -1,0 +1,50 @@
+{
+  "_key": "!items!09257e75a576379d",
+  "_id": "09257e75a576379d",
+  "name": "Lies Dance on the Breeze",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23043.png",
+  "system": {
+    "description": {
+      "value": "<p>Speed +10 feet. After your attack, each target hit makes a Constitution save; failure reduces AC by 1 for 2 turns. At speed 50 feet or higher, reduce AC by 2 instead. No duplicate stacking.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching nihility Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "nihility"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "nihility",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23043.png",
+        "description": "Speed +10 feet. After your attack, each target hit makes a Constitution save; failure reduces AC by 1 for 2 turns. At speed 50 feet or higher, reduce AC by 2 instead. No duplicate stacking.",
+        "catalogId": "23043",
+        "draftId": 72,
+        "rarity": 5
+      }
+    }
+  }
+}

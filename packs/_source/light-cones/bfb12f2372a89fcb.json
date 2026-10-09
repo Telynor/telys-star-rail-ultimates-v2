@@ -1,0 +1,50 @@
+{
+  "_key": "!items!bfb12f2372a89fcb",
+  "_id": "bfb12f2372a89fcb",
+  "name": "Time Woven Into Gold",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23036.png",
+  "system": {
+    "description": {
+      "value": "<p>Speed +10 feet. You or your memosprite attacking grants both critical damage bonus +1 per stack, capped at +6 for combat, once per turn. At 6 stacks, both gain Basic damage +2.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching remembrance Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "remembrance"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "remembrance",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23036.png",
+        "description": "Speed +10 feet. You or your memosprite attacking grants both critical damage bonus +1 per stack, capped at +6 for combat, once per turn. At 6 stacks, both gain Basic damage +2.",
+        "catalogId": "23036",
+        "draftId": 149,
+        "rarity": 5
+      }
+    }
+  }
+}

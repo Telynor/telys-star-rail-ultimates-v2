@@ -1,0 +1,50 @@
+{
+  "_key": "!items!47779fec3740e886",
+  "_id": "47779fec3740e886",
+  "name": "The Birth of the Self",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21006.png",
+  "system": {
+    "description": {
+      "value": "<p>Follow-up damage +2, increasing to +4 against enemies below half HP.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching erudition Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "erudition"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "erudition",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21006.png",
+        "description": "Follow-up damage +2, increasing to +4 against enemies below half HP.",
+        "catalogId": "21006",
+        "draftId": 132,
+        "rarity": 4
+      }
+    }
+  }
+}

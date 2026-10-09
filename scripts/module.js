@@ -1,3 +1,4 @@
+import {installLightCones,lightConeSkillCapacity,handle as handleLightConeEvent} from './light-cones.mjs';
 import {showCombatStats} from './combat-stats.mjs';
 const MODULE_ID = "telys-star-rail-ultimates";
 const SOCKET = `module.${MODULE_ID}`;
@@ -398,6 +399,8 @@ function getConfig(actor) {
   });
   config.max = Math.max(1, Number(config.max) || 100);
   config.current = clamp(config.current, 0, config.max);
+  config.regenScore = Number(config.regenScore || 0) + Number(actor?._lightConeStats?.regen || 0);
+  config.breakEffectScore = Number(config.breakEffectScore || 0) + Number(actor?._lightConeStats?.breakEffect || 0);
   config.skillPointCost = Math.max(0, Math.floor(Number(config.skillPointCost) || 0));
   config.talentPointsMax = Math.max(0, Math.floor(Number(config.talentPointsMax) || 0));
   config.talentPointsOvercapMax = Math.max(config.talentPointsMax, Math.floor(Number(config.talentPointsOvercapMax) || config.talentPointsMax));
@@ -629,6 +632,8 @@ function getToughness(actor) {
   config.enabled = Object.hasOwn(stored, "enabled") ? Boolean(stored.enabled) : actor?.type === "npc";
   config.max = Math.max(1, Number(config.max) || 100);
   config.current = clamp(config.current, 0, config.max);
+  config.regenScore = Number(config.regenScore || 0) + Number(actor?._lightConeStats?.regen || 0);
+  config.breakEffectScore = Number(config.breakEffectScore || 0) + Number(actor?._lightConeStats?.breakEffect || 0);
   config.weaknesses = Array.isArray(config.weaknesses) ? config.weaknesses : [];
   config.temporaryWeaknesses = Array.isArray(config.temporaryWeaknesses) ? config.temporaryWeaknesses : [];
   config.discoveredWeaknesses = Array.isArray(config.discoveredWeaknesses) ? config.discoveredWeaknesses : [];
@@ -1166,9 +1171,8 @@ async function runTalentScript(actor, event) {
 }
 
 async function dispatchTalentEvent(type, detail = {}, eventKey = "") {
-  // Talents are descriptive text actions now. Legacy scripts are retained in stored
-  // data for rollback compatibility, but are intentionally never executed.
-  return;
+  // Forward supported combat signals without re-enabling legacy talent scripts.
+  return handleLightConeEvent(type, detail, eventKey);
 }
 
 function punchlineVisibleInCombat() { return state.punchlineHiddenCombatId !== game.combat?.id; }
@@ -2072,7 +2076,7 @@ function refreshResourceHuds() {
 function getSkillPointConfig() {
   const stored = game.settings.get(MODULE_ID, "skillPointConfig") ?? {};
   const config = foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_SKILL_POINT_CONFIG), stored, {inplace: false});
-  config.maximum = Math.max(1, Math.floor(Number(config.maximum) || DEFAULT_SKILL_POINT_CONFIG.maximum));
+  config.maximum = Math.max(1, Math.floor(Number(config.maximum) || DEFAULT_SKILL_POINT_CONFIG.maximum)) + lightConeSkillCapacity();
   config.starting = clamp(Math.floor(Number(config.starting)), 0, config.maximum);
   config.pointsPerRow = clamp(Math.floor(Number(config.pointsPerRow)), 1, config.maximum);
   config.pointSpacing = clamp(Number(config.pointSpacing), -50, 50);
@@ -2099,8 +2103,10 @@ function currentSkillPoints() {
 
 async function setSkillPoints(value, {broadcast = true} = {}) {
   if (!isAuthority()) return currentSkillPoints();
+  const before = currentSkillPoints();
   const next = clamp(Math.floor(Number(value)), 0, getSkillPointConfig().maximum);
   await game.settings.set(MODULE_ID, "skillPoints", next);
+  void handleLightConeEvent("skillPointsChanged", {before, after:next}, `sp:${Date.now()}`);
   if (broadcast) game.socket.emit(SOCKET, {type: "skillPointsChanged", value: next, sourceUserId: game.user.id});
   refreshSkillUI();
   Hooks.callAll("tsruSkillPointsChanged", next);
@@ -2773,7 +2779,7 @@ async function openLightConeGenerator() {
             type: "loot",
             img: image,
             folder: folderId,
-            system: {description: {value: description}, quantity: 1, attunement: 1},
+            system: {description: {value: description}, quantity: 1, type: {value:"lightCone",subtype:""}},
             flags: {[MODULE_ID]: {lightCone}}
           });
           ui.notifications.info(`Created Light Cone: ${name}.`);
@@ -5543,6 +5549,7 @@ async function applyToughnessDamage(attacker, targets, amount, eventKey = "") {
     });
     applied = true;
     if (next === 0 && toughness.current > 0) {
+      void handleLightConeEvent("toughnessBreak", {sourceActor: attacker, targetActor: actor}, eventKey+":"+actor.uuid);
       ui.notifications.info(`${actor.name}'s Toughness was broken!`);
       await broadcastWeaknessBreak(attacker,target);
       if (breakCharacter) await applyWeaknessBreakDamage(attacker, target);
@@ -7948,6 +7955,7 @@ Hooks.once("ready", async () => {
   Hooks.on("dnd5e.rollDamageV2", processDnd5eDamageRolls);
   Hooks.on("dnd5e.applyDamage", (...args) => processDnd5eAppliedDamage(...args));
   installDamageScrollingTextOverride();
+  installLightCones(game.modules.get(MODULE_ID).api);
   repairSelectedLightConeAttunements().catch(error => console.error(`${MODULE_ID} | Failed to repair Light Cone attunement`, error));
   refreshCombatPartyHud();
 });

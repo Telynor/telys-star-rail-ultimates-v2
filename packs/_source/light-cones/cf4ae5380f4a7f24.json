@@ -1,0 +1,50 @@
+{
+  "_key": "!items!cf4ae5380f4a7f24",
+  "_id": "cf4ae5380f4a7f24",
+  "name": "Long May Rainbows Adorn the Sky",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23042.png",
+  "system": {
+    "description": {
+      "value": "<p>Speed +10 feet. After a consenting ally spends HP, your next memosprite attack deals +3 damage. Its Skill forces a Constitution save; failure grants allied direct-hit damage +1 for 2 turns. No DoT bonus.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching remembrance Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "remembrance"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "remembrance",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23042.png",
+        "description": "Speed +10 feet. After a consenting ally spends HP, your next memosprite attack deals +3 damage. Its Skill forces a Constitution save; failure grants allied direct-hit damage +1 for 2 turns. No DoT bonus.",
+        "catalogId": "23042",
+        "draftId": 75,
+        "rarity": 5
+      }
+    }
+  }
+}

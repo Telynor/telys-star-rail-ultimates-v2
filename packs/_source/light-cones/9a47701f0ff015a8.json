@@ -1,0 +1,50 @@
+{
+  "_key": "!items!9a47701f0ff015a8",
+  "_id": "9a47701f0ff015a8",
+  "name": "Make Farewells More Beautiful",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23040.png",
+  "system": {
+    "description": {
+      "value": "<p>Maximum HP +8. Losing HP during your turn grants you and your memosprite damage +2 for 2 turns. When the memosprite disappears, gain +2 initiative next round, once per Ultimate cycle.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching remembrance Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "remembrance"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "remembrance",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23040.png",
+        "description": "Maximum HP +8. Losing HP during your turn grants you and your memosprite damage +2 for 2 turns. When the memosprite disappears, gain +2 initiative next round, once per Ultimate cycle.",
+        "catalogId": "23040",
+        "draftId": 78,
+        "rarity": 5
+      }
+    }
+  }
+}

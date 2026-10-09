@@ -1,0 +1,50 @@
+{
+  "_key": "!items!8f795940a8deb124",
+  "_id": "8f795940a8deb124",
+  "name": "Journey, Forever Peaceful",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21053.png",
+  "system": {
+    "description": {
+      "value": "<p>Temporary HP you grant increases by 3. Allies currently protected by your cone-enhanced temporary HP deal +1 damage.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching preservation Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "preservation"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "preservation",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21053.png",
+        "description": "Temporary HP you grant increases by 3. Allies currently protected by your cone-enhanced temporary HP deal +1 damage.",
+        "catalogId": "21053",
+        "draftId": 70,
+        "rarity": 4
+      }
+    }
+  }
+}

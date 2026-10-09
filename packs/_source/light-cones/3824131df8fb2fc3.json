@@ -1,0 +1,50 @@
+{
+  "_key": "!items!3824131df8fb2fc3",
+  "_id": "3824131df8fb2fc3",
+  "name": "Collapsing Sky",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/20002.png",
+  "system": {
+    "description": {
+      "value": "<p>Basic and Skill hits deal +1 damage.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching destruction Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "destruction"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "destruction",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/20002.png",
+        "description": "Basic and Skill hits deal +1 damage.",
+        "catalogId": "20002",
+        "draftId": 22,
+        "rarity": 4
+      }
+    }
+  }
+}

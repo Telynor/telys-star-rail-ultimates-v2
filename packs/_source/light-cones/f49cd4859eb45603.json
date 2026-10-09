@@ -1,0 +1,50 @@
+{
+  "_key": "!items!f49cd4859eb45603",
+  "_id": "f49cd4859eb45603",
+  "name": "A Grounded Ascent",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23034.png",
+  "system": {
+    "description": {
+      "value": "<p>Supporting one ally with a Skill or Ultimate grants that ally Hymn: +1 damage per stack, maximum 3, for 3 turns. Gain 2 Energy per qualifying use; every second use restores 1 SP.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching harmony Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "harmony"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "harmony",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23034.png",
+        "description": "Supporting one ally with a Skill or Ultimate grants that ally Hymn: +1 damage per stack, maximum 3, for 3 turns. Gain 2 Energy per qualifying use; every second use restores 1 SP.",
+        "catalogId": "23034",
+        "draftId": 2,
+        "rarity": 5
+      }
+    }
+  }
+}

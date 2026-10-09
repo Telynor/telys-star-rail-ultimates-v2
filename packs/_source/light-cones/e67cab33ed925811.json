@@ -1,0 +1,50 @@
+{
+  "_key": "!items!e67cab33ed925811",
+  "_id": "e67cab33ed925811",
+  "name": "Unto Tomorrow's Morrow",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21055.png",
+  "system": {
+    "description": {
+      "value": "<p>Outgoing healing +2. Allies above half maximum HP deal +1 damage while you are conscious in combat.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching abundance Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "abundance"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "abundance",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21055.png",
+        "description": "Outgoing healing +2. Allies above half maximum HP deal +1 damage while you are conscious in combat.",
+        "catalogId": "21055",
+        "draftId": 157,
+        "rarity": 4
+      }
+    }
+  }
+}

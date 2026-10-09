@@ -1,0 +1,50 @@
+{
+  "_key": "!items!a1738fc4c4753388",
+  "_id": "a1738fc4c4753388",
+  "name": "Memories of the Past",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21004.png",
+  "system": {
+    "description": {
+      "value": "<p>Break Effect score +2. An attack restores 2 Energy, once per turn.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching harmony Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "harmony"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "harmony",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21004.png",
+        "description": "Break Effect score +2. An attack restores 2 Energy, once per turn.",
+        "catalogId": "21004",
+        "draftId": 81,
+        "rarity": 4
+      }
+    }
+  }
+}

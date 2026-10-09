@@ -1,0 +1,50 @@
+{
+  "_key": "!items!90fc86ac562814da",
+  "_id": "90fc86ac562814da",
+  "name": "Cruising in the Stellar Sea",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/24001.png",
+  "system": {
+    "description": {
+      "value": "<p>Critical threshold −1, improving to −2 against enemies below half HP. Defeating an enemy grants attack bonus +2 for 2 turns.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching hunt Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "hunt"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "hunt",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/24001.png",
+        "description": "Critical threshold −1, improving to −2 against enemies below half HP. Defeating an enemy grants attack bonus +2 for 2 turns.",
+        "catalogId": "24001",
+        "draftId": 26,
+        "rarity": 5
+      }
+    }
+  }
+}

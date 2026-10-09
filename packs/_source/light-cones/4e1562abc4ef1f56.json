@@ -1,0 +1,50 @@
+{
+  "_key": "!items!4e1562abc4ef1f56",
+  "_id": "4e1562abc4ef1f56",
+  "name": "Reforged Remembrance",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23022.png",
+  "system": {
+    "description": {
+      "value": "<p>Effect Hit bonus +2. Hits against tracked Burn, Shock, Bleed, or Wind Shear grant one Prophet stack per distinct type, maximum 4 per combat. Each stack grants attack bonus +1. At 4, your DoTs gain one die step, recalculated each tick; cap d12.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching nihility Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "nihility"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "nihility",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23022.png",
+        "description": "Effect Hit bonus +2. Hits against tracked Burn, Shock, Bleed, or Wind Shear grant one Prophet stack per distinct type, maximum 4 per combat. Each stack grants attack bonus +1. At 4, your DoTs gain one die step, recalculated each tick; cap d12.",
+        "catalogId": "23022",
+        "draftId": 107,
+        "rarity": 5
+      }
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "_key": "!items!af77b445b747b117",
+  "_id": "af77b445b747b117",
+  "name": "Flames Afar",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21038.png",
+  "system": {
+    "description": {
+      "value": "<p>Losing or spending more than one quarter of maximum HP in one event restores 3 HP and grants damage +2 for 2 turns. Three-turn cooldown.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching destruction Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "destruction"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "destruction",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21038.png",
+        "description": "Losing or spending more than one quarter of maximum HP in one event restores 3 HP and grants damage +2 for 2 turns. Three-turn cooldown.",
+        "catalogId": "21038",
+        "draftId": 47,
+        "rarity": 4
+      }
+    }
+  }
+}

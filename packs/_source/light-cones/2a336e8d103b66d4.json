@@ -1,0 +1,50 @@
+{
+  "_key": "!items!2a336e8d103b66d4",
+  "_id": "2a336e8d103b66d4",
+  "name": "To Evernight's Stars",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23049.png",
+  "system": {
+    "description": {
+      "value": "<p>Maximum HP +8. Your memosprite's Skill grants all allied memosprites damage +2 and you and your sprite damage +2 for 2 turns; these two grants do not double-stack on your sprite. Its disappearance restores 3 Energy, once per turn.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching remembrance Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "remembrance"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "remembrance",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23049.png",
+        "description": "Maximum HP +8. Your memosprite's Skill grants all allied memosprites damage +2 and you and your sprite damage +2 for 2 turns; these two grants do not double-stack on your sprite. Its disappearance restores 3 Energy, once per turn.",
+        "catalogId": "23049",
+        "draftId": 150,
+        "rarity": 5
+      }
+    }
+  }
+}

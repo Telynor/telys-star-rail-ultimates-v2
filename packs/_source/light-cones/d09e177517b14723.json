@@ -1,0 +1,50 @@
+{
+  "_key": "!items!d09e177517b14723",
+  "_id": "d09e177517b14723",
+  "name": "Dazzled by a Flowery World",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23053.png",
+  "system": {
+    "description": {
+      "value": "<p>Critical damage bonus +4. Party SP capacity +1 per Elation ally, capped at +3. Spending SP adds +1 Elation damage per charge, capped at +4, until your next turn. Spending 4 SP in one turn grants party Elation damage +2 for 1 turn.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching elation Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "elation"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "elation",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23053.png",
+        "description": "Critical damage bonus +4. Party SP capacity +1 per Elation ally, capped at +3. Spending SP adds +1 Elation damage per charge, capped at +4, until your next turn. Spending 4 SP in one turn grants party Elation damage +2 for 1 turn.",
+        "catalogId": "23053",
+        "draftId": 32,
+        "rarity": 5
+      }
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "_key": "!items!142312f0bfeec44d",
+  "_id": "142312f0bfeec44d",
+  "name": "Eternal Calculus",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/24004.png",
+  "system": {
+    "description": {
+      "value": "<p>Attack bonus +1. After an attack, gain +1 attack bonus per distinct target hit, capped at +3, for your next attack. Hitting at least 3 enemies also grants speed +10 feet for 1 turn.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching erudition Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "erudition"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "erudition",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/24004.png",
+        "description": "Attack bonus +1. After an attack, gain +1 attack bonus per distinct target hit, capped at +3, for your next attack. Hitting at least 3 enemies also grants speed +10 feet for 1 turn.",
+        "catalogId": "24004",
+        "draftId": 41,
+        "rarity": 5
+      }
+    }
+  }
+}

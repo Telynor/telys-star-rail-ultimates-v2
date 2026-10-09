@@ -1,0 +1,50 @@
+{
+  "_key": "!items!10fdd8af3ed94147",
+  "_id": "10fdd8af3ed94147",
+  "name": "Something Irreplaceable",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23002.png",
+  "system": {
+    "description": {
+      "value": "<p>Attack bonus +2. Being hit or defeating an enemy restores 3 HP and grants damage +2 until your next turn ends. Combined limit: once per turn.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching destruction Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "destruction"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "destruction",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23002.png",
+        "description": "Attack bonus +2. Being hit or defeating an enemy restores 3 HP and grants damage +2 until your next turn ends. Combined limit: once per turn.",
+        "catalogId": "23002",
+        "draftId": 126,
+        "rarity": 5
+      }
+    }
+  }
+}

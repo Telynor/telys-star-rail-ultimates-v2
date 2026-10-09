@@ -1,0 +1,50 @@
+{
+  "_key": "!items!73230373292fb5f3",
+  "_id": "73230373292fb5f3",
+  "name": "This Love, Forever",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23052.png",
+  "system": {
+    "description": {
+      "value": "<p>Speed +10 feet. A memosprite Skill supporting an ally marks enemies for +1 allied hit damage taken for 2 turns. An enemy-targeting memosprite Skill grants party critical damage bonus +2 for 2 turns. When both effects coexist, increase each bonus by 1.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching remembrance Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "remembrance"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "remembrance",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23052.png",
+        "description": "Speed +10 feet. A memosprite Skill supporting an ally marks enemies for +1 allied hit damage taken for 2 turns. An enemy-targeting memosprite Skill grants party critical damage bonus +2 for 2 turns. When both effects coexist, increase each bonus by 1.",
+        "catalogId": "23052",
+        "draftId": 144,
+        "rarity": 5
+      }
+    }
+  }
+}

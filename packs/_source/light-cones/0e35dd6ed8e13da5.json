@@ -1,0 +1,50 @@
+{
+  "_key": "!items!0e35dd6ed8e13da5",
+  "_id": "0e35dd6ed8e13da5",
+  "name": "We Will Meet Again",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21029.png",
+  "system": {
+    "description": {
+      "value": "<p>A Basic or Skill deals +2 damage to one randomly selected target it hit, once per turn.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching nihility Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "nihility"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "nihility",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21029.png",
+        "description": "A Basic or Skill deals +2 damage to one randomly selected target it hit, once per turn.",
+        "catalogId": "21029",
+        "draftId": 162,
+        "rarity": 4
+      }
+    }
+  }
+}

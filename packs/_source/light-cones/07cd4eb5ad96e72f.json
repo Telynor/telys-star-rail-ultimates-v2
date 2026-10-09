@@ -1,0 +1,50 @@
+{
+  "_key": "!items!07cd4eb5ad96e72f",
+  "_id": "07cd4eb5ad96e72f",
+  "name": "Fly Into a Pink Tomorrow",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/22006.png",
+  "system": {
+    "description": {
+      "value": "<p>Critical damage bonus +2. If attuned by the configured Trailblazer actor, grant party damage +1 and that actor's enhanced Basic damage +3.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching remembrance Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "remembrance"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "remembrance",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/22006.png",
+        "description": "Critical damage bonus +2. If attuned by the configured Trailblazer actor, grant party damage +1 and that actor's enhanced Basic damage +3.",
+        "catalogId": "22006",
+        "draftId": 50,
+        "rarity": 4
+      }
+    }
+  }
+}

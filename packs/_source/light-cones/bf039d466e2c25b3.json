@@ -1,0 +1,50 @@
+{
+  "_key": "!items!bf039d466e2c25b3",
+  "_id": "bf039d466e2c25b3",
+  "name": "When She Decided to See",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23054.png",
+  "system": {
+    "description": {
+      "value": "<p>Speed +10 feet. At combat start or after a support Ultimate, party critical threshold −1 and critical damage bonus +2, plus your Energy Regeneration score +2, for 3 turns. Start combat with 3 Energy for each ally.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching elation Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "elation"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "elation",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23054.png",
+        "description": "Speed +10 feet. At combat start or after a support Ultimate, party critical threshold −1 and critical damage bonus +2, plus your Energy Regeneration score +2, for 3 turns. Start combat with 3 Energy for each ally.",
+        "catalogId": "23054",
+        "draftId": 165,
+        "rarity": 5
+      }
+    }
+  }
+}

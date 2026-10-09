@@ -1,0 +1,50 @@
+{
+  "_key": "!items!7ee0d21daa205010",
+  "_id": "7ee0d21daa205010",
+  "name": "This Is Me!",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21030.png",
+  "system": {
+    "description": {
+      "value": "<p>AC +1. Ultimate damage gains +1 per 2 AC above 10, capped at +3, once per target per Ultimate.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching preservation Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "preservation"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "preservation",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21030.png",
+        "description": "AC +1. Ultimate damage gains +1 per 2 AC above 10, capped at +3, once per target per Ultimate.",
+        "catalogId": "21030",
+        "draftId": 143,
+        "rarity": 4
+      }
+    }
+  }
+}

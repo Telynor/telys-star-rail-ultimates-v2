@@ -2,6 +2,7 @@ const ID='telys-star-rail-ultimates', FLAG='combatStatBuffs';
 const numeric=x=>Number.isFinite(Number(x))?Number(x):0;
 const esc=x=>foundry.utils.escapeHTML(String(x??''));
 const active=actor=>{const b=actor.getFlag(ID,FLAG);return game.combat?.started&&b?.combatId===game.combat.id?b:{values:{},planar:{}}};
+const criticalView=(actor,base)=>{const p=window.TelysPlanar.criticalSnapshot(actor,base),cone=game.modules.get(ID)?.api?.lightCones?.snapshot(actor)??{},override=active(actor).threshold;const automatic=Math.min(p.automatic,Math.max(15,p.automatic-numeric(cone.crit)));return {...p,automatic,threshold:Number.isFinite(override)?override:automatic,critDamageBonus:p.critDamageBonus+numeric(cone.critDamage)}};
 const effect=actor=>actor.effects.find(e=>e.getFlag(ID,'combatStatBuff'));
 function standardActor(actor){
   const data=actor.toObject();const b=active(actor);if(b.hpDelta)data.system.attributes.hp.value=Math.max(0,numeric(data.system.attributes.hp.value)-b.hpDelta);data.effects=data.effects.filter(e=>!e.flags?.[ID]?.combatStatBuff&&!e.flags?.['telys-planar-ornaments']?.statBonus&&!e.flags?.['telys-planar-ornaments']?.hsrBonus);
@@ -42,16 +43,16 @@ export function showCombatStats({actors,getConfig,isCombatant}){
   if(!window.TelysPlanar?.combatBuffSupport)return ui.notifications.error('Update Planar Ornaments to v1.0.14 to inspect combat buffs.');
   let dialog;
   const build=()=>actors.filter(isCombatant).map(actor=>{
-    actor.prepareData();const base=standardActor(actor),b=active(actor),current=window.TelysPlanar.criticalSnapshot(actor),standard=window.TelysPlanar.criticalSnapshot(base);
+    actor.prepareData();const base=standardActor(actor),b=active(actor),current=criticalView(actor),standard=criticalView(base);
     const bases=new Map(descriptors(base,getConfig).map(v=>[v.id,v]));
-    const row=(id,name,value,original,formula=false)=>`<label class="tsru-combat-stat-row"><span>${esc(name)}</span><input data-stat="${esc(id)}" type="${formula?'text':'number'}" step="1" value="${esc(value)}" title="Sheet + planar: ${esc(original)}"><button type="button" data-reset-value="${esc(id)}" title="Reset to sheet + planar"><i class="fas fa-rotate-left"></i></button></label>`;
+    const row=(id,name,value,original,formula=false)=>`<label class="tsru-combat-stat-row"><span>${esc(name)}</span><input data-stat="${esc(id)}" type="${formula?'text':'number'}" step="1" value="${esc(value)}" title="Sheet + planar + Light Cone: ${esc(original)}"><button type="button" data-reset-value="${esc(id)}" title="Reset to sheet + planar + Light Cone"><i class="fas fa-rotate-left"></i></button></label>`;
     const fields=descriptors(actor,getConfig).map(v=>row(v.id,v.name,v.formula?v.raw:v.value,v.formula?bases.get(v.id)?.raw:bases.get(v.id)?.value,v.formula)).join('');
     const crit=row('threshold','Critical threshold',current.threshold,standard.automatic)+row('planar.critDamageBonus','Cumulative critical damage bonus',current.critDamageBonus,standard.critDamageBonus);
     const planar=Object.entries(current.adjustedBonuses).filter(([key,value])=>!['critDamageBonus','critRange','critRate'].includes(key)&&(numeric(value)!==0||numeric(standard.adjustedBonuses[key])!==0||key in (b.planar??{}))).map(([key,value])=>row(`planar.${key}`,`Planar ${key}`,value,standard.adjustedBonuses[key]??0)).join('');
     return `<details class="tsru-adjusted-stat-card" data-combat-actor="${esc(actor.uuid)}"><summary><img src="${esc(actor.img)}" alt="">${esc(actor.name)}</summary><div class="tsru-adjusted-stat-body"><button type="button" data-reset-all>Reset buffs</button><h3>Critical</h3>${crit}<h3>Combat, abilities and rolls</h3>${fields}<h3>Planar bonuses</h3>${planar}</div></details>`;
   }).join('');
   const refresh=(html,uuid)=>{const open=new Set([...html[0].querySelectorAll('details[open]')].map(x=>x.dataset.combatActor));html.find('.tsru-combat-stat-cards').html(build());for(const d of html[0].querySelectorAll('details'))d.open=open.has(d.dataset.combatActor)||d.dataset.combatActor===uuid;};
-  dialog=new Dialog({title:'Adjusted PC Combat Stats',content:`<div class="tsru-adjusted-stats"><p>Effective sheet + planar values. Changes apply immediately for this combat. Use Reset to remove a temporary buff.</p><div class="tsru-combat-stat-cards">${build()}</div></div>`,buttons:{close:{label:'Close'}},render:html=>{
+  dialog=new Dialog({title:'Adjusted PC Combat Stats',content:`<div class="tsru-adjusted-stats"><p>Effective sheet + planar + Light Cone values. Changes apply immediately for this combat. Use Reset to remove a temporary buff.</p><div class="tsru-combat-stat-cards">${build()}</div></div>`,buttons:{close:{label:'Close'}},render:html=>{
     let busy=false;
     const change=async(event,reset=false)=>{
       event.preventDefault();if(busy)return;busy=true;html.find('input,button').prop('disabled',true);
@@ -62,7 +63,7 @@ export function showCombatStats({actors,getConfig,isCombatant}){
         else{
           const id=reset?event.target.closest('[data-reset-value]').dataset.resetValue:event.target.dataset.stat;
           const b=foundry.utils.deepClone(active(actor));b.combatId=combat.id;b.values??={};b.planar??={};
-          const base=standardActor(actor),standard=window.TelysPlanar.criticalSnapshot(base),field=descriptors(base,getConfig).find(v=>v.id===id);
+          const base=standardActor(actor),standard=criticalView(base),field=descriptors(base,getConfig).find(v=>v.id===id);
           const desired=field?.formula?event.target.value:Number(event.target.value);
           if(!reset&&!field?.formula&&!Number.isFinite(desired))throw Error('Enter a finite number.');
           if(id==='threshold'){if(!reset&&(!Number.isInteger(desired)||desired<2||desired>20))throw Error('Critical threshold must be 2–20.');if(reset)delete b.threshold;else b.threshold=desired;}

@@ -1,0 +1,50 @@
+{
+  "_key": "!items!6bd5124c894789ae",
+  "_id": "6bd5124c894789ae",
+  "name": "The Flower Remembers",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21057.png",
+  "system": {
+    "description": {
+      "value": "<p>You and your memosprite gain critical damage bonus +3.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching remembrance Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "remembrance"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "remembrance",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21057.png",
+        "description": "You and your memosprite gain critical damage bonus +3.",
+        "catalogId": "21057",
+        "draftId": 135,
+        "rarity": 4
+      }
+    }
+  }
+}

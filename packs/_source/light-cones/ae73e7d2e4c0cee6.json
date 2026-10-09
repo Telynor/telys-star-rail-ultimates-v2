@@ -1,0 +1,50 @@
+{
+  "_key": "!items!ae73e7d2e4c0cee6",
+  "_id": "ae73e7d2e4c0cee6",
+  "name": "We Are Wildfire",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21023.png",
+  "system": {
+    "description": {
+      "value": "<p>At combat start, allies reduce incoming damage by 1 per hit for 5 turns and recover one fifth of missing HP, rounded down. Once per combat; multiple copies do not stack.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching preservation Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "preservation"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "preservation",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21023.png",
+        "description": "At combat start, allies reduce incoming damage by 1 per hit for 5 turns and recover one fifth of missing HP, rounded down. Once per combat; multiple copies do not stack.",
+        "catalogId": "21023",
+        "draftId": 161,
+        "rarity": 4
+      }
+    }
+  }
+}

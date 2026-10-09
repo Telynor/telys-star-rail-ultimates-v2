@@ -1,0 +1,50 @@
+{
+  "_key": "!items!151d20f7fbb2b1e2",
+  "_id": "151d20f7fbb2b1e2",
+  "name": "Sleep Like the Dead",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23012.png",
+  "system": {
+    "description": {
+      "value": "<p>Critical damage bonus +4. If a Basic or Skill attack misses a critical, critical threshold −2 until your next turn ends. Three-turn cooldown.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching hunt Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "hunt"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "hunt",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23012.png",
+        "description": "Critical damage bonus +4. If a Basic or Skill attack misses a critical, critical threshold −2 until your next turn ends. Three-turn cooldown.",
+        "catalogId": "23012",
+        "draftId": 123,
+        "rarity": 5
+      }
+    }
+  }
+}

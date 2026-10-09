@@ -1,0 +1,50 @@
+{
+  "_key": "!items!8fe9717e5aebb7cb",
+  "_id": "8fe9717e5aebb7cb",
+  "name": "Data Bank",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/20006.png",
+  "system": {
+    "description": {
+      "value": "<p>Ultimate hits deal +2 damage.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching erudition Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "erudition"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "erudition",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/20006.png",
+        "description": "Ultimate hits deal +2 damage.",
+        "catalogId": "20006",
+        "draftId": 30,
+        "rarity": 4
+      }
+    }
+  }
+}

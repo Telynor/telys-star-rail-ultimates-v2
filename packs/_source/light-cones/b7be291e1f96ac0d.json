@@ -1,0 +1,50 @@
+{
+  "_key": "!items!b7be291e1f96ac0d",
+  "_id": "b7be291e1f96ac0d",
+  "name": "Until the Flowers Bloom Again",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23058.png",
+  "system": {
+    "description": {
+      "value": "<p>Critical damage bonus +4 and Energy Regeneration score +2, increasing to +3 if maximum Energy is at least 60. Your Elation Skill forces a Constitution save; failure grants +2 allied hit damage taken for 2 turns.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching elation Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "elation"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "elation",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23058.png",
+        "description": "Critical damage bonus +4 and Energy Regeneration score +2, increasing to +3 if maximum Energy is at least 60. Your Elation Skill forces a Constitution save; failure grants +2 allied hit damage taken for 2 turns.",
+        "catalogId": "23058",
+        "draftId": 156,
+        "rarity": 5
+      }
+    }
+  }
+}

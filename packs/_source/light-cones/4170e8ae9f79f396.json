@@ -1,0 +1,50 @@
+{
+  "_key": "!items!4170e8ae9f79f396",
+  "_id": "4170e8ae9f79f396",
+  "name": "Before the Tutorial Mission Starts",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/22000.png",
+  "system": {
+    "description": {
+      "value": "<p>Effect Hit bonus +1. Hitting an enemy with reduced AC restores 2 Energy, once per turn.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching nihility Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "nihility"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "nihility",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/22000.png",
+        "description": "Effect Hit bonus +1. Hitting an enemy with reduced AC restores 2 Energy, once per turn.",
+        "catalogId": "22000",
+        "draftId": 16,
+        "rarity": 4
+      }
+    }
+  }
+}

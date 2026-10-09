@@ -1,0 +1,50 @@
+{
+  "_key": "!items!460eb2349ee8e1b3",
+  "_id": "460eb2349ee8e1b3",
+  "name": "Though Worlds Apart",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23051.png",
+  "system": {
+    "description": {
+      "value": "<p>Attack bonus +2. Your Ultimate heals every ally for 3 HP and the lowest-HP-percentage ally for another 3 HP. Party damage +2 for 3 turns; summoned allies gain +3 instead.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching preservation Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "preservation"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "preservation",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23051.png",
+        "description": "Attack bonus +2. Your Ultimate heals every ally for 3 HP and the lowest-HP-percentage ally for another 3 HP. Party damage +2 for 3 turns; summoned allies gain +3 instead.",
+        "catalogId": "23051",
+        "draftId": 146,
+        "rarity": 5
+      }
+    }
+  }
+}

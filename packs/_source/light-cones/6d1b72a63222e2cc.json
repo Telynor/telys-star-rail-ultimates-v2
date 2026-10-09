@@ -1,0 +1,50 @@
+{
+  "_key": "!items!6d1b72a63222e2cc",
+  "_id": "6d1b72a63222e2cc",
+  "name": "Concert for Two",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21043.png",
+  "system": {
+    "description": {
+      "value": "<p>AC +1. Deal +1 damage per ally with temporary HP, capped at +3.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching preservation Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "preservation"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "preservation",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21043.png",
+        "description": "AC +1. Deal +1 damage per ally with temporary HP, capped at +3.",
+        "catalogId": "21043",
+        "draftId": 24,
+        "rarity": 4
+      }
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "_key": "!items!0c19869b13d12fb7",
+  "_id": "0c19869b13d12fb7",
+  "name": "Why Does the Ocean Sing",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23047.png",
+  "system": {
+    "description": {
+      "value": "<p>Effect Hit bonus +2. Applying a debuff grants tracked Enthrall, capped at 3 stacks for 3 target turns. At 2 or more stacks, all allied-source DoTs on that target gain one die step while the mark lasts; cap d12. An allied direct hit grants that ally speed +5 feet for 3 turns, once per turn. Ends if you fall unconscious.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching nihility Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "nihility"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "nihility",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23047.png",
+        "description": "Effect Hit bonus +2. Applying a debuff grants tracked Enthrall, capped at 3 stacks for 3 target turns. At 2 or more stacks, all allied-source DoTs on that target gain one die step while the mark lasts; cap d12. An allied direct hit grants that ally speed +5 feet for 3 turns, once per turn. Ends if you fall unconscious.",
+        "catalogId": "23047",
+        "draftId": 167,
+        "rarity": 5
+      }
+    }
+  }
+}

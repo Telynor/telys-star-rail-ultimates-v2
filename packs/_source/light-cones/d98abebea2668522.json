@@ -1,0 +1,50 @@
+{
+  "_key": "!items!d98abebea2668522",
+  "_id": "d98abebea2668522",
+  "name": "Shattered Home",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/20009.png",
+  "system": {
+    "description": {
+      "value": "<p>Deal +2 damage against enemies above half maximum HP.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching destruction Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "destruction"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "destruction",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/20009.png",
+        "description": "Deal +2 damage against enemies above half maximum HP.",
+        "catalogId": "20009",
+        "draftId": 121,
+        "rarity": 4
+      }
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "_key": "!items!74c9876a8d10f6da",
+  "_id": "74c9876a8d10f6da",
+  "name": "It's Showtime",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21041.png",
+  "system": {
+    "description": {
+      "value": "<p>Applying a debuff grants damage +1 per stack, maximum 3, until your next turn. With an Effect Hit bonus of at least +3, also gain attack bonus +1.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching nihility Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "nihility"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "nihility",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21041.png",
+        "description": "Applying a debuff grants damage +1 per stack, maximum 3, until your next turn. With an Effect Hit bonus of at least +3, also gain attack bonus +1.",
+        "catalogId": "21041",
+        "draftId": 69,
+        "rarity": 4
+      }
+    }
+  }
+}

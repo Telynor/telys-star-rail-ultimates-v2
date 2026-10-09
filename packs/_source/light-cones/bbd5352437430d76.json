@@ -1,0 +1,50 @@
+{
+  "_key": "!items!bbd5352437430d76",
+  "_id": "bbd5352437430d76",
+  "name": "Echoes of the Coffin",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23008.png",
+  "system": {
+    "description": {
+      "value": "<p>Attack bonus +2. An attack restores 1 Energy per distinct target hit, capped at 3 per turn. Your Ultimate grants party speed +10 feet for 1 turn.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching abundance Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "abundance"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "abundance",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23008.png",
+        "description": "Attack bonus +2. An attack restores 1 Energy per distinct target hit, capped at 3 per turn. Your Ultimate grants party speed +10 feet for 1 turn.",
+        "catalogId": "23008",
+        "draftId": 38,
+        "rarity": 5
+      }
+    }
+  }
+}

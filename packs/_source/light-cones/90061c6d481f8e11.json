@@ -1,0 +1,50 @@
+{
+  "_key": "!items!90061c6d481f8e11",
+  "_id": "90061c6d481f8e11",
+  "name": "Night of Fright",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23017.png",
+  "system": {
+    "description": {
+      "value": "<p>Energy Regeneration score +2. An ally's Ultimate heals the lowest-HP-percentage ally for 3 HP, once per round. Your healing grants its recipient attack bonus +1 per stack, maximum 3, for 2 turns.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching abundance Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "abundance"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "abundance",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23017.png",
+        "description": "Energy Regeneration score +2. An ally's Ultimate heals the lowest-HP-percentage ally for 3 HP, once per round. Your healing grants its recipient attack bonus +1 per stack, maximum 3, for 2 turns.",
+        "catalogId": "23017",
+        "draftId": 89,
+        "rarity": 5
+      }
+    }
+  }
+}

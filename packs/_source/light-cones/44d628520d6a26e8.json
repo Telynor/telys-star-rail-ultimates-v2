@@ -1,0 +1,50 @@
+{
+  "_key": "!items!44d628520d6a26e8",
+  "_id": "44d628520d6a26e8",
+  "name": "Mutual Demise",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/20016.png",
+  "system": {
+    "description": {
+      "value": "<p>While below 80% maximum HP, critical threshold −1.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching destruction Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "destruction"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "destruction",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/20016.png",
+        "description": "While below 80% maximum HP, critical threshold −1.",
+        "catalogId": "20016",
+        "draftId": 87,
+        "rarity": 4
+      }
+    }
+  }
+}

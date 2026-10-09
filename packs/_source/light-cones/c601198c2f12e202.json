@@ -1,0 +1,50 @@
+{
+  "_key": "!items!c601198c2f12e202",
+  "_id": "c601198c2f12e202",
+  "name": "Resolution Shines As Pearls of Sweat",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21015.png",
+  "system": {
+    "description": {
+      "value": "<p>Once per turn, a hit forces a Constitution save. Failure applies Ensnared: AC −1 until the end of its next turn. Refreshes, does not stack.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching nihility Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "nihility"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "nihility",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21015.png",
+        "description": "Once per turn, a hit forces a Constitution save. Failure applies Ensnared: AC −1 until the end of its next turn. Refreshes, does not stack.",
+        "catalogId": "21015",
+        "draftId": 110,
+        "rarity": 4
+      }
+    }
+  }
+}

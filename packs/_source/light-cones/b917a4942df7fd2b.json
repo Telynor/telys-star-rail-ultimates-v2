@@ -1,0 +1,50 @@
+{
+  "_key": "!items!b917a4942df7fd2b",
+  "_id": "b917a4942df7fd2b",
+  "name": "Quid Pro Quo",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21021.png",
+  "system": {
+    "description": {
+      "value": "<p>At your turn start, restore 3 Energy to one random other conscious ally below half Energy. Once per turn.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching abundance Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "abundance"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "abundance",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21021.png",
+        "description": "At your turn start, restore 3 Energy to one random other conscious ally below half Energy. Once per turn.",
+        "catalogId": "21021",
+        "draftId": 105,
+        "rarity": 4
+      }
+    }
+  }
+}

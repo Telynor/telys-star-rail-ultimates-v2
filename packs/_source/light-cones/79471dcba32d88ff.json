@@ -1,0 +1,50 @@
+{
+  "_key": "!items!79471dcba32d88ff",
+  "_id": "79471dcba32d88ff",
+  "name": "Solitary Healing",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/24003.png",
+  "system": {
+    "description": {
+      "value": "<p>Break Effect score +3. Your Ultimate grants a 2-turn window: DoTs you apply during it gain +1 turn. An enemy defeated while carrying your DoT restores 3 Energy, once per turn.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching nihility Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "nihility"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "nihility",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/24003.png",
+        "description": "Break Effect score +3. Your Ultimate grants a 2-turn window: DoTs you apply during it gain +1 turn. An enemy defeated while carrying your DoT restores 3 Energy, once per turn.",
+        "catalogId": "24003",
+        "draftId": 125,
+        "rarity": 5
+      }
+    }
+  }
+}

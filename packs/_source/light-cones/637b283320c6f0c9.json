@@ -1,0 +1,50 @@
+{
+  "_key": "!items!637b283320c6f0c9",
+  "_id": "637b283320c6f0c9",
+  "name": "Dance at Sunset",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23030.png",
+  "system": {
+    "description": {
+      "value": "<p>Critical damage bonus +4. Your Ultimate grants Firedance, maximum 2 stacks: follow-up damage +2 per stack for 2 turns. Once per turn, a hit can provoke the target until your next turn.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching destruction Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "destruction"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "destruction",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23030.png",
+        "description": "Critical damage bonus +4. Your Ultimate grants Firedance, maximum 2 stacks: follow-up damage +2 per stack for 2 turns. Once per turn, a hit can provoke the target until your next turn.",
+        "catalogId": "23030",
+        "draftId": 27,
+        "rarity": 5
+      }
+    }
+  }
+}

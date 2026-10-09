@@ -1,0 +1,50 @@
+{
+  "_key": "!items!dd322602b490b047",
+  "_id": "dd322602b490b047",
+  "name": "Lingering Tear",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/20024.png",
+  "system": {
+    "description": {
+      "value": "<p>At 10 or more Punchline, critical damage bonus +2.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching elation Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "elation"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "elation",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/20024.png",
+        "description": "At 10 or more Punchline, critical damage bonus +2.",
+        "catalogId": "20024",
+        "draftId": 74,
+        "rarity": 4
+      }
+    }
+  }
+}

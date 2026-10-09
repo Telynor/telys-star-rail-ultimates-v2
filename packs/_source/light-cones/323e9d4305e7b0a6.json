@@ -1,0 +1,50 @@
+{
+  "_key": "!items!323e9d4305e7b0a6",
+  "_id": "323e9d4305e7b0a6",
+  "name": "A Trail of Bygone Blood",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21058.png",
+  "system": {
+    "description": {
+      "value": "<p>Critical threshold −1. Skill and Ultimate hits deal +2 damage.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching destruction Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "destruction"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "destruction",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21058.png",
+        "description": "Critical threshold −1. Skill and Ultimate hits deal +2 damage.",
+        "catalogId": "21058",
+        "draftId": 7,
+        "rarity": 4
+      }
+    }
+  }
+}

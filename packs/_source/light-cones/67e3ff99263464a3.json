@@ -1,0 +1,50 @@
+{
+  "_key": "!items!67e3ff99263464a3",
+  "_id": "67e3ff99263464a3",
+  "name": "Holiday Thermae Escapade",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/21061.png",
+  "system": {
+    "description": {
+      "value": "<p>Deal +1 damage. A hit forces a Constitution save; on failure, that target takes +1 damage from each qualifying allied hit for 2 turns. No duplicate stacking.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching nihility Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "nihility"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "nihility",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/21061.png",
+        "description": "Deal +1 damage. A hit forces a Constitution save; on failure, that target takes +1 damage from each qualifying allied hit for 2 turns. No duplicate stacking.",
+        "catalogId": "21061",
+        "draftId": 57,
+        "rarity": 4
+      }
+    }
+  }
+}

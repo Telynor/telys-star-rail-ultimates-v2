@@ -1,0 +1,50 @@
+{
+  "_key": "!items!c24d951bf6e007a1",
+  "_id": "c24d951bf6e007a1",
+  "name": "Long Road Leads Home",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/23035.png",
+  "system": {
+    "description": {
+      "value": "<p>Break Effect score +2. Whenever an ally Breaks an enemy, that enemy gains Charring: +1 Break damage taken per stack, capped at 2, for 2 turns.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching nihility Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "nihility"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "nihility",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/23035.png",
+        "description": "Break Effect score +2. Whenever an ally Breaks an enemy, that enemy gains Charring: +1 Break damage taken per stack, capped at 2, for 2 turns.",
+        "catalogId": "23035",
+        "draftId": 76,
+        "rarity": 5
+      }
+    }
+  }
+}

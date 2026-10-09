@@ -1,0 +1,50 @@
+{
+  "_key": "!items!f3974f46d0974292",
+  "_id": "f3974f46d0974292",
+  "name": "Meshing Cogs",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/20012.png",
+  "system": {
+    "description": {
+      "value": "<p>Attacking or being hit restores 2 Energy. Combined limit: once per turn.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching harmony Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "harmony"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "harmony",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/20012.png",
+        "description": "Attacking or being hit restores 2 Energy. Combined limit: once per turn.",
+        "catalogId": "20012",
+        "draftId": 83,
+        "rarity": 4
+      }
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "_key": "!items!6d0309fa99016cf0",
+  "_id": "6d0309fa99016cf0",
+  "name": "Ninja Record: Sound Hunt",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/22003.png",
+  "system": {
+    "description": {
+      "value": "<p>Maximum HP +5. Losing or recovering HP grants critical damage bonus +3 for 2 turns, once per turn.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching destruction Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "destruction"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "destruction",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/22003.png",
+        "description": "Maximum HP +5. Losing or recovering HP grants critical damage bonus +3 for 2 turns, once per turn.",
+        "catalogId": "22003",
+        "draftId": 91,
+        "rarity": 4
+      }
+    }
+  }
+}

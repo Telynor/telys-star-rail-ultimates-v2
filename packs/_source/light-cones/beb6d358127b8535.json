@@ -1,0 +1,50 @@
+{
+  "_key": "!items!beb6d358127b8535",
+  "_id": "beb6d358127b8535",
+  "name": "Hey, Over Here",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/22001.png",
+  "system": {
+    "description": {
+      "value": "<p>Maximum HP +5. Your Skill grants outgoing healing +2 for 2 turns.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching abundance Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "rare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "abundance"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "abundance",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/22001.png",
+        "description": "Maximum HP +5. Your Skill grants outgoing healing +2 for 2 turns.",
+        "catalogId": "22001",
+        "draftId": 55,
+        "rarity": 4
+      }
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "_key": "!items!e1f972b6931e0c08",
+  "_id": "e1f972b6931e0c08",
+  "name": "Texture of Memories",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/24002.png",
+  "system": {
+    "description": {
+      "value": "<p>Saving throws +1. Being hit without temporary HP grants 5 temporary HP lasting 2 turns, with a 3-turn cooldown. While you have temporary HP, reduce incoming damage by 1 per hit.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching preservation Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "preservation"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "preservation",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/24002.png",
+        "description": "Saving throws +1. Being hit without temporary HP grants 5 temporary HP lasting 2 turns, with a 3-turn cooldown. While you have temporary HP, reduce incoming damage by 1 per hit.",
+        "catalogId": "24002",
+        "draftId": 131,
+        "rarity": 5
+      }
+    }
+  }
+}
