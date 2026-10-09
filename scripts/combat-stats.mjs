@@ -2,7 +2,7 @@ const ID='telys-star-rail-ultimates', FLAG='combatStatBuffs';
 const numeric=x=>Number.isFinite(Number(x))?Number(x):0;
 const esc=x=>foundry.utils.escapeHTML(String(x??''));
 const active=actor=>{const b=actor.getFlag(ID,FLAG);return game.combat?.started&&b?.combatId===game.combat.id?b:{values:{},planar:{}}};
-const criticalView=(actor,base)=>{const p=window.TelysPlanar.criticalSnapshot(actor,base),cone=game.modules.get(ID)?.api?.lightCones?.snapshot(actor)??{},override=active(actor).threshold;const automatic=Math.min(p.automatic,Math.max(15,p.automatic-numeric(cone.crit)));return {...p,automatic,threshold:Number.isFinite(override)?override:automatic,critDamageBonus:p.critDamageBonus+numeric(cone.critDamage)}};
+const criticalView=(actor,base)=>{const p=window.TelysPlanar.criticalSnapshot(actor,base),cone=game.modules.get(ID)?.api?.lightCones?.snapshot(actor)??{},override=active(actor).threshold;const automatic=Math.min(p.automatic,Math.max(cone.critFloor??15,p.automatic-numeric(cone.crit)));return {...p,automatic,threshold:Number.isFinite(override)?override:automatic,critDamageBonus:p.critDamageBonus+numeric(cone.critDamage)}};
 const effect=actor=>actor.effects.find(e=>e.getFlag(ID,'combatStatBuff'));
 function standardActor(actor){
   const data=actor.toObject();const b=active(actor);if(b.hpDelta)data.system.attributes.hp.value=Math.max(0,numeric(data.system.attributes.hp.value)-b.hpDelta);data.effects=data.effects.filter(e=>!e.flags?.[ID]?.combatStatBuff&&!e.flags?.['telys-planar-ornaments']?.statBonus&&!e.flags?.['telys-planar-ornaments']?.hsrBonus);

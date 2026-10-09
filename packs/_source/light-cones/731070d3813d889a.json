@@ -1,0 +1,50 @@
+{
+  "_key": "!items!731070d3813d889a",
+  "_id": "731070d3813d889a",
+  "name": "As the Joyseeker Remembers It",
+  "type": "loot",
+  "img": "modules/telys-star-rail-ultimates/assets/light-cones/custom-joyseeker.png",
+  "system": {
+    "description": {
+      "value": "<p>Critical threshold −1 per distinct element represented by living Elation teammates, including the wearer. At each Aha Instant, roll 1d20 against the wearer’s effective critical threshold. On success, all Elation Action damage is doubled for this Aha sequence. The GM confirms whether another player has already enabled Aha Instant to crit. If yes, all living Elation teammates gain 5 Energy plus their Energy Regeneration modifier. If no, announce: AHA INSTANT CAN NOW CRIT.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching elation Path required.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Honkai: Star Rail / Telys D&D conversion"
+    },
+    "quantity": 1,
+    "weight": {
+      "value": 0,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    },
+    "rarity": "veryRare",
+    "identified": true,
+    "properties": [],
+    "type": {
+      "value": "lightCone",
+      "subtype": "elation"
+    }
+  },
+  "effects": [],
+  "folder": null,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "telys-star-rail-ultimates": {
+      "lightCone": {
+        "enabled": true,
+        "pathId": "elation",
+        "image": "modules/telys-star-rail-ultimates/assets/light-cones/custom-joyseeker.png",
+        "description": "Critical threshold −1 per distinct element represented by living Elation teammates, including the wearer. At each Aha Instant, roll 1d20 against the wearer’s effective critical threshold. On success, all Elation Action damage is doubled for this Aha sequence. The GM confirms whether another player has already enabled Aha Instant to crit. If yes, all living Elation teammates gain 5 Energy plus their Energy Regeneration modifier. If no, announce: AHA INSTANT CAN NOW CRIT.",
+        "catalogId": "custom-joyseeker",
+        "draftId": 171,
+        "rarity": 5
+      }
+    }
+  }
+}

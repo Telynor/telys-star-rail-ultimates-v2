@@ -1618,5 +1618,15 @@
     "description": "Critical threshold \u22121. Your follow-ups gain +1 damage per 3 points of total critical damage bonus, capped at +3. At combat start and after a Basic, Ultimate and follow-up damage +2 for 2 turns.",
     "image": "modules/telys-star-rail-ultimates/assets/light-cones/23028.png",
     "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23028.png"
+  },
+  {
+    "draftId": 171,
+    "id": "custom-joyseeker",
+    "name": "As the Joyseeker Remembers It",
+    "rarity": 5,
+    "path": "elation",
+    "description": "Critical threshold \u22121 per distinct element represented by living Elation teammates, including the wearer. At each Aha Instant, roll 1d20 against the wearer\u2019s effective critical threshold. On success, all Elation Action damage is doubled for this Aha sequence. The GM confirms whether another player has already enabled Aha Instant to crit. If yes, all living Elation teammates gain 5 Energy plus their Energy Regeneration modifier. If no, announce: AHA INSTANT CAN NOW CRIT.",
+    "image": "modules/telys-star-rail-ultimates/assets/light-cones/custom-joyseeker.png",
+    "imageSource": null
   }
 ]

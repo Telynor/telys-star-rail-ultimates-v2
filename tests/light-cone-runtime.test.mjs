@@ -186,3 +186,25 @@ test("temporary initiative is removed without overwriting a subsequent GM adjust
   assert.equal(c.initiative, 18);
   assert.equal(f, null);
 });
+
+test("Joyseeker uses distinct living Elation elements, sheet threshold and a successful GM prompt", async () => {
+  const {joyseekerThreshold,joyseekerAha} = await import('../scripts/light-cones.mjs');
+  const oldCombat=game.combat, oldCreate=ChatMessage.create;
+  const wearer=actor('joy','elation'), ally=actor('ally','elation'), duplicate=actor('duplicate','elation'), fallen=actor('fallen','elation');
+  for (const [a,element] of [[wearer,'fire'],[ally,'ice'],[duplicate,'ice'],[fallen,'wind']]) a.flags.ultimate.elementId=element;
+  wearer.name='Wearer'; wearer.system.attributes.crit={threshold:19}; fallen.system.attributes.hp.value=0;
+  wearer.items.set('cone',{name:'As the Joyseeker Remembers It',type:'loot',getFlag:()=>({enabled:true,catalogId:'custom-joyseeker',draftId:171,pathId:'elation',image:'card.png',description:'Custom cone'})});
+  const flags={},aha={id:'aha',getFlag:()=>true};
+  game.combat={id:'joycombat',round:1,started:true,combatant:aha,combatants:[wearer,ally,duplicate,fallen].map(a=>({actor:a,getFlag:()=>null})),getFlag:(_,k)=>flags[k],setFlag:async(_,k,v)=>{flags[k]=v}};
+  const chats=[];ChatMessage.create=async msg=>chats.push(msg);let prompts=0;globalThis.Dialog={confirm:async()=>{prompts++;return false}};
+  try {
+    assert.equal(joyseekerThreshold(wearer),17);
+    wearer.flags.combatStatBuffs={combatId:'joycombat',threshold:3};
+    await joyseekerAha(game.combat,{combatant:aha,sequenceKey:'sequence',round:1});
+    assert.equal(prompts,1);assert.equal(flags.joyseekerAha.critical,true);
+    assert.match(chats[0].content,/AHA INSTANT CAN NOW CRIT/);
+    wearer.flags.combatStatBuffs.threshold=4;
+    await joyseekerAha(game.combat,{combatant:aha,sequenceKey:'next',round:1});
+    assert.equal(prompts,1);assert.equal(flags.joyseekerAha.critical,false);
+  } finally {game.combat=oldCombat;ChatMessage.create=oldCreate;delete globalThis.Dialog;}
+});

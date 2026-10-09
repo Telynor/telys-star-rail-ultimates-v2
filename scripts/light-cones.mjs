@@ -95,6 +95,7 @@ function context(a, target = null, event = {}) {
     ts = tags(t),
     c = cfg(a);
   return {
+    elationElements: new Set(friends(a).filter(isElationActor).map(b => cfg(b).elementId).filter(Boolean)).size,
     hp: hpRatio(a),
     targetHP: hpRatio(t),
     energy: c.current,
@@ -1476,6 +1477,49 @@ function resolveTargets(list) {
     ).values(),
   ];
 }
+function isElationActor(actor) {
+  const path = cfg(actor).pathId;
+  return actor?.type === "character" && (path === "elation" || path === game.settings.get(ID, "ahaConfig")?.elationPathId || game.settings.get(ID, "paths")?.some?.(p => p.id === path && p.name?.toLowerCase() === "elation"));
+}
+export function joyseekerThreshold(actor) {
+  const override = actor.getFlag(ID, "combatStatBuffs");
+  if (override?.combatId === game.combat?.id && Number.isFinite(override.threshold)) return override.threshold;
+  const thresholds = [];
+  for (const item of actor.items?.values?.() ?? actor.items ?? []) {
+    if (item.system?.equipped === false) continue;
+    const activities = item.system?.activities;
+    for (const activity of activities?.values?.() ?? Object.values(activities ?? {})) {
+      if (activity.type === "attack" || activity.attack) {
+        const n = Number(activity.criticalThreshold ?? activity.attack?.critical?.threshold ?? item.system?.criticalThreshold);
+        if (Number.isFinite(n) && n >= 2 && n <= 20) thresholds.push(n);
+      }
+    }
+  }
+  const sheetThreshold = Number(actor.system?.attributes?.crit?.threshold);
+  if (Number.isFinite(sheetThreshold) && sheetThreshold >= 2 && sheetThreshold <= 20) thresholds.push(sheetThreshold);
+  const base = globalThis.window?.TelysPlanar?.criticalSnapshot(actor)?.automatic ?? Math.min(20, ...thresholds);
+  const stats = snapshot(actor);
+  return Math.min(base, Math.max(stats.critFloor ?? 15, base - number(stats.crit)));
+}
+function joyseekerActive(combat = game.combat) {
+  const state = combat?.getFlag(ID, "joyseekerAha"), current = combat?.combatant;
+  return Boolean(state?.critical && current && (current.getFlag(ID, "elationActionCombatant") ? current.getFlag(ID, "sequenceKey") === state.sequenceKey : current.getFlag(ID, "ahaInstantCombatant") && current.id === state.ahaId && combat.round === state.round));
+}
+export async function joyseekerAha(combat, detail) {
+  await combat.setFlag(ID, "joyseekerAha", {sequenceKey: detail.sequenceKey, ahaId: detail.combatant.id, round: combat.round, critical: false});
+  for (const actor of combatActors().filter(a => hpRatio(a) > 0 && cone(a)?.id === 171)) {
+    const c = cone(actor), threshold = joyseekerThreshold(actor), roll = await new Roll("1d20").evaluate();
+    await roll.toMessage({speaker: ChatMessage.getSpeaker({actor}), flavor: `${esc(c.item.name)} — Aha Instant critical check: ${roll.total} against ${threshold}`});
+    if (roll.total < threshold) continue;
+    const yes = await Dialog.confirm({title: "As the Joyseeker Remembers It", content: `<p>${esc(actor.name)} rolled ${roll.total}, meeting the critical threshold of ${threshold}.</p><p>Has at least one other player already enabled this Aha Instant to crit?</p><p>Yes grants 5 Energy plus Energy Regeneration to living Elation teammates. Elation Action damage is doubled for this Aha sequence either way.</p>`, defaultYes: false});
+    // The sequence must still be active when the GM answers.
+    const current = combat.combatant;
+    if (!combat.started || current?.id !== detail.combatant.id || combat.round !== detail.round) continue;
+    await combat.setFlag(ID, "joyseekerAha", {sequenceKey: detail.sequenceKey, ahaId: current.id, round: combat.round, critical: true});
+    if (yes) for (const ally of friends(actor).filter(isElationActor)) await energy(ally, Math.max(0, 5 + Math.floor((number(cfg(ally).regenScore) - 10) / 2)));
+    await ChatMessage.create({speaker: ChatMessage.getSpeaker({actor}), content: `<article class="tsru-ability-chat"><h3>${esc(c.item.name)}</h3><img src="${esc(c.image)}" style="max-height:180px"><p>${esc(c.description)}</p><strong>${yes ? "SECOND AHA CRITICAL INSTANCE: Elation teammates gain Energy." : "AHA INSTANT CAN NOW CRIT"}</strong><p>All Elation Action damage is doubled for this Aha sequence.</p></article>`});
+  }
+}
 export function handle(type, detail = {}, eventKey = "") {
   if (!auth()) return;
   return enqueue(async () => {
@@ -1489,6 +1533,7 @@ export function handle(type, detail = {}, eventKey = "") {
       await combat.setFlag(ID, "lightConeProcessed", stored.slice(-300));
     }
     const a = detail.sourceActor;
+    if (type === "ahaInstant") { await joyseekerAha(combat, detail); return; }
     if (type === "combatStart") {
       for (const actor of combatActors()) {
         await actor.unsetFlag(ID, FLAG);
@@ -1738,6 +1783,9 @@ function calculateBonus(target, damages, options) {
     crit = Boolean(workflow?.isCritical || options.isCritical);
   let bonus = number(o.damage) + (crit ? number(o.critDamage) : 0);
   if (bonus) first.value += bonus;
+  if (cat === "elation" && isElationActor(source) && joyseekerActive()) {
+    for (const damage of damages) if (number(damage.value) > 0 && CONFIG.DND5E.damageTypes[damage.type]) damage.value *= 2;
+  }
 }
 function rollCrit(config) {
   const a = config.subject?.actor;
@@ -1758,7 +1806,7 @@ function rollCrit(config) {
     const base = number(
       options.criticalSuccess ?? config.subject.criticalThreshold ?? 20,
     );
-    options.criticalSuccess = Math.min(base, Math.max(15, base - o.crit));
+    options.criticalSuccess = Math.min(base, Math.max(o.critFloor ?? 15, base - o.crit));
   }
   if (
     marks(a).some(

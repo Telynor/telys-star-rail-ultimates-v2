@@ -1612,6 +1612,7 @@ async function createElationActionTurns(combat) {
   if (state.lastElationSequenceKey === sequenceKey) return combat.combatants.filter(isElationActionCombatant);
   state.lastElationSequenceKey = sequenceKey;
   await clearElationActionTurns(combat);
+  await dispatchTalentEvent("ahaInstant", {combat,combatant:aha,sequenceKey,round:combat.round}, sequenceKey);
   const pathId = getAhaConfig().elationPathId;
   if (!pathId) { if (!await finishSpecialAha(combat)) await setPunchline(0); return []; }
 

@@ -2,6 +2,11 @@ import { readFile, mkdir, writeFile } from 'node:fs/promises';
 const cones = JSON.parse(await readFile('data/light-cones.json', 'utf8'));
 await mkdir('assets/light-cones', { recursive: true });
 for (const cone of cones) {
+  if (!cone.imageSource) {
+    const local = await readFile(`assets/light-cones/${cone.id}.png`);
+    if (local.subarray(0, 8).toString("hex") !== "89504e470d0a1a0a") throw new Error(`${cone.name}: missing or invalid custom artwork`);
+    continue;
+  }
   const response = await fetch(cone.imageSource);
   if (!response.ok) throw new Error(`${cone.name}: HTTP ${response.status}`);
   const bytes = Buffer.from(await response.arrayBuffer());

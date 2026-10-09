@@ -162,6 +162,7 @@ export function passive(id, x = {}) {
     t = x.targetHP ?? 1,
     d = x.debuffs ?? 0,
     max = x.maxEnergy ?? 100;
+  if (id === 171) { add("crit", Math.max(0, number(x.elationElements))); o.critFloor = 2; }
   const basic = cat === "basic" || cat === "enhancedBasic",
     skill = cat === "skill",
     ult = cat === "ultimate",

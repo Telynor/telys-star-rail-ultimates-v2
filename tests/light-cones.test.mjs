@@ -78,12 +78,12 @@ test("maximum HP, AC and speed modifiers never replace the sheet values", () => 
   assert.equal(passive(99, { stacks: { erodeSpeed: 3 } }).speed, 15);
   assert.equal(passive(34, { ac: 30 }).damage, 3);
 });
-test("all 162 compendium documents have local transparent PNGs and only 4/5-star rarity", async () => {
+test("all 163 compendium documents have local transparent PNGs and only 4/5-star rarity", async () => {
   const rows = JSON.parse(
     await readFile(new URL("../data/light-cones.json", import.meta.url)),
   );
-  assert.equal(rows.length, 162);
-  assert.equal(new Set(rows.map((x) => x.id)).size, 162);
+  assert.equal(rows.length, 163);
+  assert.equal(new Set(rows.map((x) => x.id)).size, 163);
   const db = new ClassicLevel(
     new URL("../packs/light-cones", import.meta.url).pathname,
     { keyEncoding: "utf8", valueEncoding: "json" },
@@ -99,7 +99,7 @@ test("all 162 compendium documents have local transparent PNGs and only 4/5-star
     count++;
   }
   await db.close();
-  assert.equal(count, 162);
+  assert.equal(count, 163);
   for (const row of rows) {
     assert.ok(row.rarity >= 4);
     const b = await readFile(
@@ -111,4 +111,10 @@ test("all 162 compendium documents have local transparent PNGs and only 4/5-star
       "PNG must have an alpha channel: " + row.name,
     );
   }
+});
+
+test("Joyseeker subtracts one threshold point per distinct Elation element", () => {
+  assert.equal(passive(171, {elationElements:3}).crit, 3);
+  assert.equal(passive(171, {elationElements:0}).crit, 0);
+  assert.equal(passive(171, {elationElements:3}).critFloor, 2);
 });
