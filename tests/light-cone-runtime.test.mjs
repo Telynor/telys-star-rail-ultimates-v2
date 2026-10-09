@@ -55,7 +55,7 @@ function actor(id, path = "nihility") {
       async unsetFlag(_, k) {
         delete flags[k];
       },
-      prepareData() {},
+      reset() {},
       calls: [],
       async applyDamage(d, o) {
         this.calls.push({ d, o });

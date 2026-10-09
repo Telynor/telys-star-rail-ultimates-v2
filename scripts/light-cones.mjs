@@ -13,10 +13,10 @@ let api,
   catalog = [],
   queue = Promise.resolve();
 const cfg = (a) => api?.getConfig(a) ?? a?.getFlag(ID, "ultimate") ?? {};
+// Use the same first-active-GM authority as the combat module. Sorting user
+// IDs here can elect a different GM and discard its forwarded combat events.
 const auth = () =>
-  game.users
-    .filter((u) => u.active && u.isGM)
-    .sort((a, b) => a.id.localeCompare(b.id))[0]?.id === game.user.id;
+  Boolean(game.user?.isGM && game.users.find((u) => u.active && u.isGM)?.id === game.user.id);
 const enqueue = (f) => {
   queue = queue.then(f).catch((e) => {
     console.error(ID + " | Light Cones", e);
@@ -286,7 +286,7 @@ export function snapshot(a, target = null, event = {}) {
 }
 async function save(a, s) {
   await a.setFlag(ID, FLAG, s);
-  a.prepareData();
+  a.reset();
 }
 const turnKey = () =>
   game.combat?.id + ":" + game.combat?.round + ":" + game.combat?.combatant?.id;
@@ -561,7 +561,9 @@ export async function tickDots(a, key) {
   }
 }
 function refreshActors() {
-  for (const a of combatActors()) a.prepareData();
+  // Rebuild from source before preparation. Reusing the prepared D&D5e model
+  // attempts to define its nonconfigurable senses shims a second time.
+  for (const a of combatActors()) a.reset();
 }
 async function event(a, e) {
   const c = cone(a);
@@ -1507,11 +1509,32 @@ function joyseekerActive(combat = game.combat) {
 }
 export async function joyseekerAha(combat, detail) {
   await combat.setFlag(ID, "joyseekerAha", {sequenceKey: detail.sequenceKey, ahaId: detail.combatant.id, round: combat.round, critical: false});
-  for (const actor of combatActors().filter(a => hpRatio(a) > 0 && cone(a)?.id === 171)) {
-    const c = cone(actor), threshold = joyseekerThreshold(actor), roll = await new Roll("1d20").evaluate();
-    await roll.toMessage({speaker: ChatMessage.getSpeaker({actor}), flavor: `${esc(c.item.name)} — Aha Instant critical check: ${roll.total} against ${threshold}`});
-    if (roll.total < threshold) continue;
-    const yes = await Dialog.confirm({title: "As the Joyseeker Remembers It", content: `<p>${esc(actor.name)} rolled ${roll.total}, meeting the critical threshold of ${threshold}.</p><p>Has at least one other player already enabled this Aha Instant to crit?</p><p>Yes grants 5 Energy plus Energy Regeneration to living Elation teammates. Elation Action damage is doubled for this Aha sequence either way.</p>`, defaultYes: false});
+  for (const actor of combatActors()) {
+    const item = actor.items?.get(actor.getFlag(ID, "selectedLightConeItemId"));
+    const data = item?.getFlag?.(ID, "lightCone");
+    if (data?.catalogId !== "custom-joyseeker" && Number(data?.draftId) !== 171 && item?.name !== "As the Joyseeker Remembers It") continue;
+    const c = cone(actor);
+    if (!c || c.id !== 171) {
+      globalThis.ui?.notifications?.warn(`${actor.name}: Joyseeker's Aha check was skipped. The equipped cone must have enabled compendium automation and a matching Elation Path.`);
+      continue;
+    }
+    if (hpRatio(actor) <= 0) {
+      globalThis.ui?.notifications?.warn(`${actor.name}: Joyseeker's Aha check was skipped because the wearer has no remaining HP.`);
+      continue;
+    }
+    const threshold = joyseekerThreshold(actor), roll = await new Roll("1d20").evaluate();
+    const success = roll.total >= threshold;
+    await roll.toMessage({speaker: ChatMessage.getSpeaker({actor}), flavor: `${esc(c.item.name)} — Aha Instant critical check: ${roll.total} against ${threshold} — ${success ? "PASSED" : "FAILED (no critical activation)"}`});
+    if (!success) {
+      globalThis.ui?.notifications?.info(`${actor.name}: Joyseeker rolled ${roll.total} against ${threshold}. The check failed, so there is no critical confirmation this Aha Instant.`);
+      continue;
+    }
+    const title = "Can Aha Instant crit this turn?";
+    const content = `<h3>Aha Instant can crit this turn.</h3><p>${esc(actor.name)} rolled ${roll.total}, meeting the critical threshold of ${threshold}.</p><p><strong>Has at least one other player already enabled this Aha Instant to crit?</strong></p><p>Yes grants 5 Energy plus Energy Regeneration to living Elation teammates. Elation Action damage is doubled for this Aha sequence either way.</p>`;
+    const DialogV2 = globalThis.foundry?.applications?.api?.DialogV2;
+    const yes = typeof DialogV2?.confirm === "function"
+      ? await DialogV2.confirm({window: {title}, content, modal: true, rejectClose: false, yes: {label: "Yes — another source", default: false}, no: {label: "No — first source", default: true}})
+      : await Dialog.confirm({title, content, yes: () => true, no: () => false, defaultYes: false});
     // The sequence must still be active when the GM answers.
     const current = combat.combatant;
     if (!combat.started || current?.id !== detail.combatant.id || combat.round !== detail.round) continue;

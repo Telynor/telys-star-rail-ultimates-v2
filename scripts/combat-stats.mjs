@@ -7,8 +7,8 @@ const effect=actor=>actor.effects.find(e=>e.getFlag(ID,'combatStatBuff'));
 function standardActor(actor){
   const data=actor.toObject();const b=active(actor);if(b.hpDelta)data.system.attributes.hp.value=Math.max(0,numeric(data.system.attributes.hp.value)-b.hpDelta);data.effects=data.effects.filter(e=>!e.flags?.[ID]?.combatStatBuff&&!e.flags?.['telys-planar-ornaments']?.statBonus&&!e.flags?.['telys-planar-ornaments']?.hsrBonus);
   if(data.flags?.[ID]){delete data.flags[ID][FLAG];delete data.flags[ID].planarCritAdjustment;}
-  let copy=actor.clone(data,{keepId:true});copy.prepareData();
-  for(let pass=0;pass<2;pass++){const effects=window.TelysPlanar.standardStatEffects(copy);copy=actor.clone({...data,effects:[...data.effects,...effects]},{keepId:true});copy.prepareData();}
+  let copy=actor.clone(data,{keepId:true});copy.reset();
+  for(let pass=0;pass<2;pass++){const effects=window.TelysPlanar.standardStatEffects(copy);copy=actor.clone({...data,effects:[...data.effects,...effects]},{keepId:true});copy.reset();}
   return copy;
 }
 function descriptors(actor,getConfig){
@@ -29,13 +29,13 @@ async function persist(actor,b){
   const old=effect(actor);
   if(changes.length){if(old)await old.update({changes});else await actor.createEmbeddedDocuments('ActiveEffect',[{name:'Temporary combat buffs',changes,flags:{[ID]:{combatStatBuff:true,combatId:b.combatId}}}]);}
   else if(old)await old.delete();
-  await window.TelysPlanar?.syncCombatStats?.(actor);actor.prepareData();
+  await window.TelysPlanar?.syncCombatStats?.(actor);actor.reset();
 }
 export async function resetCombatBuffs(actor){
   const b=actor.getFlag(ID,FLAG);if(!b)return;
   if(b.hpDelta)await actor.update({'system.attributes.hp.value':Math.max(0,numeric(actor.system.attributes.hp.value)-b.hpDelta)});
   const old=effect(actor);if(old)await old.delete();
-  await actor.unsetFlag(ID,FLAG);await actor.unsetFlag(ID,'planarCritAdjustment');await window.TelysPlanar?.syncCombatStats?.(actor);actor.prepareData();
+  await actor.unsetFlag(ID,FLAG);await actor.unsetFlag(ID,'planarCritAdjustment');await window.TelysPlanar?.syncCombatStats?.(actor);actor.reset();
 }
 export function showCombatStats({actors,getConfig,isCombatant}){
   const combat=game.combat;
@@ -43,7 +43,7 @@ export function showCombatStats({actors,getConfig,isCombatant}){
   if(!window.TelysPlanar?.combatBuffSupport)return ui.notifications.error('Update Planar Ornaments to v1.0.14 to inspect combat buffs.');
   let dialog;
   const build=()=>actors.filter(isCombatant).map(actor=>{
-    actor.prepareData();const base=standardActor(actor),b=active(actor),current=criticalView(actor),standard=criticalView(base);
+    actor.reset();const base=standardActor(actor),b=active(actor),current=criticalView(actor),standard=criticalView(base);
     const bases=new Map(descriptors(base,getConfig).map(v=>[v.id,v]));
     const row=(id,name,value,original,formula=false)=>`<label class="tsru-combat-stat-row"><span title="${esc(id==='threshold'?'Lowest natural d20 result that counts as a critical hit. Lower numbers increase critical chance.':id==='planar.critDamageBonus'?'Flat additional damage on a critical hit, including sheet, planar and Light Cone bonuses. This is not extra dice.':id==='hp'?'Current hit points. Editing this changes HP immediately.':`Effective ${name}. Editing sets the current combat value; reset restores its automatic baseline.`)}">${esc(name)}</span><input data-stat="${esc(id)}" type="${formula?'text':'number'}" step="1" value="${esc(value)}" title="Sheet + planar + Light Cone: ${esc(original)}"><small class="tsru-stat-baseline" title="Automatic value before manual combat edits: sheet plus planar and active Light Cone effects.">${esc(original)}</small><button type="button" data-reset-value="${esc(id)}" title="Reset to sheet + planar + Light Cone"><i class="fas fa-rotate-left"></i></button></label>`;
     const groups=[['Vitals & movement',v=>['hp','maxHp','ac','speed','initiative','proficiency'].includes(v.id)],['Ability scores & saving throws',v=>v.id.startsWith('ability.')||v.id.startsWith('save.')],['Skill checks',v=>v.id.startsWith('skill.')],['Attacks & HSR scores',v=>v.id.startsWith('attack.')||['breakEffect','regen'].includes(v.id)]];
