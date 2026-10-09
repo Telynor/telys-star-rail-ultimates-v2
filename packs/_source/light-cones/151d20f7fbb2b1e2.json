@@ -6,7 +6,7 @@
   "img": "modules/telys-star-rail-ultimates/assets/light-cones/23012.png",
   "system": {
     "description": {
-      "value": "<p>Critical damage bonus +4. If a Basic or Skill attack misses a critical, critical threshold −2 until your next turn ends. Three-turn cooldown.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching hunt Path required.</p>",
+      "value": "<p>Critical damage bonus +4. After a noncritical Basic or Skill attack, including a miss with no damage roll, critical threshold −1 until your next turn ends. Three-turn cooldown.</p><p><strong>Equipment:</strong> Occupy the Light Cone slot; matching hunt Path required.</p>",
       "chat": ""
     },
     "source": {
@@ -40,7 +40,7 @@
         "enabled": true,
         "pathId": "hunt",
         "image": "modules/telys-star-rail-ultimates/assets/light-cones/23012.png",
-        "description": "Critical damage bonus +4. If a Basic or Skill attack misses a critical, critical threshold −2 until your next turn ends. Three-turn cooldown.",
+        "description": "Critical damage bonus +4. After a noncritical Basic or Skill attack, including a miss with no damage roll, critical threshold −1 until your next turn ends. Three-turn cooldown.",
         "catalogId": "23012",
         "draftId": 123,
         "rarity": 5

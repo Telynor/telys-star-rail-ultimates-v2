@@ -1155,7 +1155,7 @@
     "name": "Sleep Like the Dead",
     "rarity": 5,
     "path": "hunt",
-    "description": "Critical damage bonus +4. If a Basic or Skill attack misses a critical, critical threshold \u22122 until your next turn ends. Three-turn cooldown.",
+    "description": "Critical damage bonus +4. After a noncritical Basic or Skill attack, including a miss with no damage roll, critical threshold \u22121 until your next turn ends. Three-turn cooldown.",
     "image": "modules/telys-star-rail-ultimates/assets/light-cones/23012.png",
     "imageSource": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/light_cone_preview/23012.png"
   },

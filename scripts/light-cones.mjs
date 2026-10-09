@@ -1147,7 +1147,7 @@ async function event(a, e) {
         !e.critical &&
         s.turns - number(s.stacks.sleepCooldown) >= 3
       ) {
-        await self("sleep", { crit: 2 }, 2);
+        await self("sleep", { crit: 1 }, 2);
         await setStack(a, "sleepCooldown", s.turns);
       }
       break;
