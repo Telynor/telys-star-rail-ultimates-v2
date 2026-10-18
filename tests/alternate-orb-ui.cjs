@@ -223,6 +223,7 @@ drawHud();window.ready=true;
       a.flags[id].alternateOrbStates={red:true,white:true,black:true,yellow:true};
       drawHud();
     },{mode,enhanced,id:ID});
+    assert.equal(await page.locator('[data-tsru-party-ultimate]').evaluate(el=>getComputedStyle(el.parentElement,'::before').content),'""','a fully charged Ultimate has its ready halo');
     if(source==='floating')await page.locator('.tsru-orb').click();
     else if(source==='party')await page.locator('[data-tsru-party-ultimate]').click();
     else await page.evaluate(id=>game.modules.get(id).api.requestUltimate(a),ID);
@@ -233,6 +234,7 @@ drawHud();window.ready=true;
     assert.match(await page.evaluate(()=>chatCards.at(-1).content),enhanced?/Enhanced cast description/:/Normal cast description/);
     assert.equal(await page.evaluate(()=>a.getFlag('','ultimate').current),mode==='energy'?0:100);
     if(mode!=='energy')assert.equal(await page.evaluate(()=>a.getFlag('','alternateOrbCounter')),0);
+    assert.equal(await page.locator('[data-tsru-party-ultimate]').evaluate(el=>getComputedStyle(el.parentElement,'::before').content),'none','consuming the Ultimate removes its ready halo');
   }
   // Full queued sequence: cached v14 turn order, real asset fetch/decode and splash
   // DOM/CSS, legacy descriptions, the timer wakeup and completion/resume mechanics.

@@ -15,6 +15,8 @@ The mode checkbox saves immediately. Alternate mode replaces the standard image 
 
 The custom artwork appears in both the floating orb and party HUD. Hotbar activation uses the same counters. Existing ownership checks, enhanced stances, splash art, descriptions, and interrupt/queued turns still apply. Normal Energy is retained separately while alternate mode is used. Casting either alternate mode resets both its independent switches and its circular counter to zero. Existing preview.6 designs default to Free activation.
 
+The combat HUD's ready glow sits above the portrait and behind the Ultimate orb. Its edge is inset beneath the artwork, with a soft halo that pulses in brightness without growing away from the orb. Consuming an Energy, free alternate, or circular alternate Ultimate removes the ready glow.
+
 
 ## Ultimate automation
 
