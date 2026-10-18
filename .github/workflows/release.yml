@@ -42,7 +42,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: alternate-orb-designer-preview
-          path: orb-designer-smoke.png
+          path: |
+            orb-designer-smoke.png
+            ultimate-sequence-smoke.png
           if-no-files-found: ignore
 
       - name: Create Foundry module ZIP

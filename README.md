@@ -24,6 +24,10 @@ Enhanced Ultimate can use its own optional code. Leaving that field blank uses t
 
 If a cast is blocked, the notification identifies a disabled Ultimate system, missing component artwork, or the current Energy/counter progress. Partial charge never runs the code or consumes resources.
 
+Preview.9 repairs the full queued sequence on Foundry v14: the turn order is rebuilt before selecting the temporary Ultimate combatant and again before resuming the interrupted turn. A waiting cast also watches for the allied turn to end, so a missed or suppressed combat hook cannot leave it stuck. Temporary Elation, Talent, Aha, and Action Advance turns do not count as the normal allied turn that must finish first.
+
+Splash artwork renders above application windows. Existing descriptions saved in the older script field are recovered as text without rewriting the actor on read; genuine saved JavaScript still runs. Scripts returning a description or their own ChatMessage are supported, and a failed automation still posts the configured description and cleans up its temporary turn. Explicitly disabled Ultimate systems remain disabled.
+
 ## Eidolon Resonance
 
 Character sheets include a shared GM/player Eidolon tab with six sequential unlocks. GMs can configure the background, five-shard glass layer, isolated E3 layer, title font, per-Eidolon artwork, titles, crop position, zoom, activation state, and a per-character Item used as activation currency.

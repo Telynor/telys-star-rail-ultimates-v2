@@ -103,6 +103,7 @@ const DEFAULT_CONFIG = Object.freeze({
   elationActionScript: "",
   elationActionText: "",
   ultimateScript: "",
+  ultimateScriptMode: "auto",
   ultimateText: "",
   enhancedStanceEnabled: false,
   enhancedStanceActive: false,
@@ -146,6 +147,7 @@ const DEFAULT_CONFIG = Object.freeze({
   enhancedUltimateButtonImage: "",
   enhancedUltimateText: "",
   enhancedUltimateScript: "",
+  enhancedUltimateScriptMode: "auto",
   enhancedEffectText: "",
   splashImage: "",
   splashDuration: 1,
@@ -395,13 +397,37 @@ function resolveActorSheetRoot(app, html) {
   }) ?? enclosingElement ?? appElement ?? htmlElement;
 }
 
+function normalizeUltimateContent(config) {
+  // Older sheets sometimes saved descriptions in the former script field.
+  // Normalize only the cloned view; retain the original for a later sheet save.
+  for (const [scriptKey, textKey, modeKey, backupKey] of [
+    ["ultimateScript", "ultimateText", "ultimateScriptMode", "legacyUltimateScript"],
+    ["enhancedUltimateScript", "enhancedUltimateText", "enhancedUltimateScriptMode", "legacyEnhancedUltimateScript"]
+  ]) {
+    const script = String(config[scriptKey] ?? "").trim();
+    if (!script || config[modeKey] === "code") continue;
+    let prose = /^\s*</.test(script) || /^\s*(?:#{1,6}|[-*]|\d+\.)\s+/.test(script);
+    const code = /(?:^|[;\n{}])\s*(?:const|let|var|await|return|throw|if|for|while|try|function|class)\b|\b(?:actor|token|game|canvas|ui|foundry|Hooks|ChatMessage|Roll|console|tsru|punchline)\s*[.(]/.test(script);
+    if (!prose && !code) {
+      try { new (Object.getPrototypeOf(async function(){}).constructor)(script); }
+      catch { prose = true; }
+      if (/^[\p{L}][\p{L}\p{N}\s'’.,!?:/\[\]+%-]*$/u.test(script)) prose = true;
+    }
+    if (!prose) continue;
+    if (!String(config[textKey] ?? "").trim()) config[textKey] = config[scriptKey];
+    config[backupKey] ??= config[scriptKey];
+    config[scriptKey] = "";
+  }
+  return config;
+}
+
 function getConfig(actor) {
   const stored = actor?.getFlag(MODULE_ID, "ultimate") ?? {};
-  const config = foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_CONFIG), stored, {
+  const config = normalizeUltimateContent(foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_CONFIG), stored, {
     inplace: false,
     insertKeys: true,
     overwrite: true
-  });
+  }));
   config.max = Math.max(1, Number(config.max) || 100);
   config.current = clamp(config.current, 0, config.max);
   config.regenScore = Number(config.regenScore || 0) + Number(actor?._lightConeStats?.regen || 0);
@@ -4151,7 +4177,7 @@ async function showSplash({actorName, image, duration = 1, splashX = 50, splashY
   splash.style.setProperty("--tsru-splash-y", `${clamp(splashY, 0, 100)}%`);
   splash.style.setProperty("--tsru-splash-scale", String(clamp(splashScale, 25, 500) / 100));
   splash.innerHTML = `<div class="tsru-splash-backdrop"></div><div class="tsru-splash-media"><div class="tsru-splash-artwork"><div class="tsru-splash-artboard">${isVideo ? `<video src="${escapeHTML(playbackImage)}" preload="auto" muted playsinline></video>` : `<img src="${escapeHTML(playbackImage)}" alt="${escapeHTML(actorName)} Ultimate">`}</div></div><div class="tsru-title-card tsru-align-${align}"><i class="tsru-title-square tsru-title-square-one"></i><i class="tsru-title-square tsru-title-square-two"></i><div class="tsru-title-copy"><div class="tsru-title-name">${escapeHTML(ultimateName || actorName || "Ultimate")}</div><div class="tsru-title-bar">${ultimateSubtitle ? `<div class="tsru-title-subtitle">${escapeHTML(ultimateSubtitle)}</div>` : ""}</div></div></div></div>`;
-  appendToCanvasLayer(splash);
+  document.body.appendChild(splash);
   if(isVideo){
     const video=splash.querySelector("video");
     await new Promise(resolve=>{
@@ -4227,8 +4253,7 @@ async function requestUltimate(actor) {
   return true;
 }
 
-async function insertUltimateTurn(actor, resume = {}) {
-  const combat = game.combat;
+async function insertUltimateTurn(actor, resume = {}, combat = game.combat) {
   if (!combat?.started) return null;
   const current = combat.combatant;
   const currentInit = Number(current?.initiative ?? 0);
@@ -4247,12 +4272,13 @@ async function insertUltimateTurn(actor, resume = {}) {
     flags: {[MODULE_ID]: {temporaryUltimate: true, resumeCombatantId: resume.combatantId ?? current?.id ?? null, resumeRound: resume.round ?? combat.round}}
   }]);
   if (!temporary) return null;
+  // v14 debounces turn sorting after embedded Combatant creation.
+  combat.setupTurns?.();
   const index = combat.turns.findIndex(entry => entry.id === temporary.id);
-  if (index >= 0) {
-    state.suppressCombatHook = true;
-    await combat.update({turn: index});
-    state.suppressCombatHook = false;
-  }
+  if (index < 0) throw new Error("The new Ultimate combatant is missing from the rebuilt turn order.");
+  state.suppressCombatHook = true;
+  try { await combat.update({turn: index}); }
+  finally { state.suppressCombatHook = false; }
   return temporary;
 }
 
@@ -4264,6 +4290,7 @@ async function removeUltimateTurn(temporary, {resume = true} = {}) {
   state.suppressCombatHook = true;
   try {
     if (combat?.combatants.has(temporary.id)) await combat.deleteEmbeddedDocuments("Combatant", [temporary.id]);
+    combat?.setupTurns?.();
     if (resume) {
       const resumeIndex = combat.turns.findIndex(entry => entry.id === resumeId);
       if (resumeIndex >= 0) await combat.update({turn: resumeIndex, round: resumeRound ?? combat.round});
@@ -4271,17 +4298,21 @@ async function removeUltimateTurn(temporary, {resume = true} = {}) {
   } finally { state.suppressCombatHook = false; }
 }
 
+function ultimateCompletionButton(actor) {
+  return `<footer><button type="button" data-tsru-complete-ultimate="${escapeHTML(actor.id)}"><i class="fas fa-check"></i> Ultimate Complete</button></footer>`;
+}
+
 async function postAbilityText(actor, kind, text, {combatantId = ""} = {}) {
   const description = String(text ?? "").trim();
   const content = description
-    ? await TextEditor.enrichHTML(description, {async: true, secrets: game.user.isGM, relativeTo: actor})
+    ? await (foundry.applications.ux?.TextEditor?.implementation ?? TextEditor).enrichHTML(description, {async: true, secrets: game.user.isGM, relativeTo: actor})
     : "<em>No ability text has been configured.</em>";
   const labels = {skill: "Skill", ultimate: "Ultimate", elation: "Elation Action", talent: "Talent"};
   const icons = {skill: "fa-hand-sparkles", ultimate: "fa-burst", elation: "fa-masks-theater", talent: "fa-star"};
   const completion = kind === "elation" && combatantId
     ? `<footer><button type="button" data-tsru-complete-elation="${escapeHTML(combatantId)}"><i class="fas fa-check"></i> Complete Elation Action</button></footer>`
     : kind === "ultimate" && combatantId
-      ? `<footer><button type="button" data-tsru-complete-ultimate="${escapeHTML(actor.id)}"><i class="fas fa-check"></i> Ultimate Complete</button></footer>`
+      ? ultimateCompletionButton(actor)
       : "";
   return ChatMessage.create({
     speaker: ChatMessage.getSpeaker({actor, token: actor.getActiveTokens(true, true)?.[0]?.document}),
@@ -4292,14 +4323,24 @@ async function postAbilityText(actor, kind, text, {combatantId = ""} = {}) {
 async function runUltimateScript(actor, combatantId = "") {
   const config=getVisualConfig(actor),enhanced=config.enhancedStanceEnabled&&config.enhancedStanceActive&&config.enhancedUltimateEnabled&&String(config.enhancedEffectText||"").trim();
   const script = String(config.ultimateScript ?? "").trim();
+  let result, scriptError;
   if (script) {
-    const token = actor.getActiveTokens(true, true)?.[0] ?? null;
-    const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
-    const execute = new AsyncFunction("actor", "token", "combat", "combatantId", "config", "game", "canvas", "ui", "foundry", "Hooks", "punchline", "talent", "skillPoints", "tsru", `"use strict";\n${script}`);
-    await execute(actor, token, game.combat, combatantId, config, game, canvas, ui, foundry, Hooks, punchlineScriptHelpers(actor), talentScriptHelpers(actor), skillPointScriptHelpers(actor), scriptRuntimeHelpers(actor));
+    try {
+      const token = actor.getActiveTokens(true, true)?.[0] ?? null;
+      const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+      const execute = new AsyncFunction("actor", "token", "combat", "combatantId", "config", "game", "canvas", "ui", "foundry", "Hooks", "punchline", "talent", "skillPoints", "tsru", `"use strict";\n${script}`);
+      result = await execute(actor, token, game.combat, combatantId, config, game, canvas, ui, foundry, Hooks, punchlineScriptHelpers(actor), talentScriptHelpers(actor), skillPointScriptHelpers(actor), scriptRuntimeHelpers(actor));
+    } catch (error) { scriptError = error; }
   }
-  const text=enhanced?`${config.ultimateText}<h4>Enhanced Effect</h4><div>${config.enhancedEffectText}</div>`:config.ultimateText;
-  return postAbilityText(actor, "ultimate", text, {combatantId});
+  const description = String(config.ultimateText || (typeof result === "string" ? result : ""));
+  if (!description.trim() && !enhanced && result?.documentName === "ChatMessage") {
+    if (combatantId && !String(result.content).includes("data-tsru-complete-ultimate")) await result.update({content: `${result.content}${ultimateCompletionButton(actor)}`});
+    return result;
+  }
+  const text=enhanced?`${description}<h4>Enhanced Effect</h4><div>${config.enhancedEffectText}</div>`:description;
+  const card = await postAbilityText(actor, "ultimate", text, {combatantId});
+  if (scriptError) throw scriptError;
+  return card;
 }
 
 async function runSkillScript(actor) {
@@ -4493,6 +4534,7 @@ async function finishUltimateQueue(combatId) {
   const combat = game.combats.get(combatId);
   state.ultimateQueues.delete(combatId);
   if (!queue || !combat) return;
+  combat.setupTurns?.();
   const resumeIndex = combat.turns.findIndex(entry => entry.id === queue.resumeCombatantId);
   if (resumeIndex < 0) return;
   state.suppressCombatHook = true;
@@ -4524,7 +4566,10 @@ function broadcastUltimateSplash(actor) {
   const config = getVisualConfig(actor);
   const element = getElements().find(entry => entry.id === config.elementId);
   const splash = {actorName: actor.name, image: config.splashImage, duration: config.splashDuration, splashX: config.splashX, splashY: config.splashY, splashScale: config.splashScale, ultimateName: config.ultimateName, ultimateSubtitle: config.ultimateSubtitle, titleX: config.titleX, titleY: config.titleY, titleSize: config.titleSize, titleAlign: config.titleAlign, fontFile: config.fontFile, subtitleFontFile: config.subtitleFontFile, color: element?.chargeColor || DEFAULT_CONFIG.chargeColor};
-  showSplash(splash);
+  showSplash(splash).catch(error => {
+    console.error(`${MODULE_ID} | Ultimate splash failed`, error);
+    ui.notifications.warn(`Could not display ${actor.name}'s Ultimate artwork: ${error.message}`);
+  });
   const recipients = new Set(game.users.filter(user => user.active && user.id !== game.user.id).map(user => user.id));
   if (!recipients.size) return;
   const playbackId = foundry.utils.randomID();
@@ -4538,7 +4583,7 @@ async function beginQueuedUltimate(request, queue, combat) {
   if (!actor) return completeUltimate(request.actorId);
   broadcastUltimateSplash(actor);
   queue.activeActorId = actor.id;
-  const temporary = await insertUltimateTurn(actor, {combatantId: queue.resumeCombatantId, round: queue.resumeRound});
+  const temporary = await insertUltimateTurn(actor, {combatantId: queue.resumeCombatantId, round: queue.resumeRound}, combat);
   if (!temporary) throw new Error("Foundry could not create the temporary Ultimate combatant.");
   const pending = {actorId: actor.id, requestingUserId: request.requestingUserId, combatId: combat.id, combatantId: temporary?.id ?? null, timer: window.setTimeout(() => completeUltimate(actor.id), 600000)};
   state.pendingUltimates.set(actor.id, pending);
@@ -4546,11 +4591,31 @@ async function beginQueuedUltimate(request, queue, combat) {
   else game.socket.emit(SOCKET, {type: "useUltimate", actorId: actor.id, combatantId: temporary?.id ?? "", targetUserId: request.requestingUserId});
 }
 
+function scheduleUltimateQueue(combat) {
+  const queue = state.ultimateQueues.get(combat?.id);
+  if (!isAuthority() || !combat?.started || !queue?.requests.length || queue.activeActorId || queue.startTimer) return;
+  // A suppressed or skipped updateCombat hook must not strand a paid cast.
+  queue.startTimer = window.setTimeout(async () => {
+    queue.startTimer = null;
+    if (state.ultimateQueues.get(combat.id) !== queue) return;
+    try { await processUltimateQueue(combat.id); }
+    catch (error) { console.error(`${MODULE_ID} | Ultimate queue failed`, error); ui.notifications.error(`Could not continue the Ultimate queue: ${error.message}`); }
+    finally { scheduleUltimateQueue(combat); }
+  }, 225);
+}
+
 async function processUltimateQueue(combatId) {
   const queue = state.ultimateQueues.get(combatId);
   const combat = game.combats.get(combatId);
-  if (!queue || !combat || queue.activeActorId) return;
+  if (!isAuthority() || !queue || !combat?.started || queue.activeActorId) return;
   if (queue.startTimer) { window.clearTimeout(queue.startTimer); queue.startTimer = null; }
+  if (state.suppressCombatHook || !combat.combatant) { scheduleUltimateQueue(combat); return; }
+  if (queue.waitTurnId) {
+    if (combat.combatant.id === queue.waitTurnId && combat.round === (queue.waitRound ?? queue.resumeRound)) { scheduleUltimateQueue(combat); return; }
+    queue.resumeCombatantId = combat.combatant.id;
+    queue.resumeRound = combat.round;
+    queue.waitTurnId = null;
+  }
   if (!queue.requests.length) return finishUltimateQueue(combatId);
   queue.requests.sort((left,right)=>left.requestedAt-right.requestedAt||left.sequence-right.sequence);
   const request = queue.requests.shift();
@@ -4558,11 +4623,7 @@ async function processUltimateQueue(combatId) {
   catch (error) {
     console.error(`${MODULE_ID} | Could not begin queued Ultimate`, error);
     ui.notifications.error(`Could not begin ${game.actors.get(request.actorId)?.name ?? "the character"}'s Ultimate turn: ${error.message}`);
-    state.pendingUltimates.delete(request.actorId);
-    state.ultimateLocks.delete(request.actorId);
-    game.socket.emit(SOCKET, {type: "ultimateState", actorId: request.actorId, locked: false});
-    queue.activeActorId = null;
-    await processUltimateQueue(combatId);
+    await completeUltimate(request.actorId);
   }
 }
 
@@ -4604,12 +4665,12 @@ async function executeUltimate(actorId, requestingUserId, expectedEnhanced=undef
     let queue = state.ultimateQueues.get(combat.id);
     if (!queue) {
       const isOtherMainPartyActor = current?.actorId !== actor.id && current?.actor?.type === "character" && getConfig(current.actor).mainParty;
-      const waitsForAlly = Boolean(isOtherMainPartyActor && !current.getFlag(MODULE_ID, "temporaryUltimate"));
-      queue = {resumeCombatantId: waitsForAlly ? null : current?.id ?? null, resumeRound: combat.round, waitTurnId: waitsForAlly ? current.id : null, activeActorId: null, requests: [], sequence: 0, startTimer: null};
+      const waitsForAlly = Boolean(isOtherMainPartyActor && !current.getFlag(MODULE_ID, "temporaryUltimate") && !isElationActionCombatant(current) && !isTalentTurnCombatant(current) && !isAhaCombatant(current) && !current.getFlag(MODULE_ID, "actionAdvance"));
+      queue = {resumeCombatantId: waitsForAlly ? null : current?.id ?? null, resumeRound: combat.round, waitTurnId: waitsForAlly ? current.id : null, waitRound: combat.round, activeActorId: null, requests: [], sequence: 0, startTimer: null};
       state.ultimateQueues.set(combat.id, queue);
     }
     queue.requests.push({actorId, requestingUserId, initiative: ultimateInitiative(actor, combat), requestedAt: Date.now(), sequence: queue.sequence++});
-    if (!queue.waitTurnId && !queue.activeActorId && !queue.startTimer) queue.startTimer = window.setTimeout(() => processUltimateQueue(combat.id), 225);
+    scheduleUltimateQueue(combat);
     return true;
   } catch (error) {
     console.error(`${MODULE_ID} | Ultimate failed`, error);
@@ -8415,10 +8476,7 @@ Hooks.on("updateCombat", async combat => {
   if (previousTurn?.id && (previousTurn.id !== currentTurn?.id || previousTurn.round !== combat.round) && await processTalentTurnQueue(combat)) return;
   if (await skipBrokenCombatantTurn(combat, combat.combatant)) return;
   const ultimateQueue = state.ultimateQueues.get(combat.id);
-  if (ultimateQueue?.waitTurnId && combat.combatant?.id !== ultimateQueue.waitTurnId) {
-    ultimateQueue.resumeCombatantId = combat.combatant?.id ?? null;
-    ultimateQueue.resumeRound = combat.round;
-    ultimateQueue.waitTurnId = null;
+  if (ultimateQueue?.waitTurnId && (combat.combatant?.id !== ultimateQueue.waitTurnId || combat.round !== (ultimateQueue.waitRound ?? ultimateQueue.resumeRound))) {
     await processUltimateQueue(combat.id);
     return;
   }

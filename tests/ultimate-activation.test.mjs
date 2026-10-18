@@ -12,6 +12,7 @@ const set=(o,p,v)=>{const keys=p.split('.');let target=o;for(const k of keys.sli
 const html=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 function setup(mode='energy',config={}) {
+ const hooks=new Map(),timers=new Map();let timerId=0;
  const events={messages:[],socket:[],warnings:[],errors:[],splashes:[],infos:[]};
  const a={id:'hero',uuid:'Actor.hero',name:'Hero',type:'character',isOwner:true,executions:[],
   flags:{ultimate:{enabled:true,current:100,max:100,alternateUltimateEnabled:mode!=='energy',ultimateText:'Ultimate description',ultimateScript:'actor.executions.push({tokenId:token?.id,combatantId});',...config},alternateOrb:{mode:mode==='circular'?'circular':'free',components:['a','b','c','d'].map(id=>({id,image:id+'.png'}))},alternateOrbStates:{a:true,b:true,c:true,d:true},alternateOrbCounter:4},
@@ -31,32 +32,152 @@ function setup(mode='energy',config={}) {
  const textEditor={enrichHTML:async text=>text};
  const context=vm.createContext({game,ui,structuredClone,energyAfterUpdate,...alternate,
   console:{...console,error:(...args)=>events.errors.push(args.map(String).join(' '))},FormApplication:class{},
-  Hooks:{on(){},once(){},callAll(){}},
+  Hooks:{on(name,fn){const list=hooks.get(name)??[];list.push(fn);hooks.set(name,list)},once(){},callAll(){}},
   foundry:{utils:{deepClone:structuredClone,randomID:()=>`request-${events.socket.length}`,mergeObject:(a,b)=>({...a,...b}),getProperty:get,setProperty:set},applications:{api:{ApplicationV2:class{},HandlebarsApplicationMixin:C=>C},ux:{TextEditor:{implementation:textEditor}}}},
   TextEditor:textEditor,ChatMessage:{getSpeaker:({actor})=>({actor:actor.id}),create:async data=>{events.messages.push(data);return data}},
-  document:{createElement:()=>({textContent:'',get innerHTML(){return html(this.textContent)}})},canvas:{},
-  window:{setTimeout:()=>1,clearTimeout(){}},setTimeout,clearTimeout});
+  document:{createElement:()=>({textContent:'',get innerHTML(){return html(this.textContent)}}),querySelectorAll:()=>[]},canvas:{},
+  window:{setTimeout:(fn,delay)=>{const id=++timerId;timers.set(id,{fn,delay});return id},clearTimeout:id=>timers.delete(id)},setTimeout,clearTimeout});
  vm.runInContext(source.replace(/^import .*;\n/gm,'')+'\nglobalThis.api={requestUltimate,executeUltimate,onSocket,processUltimateQueue,completeUltimate,reconcileUltimateLock,state,getConfig,runUltimateScript};',context);
  // Keep the actual readiness, action dispatch, script runner, chat card, and queue.
  // Only audiovisual presentation and the unrelated Light Cone engine are isolated.
  context.events=events;
- vm.runInContext('refreshOrb=()=>{};broadcastUltimateSplash=actor=>events.splashes.push(actor.id);dispatchTalentEvent=async()=>{};',context);
+ vm.runInContext('refreshOrb=()=>{};broadcastUltimateSplash=actor=>events.splashes.push(actor.id);dispatchTalentEvent=async()=>{};refreshToughnessBars=()=>{};refreshResourceHuds=()=>{};refreshCombatPartyHud=()=>{};refreshPunchlineHUD=()=>{};refreshSkillUI=()=>{};refreshBossHud=()=>{};refreshInitiativeCarousel=()=>{};refreshTalentCounter=()=>{};',context);
  alternate.configureAlternateUltimates({isResolving:actor=>context.api.state.ultimateLocks.has(actor.id)});
- return {a,game,gm,player,events,api:context.api,context};
+ return {a,game,gm,player,events,api:context.api,context,hooks,timers,
+  async fireHook(name,...args){await Promise.all((hooks.get(name)??[]).map(fn=>fn(...args)))},
+  async runTimers(delay){const due=[...timers].filter(([,timer])=>timer.delay===delay);for(const [id,timer]of due){timers.delete(id);await timer.fn()}return due.length}
+ };
 }
 
-function startCombat(world,{ownTurn=true}={}) {
+function startCombat(world,{ownTurn=true,deferredTurns=false}={}) {
  const {a,game}=world;
  const hero={id:'hero-turn',actorId:a.id,actor:a,initiative:10,flags:{},getFlag(_,key){return this.flags[key]}};
- const enemy={id:'enemy-turn',actorId:'enemy',actor:{type:'npc'},initiative:20,flags:{},getFlag(_,key){return this.flags[key]}};
+ const enemy={id:'enemy-turn',actorId:'enemy',actor:{type:'npc',getFlag:()=>undefined},initiative:20,flags:{},getFlag(_,key){return this.flags[key]}};
  const combatants=[enemy,hero];combatants.get=id=>combatants.find(c=>c.id===id);combatants.has=id=>Boolean(combatants.get(id));
+ let ordered=[enemy,hero];
  const combat={id:'fight',started:true,round:1,turn:ownTurn?1:0,combatants,
-  get turns(){return [...combatants].sort((a,b)=>b.initiative-a.initiative)},get combatant(){return this.turns[this.turn]},
+  get turns(){return deferredTurns?ordered:[...combatants].sort((a,b)=>b.initiative-a.initiative)},get combatant(){return this.turns[this.turn]},
+  setupTurns(){ordered=[...combatants].sort((a,b)=>b.initiative-a.initiative);return ordered},
   async update(patch){Object.assign(this,patch)},
   async createEmbeddedDocuments(_,documents){return documents.map((data,i)=>{const c={...data,id:'ultimate-turn-'+i,actor:a,parent:this,getFlag(_,key){return this.flags?.[ID]?.[key]}};combatants.push(c);return c})},
   async deleteEmbeddedDocuments(_,ids){for(const id of ids){const i=combatants.findIndex(c=>c.id===id);if(i>=0)combatants.splice(i,1)}}};
  game.combat=combat;game.combats.push(combat);return combat;
 }
+
+test('v14 deferred turn order is rebuilt before selecting the extra Ultimate turn',async()=>{
+ const world=setup('energy'),{a,api}=world;const combat=startCombat(world,{ownTurn:false,deferredTurns:true});
+ assert.equal(await api.requestUltimate(a),true);await api.processUltimateQueue(combat.id);
+ assert.equal(combat.combatant?.getFlag(ID,'temporaryUltimate'),true);
+ assert.equal(combat.combatant.actorId,a.id);
+ assert.equal(world.events.messages.length,1);assert.equal(world.events.splashes.length,1);
+});
+
+test('a waiting Ultimate resumes from its timer after a suppressed turn-change hook',async()=>{
+ const world=setup('free'),{a,api}=world;const combat=startCombat(world,{ownTurn:false,deferredTurns:true});
+ combat.combatant.actor={id:'ally',type:'character',getFlag:(_,key)=>key==='ultimate'?{mainParty:true}:undefined};combat.combatant.actorId='ally';
+ await api.requestUltimate(a);assert.equal(a.executions.length,0);
+ assert.ok(await world.runTimers(225));assert.equal(a.executions.length,0);
+ combat.turn=1;api.state.suppressCombatHook=true;await world.fireHook('updateCombat',combat);api.state.suppressCombatHook=false;
+ assert.ok(await world.runTimers(225));
+ assert.equal(a.executions.length,1);assert.equal(combat.combatant?.getFlag(ID,'temporaryUltimate'),true);
+});
+
+test('old prose stored in ultimateScript is recovered as chat text instead of executed',async()=>{
+ const {a,api,events}=setup('energy',{ultimateText:'',ultimateScript:'<p>Legacy Ultimate: deal [[/r 3d6]] lightning damage.</p>'});
+ const before=structuredClone(a.flags);
+ assert.match(api.getConfig(a).ultimateText,/Legacy Ultimate/);assert.deepEqual(a.flags,before,'reading compatibility data does not rewrite the actor');
+ assert.equal(await api.requestUltimate(a),true);assert.equal(a.executions.length,0);
+ assert.match(events.messages[0]?.content??'',/Legacy Ultimate/);assert.equal(events.errors.length,0);
+});
+
+test('legacy prose preserves an existing description and an original backup',()=>{
+ const {a,api}=setup('energy',{ultimateText:'Current description',ultimateScript:'Old description of the attack',legacyUltimateScript:'Original backup'});
+ const config=api.getConfig(a);
+ assert.equal(config.ultimateText,'Current description');assert.equal(config.ultimateScript,'');
+ assert.equal(config.legacyUltimateScript,'Original backup');
+});
+
+test('legacy enhanced descriptions are enriched in chat with the enhanced effect',async()=>{
+ const {a,api,events}=setup('energy',{ultimateScript:'',enhancedStanceEnabled:true,enhancedStanceActive:true,enhancedUltimateEnabled:true,enhancedUltimateScript:'<p>Old enhanced description [[/r 4d6]]</p>',enhancedEffectText:'Extra lightning'});
+ assert.equal(await api.requestUltimate(a),true);
+ assert.match(events.messages[0].content,/Old enhanced description/);assert.match(events.messages[0].content,/Extra lightning/);
+});
+
+test('explicit code is never reclassified as description even if it fails',async()=>{
+ const {a,api,events}=setup('energy',{ultimateScriptMode:'code',ultimateScript:'missingIdentifier',ultimateText:'Configured description'});
+ assert.equal(api.getConfig(a).ultimateScript,'missingIdentifier');
+ assert.equal(await api.requestUltimate(a),false);
+ assert.match(events.messages[0].content,/Configured description/);assert.ok(events.errors.some(e=>e.includes('missingIdentifier')));
+});
+
+test('an old script returning text supplies the chat description',async()=>{
+ const {a,api,events}=setup('energy',{ultimateText:'',ultimateScript:'return "<p>Returned legacy description</p>";'});
+ assert.equal(await api.requestUltimate(a),true);
+ assert.match(events.messages[0].content,/Returned legacy description/);assert.doesNotMatch(events.messages[0].content,/return &quot;/);
+});
+
+test('an old script returning its own chat card gets a completion button without a duplicate',async()=>{
+ const world=setup('energy',{ultimateText:'',ultimateScript:'return actor.card;'}),{a,api}=world;
+ a.card={documentName:'ChatMessage',content:'<p>Original scripted chat card</p>',async update(patch){Object.assign(this,patch)}};
+ const combat=startCombat(world,{ownTurn:false,deferredTurns:true});
+ await api.requestUltimate(a);await world.runTimers(225);
+ assert.equal(world.events.messages.length,0);assert.match(a.card.content,/Original scripted chat card/);
+ assert.match(a.card.content,/data-tsru-complete-ultimate="hero"/);
+ await api.completeUltimate(a.id);assert.equal(combat.combatant.id,'enemy-turn');
+});
+
+test('completing a queued Ultimate rebuilds deferred initiative and resumes the interrupted turn',async()=>{
+ const world=setup('circular'),{a,api}=world,combat=startCombat(world,{ownTurn:false,deferredTurns:true});
+ await api.requestUltimate(a);await world.runTimers(225);
+ assert.equal(combat.combatant.getFlag(ID,'temporaryUltimate'),true);
+ assert.match(world.events.messages[0].content,/data-tsru-complete-ultimate/);
+ await api.completeUltimate(a.id);
+ assert.equal(combat.combatant.id,'enemy-turn');assert.equal(combat.turns.length,2);
+ assert.equal(api.state.ultimateQueues.size,0);assert.equal(api.state.ultimateLocks.size,0);
+});
+
+test('queued automation errors still post saved text and remove the temporary turn',async()=>{
+ const world=setup('energy',{ultimateScript:'throw new Error("Queued automation failed");'}),{a,api}=world;
+ const combat=startCombat(world,{ownTurn:false,deferredTurns:true});
+ await api.requestUltimate(a);await world.runTimers(225);
+ assert.match(world.events.messages[0].content,/Ultimate description/);
+ assert.equal(combat.combatant.id,'enemy-turn');assert.equal(combat.combatants.length,2);
+ assert.equal(api.state.pendingUltimates.size,0);assert.equal(api.state.ultimateLocks.size,0);
+ assert.ok(world.events.errors.some(e=>e.includes('Queued automation failed')));
+});
+
+test('a failed turn selection restores hooks and cleans up the new combatant',async()=>{
+ const world=setup('energy'),{a,api}=world,combat=startCombat(world,{ownTurn:false,deferredTurns:true});
+ const update=combat.update;let fail=true;
+ combat.update=async function(patch){if(fail){fail=false;throw new Error('Turn update failed')}return update.call(this,patch)};
+ await api.requestUltimate(a);await world.runTimers(225);
+ assert.equal(api.state.suppressCombatHook,false);assert.equal(combat.combatants.length,2);
+ assert.equal(api.state.ultimateQueues.size,0);assert.equal(api.state.ultimateLocks.size,0);
+ assert.equal(combat.combatant.id,'enemy-turn');
+});
+
+test('the same ally in a new round releases a waiting Ultimate',async()=>{
+ const world=setup('free'),{a,api}=world,combat=startCombat(world,{ownTurn:false,deferredTurns:true});
+ combat.combatant.actor={id:'ally',type:'character',getFlag:(_,key)=>key==='ultimate'?{mainParty:true}:undefined};
+ combat.combatant.actorId='ally';
+ await api.requestUltimate(a);combat.round=2;await world.runTimers(225);
+ assert.equal(a.executions.length,1);await api.completeUltimate(a.id);
+ assert.equal(combat.combatant.id,'enemy-turn');assert.equal(combat.round,2);
+});
+
+test('a normal updateCombat hook starts a waiting Ultimate once and resumes its successor',async()=>{
+ const world=setup('energy'),{a,api}=world,combat=startCombat(world,{ownTurn:false,deferredTurns:true});
+ combat.combatant.actor={id:'ally',type:'character',getFlag:(_,key)=>key==='ultimate'?{mainParty:true}:undefined};combat.combatant.actorId='ally';
+ await api.requestUltimate(a);combat.turn=1;await world.fireHook('updateCombat',combat);
+ assert.equal(a.executions.length,1);await world.runTimers(225);assert.equal(a.executions.length,1);
+ await api.completeUltimate(a.id);assert.equal(combat.combatant.id,'hero-turn');
+});
+
+test('an explicitly disabled existing character keeps its saved configuration and cannot cast',async()=>{
+ const {a,api,events}=setup('energy',{enabled:false});const before=structuredClone(a.flags);
+ assert.equal(await api.requestUltimate(a),false);assert.deepEqual(a.flags,before);
+ assert.equal(events.messages.length,0);assert.equal(a.executions.length,0);assert.match(events.warnings[0],/system is disabled/);
+});
 
 for(const mode of ['energy','free','circular']) {
  test(`${mode} full charge: public activation executes saved Ultimate code and posts the chat card`,async()=>{

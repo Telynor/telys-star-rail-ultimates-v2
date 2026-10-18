@@ -9,6 +9,7 @@ const root=path.resolve(__dirname,'..');
 const ID='telys-star-rail-ultimates';
 const bootstrap=`
 const ID='${ID}';
+window.ID=ID;
 window.Hooks={on(){},once(){},callAll(){}};
 window.FormApplication=class {};
 const set=(o,path,value)=>{const keys=path.split('.');let t=o;for(const k of keys.slice(0,-1))t=t[k]??={};t[keys.at(-1)]=structuredClone(value)};
@@ -21,7 +22,7 @@ class AppV2 {
 window.ui={notifications:{info:message=>window.notices.push(message),warn:message=>window.notices.push(message),error:message=>{window.notices.push(message);window.failures.push(message)}}};
 window.notices=[];window.failures=[];window.updates=[];window.updateFails=false;window.ultimateExecutions=[];window.chatCards=[];window.socketEvents=[];
 window.TextEditor={enrichHTML:async text=>text};
-window.ChatMessage={getSpeaker:({actor})=>({actor:actor.id}),create:async data=>{window.chatCards.push(data);return data}};
+window.ChatMessage={getSpeaker:({actor})=>({actor:actor.id}),create:async data=>{window.chatCards.push(data);const card=document.createElement('div');card.innerHTML=data.content;document.querySelector('#chat-cards')?.append(card);return data}};
 class Picker {
  constructor(options){this.options=options}browse(){this.options.callback('/test-art/red.svg')}
  static async uploadPersistent(id,dir,file){window.lastUpload={id,dir,name:file.name};return {path:await new Promise(resolve=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.readAsDataURL(file)})}}
@@ -71,7 +72,7 @@ drawHud();window.ready=true;
    }
    const file=path.resolve(root,'.'+pathname);if(!file.startsWith(root+path.sep)){res.writeHead(403);res.end();return;}
    let content=await fs.readFile(file);
-   if(pathname==='/scripts/module.js')content=content.toString()+'\nexport {UltimateOrb,CombatPartyHud,state,getConfig,combatHudDesignerPreview,ultimateArtworkPreview,registerApi};';
+   if(pathname==='/scripts/module.js')content=content.toString()+'\nexport {UltimateOrb,CombatPartyHud,state,getConfig,combatHudDesignerPreview,ultimateArtworkPreview,registerApi,completeUltimate};';
    res.setHeader('Content-Type',pathname.endsWith('.css')?'text/css':/\.m?js$/.test(pathname)?'text/javascript':'application/octet-stream');res.end(content);
   }catch(error){res.writeHead(404);res.end(error.message)}
  });
@@ -233,7 +234,58 @@ drawHud();window.ready=true;
     assert.equal(await page.evaluate(()=>a.getFlag('','ultimate').current),mode==='energy'?0:100);
     if(mode!=='energy')assert.equal(await page.evaluate(()=>a.getFlag('','alternateOrbCounter')),0);
   }
+  // Full queued sequence: cached v14 turn order, real asset fetch/decode and splash
+  // DOM/CSS, legacy descriptions, the timer wakeup and completion/resume mechanics.
+  await page.evaluate(()=>{
+    const board=document.createElement('div');board.id='board';board.style.cssText='position:fixed;inset:0;z-index:0;isolation:isolate';document.body.prepend(board);
+    const cover=document.createElement('aside');cover.id='test-window';cover.textContent='Foundry window';cover.style.cssText='position:fixed;left:45%;top:40%;width:260px;height:130px;z-index:100000;background:#253a50;color:white;pointer-events:none';document.body.append(cover);
+    const chat=document.createElement('section');chat.id='chat-cards';chat.style.cssText='position:fixed;bottom:20px;left:30px;width:400px';document.body.append(chat);
+    const combat=game.combat;let sorted=[];let sequence=0;
+    delete combat.combatant;
+    Object.defineProperties(combat,{turns:{get:()=>sorted},combatant:{get:()=>sorted[combat.turn]}});
+    combat.setupTurns=()=>sorted=[...combat.combatants].sort((a,b)=>b.initiative-a.initiative);
+    combat.update=async patch=>Object.assign(combat,patch);
+    combat.createEmbeddedDocuments=async(_,docs)=>docs.map(data=>{const c={...data,id:'queued-'+(++sequence),parent:combat,actor:a,getFlag(_,key){return this.flags?.[ID]?.[key]}};combat.combatants.push(c);return c});
+    combat.deleteEmbeddedDocuments=async(_,ids)=>{for(const id of ids){const i=combat.combatants.findIndex(c=>c.id===id);if(i>=0)combat.combatants.splice(i,1)}};
+    window.resetQueuedCombat=()=>{
+      const ally={...a,id:'ally',name:'Ally',flags:structuredClone(a.flags),getFlag:(_,key)=>key==='ultimate'?{mainParty:true}:undefined};
+      combat.combatants.splice(0,combat.combatants.length,{id:'ally-turn',actorId:'ally',actor:ally,initiative:20,getFlag:()=>false},{id:'hero-turn',actorId:a.id,actor:a,initiative:10,getFlag:()=>false});
+      combat.combatants.get=id=>combat.combatants.find(c=>c.id===id);combat.combatants.has=id=>Boolean(combat.combatants.get(id));
+      combat.turn=0;combat.round=1;combat.setupTurns();chat.replaceChildren();
+    };
+  });
+  for(const enhanced of [false,true])for(const mode of ['energy','free','circular']){
+    const cardsBefore=await page.evaluate(()=>chatCards.length);
+    await page.evaluate(({mode,enhanced,id})=>{
+      resetQueuedCombat();const config=a.flags[id].ultimate;
+      Object.assign(config,{current:100,alternateUltimateEnabled:mode!=='energy',enhancedStanceEnabled:enhanced,enhancedStanceActive:enhanced,enhancedUltimateEnabled:enhanced,ultimateText:'',ultimateScript:'<p>Existing character Ultimate [[/r 3d6]]</p>',enhancedUltimateText:'',enhancedUltimateScript:'<p>Existing enhanced Ultimate [[/r 4d6]]</p>',splashImage:'/test-art/red.svg',enhancedSplashImage:'/test-art/white.svg',splashDuration:1,ultimateName:'Queued Ultimate',ultimateSubtitle:'Sequence verification'});
+      a.flags[id].alternateOrb.mode=mode==='circular'?'circular':'free';a.flags[id].alternateOrbCounter=4;
+      a.flags[id].alternateOrbStates={red:true,white:true,black:true,yellow:true};drawHud();
+    },{mode,enhanced,id:ID});
+    await page.locator('.tsru-orb').click();
+    assert.equal(await page.evaluate(()=>chatCards.length),cardsBefore,'allied turn must finish before chat and splash');
+    assert.equal(await page.locator('.tsru-splash').count(),0);
+    assert.equal(await page.evaluate(()=>core.state.ultimateQueues.get(game.combat.id)?.waitTurnId),'ally-turn');
+    // Intentionally omit updateCombat: the queue watcher must wake the cast.
+    await page.evaluate(()=>game.combat.turn=1);
+    await page.waitForFunction(()=>game.combat.combatant?.getFlag(ID,'temporaryUltimate'));
+    await page.waitForFunction(()=>{const splash=document.querySelector('.tsru-splash.show'),img=splash?.querySelector('img');return splash?.parentElement===document.body&&img?.complete&&img.naturalWidth>0});
+    assert.equal(await page.evaluate(()=>chatCards.length),cardsBefore+1);
+    assert.match(await page.locator('#chat-cards').innerHTML(),enhanced?/Existing enhanced Ultimate/:/Existing character Ultimate/);
+    assert.equal(await page.locator('#chat-cards [data-tsru-complete-ultimate="hero"]').count(),1);
+    assert.equal(await page.evaluate(()=>game.combat.turns.length),3,'new combatant is in the cached turn list');
+    assert.equal(await page.evaluate(()=>Number(getComputedStyle(document.querySelector('.tsru-splash')).zIndex)>Number(getComputedStyle(document.querySelector('#test-window')).zIndex)),true,'splash sits above Foundry windows');
+    assert.match(await page.evaluate(({enhanced})=>core.state.splashAssetCache.get(enhanced?'/test-art/white.svg':'/test-art/red.svg')?.url,{enhanced}),/^blob:/,'real artwork was fetched and decoded');
+    assert.equal(await page.evaluate(()=>a.flags[ID].ultimate.current),mode==='energy'?0:100);
+    if(mode!=='energy')assert.equal(await page.evaluate(()=>a.flags[ID].alternateOrbCounter),0);
+    if(mode==='energy'&&!enhanced){await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('.tsru-splash')).opacity)>.9);await page.screenshot({path:path.join(root,'ultimate-sequence-smoke.png')});}
+    await page.evaluate(()=>core.completeUltimate(a.id));
+    assert.equal(await page.evaluate(()=>game.combat.combatant.id),'hero-turn');
+    assert.equal(await page.evaluate(()=>game.combat.turns.length),2);
+    assert.equal(await page.evaluate(()=>core.state.ultimateQueues.size+core.state.pendingUltimates.size+core.state.ultimateLocks.size),0);
+    await page.waitForFunction(()=>!document.querySelector('.tsru-splash'));
+  }
   assert.deepEqual(errors,[]);assert.deepEqual(await page.evaluate(()=>failures),[]);
-  console.log('Browser smoke passed: actual Ultimate activation from floating/party/hotbar API in Energy/free/circular modes, ordinary/enhanced scripts and chat cards, resource consumption and reset, mode persistence, orb replacement, builder, upload and circular GM counters.');
+  console.log('Browser smoke passed: 18 direct activation cases and 6 complete queued casts with real splash fetch/decode/rendering above windows, deferred initiative insertion, legacy normal/enhanced chat text, completion/resume, and Energy/free/circular resource reset. Builder, upload, orb replacement and GM counter checks also passed.');
  }catch(error){await page.screenshot({path:path.join(root,'orb-designer-smoke.png'),fullPage:true}).catch(()=>{});throw error;}finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
 })().catch(error=>{console.error(error);process.exit(1)});
