@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
-import {normalizeAlternateOrb, ultimateCharge, energyAfterUpdate} from '../scripts/alternate-ultimate-rules.mjs';
+import {normalizeAlternateOrb, ultimateCharge, energyAfterUpdate, alternateOrbSequence, circularOrbMaximum, circularOrbStates} from '../scripts/alternate-ultimate-rules.mjs';
 import * as alternate from '../scripts/alternate-ultimates.mjs';
 
 const ID='telys-star-rail-ultimates';
@@ -33,7 +33,7 @@ function setup(options={}) {
     game,ui:globalThis.ui,canvas:{},window:{setTimeout:()=>1,clearTimeout(){}},setTimeout,clearTimeout,
     energyAfterUpdate,...alternate};
   const context=vm.createContext(sandbox);
-  const script=source.replace(/^import .*;\n/gm,'')+ '\nglobalThis.testApi={getConfig,setEnergy,addEnergy,requestUltimate,executeUltimate,ultimateMacroDisplay,state,runUltimateScript,getVisualConfig};';
+  const script=source.replace(/^import .*;\n/gm,'')+ '\nglobalThis.testApi={getConfig,setEnergy,addEnergy,requestUltimate,executeUltimate,ultimateMacroDisplay,state,runUltimateScript,getVisualConfig,saveUltimateConfigFromTab,combatHudDesignerPreview,ultimateArtworkPreview};';
   vm.runInContext(script,context);
   const api=context.testApi;
   alternate.configureAlternateUltimates({isResolving:actor=>api.state.ultimateLocks.has(actor.id)});
@@ -151,4 +151,143 @@ test('hotbar readiness uses the same alternate counters as the activation path',
  assert.equal(api.ultimateMacroDisplay(a).ready,false);
  a.flags.alternateOrbStates=allOn();a.flags.ultimate.current=0;
  assert.equal(api.ultimateMacroDisplay(a).ready,true);assert.equal(api.ultimateMacroDisplay(a).current,4);
+});
+
+test('preview.6 orb designs keep free activation and acquire stable sequence defaults',()=>{
+ const old={components:[{id:'a',image:'a.png'},{id:'b',image:'b.png'}]};
+ const migrated=normalizeAlternateOrb(old);
+ assert.equal(migrated.mode,'free');assert.equal(migrated.firstActivation,1);
+ assert.deepEqual(migrated.components.map(c=>c.sequence),[1,2]);assert.equal(migrated.startComponentId,'a');
+});
+test('circular order starts at the chosen icon and wraps independently of drawing layers',()=>{
+ const design=orb();design.mode='circular';design.startComponentId='black';
+ assert.deepEqual(alternateOrbSequence(design).map(c=>c.id),['black','yellow','red','white']);
+ design.components.reverse();
+ assert.deepEqual(alternateOrbSequence(design).map(c=>c.id),['black','yellow','red','white']);
+ design.components.find(c=>c.id==='yellow').sequence=10;
+ assert.deepEqual(alternateOrbSequence(design).map(c=>c.id),['black','yellow','red','white']);
+});
+test('each circular increment keeps all prior icons lit, including an offset first activation number',()=>{
+ const design={...orb(),mode:'circular',startComponentId:'white',firstActivation:3};
+ const expected=[[],[],[],['white'],['white','black'],['white','black','yellow'],['white','black','yellow','red']];
+ for(let count=0;count<=6;count++){
+  const states=circularOrbStates(design,count),lit=Object.keys(states).filter(id=>states[id]);
+  assert.deepEqual(new Set(lit),new Set(expected[count]));
+  assert.equal(ultimateCharge({enabled:true,alternateUltimateEnabled:true},design,states).ready,count===6);
+ }
+ assert.equal(circularOrbMaximum(design),6);
+});
+test('circular counters clamp at full charge, unwind on decrement, and recover a deleted start icon',()=>{
+ const design={...orb(),mode:'circular',startComponentId:'black'};
+ assert.deepEqual(circularOrbStates(design,999),allOn());
+ assert.deepEqual(circularOrbStates(design,-10),{red:false,white:false,black:false,yellow:false});
+ assert.equal(circularOrbStates(design,2).black,true);assert.equal(circularOrbStates(design,2).red,false);
+ design.components=design.components.filter(c=>c.id!=='black');
+ assert.deepEqual(alternateOrbSequence(design).map(c=>c.id),['red','white','yellow']);
+ assert.equal(ultimateCharge({enabled:true,alternateUltimateEnabled:true},{mode:'circular'},circularOrbStates({},100)).ready,false);
+});
+test('circular live states ignore independent flags and reads never mutate charge',()=>{
+ const {a}=setup();a.flags.alternateOrb.mode='circular';a.flags.alternateOrbStates=allOn();a.flags.alternateOrbCounter=0;
+ const before=structuredClone(a.flags);
+ assert.equal(alternate.alternateUltimateCharge(a,a.flags.ultimate).ready,false);
+ assert.deepEqual(a.flags,before);
+ a.flags.alternateOrbCounter=4;
+ assert.equal(alternate.alternateUltimateCharge(a,a.flags.ultimate).ready,true);
+});
+test('manual circular increments serialize and clamp without bypassing GM or mode checks',async()=>{
+ const {a,game}=setup();a.flags.alternateOrb.mode='circular';
+ await Promise.all(Array.from({length:3},()=>alternate.setAlternateOrbCount(a,1,{relative:true})));
+ assert.equal(a.flags.alternateOrbCounter,3);
+ await alternate.setAlternateOrbCount(a,1,{relative:true});assert.equal(a.flags.alternateOrbCounter,4);
+ await alternate.setAlternateOrbCount(a,1,{relative:true});assert.equal(a.flags.alternateOrbCounter,4);
+ await alternate.setAlternateOrbCount(a,-2,{relative:true});assert.equal(a.flags.alternateOrbCounter,2);
+ assert.equal(await alternate.setAlternateOrbCounter(a,'red',true),false);
+ assert.equal(await alternate.setAlternateOrbCount(a,Infinity),false);
+ game.user={id:'player',isGM:false};assert.equal(await alternate.setAlternateOrbCount(a,4),false);
+ game.user={id:'gm',isGM:true};a.flags.alternateOrb.mode='free';
+ assert.equal(await alternate.setAlternateOrbCount(a,4),false);
+});
+test('circular partial charge blocks casting; full charge casts the enhanced Ultimate and resets both modes',async()=>{
+ const {a,api,context}=setup({enhancedStanceEnabled:true,enhancedStanceActive:true,enhancedUltimateEnabled:true,enhancedUltimateText:'Enhanced circular'});
+ a.flags.alternateOrb.mode='circular';a.flags.alternateOrb.startComponentId='black';a.flags.alternateOrbStates=allOn();
+ await alternate.setAlternateOrbCount(a,3);await api.executeUltimate(a.id,'gm',true);
+ assert.equal(a.flags.alternateOrbCounter,3);assert.equal(api.state.ultimateLocks.size,0);
+ await alternate.setAlternateOrbCount(a,4);await api.executeUltimate(a.id,'gm',true);
+ assert.equal(context.lastUltimateConfig.ultimateText,'Enhanced circular');
+ assert.equal(a.flags.alternateOrbCounter,0);assert.equal(a.flags.ultimate.current,80);
+ assert.deepEqual(a.flags.alternateOrbStates,{red:false,white:false,black:false,yellow:false});
+ assert.equal(alternate.alternateUltimateCharge(a,a.flags.ultimate).ready,false);
+});
+test('queued circular Ultimates consume exactly once and reject charge changes until completion',async()=>{
+ const {a,api,game}=setup();a.flags.alternateOrb.mode='circular';await alternate.setAlternateOrbCount(a,4);
+ const enemy={id:'enemy',actorId:'enemy',actor:{type:'npc'},getFlag:()=>false};
+ game.combat={id:'fight',started:true,round:1,combatant:enemy,combatants:[enemy]};
+ await api.executeUltimate(a.id,'gm',false);
+ assert.equal(a.flags.alternateOrbCounter,0);assert.equal(await alternate.setAlternateOrbCount(a,4),false);
+ await api.executeUltimate(a.id,'gm',false);assert.equal(api.state.ultimateQueues.get('fight').requests.length,1);
+});
+test('free mode still uses only its checkboxes and casting also clears the circular counter',async()=>{
+ const {a,api}=setup();a.flags.alternateOrbCounter=4;
+ assert.equal(alternate.alternateUltimateCharge(a,a.flags.ultimate).ready,false);
+ a.flags.alternateOrbStates=allOn();await api.executeUltimate(a.id,'gm',false);
+ assert.equal(a.flags.alternateOrbCounter,0);
+});
+test('a fully charged circular orb still requires every icon image and still blocks all Energy gains',async()=>{
+ const {a,api}=setup();a.flags.alternateOrb.mode='circular';await alternate.setAlternateOrbCount(a,4);
+ a.flags.alternateOrb.components[0].image='';
+ assert.equal(alternate.alternateUltimateCharge(a,a.flags.ultimate).ready,false);
+ await api.addEnergy(a,5,'lightCone');await api.setEnergy(a,100,{overrideLock:true});
+ assert.equal(a.flags.ultimate.current,80);
+});
+
+test('a stale sheet draft cannot turn alternate mode off or award Energy',async()=>{
+ const {a,api,context}=setup();
+ vm.runInContext('refreshSkillUI=()=>{};refreshResourceHuds=()=>{};refreshCombatPartyHud=()=>{};refreshBossHud=()=>{};refreshInitiativeCarousel=()=>{};dockSceneControlsBesideCarousel=()=>{};',context);
+ const updates=[];
+ a.update=async patch=>{updates.push(structuredClone(patch));Object.assign(a.flags.ultimate,patch[`flags.${ID}.ultimate`]);};
+ const fields=[{name:'alternateUltimateEnabled',type:'checkbox',checked:false},{name:'current',type:'number',value:'100'},{name:'ultimateText',type:'textarea',value:'Updated description'}];
+ const tab={find:()=>({each:fn=>fields.forEach((field,i)=>fn(i,field))})};
+ await api.saveUltimateConfigFromTab(a,tab);
+ assert.equal(a.flags.ultimate.alternateUltimateEnabled,true);
+ assert.equal(a.flags.ultimate.current,80);
+ assert.equal(a.flags.ultimate.ultimateText,'Updated description');
+ assert.equal(Object.hasOwn(updates[0][`flags.${ID}.ultimate`],'alternateUltimateEnabled'),false);
+ a.flags.ultimate.alternateUltimateEnabled=false;
+ fields[0].checked=true;
+ await api.saveUltimateConfigFromTab(a,tab);
+ assert.equal(a.flags.ultimate.alternateUltimateEnabled,false);
+ assert.equal(a.flags.ultimate.current,100);
+});
+
+test('a sheet save already in flight preserves a subsequent mode switch',async()=>{
+ const {a,api,context}=setup({alternateUltimateEnabled:false});
+ vm.runInContext('refreshSkillUI=()=>{};refreshResourceHuds=()=>{};refreshCombatPartyHud=()=>{};refreshBossHud=()=>{};refreshInitiativeCarousel=()=>{};dockSceneControlsBesideCarousel=()=>{};',context);
+ let release,signal;
+ const gate=new Promise(resolve=>release=resolve),started=new Promise(resolve=>signal=resolve);
+ a.update=async patch=>{signal();await gate;Object.assign(a.flags.ultimate,patch[`flags.${ID}.ultimate`]);};
+ const tab={find:()=>({each:fn=>fn(0,{name:'ultimateText',value:'Draft saved'})})};
+ const saving=api.saveUltimateConfigFromTab(a,tab);
+ await started;
+ a.flags.ultimate.alternateUltimateEnabled=true;
+ release();await saving;
+ assert.equal(a.flags.ultimate.alternateUltimateEnabled,true);
+ assert.equal(a.flags.ultimate.ultimateText,'Draft saved');
+});
+
+test('HUD and sheet previews replace standard artwork with the configured alternate components',()=>{
+ const {a,api,context}=setup({ultimateButtonImage:'standard-orb.png'});
+ vm.runInContext('escapeHTML=value=>String(value??"");',context);
+ a.flags.alternateOrbStates=allOn();
+ for(const render of [api.combatHudDesignerPreview,api.ultimateArtworkPreview]){
+  const custom=render(a,api.getConfig(a));
+  assert.match(custom,/class="is-alternate"/);
+  assert.equal((custom.match(/data-alt-piece=/g)||[]).length,4);
+  assert.doesNotMatch(custom,/standard-orb\.png|tsru-hud-orb-fill|72%<\/strong>/);
+  assert.match(custom,/4\/4<\/strong>/);
+  a.flags.ultimate.alternateUltimateEnabled=false;
+  const normal=render(a,api.getConfig(a));
+  assert.match(normal,/standard-orb\.png/);
+  assert.doesNotMatch(normal,/data-alt-piece=/);
+  a.flags.ultimate.alternateUltimateEnabled=true;
+ }
 });

@@ -14,6 +14,11 @@
 .tsru-combat-party-ultimate-wrap button.is-alternate .tsru-alt-orb-piece .tsru-alt-orb-art { position:absolute; border-radius:0; object-fit:contain; object-position:center; transform:none; opacity:1; }
 .tsru-combat-party-ultimate-wrap button.is-alternate .tsru-alt-orb-piece.is-off:not(.has-off-image) .tsru-alt-orb-art { opacity:.45; }
 .tsru-combat-party-ultimate-wrap button.is-alternate>strong { inset:auto 0 -4px; font-size:10px; }
+.tsru-ultimate-adjust-preview button.is-alternate { overflow:visible; border:0; border-radius:0; background:transparent; padding:0; box-shadow:none; cursor:default; }
+.tsru-ultimate-adjust-preview button.is-alternate>.tsru-alt-orb-artboard { inset:0; background:none; }
+.tsru-ultimate-adjust-preview button.is-alternate .tsru-alt-orb-art { position:absolute; border-radius:0; object-fit:contain; object-position:center; transform:none; opacity:1; }
+.tsru-ultimate-adjust-preview button.is-alternate .is-off:not(.has-off-image) .tsru-alt-orb-art { opacity:.45; }
+.tsru-ultimate-adjust-preview button.is-alternate>strong { inset:auto 0 -4px; font-size:12px; }
 [data-tsru-alternate-builder][hidden] { display:none!important; }
 
 /* GM controls use individual named switches rather than an Energy amount. */
@@ -23,12 +28,12 @@
 .tsru-alt-controls header { display:flex; justify-content:space-between; gap:10px; align-items:baseline; margin-bottom:8px; }
 .tsru-alt-controls header b { font-size:11px; white-space:nowrap; color:#9dd3eb; }
 .tsru-alt-counter-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(125px,1fr)); gap:5px; }
-.tsru-alt-counter-list button { display:flex; align-items:center; gap:7px; min-height:37px; padding:5px 7px; border:1px solid #6c7b8e77; border-radius:5px; background:#1b2637; color:#d8e1ed; text-align:left; }
-.tsru-alt-counter-list button.is-on { border-color:var(--alt-color); box-shadow:inset 0 0 7px color-mix(in srgb,var(--alt-color) 28%,transparent); background:#29384b; }
-.tsru-alt-counter-list button img { flex:0 0 26px; width:26px; height:26px; border:0; object-fit:contain; }
-.tsru-alt-counter-list button img.is-grayscale { filter:grayscale(1); opacity:.4; }
-.tsru-alt-counter-list button span { flex:1; font-size:12px; }
-.tsru-alt-counter-list button b { font-size:10px; }
+.tsru-alt-counter-list :is(button,.tsru-alt-counter-switch) { display:flex; align-items:center; gap:7px; min-height:37px; padding:5px 7px; border:1px solid #6c7b8e77; border-radius:5px; background:#1b2637; color:#d8e1ed; text-align:left; }
+.tsru-alt-counter-list :is(button,.tsru-alt-counter-switch).is-on { border-color:var(--alt-color); box-shadow:inset 0 0 7px color-mix(in srgb,var(--alt-color) 28%,transparent); background:#29384b; }
+.tsru-alt-counter-list :is(button,.tsru-alt-counter-switch) img { flex:0 0 26px; width:26px; height:26px; border:0; object-fit:contain; }
+.tsru-alt-counter-list :is(button,.tsru-alt-counter-switch) img.is-grayscale { filter:grayscale(1); opacity:.4; }
+.tsru-alt-counter-list :is(button,.tsru-alt-counter-switch) span { flex:1; font-size:12px; }
+.tsru-alt-counter-list :is(button,.tsru-alt-counter-switch) b { font-size:10px; }
 .tsru-alt-controls footer { display:flex; gap:6px; margin-top:8px; }
 .tsru-alt-controls footer button { flex:1; min-height:27px; font-size:11px; }
 
@@ -90,3 +95,37 @@
 @media(max-width:850px) { .tsru-alt-designer-grid { grid-template-columns:145px minmax(220px,1fr); }.tsru-alt-inspector { grid-column:1/-1; display:grid; grid-template-columns:1fr 1fr; gap:10px; }.tsru-alt-inspector h3,.tsru-alt-inspector>.tsru-alt-help { grid-column:1/-1; }.tsru-alt-designer-heading { align-items:start; }.tsru-alt-mode-badge { white-space:normal; }.tsru-alt-designer-footer>small { display:none; } }
 
 @container(max-width:850px) { .tsru-alt-designer-grid { grid-template-columns:145px minmax(220px,1fr); }.tsru-alt-inspector { grid-column:1/-1; display:grid; grid-template-columns:1fr 1fr; gap:10px; }.tsru-alt-inspector h3,.tsru-alt-inspector>.tsru-alt-help { grid-column:1/-1; }.tsru-alt-designer-footer>small { display:none; } }
+
+/* Independent switches in free mode; one cumulative counter in circular mode. */
+.tsru-alt-counter-switch { cursor:pointer; margin:0; }
+.tsru-alt-counter-switch input { flex:0 0 15px; width:15px; height:15px; margin:0; accent-color:var(--alt-color); }
+.tsru-alt-circular-counter { display:flex; gap:6px; align-items:end; margin:8px 0; }
+.tsru-alt-circular-counter label { flex:1; font-size:11px; color:#b9ccde; }
+.tsru-alt-circular-counter input { display:block; width:100%; min-width:50px; margin-top:4px; height:30px; color:#edf5ff; background:#111d2b; border:1px solid #61748b; border-radius:4px; }
+.tsru-alt-circular-counter button { flex:0 0 34px; height:30px; padding:3px; }
+.tsru-alt-sequence-list { display:grid; gap:4px; padding:0; margin:8px 0; list-style:none; }
+.tsru-alt-sequence-list li { display:flex; gap:7px; align-items:center; padding:5px 7px; border:1px solid #65748b66; border-radius:5px; color:#a9b7c9; }
+.tsru-alt-sequence-list li.is-on { border-color:var(--alt-color); background:#29384b; color:#eff7ff; }
+.tsru-alt-sequence-list li>span { flex:1; font-size:12px; }
+.tsru-alt-sequence-list small { display:block; font-size:9px; opacity:.8; margin-top:2px; }
+.tsru-alt-sequence-list img { width:24px; height:24px; border:0; object-fit:contain; }
+.tsru-alt-sequence-list img.is-grayscale { filter:grayscale(1); opacity:.4; }
+.tsru-alt-sequence-list li>b,.tsru-alt-sequence-list li>strong { font-size:10px; }
+.tsru-alt-activation-settings { display:grid; grid-template-columns:1fr 1.2fr .8fr; align-items:start; gap:10px; padding:11px; border:1px solid var(--alt-line); border-radius:7px; background:var(--alt-panel); }
+.tsru-alt-activation-settings>label { display:grid; gap:5px; color:var(--alt-muted); font-size:11px; }
+.tsru-alt-activation-settings select { width:100%; min-width:0; height:30px; padding:4px 7px; border:1px solid #4a5d75; border-radius:4px; background:#0e1724; color:#e4f2ff; font-size:12px; }
+.tsru-alt-activation-settings>p { grid-column:1/-1; font-size:11px; }
+.tsru-alt-step-badge { align-self:center; padding:3px 5px; font-size:11px; color:#8de7ff; }
+.tsru-alt-circular-preview { display:flex; align-items:center; flex-wrap:wrap; gap:5px; margin-top:9px; }
+.tsru-alt-circular-preview label { display:flex; align-items:center; gap:7px; color:var(--alt-muted); font-size:11px; }
+.tsru-alt-circular-preview input { width:65px!important; }
+.tsru-alt-circular-preview small { flex-basis:100%; font-size:10px; color:var(--alt-muted); }
+.tsru-alt-inspector>[data-alt-start] { width:100%; margin:-4px 0 7px; }
+
+/* Keep mode settings and Save reachable while editing a long component list. */
+.tsru-alt-designer,.tsru-alt-designer *,.tsru-alt-controls,.tsru-alt-controls * { box-sizing:border-box; }
+.tsru-alt-designer { height:100%; min-height:0; overflow:hidden; }
+.tsru-alt-designer>.tsru-alt-designer-heading,.tsru-alt-designer>.tsru-alt-toolbar,.tsru-alt-designer>.tsru-alt-activation-settings,.tsru-alt-designer>.tsru-alt-designer-footer { flex-shrink:0; }
+.tsru-alt-designer-grid { min-height:0; overflow:auto; scrollbar-gutter:stable; padding-bottom:8px; }
+.tsru-alt-stage-column { width:100%; max-width:420px; justify-self:center; }
+.tsru-alt-circular-counter label { min-width:0; }

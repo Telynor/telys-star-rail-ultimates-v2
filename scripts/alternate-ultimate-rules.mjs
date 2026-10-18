@@ -14,10 +14,39 @@ export function normalizeAlternateOrb(raw = {}) {
     ids.add(id);
     return [{id, name: text(entry.name, `Component ${index + 1}`) || `Component ${index + 1}`,
       image: text(entry.image), offImage: text(entry.offImage), color: orbColor(entry.color),
-      glow: entry.glow !== false, x: bound(entry.x, 0, 100, 50), y: bound(entry.y, 0, 100, 50),
+      glow: entry.glow !== false, sequence: Math.floor(bound(entry.sequence, 1, 1000000, index + 1)),
+      x: bound(entry.x, 0, 100, 50), y: bound(entry.y, 0, 100, 50),
       scale: bound(entry.scale, 5, 200, 50), rotation: bound(entry.rotation, -360, 360, 0)}];
   });
-  return {label: text(raw?.label, "Alternate Ultimate") || "Alternate Ultimate", glowEnabled: raw?.glowEnabled !== false, components};
+  const first = [...components].sort((a, b) => a.sequence - b.sequence)[0];
+  const startComponentId = components.some(c => c.id === raw?.startComponentId) ? raw.startComponentId : first?.id ?? "";
+  return {label: text(raw?.label, "Alternate Ultimate") || "Alternate Ultimate", glowEnabled: raw?.glowEnabled !== false,
+    mode: raw?.mode === "circular" ? "circular" : "free", startComponentId,
+    firstActivation: Math.floor(bound(raw?.firstActivation, 1, 1000000, 1)), components};
+}
+
+// Sequence numbers define charging order, independently of visual layer order.
+// Rotate that order at the chosen start icon, then wrap once around the circle.
+export function alternateOrbSequence(raw) {
+  const orb = normalizeAlternateOrb(raw), ordered = [...orb.components].sort((a, b) => a.sequence - b.sequence);
+  const start = Math.max(0, ordered.findIndex(c => c.id === orb.startComponentId));
+  return [...ordered.slice(start), ...ordered.slice(0, start)];
+}
+
+export function circularOrbMaximum(raw) {
+  const orb = normalizeAlternateOrb(raw);
+  return orb.components.length ? orb.firstActivation + orb.components.length - 1 : 0;
+}
+
+export function circularOrbCount(raw, value) {
+  return Math.floor(bound(value, 0, circularOrbMaximum(raw), 0));
+}
+
+export function circularOrbStates(raw, value) {
+  const orb = normalizeAlternateOrb(raw), count = circularOrbCount(orb, value);
+  const lit = Math.max(0, count - orb.firstActivation + 1);
+  const active = new Set(alternateOrbSequence(orb).slice(0, lit).map(c => c.id));
+  return Object.fromEntries(orb.components.map(c => [c.id, active.has(c.id)]));
 }
 
 export function alternateOrbProgress(orb, states = {}) {

@@ -1,4 +1,4 @@
-import {normalizeAlternateOrb, alternateOrbProgress, ultimateCharge} from "./alternate-ultimate-rules.mjs";
+import {normalizeAlternateOrb, alternateOrbProgress, ultimateCharge, alternateOrbSequence, circularOrbMaximum, circularOrbCount, circularOrbStates} from "./alternate-ultimate-rules.mjs";
 
 const MODULE_ID = "telys-star-rail-ultimates";
 const escape = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -6,17 +6,37 @@ const clamp = (value, min, max) => Math.min(max, Math.max(min, Number(value) || 
 const designers = new Map(), counterQueues = new Map();
 let resolving = () => false;
 export const getAlternateOrb = actor => normalizeAlternateOrb(actor?.getFlag(MODULE_ID, "alternateOrb"));
-export const getAlternateOrbStates = actor => actor?.getFlag(MODULE_ID, "alternateOrbStates") ?? {};
+export const getAlternateOrbCount = actor => circularOrbCount(getAlternateOrb(actor), actor?.getFlag(MODULE_ID, "alternateOrbCounter"));
+export const getAlternateOrbStates = actor => {
+  const orb = getAlternateOrb(actor);
+  return orb.mode === "circular" ? circularOrbStates(orb, getAlternateOrbCount(actor)) : actor?.getFlag(MODULE_ID, "alternateOrbStates") ?? {};
+};
 export const alternateUltimateEnabled = actor => Boolean(actor?.getFlag(MODULE_ID, "ultimate")?.alternateUltimateEnabled);
 export const alternateUltimateCharge = (actor, config) => ultimateCharge(config, getAlternateOrb(actor), getAlternateOrbStates(actor));
 export function configureAlternateUltimates(options) { resolving = options.isResolving; }
 
-export function bindAlternateOrbSheet(actor, root) {
+export function bindAlternateOrbSheet(actor, root, {onChange = () => {}} = {}) {
   const toggle = root?.querySelector('[name="alternateUltimateEnabled"]');
   const builder = root?.querySelector("[data-tsru-alternate-builder]");
-  if (!toggle || !builder) return;
-  const sync = () => { builder.hidden = !toggle.checked; };
-  toggle.addEventListener("change", sync);
+  if (!toggle || !builder || toggle.dataset.altModeBound) return;
+  toggle.dataset.altModeBound = "true";
+  root.dataset.altActorId = actor.id;
+  toggle.disabled = !game.user.isGM;
+  const sync = () => { builder.hidden = !toggle.checked; onChange(); };
+  toggle.addEventListener("change", async () => {
+    if (!game.user.isGM) { toggle.checked = alternateUltimateEnabled(actor); sync(); return; }
+    const enabled = toggle.checked;
+    toggle.disabled = true;
+    sync();
+    try {
+      // Save this switch independently of the rest of the sheet's draft fields.
+      await actor.update({[`flags.${MODULE_ID}.ultimate.alternateUltimateEnabled`]: enabled}, {tsruAutosave: true, render: false});
+    } catch (error) {
+      toggle.checked = alternateUltimateEnabled(actor);
+      sync();
+      ui.notifications.error(`Could not change ${actor.name}'s Ultimate mode: ${error.message}`);
+    } finally { toggle.disabled = !game.user.isGM; }
+  });
   builder.querySelector('[data-action="open-alternate-orb-builder"]')?.addEventListener("click", () => openAlternateOrbDesigner(actor));
   sync();
 }
@@ -26,13 +46,18 @@ export function renderAlternateOrb(raw, states = {}, {editing = false, selected 
   return `<span class="tsru-alt-orb-artboard ${editing ? "is-editing" : ""}" aria-hidden="${!editing}">${orb.components.map(c => {
     const active = states[c.id] === true;
     const image = !active && c.offImage ? c.offImage : c.image;
-    return `<span class="tsru-alt-orb-piece ${active ? "is-on" : "is-off"} ${!active && c.offImage ? "has-off-image" : ""} ${active && c.glow && orb.glowEnabled ? "has-glow" : ""} ${selected === c.id ? "is-selected" : ""}" data-alt-piece="${c.id}" style="left:${c.x}%;top:${c.y}%;width:${c.scale}%;height:${c.scale}%;transform:translate(-50%,-50%) rotate(${c.rotation}deg);--alt-color:${c.color}">${image ? `<img class="tsru-alt-orb-art" src="${escape(image)}" alt="${escape(c.name)}" draggable="false">` : '<span class="tsru-alt-orb-placeholder">＋</span>'}${editing && selected === c.id ? '<span class="tsru-alt-orb-handle is-scale" data-alt-handle="scale" title="Drag to scale">↘</span><span class="tsru-alt-orb-handle is-rotate" data-alt-handle="rotate" title="Drag to rotate">↻</span>' : ""}</span>`;
+    return `<span class="tsru-alt-orb-piece ${active ? "is-on" : "is-off"} ${!active && c.offImage ? "has-off-image" : ""} ${active && c.glow && orb.glowEnabled ? "has-glow" : ""} ${selected === c.id ? "is-selected" : ""}" data-alt-piece="${c.id}" style="left:${c.x}%;top:${c.y}%;width:${c.scale}%;height:${c.scale}%;transform:translate(-50%,-50%) rotate(${c.rotation}deg);--alt-color:${c.color}">${image ? `<img class="tsru-alt-orb-art" src="${escape(image)}" alt="${escape(c.name)}" draggable="false">` : '<span class="tsru-alt-orb-placeholder">+</span>'}${editing && selected === c.id ? '<span class="tsru-alt-orb-handle is-scale" data-alt-handle="scale" title="Drag to scale">↘</span><span class="tsru-alt-orb-handle is-rotate" data-alt-handle="rotate" title="Drag to rotate">↻</span>' : ""}</span>`;
   }).join("")}</span>`;
 }
 
 export function alternateOrbControls(actor) {
   const orb = getAlternateOrb(actor), states = getAlternateOrbStates(actor), progress = alternateOrbProgress(orb, states);
-  return `<div class="tsru-alt-controls" data-alt-controls="${escape(actor.uuid)}"><header><strong>${escape(orb.label)}</strong><b>${progress.current}/${progress.total} on${progress.ready ? " · Ready" : ""}</b></header><div class="tsru-alt-counter-list">${orb.components.map(c => `<button type="button" data-alt-counter="${c.id}" class="${states[c.id] === true ? "is-on" : "is-off"}" aria-pressed="${states[c.id] === true}" style="--alt-color:${c.color}" ${resolving(actor) ? "disabled" : ""}>${c.image ? `<img src="${escape(!states[c.id] && c.offImage ? c.offImage : c.image)}" class="${!states[c.id] && !c.offImage ? "is-grayscale" : ""}" alt="">` : ""}<span>${escape(c.name)}</span><b>${states[c.id] ? "ON" : "OFF"}</b></button>`).join("") || '<p>Add components in the Ultimate Orb Builder.</p>'}</div><footer><button type="button" data-alt-reset ${resolving(actor) ? "disabled" : ""}>Reset counters</button><button type="button" data-alt-builder="${escape(actor.uuid)}">Edit orb</button></footer></div>`;
+  const locked = resolving(actor), disabled = locked ? "disabled" : "";
+  const icon = c => c.image ? `<img src="${escape(!states[c.id] && c.offImage ? c.offImage : c.image)}" class="${!states[c.id] && !c.offImage ? "is-grayscale" : ""}" alt="">` : "";
+  const body = orb.mode === "circular"
+    ? `<div class="tsru-alt-circular-counter"><label>Charge counter<input type="number" min="0" max="${circularOrbMaximum(orb)}" step="1" value="${getAlternateOrbCount(actor)}" data-alt-count-value aria-label="${escape(orb.label)} charge counter" ${disabled}></label><button type="button" data-alt-count-step="-1" aria-label="Decrease alternate Ultimate counter" ${disabled}>−</button><button type="button" data-alt-count-step="1" aria-label="Increase alternate Ultimate counter" ${disabled}>+</button></div><ol class="tsru-alt-sequence-list">${alternateOrbSequence(orb).map((c, i) => `<li class="${states[c.id] ? "is-on" : "is-off"}" style="--alt-color:${c.color}"><b>${i + 1}</b>${icon(c)}<span>${escape(c.name)}<small>Lights at ${orb.firstActivation + i}${i === 0 ? " · Start" : ""}</small></span><strong>${states[c.id] ? "ON" : "OFF"}</strong></li>`).join("")}</ol>`
+    : `<div class="tsru-alt-counter-list">${orb.components.map(c => `<label class="tsru-alt-counter-switch ${states[c.id] ? "is-on" : "is-off"}" style="--alt-color:${c.color}"><input type="checkbox" data-alt-counter="${c.id}" ${states[c.id] ? "checked" : ""} ${disabled}>${icon(c)}<span>${escape(c.name)}</span><b>${states[c.id] ? "ON" : "OFF"}</b></label>`).join("") || '<p>Add components in the Ultimate Orb Builder.</p>'}</div>`;
+  return `<div class="tsru-alt-controls" data-alt-controls="${escape(actor.uuid)}" data-alt-mode="${orb.mode}"><header><strong>${escape(orb.label)}</strong><b>${progress.current}/${progress.total} on${progress.ready ? " · Ready" : ""}</b></header>${body}<footer><button type="button" data-alt-reset ${disabled}>Reset counters</button><button type="button" data-alt-builder="${escape(actor.uuid)}">Edit orb</button></footer></div>`;
 }
 
 async function findActor(uuid) {
@@ -42,9 +67,21 @@ async function findActor(uuid) {
 export async function setAlternateOrbCounter(actor, id, active) {
   if (!game.user.isGM || !actor || !alternateUltimateEnabled(actor)) return false;
   return queueCounterChange(actor, async () => {
-    if (resolving(actor)) return false;
-    if (!getAlternateOrb(actor).components.some(c => c.id === id)) return false;
+    const orb = getAlternateOrb(actor);
+    if (resolving(actor) || orb.mode !== "free") return false;
+    if (!orb.components.some(c => c.id === id)) return false;
     await actor.update({[`flags.${MODULE_ID}.alternateOrbStates.${id}`]: Boolean(active)});
+    return true;
+  });
+}
+
+export async function setAlternateOrbCount(actor, value, {relative = false} = {}) {
+  if (!game.user.isGM || !actor || !alternateUltimateEnabled(actor) || !Number.isFinite(Number(value))) return false;
+  return queueCounterChange(actor, async () => {
+    const orb = getAlternateOrb(actor);
+    if (resolving(actor) || orb.mode !== "circular") return false;
+    const next = circularOrbCount(orb, (relative ? getAlternateOrbCount(actor) : 0) + Number(value));
+    await actor.update({[`flags.${MODULE_ID}.alternateOrbCounter`]: next});
     return true;
   });
 }
@@ -62,7 +99,8 @@ export async function resetAlternateOrbCounters(actor, {consume = false} = {}) {
   return queueCounterChange(actor, async () => {
     if (!consume && resolving(actor)) return false;
     const updates = Object.fromEntries(getAlternateOrb(actor).components.map(c => [`flags.${MODULE_ID}.alternateOrbStates.${c.id}`, false]));
-    if (Object.keys(updates).length) await actor.update(updates);
+    updates[`flags.${MODULE_ID}.alternateOrbCounter`] = 0;
+    await actor.update(updates);
     return true;
   });
 }
@@ -71,7 +109,7 @@ export function bindAlternateOrbControls(root) {
   if (!root || root.dataset.altControlsBound) return;
   root.dataset.altControlsBound = "true";
   root.addEventListener("click", async event => {
-    const button = event.target.closest("[data-alt-counter], [data-alt-reset], [data-alt-builder]");
+    const button = event.target.closest("[data-alt-reset], [data-alt-builder], [data-alt-count-step]");
     if (!button || !root.contains(button) || !game.user.isGM) return;
     event.preventDefault(); event.stopPropagation();
     const uuid = button.dataset.altBuilder || button.closest("[data-alt-controls]")?.dataset.altControls;
@@ -82,9 +120,22 @@ export function bindAlternateOrbControls(root) {
     button.disabled = true;
     try {
       if (button.hasAttribute("data-alt-reset")) await resetAlternateOrbCounters(actor);
-      else await setAlternateOrbCounter(actor, button.dataset.altCounter, button.getAttribute("aria-pressed") !== "true");
+      else await setAlternateOrbCount(actor, Number(button.dataset.altCountStep), {relative: true});
     } catch (error) { ui.notifications.error(`Could not update ${actor.name}'s counters: ${error.message}`); }
     finally { if (button.isConnected) button.disabled = false; }
+  });
+  root.addEventListener("change", async event => {
+    const input = event.target.closest("[data-alt-counter], [data-alt-count-value]");
+    if (!input || !root.contains(input) || !game.user.isGM || input.disabled) return;
+    event.stopPropagation();
+    const actor = await findActor(input.closest("[data-alt-controls]")?.dataset.altControls);
+    if (!actor) return;
+    input.disabled = true;
+    try {
+      if (input.hasAttribute("data-alt-counter")) await setAlternateOrbCounter(actor, input.dataset.altCounter, input.checked);
+      else { await setAlternateOrbCount(actor, input.value); if (input.isConnected) input.value = getAlternateOrbCount(actor); }
+    } catch (error) { ui.notifications.error(`Could not update ${actor.name}'s counters: ${error.message}`); }
+    finally { if (input.isConnected) input.disabled = false; }
   });
 }
 
@@ -127,9 +178,23 @@ export async function detectOrbImageColor(path) {
 const field = (label, key, value, type = "text", extra = "") => `<label>${label}<input type="${type}" data-alt-field="${key}" value="${escape(value)}" ${extra}></label>`;
 const fileField = (label, key, value) => `<label>${label}<span class="tsru-alt-file"> <input type="text" data-alt-field="${key}" value="${escape(value)}" placeholder="${key === "offImage" ? "Greyscale of active image" : "Image path or URL"}"><button type="button" data-alt-browse="${key}" title="Browse or upload image">…</button></span></label>`;
 
+const previewStates = app => app.draft.mode === "circular" ? circularOrbStates(app.draft, app.previewCount) : app.previewStates;
+const nextSequence = orb => Math.max(0, ...orb.components.map(c => Number(c.sequence) || 0)) + 1;
+
+function activationSettings(app) {
+  const orb = normalizeAlternateOrb(app.draft);
+  return `<section class="tsru-alt-activation-settings"><label>Activation mode<select data-alt-setting="mode"><option value="free" ${orb.mode === "free" ? "selected" : ""}>Free activation</option><option value="circular" ${orb.mode === "circular" ? "selected" : ""}>Circular counter</option></select></label>${orb.mode === "circular" ? `<label>Starting icon<select data-alt-setting="startComponentId">${alternateOrbSequence(orb).map(c => `<option value="${c.id}" ${c.id === orb.startComponentId ? "selected" : ""}>${escape(c.name)} (order ${c.sequence})</option>`).join("")}</select></label><label>First activation number<input type="number" min="1" max="1000000" step="1" data-alt-setting="firstActivation" value="${orb.firstActivation}"></label><p>The first icon lights at this counter value. Each next increment lights one more, following sequence order and wrapping at the end. All previous icons stay lit.</p>` : '<p>Every component has its own checkbox in the GM combat panel. Check an icon to light it; uncheck to turn it off.</p>'}</section>`;
+}
+
+function circularPreviewControl(app) {
+  if (app.draft.mode !== "circular") return "";
+  return `<div class="tsru-alt-circular-preview"><label>Preview counter <input type="number" data-alt-preview-count min="0" max="${circularOrbMaximum(app.draft)}" step="1" value="${circularOrbCount(app.draft, app.previewCount)}"></label><button type="button" data-alt-preview-step="-1">−</button><button type="button" data-alt-preview-step="1">+</button><small>Preview only · live counters stay unchanged.</small></div>`;
+}
+
 function designerMarkup(app) {
   const orb = app.draft, c = orb.components.find(c => c.id === app.selected);
-  return `<div class="tsru-alt-designer"><header class="tsru-alt-designer-heading"><div><h2>${escape(app.actor.name)} · Ultimate Orb Builder</h2><p>Arrange your components. The GM switches each counter on or off during play.</p></div><span class="tsru-alt-mode-badge">${alternateUltimateEnabled(app.actor) ? "Alternate mode ON" : "Regular energy mode"}</span></header><div class="tsru-alt-toolbar"><button type="button" data-alt-add>＋ Add component</button><button type="button" data-alt-upload>Upload images</button><button type="button" data-alt-browse-add>Browse images</button><input type="file" accept="image/*" multiple data-alt-files hidden></div><div class="tsru-alt-designer-grid"><aside class="tsru-alt-layers"><h3>Components <small>${orb.components.length}</small></h3><div class="tsru-alt-layers-list">${orb.components.map((c, i) => `<div class="tsru-alt-layer ${app.selected === c.id ? "is-selected" : ""}"><button type="button" data-alt-select="${c.id}">${c.image ? `<img src="${escape(c.image)}" alt="">` : "<span>◇</span>"}<span>${escape(c.name)}<small>Layer ${i + 1}</small></span></button><button type="button" data-alt-preview-toggle="${c.id}" aria-pressed="${app.previewStates[c.id] === true}" title="Preview on/off">${app.previewStates[c.id] ? "ON" : "OFF"}</button></div>`).join("") || '<p class="tsru-alt-empty">Add an image or drop images or Items onto the canvas.</p>'}</div><p class="tsru-alt-help">Last layer appears on top. Preview switches do not change live counters.</p></aside><section class="tsru-alt-stage-column"><div class="tsru-alt-preview-toolbar"><strong>Orb preview</strong><button type="button" data-alt-preview="off">All off</button><button type="button" data-alt-preview="on">All on</button><button type="button" data-alt-preview="live">Live counters</button></div><div class="tsru-alt-stage" tabindex="0" aria-label="Orb design canvas">${renderAlternateOrb(orb, app.previewStates, {editing: true, selected: app.selected})}</div><p class="tsru-alt-help">Drag to move. Drag ↘ to scale or ↻ to rotate. Mouse wheel scales; Shift + wheel rotates. Arrow keys nudge the selected component.</p><label class="tsru-alt-check"><input type="checkbox" data-alt-setting="glowEnabled" ${orb.glowEnabled ? "checked" : ""}> Active component glow</label><label class="tsru-alt-name">Counter system name<input type="text" data-alt-setting="label" value="${escape(orb.label)}"></label></section><aside class="tsru-alt-inspector"><h3>Selected component</h3>${c ? `${field("Name", "name", c.name)}${fileField("Active image", "image", c.image)}${fileField("Off image (optional)", "offImage", c.offImage)}<p class="tsru-alt-help">Without an off image, the active artwork is greyed out. A supplied off image keeps its own appearance.</p><div class="tsru-alt-two-fields">${field("X %", "x", c.x, "number", 'min="0" max="100" step="0.1"')}${field("Y %", "y", c.y, "number", 'min="0" max="100" step="0.1"')}</div>${field("Scale % of orb", "scale", c.scale, "number", 'min="5" max="200" step="1"')}${field("Rotation °", "rotation", c.rotation, "number", 'min="-360" max="360" step="1"')}${field("Glow color", "color", c.color, "color")}<button type="button" data-alt-detect>Detect image color</button><label class="tsru-alt-check"><input type="checkbox" data-alt-field="glow" ${c.glow ? "checked" : ""}> Glow when active</label><div class="tsru-alt-layer-order"><button type="button" data-alt-order="-1">Send back</button><button type="button" data-alt-order="1">Bring forward</button></div><div class="tsru-alt-layer-order"><button type="button" data-alt-duplicate>Duplicate</button><button type="button" data-alt-delete>Remove</button></div>` : '<p class="tsru-alt-empty">Select a component to edit its image, position, scale, rotation, and glow.</p>'}</aside></div><footer class="tsru-alt-designer-footer"><span data-alt-save-status>${app.dirty ? "Unsaved changes" : "Design saved"}</span><small>All counters must be on. Using the Ultimate resets them.</small><button type="button" data-alt-save>Save orb design</button></footer></div>`;
+  const sequence = alternateOrbSequence(orb), steps = new Map(sequence.map((entry, i) => [entry.id, i + 1]));
+  return `<div class="tsru-alt-designer"><header class="tsru-alt-designer-heading"><div><h2>${escape(app.actor.name)} · Ultimate Orb Builder</h2><p>Arrange your components, choose a charge mode, and control progress from the GM combat panel.</p></div><span class="tsru-alt-mode-badge">${alternateUltimateEnabled(app.actor) ? "Alternate mode ON" : "Regular energy mode"}</span></header><div class="tsru-alt-toolbar"><button type="button" data-alt-add>+ Add component</button><button type="button" data-alt-upload>Upload images</button><button type="button" data-alt-browse-add>Browse images</button><input type="file" accept="image/*" multiple data-alt-files hidden></div>${activationSettings(app)}<div class="tsru-alt-designer-grid"><aside class="tsru-alt-layers"><h3>Components <small>${orb.components.length}</small></h3><div class="tsru-alt-layers-list">${orb.components.map((c, i) => `<div class="tsru-alt-layer ${app.selected === c.id ? "is-selected" : ""}"><button type="button" data-alt-select="${c.id}">${c.image ? `<img src="${escape(c.image)}" alt="">` : "<span>◇</span>"}<span>${escape(c.name)}<small>Layer ${i + 1}${orb.mode === "circular" ? ` · Step ${steps.get(c.id)}${steps.get(c.id) === 1 ? " · Start" : ""}` : ""}</small></span></button>${orb.mode === "circular" ? `<span class="tsru-alt-step-badge">${steps.get(c.id)}</span>` : `<button type="button" data-alt-preview-toggle="${c.id}" aria-pressed="${app.previewStates[c.id] === true}" title="Preview on/off">${app.previewStates[c.id] ? "ON" : "OFF"}</button>`}</div>`).join("") || '<p class="tsru-alt-empty">Add an image or drop images or Items onto the canvas.</p>'}</div><p class="tsru-alt-help">Last layer appears on top. Sequence order controls charging separately. Previews do not change live counters.</p></aside><section class="tsru-alt-stage-column"><div class="tsru-alt-preview-toolbar"><strong>Orb preview</strong><button type="button" data-alt-preview="off">All off</button><button type="button" data-alt-preview="on">All on</button><button type="button" data-alt-preview="live">Live counters</button></div><div class="tsru-alt-stage" tabindex="0" aria-label="Orb design canvas">${renderAlternateOrb(orb, previewStates(app), {editing: true, selected: app.selected})}</div>${circularPreviewControl(app)}<p class="tsru-alt-help">Drag to move. Drag ↘ to scale or ↻ to rotate. Mouse wheel scales; Shift + wheel rotates. Arrow keys nudge the selected component.</p><label class="tsru-alt-check"><input type="checkbox" data-alt-setting="glowEnabled" ${orb.glowEnabled ? "checked" : ""}> Active component glow</label><label class="tsru-alt-name">Counter system name<input type="text" data-alt-setting="label" value="${escape(orb.label)}"></label></section><aside class="tsru-alt-inspector"><h3>Selected component</h3>${c ? `${field("Name", "name", c.name)}${orb.mode === "circular" ? `${field("Sequence order", "sequence", c.sequence, "number", 'min="1" max="1000000" step="1"')}<button type="button" data-alt-start>Make this the starting icon</button><p class="tsru-alt-help">Step ${steps.get(c.id)} · lights at counter ${orb.firstActivation + steps.get(c.id) - 1}. Use a different sequence number for each icon.</p>` : ""}${fileField("Active image", "image", c.image)}${fileField("Off image (optional)", "offImage", c.offImage)}<p class="tsru-alt-help">Without an off image, the active artwork is greyed out. A supplied off image keeps its own appearance.</p><div class="tsru-alt-two-fields">${field("X %", "x", c.x, "number", 'min="0" max="100" step="0.1"')}${field("Y %", "y", c.y, "number", 'min="0" max="100" step="0.1"')}</div>${field("Scale % of orb", "scale", c.scale, "number", 'min="5" max="200" step="1"')}${field("Rotation °", "rotation", c.rotation, "number", 'min="-360" max="360" step="1"')}${field("Glow color", "color", c.color, "color")}<button type="button" data-alt-detect>Detect image color</button><label class="tsru-alt-check"><input type="checkbox" data-alt-field="glow" ${c.glow ? "checked" : ""}> Glow when active</label><div class="tsru-alt-layer-order"><button type="button" data-alt-order="-1">Send back</button><button type="button" data-alt-order="1">Bring forward</button></div><div class="tsru-alt-layer-order"><button type="button" data-alt-duplicate>Duplicate</button><button type="button" data-alt-delete>Remove</button></div>` : '<p class="tsru-alt-empty">Select a component to edit its image, position, scale, rotation, and glow.</p>'}</aside></div><footer class="tsru-alt-designer-footer"><span data-alt-save-status>${app.dirty ? "Unsaved changes" : "Design saved"}</span><small>All counters must be on. Using the Ultimate resets them.</small><button type="button" data-alt-save>Save orb design</button></footer></div>`;
 }
 
 export function openAlternateOrbDesigner(actor) {
@@ -141,7 +206,7 @@ export function openAlternateOrbDesigner(actor) {
     constructor() {
       super({id: `tsru-alternate-orb-${actor.id}`});
       this.actor = actor; this.draft = getAlternateOrb(actor); this.selected = this.draft.components[0]?.id ?? "";
-      this.previewStates = {...getAlternateOrbStates(actor)}; this.dirty = false; this.saving = false;
+      this.previewStates = {...getAlternateOrbStates(actor)}; this.previewCount = getAlternateOrbCount(actor); this.dirty = false; this.saving = false;
     }
     async _renderHTML() { return designerMarkup(this); }
     _replaceHTML(result, content) { content.innerHTML = result; }
@@ -153,6 +218,7 @@ export function openAlternateOrbDesigner(actor) {
       root.addEventListener("change", event => {
         if (event.target.matches("[data-alt-files]")) this.uploadFiles(event.target.files).catch(error => this.reportError(error));
         else if (event.target.matches('[data-alt-field="image"]')) this.detectSelectedColor();
+        else if (event.target.matches('[data-alt-field="sequence"], [data-alt-setting="firstActivation"], [data-alt-preview-count]')) this.render();
       });
       const stage = root.querySelector(".tsru-alt-stage");
       stage.addEventListener("pointerdown", event => this.pointerDown(event));
@@ -182,7 +248,7 @@ export function openAlternateOrbDesigner(actor) {
       const stage = this.element.querySelector(".tsru-alt-stage");
       if (!stage) return;
       const template = document.createElement("template");
-      template.innerHTML = renderAlternateOrb(this.draft, this.previewStates, {editing: true, selected: this.selected});
+      template.innerHTML = renderAlternateOrb(this.draft, previewStates(this), {editing: true, selected: this.selected});
       const next = template.content.firstElementChild, board = stage.firstElementChild;
       if (!board) { stage.append(next); return; }
       const existing = new Map([...board.children].map(piece => [piece.dataset.altPiece, piece]));
@@ -220,7 +286,13 @@ export function openAlternateOrbDesigner(actor) {
         }
       }
       const setting = input.dataset.altSetting;
-      if (setting) { this.draft[setting] = input.type === "checkbox" ? input.checked : input.value; this.changed(); this.paint(); }
+      if (setting) {
+        this.draft[setting] = input.type === "checkbox" ? input.checked : input.type === "number" ? Number(input.value) : input.value;
+        if (setting === "firstActivation") this.draft.firstActivation = normalizeAlternateOrb(this.draft).firstActivation;
+        this.changed(); this.paint();
+        if (setting === "mode" || setting === "startComponentId") this.render();
+      }
+      if (input.hasAttribute("data-alt-preview-count")) { this.previewCount = circularOrbCount(this.draft, input.value); this.paint(); }
     }
     async onClick(event) {
       const button = event.target.closest("button"); if (!button) return;
@@ -231,8 +303,10 @@ export function openAlternateOrbDesigner(actor) {
         if (button.hasAttribute("data-alt-browse-add")) return this.browseImage("add");
         if (button.dataset.altBrowse) return this.browseImage(button.dataset.altBrowse);
         if (button.dataset.altSelect) { this.selected = button.dataset.altSelect; return this.render(); }
-        if (button.dataset.altPreviewToggle) { const id = button.dataset.altPreviewToggle; this.previewStates[id] = !this.previewStates[id]; return this.render(); }
+        if (button.dataset.altPreviewStep) { this.previewCount = circularOrbCount(this.draft, this.previewCount + Number(button.dataset.altPreviewStep)); return this.render(); }
+        if (button.dataset.altPreviewToggle && this.draft.mode !== "circular") { const id = button.dataset.altPreviewToggle; this.previewStates[id] = !this.previewStates[id]; return this.render(); }
         if (button.dataset.altPreview) {
+          this.previewCount = button.dataset.altPreview === "live" ? getAlternateOrbCount(this.actor) : button.dataset.altPreview === "on" ? circularOrbMaximum(this.draft) : 0;
           this.previewStates = button.dataset.altPreview === "live" ? {...getAlternateOrbStates(this.actor)} : Object.fromEntries(this.draft.components.map(c => [c.id, button.dataset.altPreview === "on"]));
           return this.render();
         }
@@ -240,9 +314,10 @@ export function openAlternateOrbDesigner(actor) {
         if (button.hasAttribute("data-alt-save")) return this.save();
         const c = this.component(); if (!c) return;
         if (button.hasAttribute("data-alt-duplicate")) {
-          const copy = {...c, id: foundry.utils.randomID(), name: `${c.name} copy`, x: clamp(c.x + 3,0,100), y: clamp(c.y + 3,0,100)};
+          const copy = {...c, id: foundry.utils.randomID(), sequence: nextSequence(this.draft), name: `${c.name} copy`, x: clamp(c.x + 3,0,100), y: clamp(c.y + 3,0,100)};
           this.draft.components.push(copy); this.selected = copy.id;
         }
+        if (button.hasAttribute("data-alt-start")) this.draft.startComponentId = c.id;
         if (button.hasAttribute("data-alt-delete")) { this.draft.components = this.draft.components.filter(v => v.id !== c.id); this.selected = this.draft.components[0]?.id ?? ""; }
         if (button.dataset.altOrder) {
           const index = this.draft.components.indexOf(c), next = clamp(index + Number(button.dataset.altOrder),0,this.draft.components.length - 1);
@@ -253,7 +328,7 @@ export function openAlternateOrbDesigner(actor) {
     }
     addComponent(image = "", name = "", position = {}) {
       const id = foundry.utils.randomID();
-      const c = normalizeAlternateOrb({components: [{id, name: name || `Component ${this.draft.components.length + 1}`, image, ...position}]}).components[0];
+      const c = normalizeAlternateOrb({components: [{id, sequence: nextSequence(this.draft), name: name || `Component ${this.draft.components.length + 1}`, image, ...position}]}).components[0];
       this.draft.components.push(c); this.selected = c.id; this.previewStates[c.id] = true;
       this.changed(); this.render();
       if (image) this.detectSelectedColor(c);
@@ -322,6 +397,7 @@ export function openAlternateOrbDesigner(actor) {
       if (resolving(this.actor)) return ui.notifications.warn("Finish the current Ultimate before editing its orb.");
       const orb = normalizeAlternateOrb(this.draft);
       if (alternateUltimateEnabled(this.actor) && (!orb.components.length || orb.components.some(c => !c.image))) return ui.notifications.warn("Add an active image for every component before saving an alternate orb.");
+      if (orb.mode === "circular" && new Set(orb.components.map(c => c.sequence)).size !== orb.components.length) return ui.notifications.warn("Give every circular orb icon a different sequence order before saving.");
       this.saving = true;
       try {
         // Layout and live counters are separate flags: saving a draft preserves GM progress.

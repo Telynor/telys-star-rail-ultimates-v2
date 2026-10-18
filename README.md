@@ -4,13 +4,16 @@
 
 Check **Character sheet → HSR Settings → Alternate Ultimate → Alternate Ultimate?** to replace that character's Energy orb with a custom orb. The builder button appears while checked. Uncheck to restore the normal orb; the saved design and counters are retained.
 
+The mode checkbox saves immediately. Alternate mode replaces the standard image and Energy fill in the floating orb, combat HUD, and sheet previews, including while an enhanced stance is active. Unchecking restores that stance's normal Ultimate artwork. Other sheet autosaves preserve the mode switch.
+
 - Open **Ultimate Orb Builder**. Add components, browse existing images, upload multiple images, or drop images/Items onto the canvas. Transparent artwork keeps its shape.
 - Select each component, drag to position it, and use the corner/rotation handles, wheel, or numeric fields to scale and rotate it. Layers can be reordered or duplicated.
 - Choose an active image and optional off image. Without an off image, the active image appears greyed out. The builder detects the image's main color for its glow; the color, per-component glow, and overall glow can be changed.
 - Preview all on, all off, or live counters, then **Save orb design**. Preview switches do not change live progress.
-- In **GM Panel → Character Resources**, or **DM Combat Menu → Alt Ultimates**, switch each named counter on/off. Every component must be on before the Ultimate is available. Using it resets all counters. Normal Energy gains (including direct Energy flag awards) are blocked while alternate mode is enabled.
+- Choose **Activation mode → Free activation** for individual GM checkboxes. Choose **Circular counter** for a single cumulative charge counter: select the **Starting icon**, assign each component a unique **Sequence order**, and set the **First activation number** (default 1). The sequence wraps after the last order; increasing the counter lights the next icon while keeping earlier ones lit. A first activation number of 3 means values 0–2 light nothing, 3 lights the starting icon, 4 lights the next, and so on.
+- In **GM Panel → Character Resources**, or **DM Combat Menu → Alt Ultimates**, use the component checkboxes in free mode or the number/−/+ counter controls in circular mode. Decreasing the circular counter turns later icons off for corrections. Every component must be on before the Ultimate is available. Using it resets all counters. Normal Energy gains (including direct Energy flag awards) are blocked while alternate mode is enabled.
 
-The custom artwork appears in both the floating orb and party HUD. Hotbar activation uses the same counters. Existing ownership checks, enhanced stances, splash art, descriptions, and interrupt/queued turns still apply. Normal Energy is retained separately while alternate mode is used.
+The custom artwork appears in both the floating orb and party HUD. Hotbar activation uses the same counters. Existing ownership checks, enhanced stances, splash art, descriptions, and interrupt/queued turns still apply. Normal Energy is retained separately while alternate mode is used. Casting either alternate mode resets both its independent switches and its circular counter to zero. Existing preview.6 designs default to Free activation.
 
 
 ## Eidolon Resonance
