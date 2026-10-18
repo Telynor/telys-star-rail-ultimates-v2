@@ -145,6 +145,7 @@ const DEFAULT_CONFIG = Object.freeze({
   enhancedSplashScale: 100,
   enhancedUltimateButtonImage: "",
   enhancedUltimateText: "",
+  enhancedUltimateScript: "",
   enhancedEffectText: "",
   splashImage: "",
   splashDuration: 1,
@@ -196,6 +197,7 @@ const state = {
   lastElationSequenceKey: "",
   processedMessages: new Set(),
   ultimateLocks: new Set(),
+  runningUltimates: new Set(),
   pendingUltimates: new Map(),
   ultimateQueues: new Map(),
   splashBroadcasts: new Map(),
@@ -440,6 +442,7 @@ function getVisualConfig(actor) {
   if(config.enhancedHudPortrait){for(const field of ["X","Y","Scale","Flip"])config[`combatHudPortrait${field}`]=config[`enhancedHudPortrait${field}`];}
   if(config.enhancedCarouselImage){for(const field of ["X","Y","Scale","Flip"])config[`carouselImage${field}`]=config[`enhancedCarouselImage${field}`];}
   if(config.enhancedUltimateEnabled){
+    if(String(config.enhancedUltimateScript||"").trim())config.ultimateScript=config.enhancedUltimateScript;
     if(config.enhancedUltimateButtonImage)config.ultimateButtonImage=config.enhancedUltimateButtonImage;
     if(config.enhancedSplashImage){config.splashImage=config.enhancedSplashImage;for(const field of ["X","Y","Scale"])config[`splash${field}`]=config[`enhancedSplash${field}`];}
     if(config.enhancedUltimateText)config.ultimateText=config.enhancedUltimateText;
@@ -1900,7 +1903,7 @@ function enhancedFormActive(actor){const config=getConfig(actor);return Boolean(
 function stanceActionAllowed(actor,action,{notify=true}={}){
   if(!enhancedFormActive(actor))return true;
   const config=getConfig(actor);
-  const ready=action==="skill"?Boolean(String(config.enhancedSkillText||"").trim()):action==="talent"?Boolean(String(config.enhancedTalentText||"").trim()):action==="ultimate"?Boolean(config.enhancedUltimateEnabled&&String(config.enhancedUltimateText||"").trim()):true;
+  const ready=action==="skill"?Boolean(String(config.enhancedSkillText||"").trim()):action==="talent"?Boolean(String(config.enhancedTalentText||"").trim()):action==="ultimate"?Boolean(config.enhancedUltimateEnabled&&[config.enhancedUltimateText,config.enhancedUltimateScript,config.ultimateScript].some(value=>String(value||"").trim())):true;
   if(!ready&&notify)ui.notifications.warn(`Configure ${actor.name}'s enhanced ${action} before using it in the enhanced stance.`);
   return ready;
 }
@@ -3188,7 +3191,7 @@ class UltimateOrb {
     this.element.classList.toggle("is-ready", ready);
     this.element.querySelector(".tsru-orb-percent").textContent = config.showPercent ? (charge.alternate ? `${charge.current}/${charge.total}` : `${Math.round(percent)}%`) : "";
     button.disabled = !ready || state.ultimateLocks.has(this.actor.id);
-    button.title = ready ? `${this.actor.name}: Activate Ultimate` : charge.alternate ? `${this.actor.name}: ${charge.current}/${charge.total} counters on` : `${this.actor.name}: ${config.current}/${config.max} Energy`;
+    button.title = ready ? `${this.actor.name}: Activate Ultimate` : ultimateReadinessMessage(this.actor, config, charge);
     return this;
   }
 
@@ -4177,6 +4180,7 @@ function hasQueuedUltimateRequest(actorId) {
 
 async function reconcileUltimateLock(actorId) {
   if (!actorId || !state.ultimateLocks.has(actorId)) return false;
+  if (state.runningUltimates.has(actorId)) return false;
   if (hasTemporaryUltimateTurn(actorId) || hasQueuedUltimateRequest(actorId)) return false;
   const pending = state.pendingUltimates.get(actorId);
   if (pending?.timer) window.clearTimeout(pending.timer);
@@ -4193,18 +4197,34 @@ async function reconcileUltimateLock(actorId) {
   return true;
 }
 
+function ultimateReadinessMessage(actor, config, charge = alternateUltimateCharge(actor, config)) {
+  if (!config.enabled) return `${actor.name}'s Ultimate system is disabled. Check Enable Ultimate system in the character's HSR settings.`;
+  if (!charge.alternate) return `${actor.name}'s Ultimate is not ready: ${charge.current}/${charge.total} Energy.`;
+  const orb = getAlternateOrb(actor);
+  if (!charge.total) return `${actor.name}'s alternate Ultimate has no components. Add components and save the orb design first.`;
+  if (orb.components.some(component => !component.image)) return `${actor.name}'s alternate Ultimate needs an active image for every component.`;
+  return `${actor.name}'s Ultimate is not ready: ${charge.current}/${charge.total} alternate counters are lit. Complete them in the GM combat panel.`;
+}
+
 async function requestUltimate(actor) {
+  if (!actor) { ui.notifications.error("The character for this Ultimate no longer exists."); return false; }
   const config = getConfig(actor);
-  if (!game.user.isGM && !actor?.isOwner) return ui.notifications.error("You do not own this character.");
-  if (!stanceActionAllowed(actor,"ultimate"))return;
-  if (!alternateUltimateCharge(actor, config).ready) return ui.notifications.warn(config.alternateUltimateEnabled ? "Turn on every alternate Ultimate counter in the GM panel first." : "This Ultimate is not ready.");
+  if (!game.user.isGM && !actor.isOwner) { ui.notifications.error("You do not own this character."); return false; }
+  if (!stanceActionAllowed(actor,"ultimate")) return false;
+  const charge = alternateUltimateCharge(actor, config);
+  if (!charge.ready) { ui.notifications.warn(ultimateReadinessMessage(actor, config, charge)); return false; }
   await reconcileUltimateLock(actor.id);
-  if (state.ultimateLocks.has(actor.id)) return ui.notifications.warn("This Ultimate is already queued or resolving.");
-  if (game.user.isGM && isAuthority()) return executeUltimate(actor.id, game.user.id,enhancedFormActive(actor));
+  if (state.ultimateLocks.has(actor.id)) { ui.notifications.warn("This Ultimate is already queued or resolving."); return false; }
+  if (game.user.isGM && isAuthority()) {
+    const accepted = await executeUltimate(actor.id, game.user.id, enhancedFormActive(actor));
+    if (accepted && state.ultimateQueues.get(game.combat?.id)?.waitTurnId) ui.notifications.info("Ultimate queued. It will begin when the current Main Party turn ends.");
+    return accepted;
+  }
   const gm = activeGM();
-  if (!gm) return ui.notifications.error("A GM must be connected to activate an Ultimate.");
+  if (!gm) { ui.notifications.error("A GM must be connected to activate an Ultimate."); return false; }
   const requestId = foundry.utils.randomID();
   game.socket.emit(SOCKET, {type: "activateUltimate", requestId, actorId: actor.id, requestingUserId: game.user.id, enhanced:enhancedFormActive(actor)});
+  return true;
 }
 
 async function insertUltimateTurn(actor, resume = {}) {
@@ -4271,6 +4291,13 @@ async function postAbilityText(actor, kind, text, {combatantId = ""} = {}) {
 
 async function runUltimateScript(actor, combatantId = "") {
   const config=getVisualConfig(actor),enhanced=config.enhancedStanceEnabled&&config.enhancedStanceActive&&config.enhancedUltimateEnabled&&String(config.enhancedEffectText||"").trim();
+  const script = String(config.ultimateScript ?? "").trim();
+  if (script) {
+    const token = actor.getActiveTokens(true, true)?.[0] ?? null;
+    const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+    const execute = new AsyncFunction("actor", "token", "combat", "combatantId", "config", "game", "canvas", "ui", "foundry", "Hooks", "punchline", "talent", "skillPoints", "tsru", `"use strict";\n${script}`);
+    await execute(actor, token, game.combat, combatantId, config, game, canvas, ui, foundry, Hooks, punchlineScriptHelpers(actor), talentScriptHelpers(actor), skillPointScriptHelpers(actor), scriptRuntimeHelpers(actor));
+  }
   const text=enhanced?`${config.ultimateText}<h4>Enhanced Effect</h4><div>${config.enhancedEffectText}</div>`:config.ultimateText;
   return postAbilityText(actor, "ultimate", text, {combatantId});
 }
@@ -4445,14 +4472,15 @@ async function completeImmediateUltimate(actorId) {
 async function beginImmediateUltimate(actor, requestingUserId) {
   broadcastUltimateSplash(actor);
   if (requestingUserId === game.user.id) {
-    try { await runUltimateScript(actor); }
+    try { await runUltimateScript(actor); return true; }
     catch (error) {
       console.error(`${MODULE_ID} | Immediate Ultimate failed`, error);
       ui.notifications.error(`Ultimate failed: ${error.message}`);
+      return false;
     } finally { await completeImmediateUltimate(actor.id); }
-    return;
   }
   game.socket.emit(SOCKET, {type: "useUltimate", actorId: actor.id, combatantId: "", immediate: true, targetUserId: requestingUserId});
+  return true;
 }
 
 function ultimateInitiative(actor, combat) {
@@ -4539,18 +4567,19 @@ async function processUltimateQueue(combatId) {
 }
 
 async function executeUltimate(actorId, requestingUserId, expectedEnhanced=undefined) {
-  if (!isAuthority() || state.ultimateLocks.has(actorId)) return;
+  if (!isAuthority() || state.ultimateLocks.has(actorId)) return false;
   const actor = game.actors.get(actorId);
   const requester = game.users.get(requestingUserId);
-  if (!actor || (!requester?.isGM && !actor.testUserPermission(requester, "OWNER"))) return;
-  if(expectedEnhanced!==undefined&&Boolean(expectedEnhanced)!==enhancedFormActive(actor))return ui.notifications.warn("The character changed stance. Activate the current form instead.");
-  if(!stanceActionAllowed(actor,"ultimate"))return;
+  if (!actor || (!requester?.isGM && !actor.testUserPermission(requester, "OWNER"))) return false;
+  if(expectedEnhanced!==undefined&&Boolean(expectedEnhanced)!==enhancedFormActive(actor)){ui.notifications.warn("The character changed stance. Activate the current form instead.");return false;}
+  if(!stanceActionAllowed(actor,"ultimate"))return false;
   const config = getConfig(actor);
-  if (!alternateUltimateCharge(actor, config).ready) return;
+  if (!alternateUltimateCharge(actor, config).ready) return false;
   state.ultimateLocks.add(actorId);
-  game.socket.emit(SOCKET, {type: "ultimateState", actorId, locked: true});
-  refreshOrb(actor);
+  state.runningUltimates.add(actorId);
   try {
+    game.socket.emit(SOCKET, {type: "ultimateState", actorId, locked: true});
+    refreshOrb(actor);
     await dispatchTalentEvent("ultimateUsed", {sourceActor: actor, requestingUserId}, `${actor.id}:${Date.now()}`);
     if (config.alternateUltimateEnabled) await resetAlternateOrbCounters(actor, {consume: true});
     else await setEnergy(actor, 0);
@@ -4561,7 +4590,8 @@ async function executeUltimate(actorId, requestingUserId, expectedEnhanced=undef
       await runUltimateScript(actor);
       state.ultimateLocks.delete(actorId);
       game.socket.emit(SOCKET, {type: "ultimateState", actorId, locked: false});
-      return refreshOrb(actor);
+      refreshOrb(actor);
+      return true;
     }
     const current = combat.combatant;
     const isOwnNormalTurn = current?.actorId === actor.id
@@ -4569,7 +4599,7 @@ async function executeUltimate(actorId, requestingUserId, expectedEnhanced=undef
       && !isElationActionCombatant(current)
       && !isAhaCombatant(current);
     if (isOwnNormalTurn) {
-      return beginImmediateUltimate(actor, requestingUserId);
+      return await beginImmediateUltimate(actor, requestingUserId);
     }
     let queue = state.ultimateQueues.get(combat.id);
     if (!queue) {
@@ -4580,11 +4610,13 @@ async function executeUltimate(actorId, requestingUserId, expectedEnhanced=undef
     }
     queue.requests.push({actorId, requestingUserId, initiative: ultimateInitiative(actor, combat), requestedAt: Date.now(), sequence: queue.sequence++});
     if (!queue.waitTurnId && !queue.activeActorId && !queue.startTimer) queue.startTimer = window.setTimeout(() => processUltimateQueue(combat.id), 225);
+    return true;
   } catch (error) {
     console.error(`${MODULE_ID} | Ultimate failed`, error);
     ui.notifications.error(`Ultimate failed: ${error.message}`);
     await completeUltimate(actorId);
-  }
+    return false;
+  } finally { state.runningUltimates.delete(actorId); }
 }
 
 async function onSocket(payload) {
@@ -4762,12 +4794,11 @@ async function onSocket(payload) {
   }
   if (payload.type === "activateUltimate" && isAuthority()) {
     const actor = game.actors.get(payload.actorId);
-    const before = Number(getConfig(actor).current);
-    await executeUltimate(payload.actorId, payload.requestingUserId,payload.enhanced);
-    const accepted = Boolean(actor && Number(getConfig(actor).current) < before);
+    const accepted = await executeUltimate(payload.actorId, payload.requestingUserId,payload.enhanced) === true;
     const queue = game.combat?.id ? state.ultimateQueues.get(game.combat.id) : null;
     const waiting = Boolean(accepted && queue?.waitTurnId);
-    game.socket.emit(SOCKET, {type: "playerActionResult", targetUserId: payload.requestingUserId, requestId: payload.requestId, accepted, action: "Ultimate", message: accepted ? (waiting ? "Ultimate queued. It will begin when the current Main Party turn ends." : "Ultimate activated successfully.") : "The GM could not activate that Ultimate. Check ownership, Energy, and the character's Ultimate toggle."});
+    const rejected = actor && !alternateUltimateCharge(actor, getConfig(actor)).ready ? ultimateReadinessMessage(actor, getConfig(actor)) : "The GM could not activate that Ultimate. Check ownership, stance, and whether another Ultimate is already resolving.";
+    game.socket.emit(SOCKET, {type: "playerActionResult", targetUserId: payload.requestingUserId, requestId: payload.requestId, accepted, action: "Ultimate", message: accepted ? (waiting ? "Ultimate queued. It will begin when the current Main Party turn ends." : "Ultimate activated successfully.") : rejected});
     return;
   }
   if (payload.type === "playerActionResult" && payload.targetUserId === game.user.id) {

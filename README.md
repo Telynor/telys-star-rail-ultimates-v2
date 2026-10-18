@@ -16,6 +16,14 @@ The mode checkbox saves immediately. Alternate mode replaces the standard image 
 The custom artwork appears in both the floating orb and party HUD. Hotbar activation uses the same counters. Existing ownership checks, enhanced stances, splash art, descriptions, and interrupt/queued turns still apply. Normal Energy is retained separately while alternate mode is used. Casting either alternate mode resets both its independent switches and its circular counter to zero. Existing preview.6 designs default to Free activation.
 
 
+## Ultimate automation
+
+**HSR Character Settings → Ultimate & Splash Artwork → Ultimate code** runs the character's saved `ultimateScript` once when a charged Ultimate begins. It works from floating orbs, combat HUD buttons, and hotbar macros, with either Energy or alternate counters. It supports asynchronous JavaScript with `actor`, `token`, `combat`, `combatantId`, `config`, `game`, `canvas`, `ui`, `foundry`, `Hooks`, `punchline`, `talent`, `skillPoints`, and `tsru` helpers. The separate Ultimate Text remains descriptive and is posted to chat.
+
+Enhanced Ultimate can use its own optional code. Leaving that field blank uses the ordinary Ultimate code. Queued Ultimates execute when their temporary turn begins, after the current allied turn finishes; the Ultimate Complete button still completes that turn. Player activation results use the accepted action, including alternate Ultimates which retain their Energy.
+
+If a cast is blocked, the notification identifies a disabled Ultimate system, missing component artwork, or the current Energy/counter progress. Partial charge never runs the code or consumes resources.
+
 ## Eidolon Resonance
 
 Character sheets include a shared GM/player Eidolon tab with six sequential unlocks. GMs can configure the background, five-shard glass layer, isolated E3 layer, title font, per-Eidolon artwork, titles, crop position, zoom, activation state, and a per-character Item used as activation currency.
@@ -35,7 +43,7 @@ Character sheets include a shared GM/player Eidolon tab with six sequential unlo
 - Punchline number font size is independently adjustable from Aha Config.
 - When Aha's turn begins, matching Elation Path characters receive temporary portrait-backed Elation Action turns immediately after Aha, ordered by their existing initiative from highest to lowest.
 - Each temporary turn posts that character's Elation Action text to chat and waits for its owner to press **Complete Elation Action**. After the final action, Punchline resets to zero, the temporary turns disappear, and combat resumes.
-- Skills, Ultimates, and Elation Actions are descriptive text fields rather than executable JavaScript. Their normal resource, animation, and turn behavior still resolves when the description is empty.
+- Skill, Ultimate, and Elation Action descriptions are descriptive text. Ultimate automation has a separate optional GM JavaScript field. Their normal resource, animation, and turn behavior still resolves when the description is empty.
 
 ## Programmable Talents
 

@@ -19,25 +19,34 @@ class AppV2 {
  _onRender(){} _onClose(){} bringToFront(){} async close(){this.element.remove();this.rendered=false;this._onClose({});return this;}
 }
 window.ui={notifications:{info:message=>window.notices.push(message),warn:message=>window.notices.push(message),error:message=>{window.notices.push(message);window.failures.push(message)}}};
-window.notices=[];window.failures=[];window.updates=[];window.updateFails=false;
+window.notices=[];window.failures=[];window.updates=[];window.updateFails=false;window.ultimateExecutions=[];window.chatCards=[];window.socketEvents=[];
+window.TextEditor={enrichHTML:async text=>text};
+window.ChatMessage={getSpeaker:({actor})=>({actor:actor.id}),create:async data=>{window.chatCards.push(data);return data}};
 class Picker {
  constructor(options){this.options=options}browse(){this.options.callback('/test-art/red.svg')}
  static async uploadPersistent(id,dir,file){window.lastUpload={id,dir,name:file.name};return {path:await new Promise(resolve=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.readAsDataURL(file)})}}
 }
 window.foundry={applications:{api:{ApplicationV2:AppV2,HandlebarsApplicationMixin:C=>C,DialogV2:{confirm:async()=>true}},apps:{FilePicker:Picker}},utils:{deepClone:value=>structuredClone(value),randomID:()=>crypto.randomUUID().replaceAll('-',''),escapeHTML:String,mergeObject:(a,b)=>Object.assign(a,b),getProperty:get,setProperty:set,hasProperty:(o,p)=>get(o,p)!==undefined,expandObject:updates=>{const out={};for(const [p,v]of Object.entries(updates))set(out,p,v);return out}}};
-window.a={id:'hero',uuid:'Actor.hero',name:'Alchemical Ultimate',img:'/test-art/red.svg',type:'character',isOwner:true,system:{attributes:{hp:{value:20,max:20,temp:0}}},
+window.a={id:'hero',uuid:'Actor.hero',name:'Alchemical Ultimate',img:'/test-art/red.svg',type:'character',isOwner:true,items:[],effects:[],reset(){},prepareData(){},getActiveTokens:()=>[{id:'hero-token',document:{id:'hero-token'}}],system:{attributes:{hp:{value:20,max:20,temp:0}}},
  flags:{[ID]:{ultimate:{enabled:true,current:80,max:100,mainParty:true,alternateUltimateEnabled:false},alternateOrb:{label:'Alchemical Seals',components:['red','white','black','yellow'].map((id,i)=>({id,name:id[0].toUpperCase()+id.slice(1)+' seal',image:'/test-art/'+id+'.svg',x:i%2?72:28,y:i<2?28:72,scale:45,rotation:0,color:{red:'#e32b38',white:'#f1f5f8',black:'#17171b',yellow:'#efd153'}[id],glow:true}))},alternateOrbStates:{red:true}}},
  getFlag(_,key){return this.flags[ID][key]},async setFlag(_,key,value){this.flags[ID][key]=structuredClone(value);window.drawHud?.()},
  async update(updates){if(window.updateFails)throw new Error('Test save failure');window.updates.push(structuredClone(updates));for(const [p,v]of Object.entries(updates))set(this,p,v);window.drawHud?.()},testUserPermission:()=>true};
 const actors=[a];actors.get=id=>actors.find(v=>v.id===id);
+a.items.get=id=>a.items.find(item=>item.id===id);
 const gm={id:'gm',isGM:true,active:true},users=[gm];users.get=id=>users.find(v=>v.id===id);
 const settings={orbLayouts:{hero:{visible:true,x:1120,y:50,size:190}},elements:[],paths:[],combatPartyHudLayout:{x:1110,y:320,scale:1},partySelections:{},combatHudDesign:{}};
-window.game={user:gm,users,actors,combats:new Map(),combat:{started:true,combatants:[{actor:a,actorId:a.id,getFlag:()=>false}]},settings:{get:(_,key)=>settings[key],set:async(_,key,value)=>settings[key]=value},modules:{get:()=>({})}};
+const ownTurn={id:'hero-turn',actor:a,actorId:a.id,getFlag:()=>false};
+const combat={id:'ui-fight',round:1,started:true,combatant:ownTurn,combatants:[ownTurn],flags:{},getFlag(_,key){return this.flags[key]},async setFlag(_,key,value){this.flags[key]=structuredClone(value)}};
+const combats=[combat];combats.get=id=>combats.find(c=>c.id===id);
+const moduleData={};
+window.game={user:gm,users,actors,combats,combat,settings:{get:(_,key)=>settings[key],set:async(_,key,value)=>settings[key]=value},modules:{get:()=>moduleData},socket:{emit:(_,payload)=>window.socketEvents.push(payload)}};
 window.fromUuid=async uuid=>uuid===a.uuid?a:null;window.canvas={};
 const alt=await import('/scripts/alternate-ultimates.mjs');window.alt=alt;
 const core=await import('/scripts/module.js');window.core=core;
+core.registerApi();
 alt.configureAlternateUltimates({isResolving:a=>core.state.ultimateLocks.has(a.id)});
 window.floating=new core.UltimateOrb(a);window.party=new core.CombatPartyHud();
+core.state.orbs.set(a.id,floating);
 const controls=document.querySelector('#gm-controls');alt.bindAlternateOrbControls(controls);
 const sheet=document.querySelector('#sheet');
 const refreshPreviews=()=>{const config={...core.getConfig(a),alternateUltimateEnabled:sheet.querySelector('input').checked};document.querySelector('#art-preview').innerHTML=core.ultimateArtworkPreview(a,config);document.querySelector('#hud-preview').innerHTML=core.combatHudDesignerPreview(a,config)};
@@ -62,7 +71,7 @@ drawHud();window.ready=true;
    }
    const file=path.resolve(root,'.'+pathname);if(!file.startsWith(root+path.sep)){res.writeHead(403);res.end();return;}
    let content=await fs.readFile(file);
-   if(pathname==='/scripts/module.js')content=content.toString()+'\nexport {UltimateOrb,CombatPartyHud,state,getConfig,combatHudDesignerPreview,ultimateArtworkPreview};';
+   if(pathname==='/scripts/module.js')content=content.toString()+'\nexport {UltimateOrb,CombatPartyHud,state,getConfig,combatHudDesignerPreview,ultimateArtworkPreview,registerApi};';
    res.setHeader('Content-Type',pathname.endsWith('.css')?'text/css':/\.m?js$/.test(pathname)?'text/javascript':'application/octet-stream');res.end(content);
   }catch(error){res.writeHead(404);res.end(error.message)}
  });
@@ -198,7 +207,33 @@ drawHud();window.ready=true;
   await page.waitForFunction(()=>a.getFlag('','ultimate').alternateUltimateEnabled===false);
   assert.equal(await page.locator('.tsru-orb-image').getAttribute('src'),'/test-art/white.svg');
   assert.equal(await page.evaluate(()=>a.getFlag('','alternateOrb').components.length),4);
+  await page.evaluate(()=>alt.openAlternateOrbDesigner(a).close());
+  // Actually activate each entry point using the real handler and saved code.
+  // No script runner, readiness check, resource consumption or Light Cone code is replaced.
+  for(const enhanced of [false,true])for(const mode of ['energy','free','circular'])for(const source of ['floating','party','hotbar']){
+    const before=await page.evaluate(()=>ultimateExecutions.length);
+    const cardsBefore=await page.evaluate(()=>chatCards.length);
+    await page.evaluate(({mode,enhanced,id})=>{
+      const config=a.flags[id].ultimate;
+      Object.assign(config,{enabled:true,current:100,alternateUltimateEnabled:mode!=='energy',lockEnergyAfterUltimate:false,enhancedStanceEnabled:enhanced,enhancedStanceActive:enhanced,enhancedUltimateEnabled:enhanced,ultimateText:'Normal cast description',enhancedUltimateText:'Enhanced cast description',ultimateScript:'window.ultimateExecutions.push("normal");',enhancedUltimateScript:'window.ultimateExecutions.push("enhanced");'});
+      a.flags[id].alternateOrb.mode=mode==='circular'?'circular':'free';
+      a.flags[id].alternateOrb.firstActivation=1;
+      a.flags[id].alternateOrbCounter=4;
+      a.flags[id].alternateOrbStates={red:true,white:true,black:true,yellow:true};
+      drawHud();
+    },{mode,enhanced,id:ID});
+    if(source==='floating')await page.locator('.tsru-orb').click();
+    else if(source==='party')await page.locator('[data-tsru-party-ultimate]').click();
+    else await page.evaluate(id=>game.modules.get(id).api.requestUltimate(a),ID);
+    await page.waitForFunction(n=>ultimateExecutions.length===n+1,before);
+    await page.waitForFunction(n=>chatCards.length===n+1,cardsBefore);
+    await page.waitForFunction(()=>!core.state.ultimateLocks.has(a.id));
+    assert.equal(await page.evaluate(()=>ultimateExecutions.at(-1)),enhanced?'enhanced':'normal',source+' '+mode+' executes the correct saved code');
+    assert.match(await page.evaluate(()=>chatCards.at(-1).content),enhanced?/Enhanced cast description/:/Normal cast description/);
+    assert.equal(await page.evaluate(()=>a.getFlag('','ultimate').current),mode==='energy'?0:100);
+    if(mode!=='energy')assert.equal(await page.evaluate(()=>a.getFlag('','alternateOrbCounter')),0);
+  }
   assert.deepEqual(errors,[]);assert.deepEqual(await page.evaluate(()=>failures),[]);
-  console.log('Browser smoke passed: immediate mode persistence, real orb replacement and restoration, enhanced artwork, failure rollback, free checkboxes, circular mode/start/sequence/offset, cumulative GM counter, reset, previews, editor transforms, upload, and both live orb displays.');
+  console.log('Browser smoke passed: actual Ultimate activation from floating/party/hotbar API in Energy/free/circular modes, ordinary/enhanced scripts and chat cards, resource consumption and reset, mode persistence, orb replacement, builder, upload and circular GM counters.');
  }catch(error){await page.screenshot({path:path.join(root,'orb-designer-smoke.png'),fullPage:true}).catch(()=>{});throw error;}finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
 })().catch(error=>{console.error(error);process.exit(1)});
