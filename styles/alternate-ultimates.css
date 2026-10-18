@@ -1,0 +1,92 @@
+/* The same square artboard is used by the editor, floating orb, and party HUD. */
+.tsru-alt-orb-artboard { position:absolute; inset:0; display:block; pointer-events:none; }
+.tsru-alt-orb-piece { position:absolute; display:block; transform-origin:center; }
+.tsru-alt-orb-piece .tsru-alt-orb-art { position:absolute; inset:0; width:100%; height:100%; border:0; border-radius:0; object-fit:contain; object-position:center; transform:none; opacity:1; pointer-events:none; }
+.tsru-alt-orb-piece.is-off:not(.has-off-image) .tsru-alt-orb-art { filter:grayscale(1) brightness(.6); opacity:.45; }
+.tsru-alt-orb-piece.has-glow .tsru-alt-orb-art { filter:drop-shadow(0 0 2px var(--alt-color)) drop-shadow(0 0 7px var(--alt-color)); }
+.tsru-alt-orb-placeholder { position:absolute; inset:0; display:grid; place-items:center; border:1px dashed #788b9e; color:#afbecd; font-size:24px; }
+.tsru-orb-custom { position:absolute; inset:0; pointer-events:none; }
+.tsru-orb-widget.is-alternate .tsru-orb { overflow:visible; border:0; border-radius:0; background:transparent; box-shadow:none; animation:none; }
+.tsru-orb-widget.is-alternate .tsru-orb-image,
+.tsru-orb-widget.is-alternate .tsru-orb-fill { display:none; }
+.tsru-orb-widget.is-alternate .tsru-orb-percent { inset:auto 0 0; font-size:12px; }
+.tsru-combat-party-ultimate-wrap button.is-alternate { overflow:visible; border:0; border-radius:0; background:transparent; padding:0; box-shadow:none; opacity:1; filter:none; }
+.tsru-combat-party-ultimate-wrap button.is-alternate .tsru-alt-orb-piece .tsru-alt-orb-art { position:absolute; border-radius:0; object-fit:contain; object-position:center; transform:none; opacity:1; }
+.tsru-combat-party-ultimate-wrap button.is-alternate .tsru-alt-orb-piece.is-off:not(.has-off-image) .tsru-alt-orb-art { opacity:.45; }
+.tsru-combat-party-ultimate-wrap button.is-alternate>strong { inset:auto 0 -4px; font-size:10px; }
+[data-tsru-alternate-builder][hidden] { display:none!important; }
+
+/* GM controls use individual named switches rather than an Energy amount. */
+.tsru-alt-gm-slot:empty { display:none; }
+.tsru-alt-gm-slot { grid-column:1/-1; }
+.tsru-alt-controls { color:#ebf1f8; border:1px solid #65748b66; border-radius:7px; padding:9px; background:#0c1421c9; }
+.tsru-alt-controls header { display:flex; justify-content:space-between; gap:10px; align-items:baseline; margin-bottom:8px; }
+.tsru-alt-controls header b { font-size:11px; white-space:nowrap; color:#9dd3eb; }
+.tsru-alt-counter-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(125px,1fr)); gap:5px; }
+.tsru-alt-counter-list button { display:flex; align-items:center; gap:7px; min-height:37px; padding:5px 7px; border:1px solid #6c7b8e77; border-radius:5px; background:#1b2637; color:#d8e1ed; text-align:left; }
+.tsru-alt-counter-list button.is-on { border-color:var(--alt-color); box-shadow:inset 0 0 7px color-mix(in srgb,var(--alt-color) 28%,transparent); background:#29384b; }
+.tsru-alt-counter-list button img { flex:0 0 26px; width:26px; height:26px; border:0; object-fit:contain; }
+.tsru-alt-counter-list button img.is-grayscale { filter:grayscale(1); opacity:.4; }
+.tsru-alt-counter-list button span { flex:1; font-size:12px; }
+.tsru-alt-counter-list button b { font-size:10px; }
+.tsru-alt-controls footer { display:flex; gap:6px; margin-top:8px; }
+.tsru-alt-controls footer button { flex:1; min-height:27px; font-size:11px; }
+
+/* Native Foundry ApplicationV2 designer. */
+.tsru-alternate-orb-window { container-type:inline-size; --alt-ink:#eef4fc; --alt-muted:#a0b1c8; --alt-line:#3b4d65; --alt-panel:#182333; --alt-accent:#69d8f4; color:var(--alt-ink); }
+.tsru-alternate-orb-window .window-content { padding:0; overflow:auto; background:#0e1725; color:var(--alt-ink); }
+.tsru-alt-designer { display:flex; flex-direction:column; min-height:100%; gap:14px; padding:20px; font-family:var(--font-primary,sans-serif); }
+.tsru-alt-designer h2 { margin:0 0 5px; font-size:21px; color:var(--alt-ink); border:0; }
+.tsru-alt-designer h3 { margin:0 0 12px; padding:0; border:0; color:var(--alt-ink); font-size:13px; font-weight:700; letter-spacing:.03em; }
+.tsru-alt-designer p { margin:0; color:var(--alt-muted); font-size:12px; line-height:1.5; }
+.tsru-alt-designer-heading { display:flex; align-items:center; justify-content:space-between; gap:14px; }
+.tsru-alt-mode-badge { padding:6px 9px; border:1px solid #4197ac; border-radius:30px; color:#8de7ff; font-size:11px; white-space:nowrap; }
+.tsru-alt-designer button { width:auto; min-height:30px; padding:5px 9px; border:1px solid #486079; border-radius:5px; background:#25364b; color:#edf7ff; font-size:12px; line-height:1.25; cursor:pointer; box-shadow:none; }
+.tsru-alt-designer button:hover { border-color:var(--alt-accent); background:#2c455c; }
+.tsru-alt-toolbar { display:flex; gap:7px; padding-bottom:13px; border-bottom:1px solid var(--alt-line); }
+.tsru-alt-toolbar button:first-child { background:#23768d; border-color:#4abbda; }
+.tsru-alt-designer input:not([type=checkbox]):not([type=file]) { display:block; width:100%; min-width:0; height:30px; padding:5px 8px; background:#0e1724; color:#e4f2ff; border:1px solid #4a5d75; border-radius:4px; font-size:12px; }
+.tsru-alt-designer input[type=color] { padding:3px!important; }
+.tsru-alt-designer input[type=checkbox] { flex:0 0 auto; width:16px; height:16px; margin:0; accent-color:#50c9e8; }
+.tsru-alt-designer input[type=file][hidden] { display:none; }
+.tsru-alt-designer-grid { flex:1; display:grid; grid-template-columns:180px minmax(260px,1fr) 220px; gap:15px; align-items:start; }
+.tsru-alt-layers,.tsru-alt-inspector { min-width:0; padding:12px; background:var(--alt-panel); border:1px solid var(--alt-line); border-radius:8px; }
+.tsru-alt-layers-list { display:flex; flex-direction:column; gap:6px; max-height:385px; overflow-y:auto; }
+.tsru-alt-layer { display:flex; gap:2px; padding:2px; border:1px solid transparent; border-radius:6px; }
+.tsru-alt-layer.is-selected { border-color:var(--alt-accent); background:#294659; }
+.tsru-alt-layer button[data-alt-select] { display:flex; flex:1; min-width:0; align-items:center; gap:7px; padding:5px; border:0; text-align:left; background:transparent; }
+.tsru-alt-layer img,.tsru-alt-layer button>span:first-child:not(:last-child) { flex:0 0 28px; width:28px; height:28px; object-fit:contain; border:0; }
+.tsru-alt-layer button[data-alt-select]>span:last-child { overflow-wrap:anywhere; font-size:11px; }
+.tsru-alt-layer small { display:block; color:var(--alt-muted); font-size:9px; margin-top:3px; }
+.tsru-alt-layer button[data-alt-preview-toggle] { padding:2px 4px; align-self:center; font-size:9px; min-height:22px; background:#101b2b; }
+.tsru-alt-layer button[aria-pressed=true] { color:#91e9ff; border-color:#5aafc2; }
+.tsru-alt-layers>.tsru-alt-help { margin-top:12px; }
+.tsru-alt-stage-column { min-width:0; }
+.tsru-alt-preview-toolbar { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:4px; margin-bottom:9px; }
+.tsru-alt-preview-toolbar strong { margin-right:auto; font-size:12px; }
+.tsru-alt-preview-toolbar button { min-height:24px; padding:4px 6px; font-size:10px; }
+.tsru-alt-stage { position:relative; width:100%; aspect-ratio:1; overflow:hidden; border:1px solid #637890; border-radius:9px; background-color:#0a101a; background-image:linear-gradient(45deg,#ffffff05 25%,transparent 25%),linear-gradient(-45deg,#ffffff05 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#ffffff05 75%),linear-gradient(-45deg,transparent 75%,#ffffff05 75%); background-size:24px 24px; background-position:0 0,0 12px,12px -12px,-12px 0; touch-action:none; }
+.tsru-alt-stage:before { content:""; position:absolute; inset:5%; border:1px dashed #8aa2c32b; border-radius:50%; pointer-events:none; }
+.tsru-alt-stage .tsru-alt-orb-artboard { pointer-events:auto; }
+.tsru-alt-stage .tsru-alt-orb-piece { cursor:move; touch-action:none; }
+.tsru-alt-stage .tsru-alt-orb-piece.is-selected { outline:1px dashed #b0ebf6; background:#75d5f20a; }
+.tsru-alt-orb-handle { position:absolute; z-index:5; display:grid; place-items:center; width:22px; height:22px; border:1px solid #b0edff; border-radius:4px; background:#114758; color:#fff; font:16px sans-serif; }
+.tsru-alt-orb-handle.is-scale { bottom:-9px; right:-9px; cursor:nwse-resize; }
+.tsru-alt-orb-handle.is-rotate { top:-24px; left:calc(50% - 11px); cursor:grab; }
+.tsru-alt-stage-column>.tsru-alt-help { margin:9px 0 12px; font-size:11px; }
+.tsru-alt-check { display:flex!important; align-items:center; gap:7px; margin:10px 0!important; color:#d7e4f4; font-size:12px; }
+.tsru-alt-name { display:grid; gap:5px; color:var(--alt-muted); font-size:11px; }
+.tsru-alt-inspector>label { display:grid; gap:5px; margin-bottom:10px; color:var(--alt-muted); font-size:11px; }
+.tsru-alt-file { display:flex; min-width:0; gap:3px; }
+.tsru-alt-file input { flex:1; }
+.tsru-alt-file button { padding:4px 8px; }
+.tsru-alt-two-fields,.tsru-alt-layer-order { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-bottom:10px; }
+.tsru-alt-two-fields label { display:grid; gap:5px; color:var(--alt-muted); font-size:11px; }
+.tsru-alt-inspector>.tsru-alt-help { font-size:10px; margin:-2px 0 12px; }
+.tsru-alt-designer-footer { display:flex; align-items:center; gap:10px; padding-top:12px; border-top:1px solid var(--alt-line); }
+.tsru-alt-designer-footer>span { font-size:11px; color:#99d8ea; }
+.tsru-alt-designer-footer>small { margin-left:auto; font-size:10px; color:var(--alt-muted); }
+.tsru-alt-designer-footer button { background:#23768d; border-color:#4abbda; font-weight:700; }
+@media(max-width:850px) { .tsru-alt-designer-grid { grid-template-columns:145px minmax(220px,1fr); }.tsru-alt-inspector { grid-column:1/-1; display:grid; grid-template-columns:1fr 1fr; gap:10px; }.tsru-alt-inspector h3,.tsru-alt-inspector>.tsru-alt-help { grid-column:1/-1; }.tsru-alt-designer-heading { align-items:start; }.tsru-alt-mode-badge { white-space:normal; }.tsru-alt-designer-footer>small { display:none; } }
+
+@container(max-width:850px) { .tsru-alt-designer-grid { grid-template-columns:145px minmax(220px,1fr); }.tsru-alt-inspector { grid-column:1/-1; display:grid; grid-template-columns:1fr 1fr; gap:10px; }.tsru-alt-inspector h3,.tsru-alt-inspector>.tsru-alt-help { grid-column:1/-1; }.tsru-alt-designer-footer>small { display:none; } }

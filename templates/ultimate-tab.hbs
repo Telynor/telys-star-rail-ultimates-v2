@@ -46,13 +46,23 @@
 
     <div class="tsru-config-section">
       <h3><i class="fas fa-battery-three-quarters"></i> Energy</h3>
-      <div class="tsru-field tsru-field-toggle"><span class="tsru-field-label"><strong>Enable Ultimate system</strong><small>Allows this character to gain Energy and display an orb.</small></span><input type="checkbox" name="enabled" {{checked config.enabled}}></div>
+      <div class="tsru-field tsru-field-toggle"><span class="tsru-field-label"><strong>Enable Ultimate system</strong><small>Allows this character to use Ultimates and display an orb.</small></span><input type="checkbox" name="enabled" {{checked config.enabled}}></div>
       <div class="tsru-field"><label><strong>Current Energy</strong><small>The amount currently stored.</small></label><input type="number" name="current" min="0" value="{{config.current}}"></div>
       <div class="tsru-field"><label><strong>Maximum Energy</strong><small>The amount required to make the Ultimate ready.</small></label><input type="number" name="max" min="1" value="{{config.max}}"></div>
       <div class="tsru-field"><label><strong>Energy Regen score</strong><small>Uses the normal D&amp;D ability-score modifier calculation.</small></label><div class="tsru-field-control"><input type="number" name="regenScore" value="{{config.regenScore}}"><span class="tsru-modifier">Modifier: {{modifierSigned}}</span></div></div>
       <div class="tsru-field"><label><strong>Energy gained when attacking</strong><small>Base gain before the Energy Regen modifier.</small></label><input type="number" name="attackGain" min="0" value="{{config.attackGain}}"></div>
       <div class="tsru-field"><label><strong>Energy gained when attacked</strong><small>Base gain before the Energy Regen modifier.</small></label><input type="number" name="attackedGain" min="0" value="{{config.attackedGain}}"></div>
       <div class="tsru-field"><label><strong>Count as attacked when</strong><small>Choose whether targeting alone is enough.</small></label><select name="attackedMode"><option value="hit" {{#if modeHit}}selected{{/if}}>The attack hits</option><option value="targeted" {{#if modeTargeted}}selected{{/if}}>The character is targeted</option></select></div>
+    </div>
+
+    <div class="tsru-config-section tsru-alternate-ultimate-section">
+      <h3><i class="fas fa-shapes"></i> Alternate Ultimate</h3>
+      <div class="tsru-field tsru-field-toggle"><span class="tsru-field-label"><strong>Alternate Ultimate?</strong><small>Uses manual GM counters instead of Energy. Uncheck to restore the regular orb. Existing stances and Ultimate effects still apply.</small></span><input type="checkbox" name="alternateUltimateEnabled" {{checked config.alternateUltimateEnabled}}></div>
+      <div data-tsru-alternate-builder {{#unless config.alternateUltimateEnabled}}hidden{{/unless}}>
+        <button type="button" data-action="open-alternate-orb-builder"><i class="fas fa-object-group"></i> Open Ultimate Orb Builder</button>
+        <p>Upload or browse for component images, arrange them, and choose their on/off artwork and glow. Toggle live counters in GM Panel → Character Resources or DM Combat Menu → Alt Ultimates.</p>
+        <p>Every component must be on to activate. The counters reset when the Ultimate is used. Normal Energy gains are blocked while this mode is enabled.</p>
+      </div>
     </div>
 
     <div class="tsru-config-section tsru-skill-config-section">

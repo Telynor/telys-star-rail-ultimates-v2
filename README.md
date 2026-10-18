@@ -1,5 +1,18 @@
 # Tely's Star Rail Ultimates
 
+## Alternate Ultimate orb builder
+
+Check **Character sheet → HSR Settings → Alternate Ultimate → Alternate Ultimate?** to replace that character's Energy orb with a custom orb. The builder button appears while checked. Uncheck to restore the normal orb; the saved design and counters are retained.
+
+- Open **Ultimate Orb Builder**. Add components, browse existing images, upload multiple images, or drop images/Items onto the canvas. Transparent artwork keeps its shape.
+- Select each component, drag to position it, and use the corner/rotation handles, wheel, or numeric fields to scale and rotate it. Layers can be reordered or duplicated.
+- Choose an active image and optional off image. Without an off image, the active image appears greyed out. The builder detects the image's main color for its glow; the color, per-component glow, and overall glow can be changed.
+- Preview all on, all off, or live counters, then **Save orb design**. Preview switches do not change live progress.
+- In **GM Panel → Character Resources**, or **DM Combat Menu → Alt Ultimates**, switch each named counter on/off. Every component must be on before the Ultimate is available. Using it resets all counters. Normal Energy gains (including direct Energy flag awards) are blocked while alternate mode is enabled.
+
+The custom artwork appears in both the floating orb and party HUD. Hotbar activation uses the same counters. Existing ownership checks, enhanced stances, splash art, descriptions, and interrupt/queued turns still apply. Normal Energy is retained separately while alternate mode is used.
+
+
 ## Eidolon Resonance
 
 Character sheets include a shared GM/player Eidolon tab with six sequential unlocks. GMs can configure the background, five-shard glass layer, isolated E3 layer, title font, per-Eidolon artwork, titles, crop position, zoom, activation state, and a per-character Item used as activation currency.

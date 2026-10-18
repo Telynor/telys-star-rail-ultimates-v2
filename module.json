@@ -2,7 +2,7 @@
   "id": "telys-star-rail-ultimates",
   "title": "Tely's Star Rail Ultimates",
   "description": "Honkai: Star Rail-inspired Eidolons, shared Skill and Technique Points, combat Talent controls, chat-card abilities, energy, cinematic Ultimates, custom elements and paths, Toughness, and interrupt turns for D&D 5e.",
-  "version": "3.14.0-preview.5",
+  "version": "3.14.0-preview.6",
   "authors": [
     {
       "name": "Telynor"
@@ -30,7 +30,8 @@
   ],
   "socket": true,
   "styles": [
-    "styles/ultimates.css"
+    "styles/ultimates.css",
+    "styles/alternate-ultimates.css"
   ],
   "languages": [
     {
@@ -64,7 +65,7 @@
     }
   ],
   "manifest": "https://raw.githubusercontent.com/Telynor/telys-star-rail-ultimates-v2/light-cones-preview/module.json",
-  "download": "https://github.com/Telynor/telys-star-rail-ultimates-v2/releases/download/v3.14.0-preview.5/telys-star-rail-ultimates-v3.14.0-preview.5.zip",
+  "download": "https://github.com/Telynor/telys-star-rail-ultimates-v2/releases/download/v3.14.0-preview.6/telys-star-rail-ultimates-v3.14.0-preview.6.zip",
   "license": "LICENSE",
   "readme": "README.md"
 }

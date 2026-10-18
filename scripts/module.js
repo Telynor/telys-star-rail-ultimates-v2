@@ -1,5 +1,7 @@
 import {installLightCones,lightConeSkillCapacity,handle as handleLightConeEvent} from './light-cones.mjs';
 import {showCombatStats} from './combat-stats.mjs';
+import {energyAfterUpdate} from './alternate-ultimate-rules.mjs';
+import {alternateUltimateCharge, getAlternateOrb, getAlternateOrbStates, renderAlternateOrb, alternateOrbControls, bindAlternateOrbSheet, bindAlternateOrbControls, refreshAlternateOrbControls, openAlternateOrbDesigner, setAlternateOrbCounter, resetAlternateOrbCounters, configureAlternateUltimates} from './alternate-ultimates.mjs';
 const MODULE_ID = "telys-star-rail-ultimates";
 const SOCKET = `module.${MODULE_ID}`;
 const HSR_RECIPE_CATALOG_VERSION = "4.5.0";
@@ -30,6 +32,7 @@ const DEFAULT_CRAFTING_CLASSIFICATIONS = Object.freeze([
 
 const DEFAULT_CONFIG = Object.freeze({
   enabled: false,
+  alternateUltimateEnabled: false,
   current: 0,
   max: 100,
   regenScore: 10,
@@ -892,8 +895,8 @@ async function clearExpiredEnergyLocks(combat) {
 async function setEnergy(actor, value, {overrideLock = false} = {}) {
   if (!actor) return;
   const config = getConfig(actor);
-  const current = clamp(value, 0, config.max);
-  if (current > config.current && isEnergyLocked(actor) && !overrideLock) return config.current;
+  const current = energyAfterUpdate(config, value, {locked: isEnergyLocked(actor), overrideLock});
+  if (current === config.current) return current;
   await actor.update({[`flags.${MODULE_ID}.ultimate.current`]: current});
   return current;
 }
@@ -902,7 +905,7 @@ async function addEnergy(actor, amount, reason = "") {
   if (!actor || !isAuthority()) return;
   const config = getConfig(actor);
   if (!config.enabled || !amount) return;
-  if (Number(amount) > 0 && isEnergyLocked(actor)) return;
+  if (Number(amount) > 0 && (config.alternateUltimateEnabled || isEnergyLocked(actor))) return;
   const before = config.current;
   const after = clamp(before + Number(amount), 0, config.max);
   if (after === before) return;
@@ -1968,14 +1971,13 @@ async function createStarRailActionMacro(data, slot) {
 
 function ultimateMacroDisplay(actor) {
   const config = getConfig(actor);
-  const maximum = Math.max(1, Number(config.max) || 1);
-  const percent = clamp((Number(config.current) / maximum) * 100, 0, 100);
-  const ready = Boolean(config.enabled) && percent >= 100;
+  const charge = alternateUltimateCharge(actor, config);
+  const {percent, ready} = charge;
   const element = getElements().find(entry => entry.id === config.elementId);
   const color = ready
     ? (element?.readyColor || config.readyColor || DEFAULT_CONFIG.readyColor)
     : (element?.chargeColor || config.chargeColor || DEFAULT_CONFIG.chargeColor);
-  return {percent, ready, color};
+  return {...charge, color};
 }
 
 function refreshUltimateHotbarMacros() {
@@ -2022,8 +2024,8 @@ function refreshUltimateHotbarMacros() {
     fill.setAttribute("aria-hidden", "true");
     const label = document.createElement("span");
     label.className = "tsru-hotbar-energy-label";
-    label.textContent = `${Math.round(display.percent)}%`;
-    label.setAttribute("aria-label", `${actor.name} Ultimate Energy: ${Math.round(display.percent)}%`);
+    label.textContent = display.alternate ? `${display.current}/${display.total}` : `${Math.round(display.percent)}%`;
+    label.setAttribute("aria-label", display.alternate ? `${actor.name} Ultimate counters: ${display.current}/${display.total} on` : `${actor.name} Ultimate Energy: ${Math.round(display.percent)}%`);
     slot.append(fill, label);
   }
 }
@@ -3155,6 +3157,7 @@ class UltimateOrb {
         <div class="tsru-orb-drag" title="Drag Ultimate orb"><i class="fas fa-grip-lines"></i></div>
         <button type="button" class="tsru-orb" aria-label="Activate Ultimate">
           <img class="tsru-orb-image">
+          <span class="tsru-orb-custom"></span>
           <span class="tsru-orb-fill"></span>
           <span class="tsru-orb-percent"></span>
         </button>
@@ -3166,8 +3169,8 @@ class UltimateOrb {
       activateStarRailActionDrag(this.element, this.actor, "ultimate");
     }
 
-    const percent = clamp((config.current / config.max) * 100, 0, 100);
-    const ready = percent >= 100;
+    const charge = alternateUltimateCharge(this.actor, config);
+    const {percent, ready} = charge;
     const element = getElements().find(entry => entry.id === config.elementId);
     const color = ready
       ? (element?.readyColor || DEFAULT_CONFIG.readyColor)
@@ -3180,12 +3183,14 @@ class UltimateOrb {
     this.element.style.setProperty("--tsru-ultimate-x", `${config.ultimateButtonAdjustEnabled ? clamp(config.ultimateButtonX, 0, 100) : 50}%`);
     this.element.style.setProperty("--tsru-ultimate-y", `${config.ultimateButtonAdjustEnabled ? clamp(config.ultimateButtonY, 0, 100) : 50}%`);
     this.element.style.setProperty("--tsru-ultimate-scale", String((config.ultimateButtonAdjustEnabled ? clamp(config.ultimateButtonScale, 50, 400) : 100) / 100));
-    this.element.classList.toggle("has-energy", percent > 0 && !ready);
+    this.element.classList.toggle("is-alternate", charge.alternate);
+    this.element.querySelector(".tsru-orb-custom").innerHTML = charge.alternate ? renderAlternateOrb(getAlternateOrb(this.actor), getAlternateOrbStates(this.actor)) : "";
+    this.element.classList.toggle("has-energy", !charge.alternate && percent > 0 && !ready);
     this.element.classList.toggle("is-ready", ready);
     this.element.querySelector(".tsru-orb-image").src = config.ultimateButtonImage || config.orbImage || this.actor.img || "icons/svg/mystery-man.svg";
-    this.element.querySelector(".tsru-orb-percent").textContent = config.showPercent ? `${Math.round(percent)}%` : "";
+    this.element.querySelector(".tsru-orb-percent").textContent = config.showPercent ? (charge.alternate ? `${charge.current}/${charge.total}` : `${Math.round(percent)}%`) : "";
     this.element.querySelector(".tsru-orb").disabled = !ready || state.ultimateLocks.has(this.actor.id);
-    this.element.querySelector(".tsru-orb").title = ready ? `${this.actor.name}: Activate Ultimate` : `${this.actor.name}: ${config.current}/${config.max} Energy`;
+    this.element.querySelector(".tsru-orb").title = ready ? `${this.actor.name}: Activate Ultimate` : charge.alternate ? `${this.actor.name}: ${charge.current}/${charge.total} counters on` : `${this.actor.name}: ${config.current}/${config.max} Energy`;
     return this;
   }
 
@@ -3877,8 +3882,8 @@ class CombatPartyHud {
       const hpTemp = Math.max(0, Number(hp.temp) || 0);
       const hpPercent = clamp((hpValue / hpMax) * 100, 0, 100);
       const shieldPercent = clamp((hpTemp / hpMax) * 100, 0, 100);
-      const energyPercent = clamp((Number(config.current) / Math.max(1, Number(config.max))) * 100, 0, 100);
-      const ready = config.enabled && energyPercent >= 100 && !state.ultimateLocks.has(actor.id);
+      const charge = alternateUltimateCharge(actor, config), energyPercent = charge.percent;
+      const ready = charge.ready && !state.ultimateLocks.has(actor.id);
       const owned = game.user.isGM || actor.isOwner;
       const element = getElements().find(entry => entry.id === config.elementId);
       const energyColor = ready ? (element?.readyColor || DEFAULT_CONFIG.readyColor) : (element?.chargeColor || DEFAULT_CONFIG.chargeColor);
@@ -3888,7 +3893,7 @@ class CombatPartyHud {
         <strong class="tsru-combat-party-name">${escapeHTML(actor.name)}</strong>
         <div class="tsru-combat-party-hp" title="${hpTemp > 0 ? `${hpTemp} temporary HP shield · ` : ""}${hpValue}/${hpMax} HP"><b class="tsru-combat-party-shield-icon" aria-hidden="true"><i class="fas fa-shield-halved"></i></b><i class="tsru-combat-party-shield"></i><i class="tsru-combat-party-health"></i><span>${hpValue}/${hpMax}</span></div>
         ${combatHudTalentMarkup(actor, config)}
-        <div class="tsru-combat-party-ultimate-wrap ${ready ? "is-ready" : ""}">${config.trialCharacter ? '<b class="tsru-combat-party-trial">Trial</b>' : ""}<button type="button" data-tsru-party-ultimate data-actor-id="${actor.id}" class="${ready ? "is-ready" : "is-unavailable"} ${owned ? "" : "is-locked"}" aria-disabled="${!owned || !ready}" title="${owned ? (ready ? "Activate Ultimate" : "Ultimate is not ready; drag it to the hotbar to create its macro") : "Only this character's owner can activate their Ultimate"}"><span class="tsru-hud-orb-fill"></span><img src="${escapeHTML(config.ultimateButtonImage || config.orbImage || actor.img || "icons/svg/mystery-man.svg")}" alt="">${config.showHudPercent ? `<strong>${Math.round(energyPercent)}%</strong>` : ""}</button></div>
+        <div class="tsru-combat-party-ultimate-wrap ${ready ? "is-ready" : ""}">${config.trialCharacter ? '<b class="tsru-combat-party-trial">Trial</b>' : ""}<button type="button" data-tsru-party-ultimate data-actor-id="${actor.id}" class="${ready ? "is-ready" : "is-unavailable"} ${owned ? "" : "is-locked"} ${charge.alternate ? "is-alternate" : ""}" ${charge.alternate && (!owned || !ready) ? "disabled" : ""} aria-disabled="${!owned || !ready}" title="${owned ? (ready ? "Activate Ultimate" : "Ultimate is not ready; drag it to the hotbar to create its macro") : "Only this character's owner can activate their Ultimate"}">${charge.alternate ? renderAlternateOrb(getAlternateOrb(actor), getAlternateOrbStates(actor)) : `<span class="tsru-hud-orb-fill"></span><img src="${escapeHTML(config.ultimateButtonImage || config.orbImage || actor.img || "icons/svg/mystery-man.svg")}" alt="">`}${config.showHudPercent ? `<strong>${charge.alternate ? `${charge.current}/${charge.total}` : `${Math.round(energyPercent)}%`}</strong>` : ""}</button></div>
       </article>`;
     }).join("")}</div>`;
     for (const button of this.element.querySelectorAll("[data-tsru-party-ultimate]")) {
@@ -4188,7 +4193,7 @@ async function requestUltimate(actor) {
   const config = getConfig(actor);
   if (!game.user.isGM && !actor?.isOwner) return ui.notifications.error("You do not own this character.");
   if (!stanceActionAllowed(actor,"ultimate"))return;
-  if (!config.enabled || config.current < config.max) return ui.notifications.warn("This Ultimate is not ready.");
+  if (!alternateUltimateCharge(actor, config).ready) return ui.notifications.warn(config.alternateUltimateEnabled ? "Turn on every alternate Ultimate counter in the GM panel first." : "This Ultimate is not ready.");
   await reconcileUltimateLock(actor.id);
   if (state.ultimateLocks.has(actor.id)) return ui.notifications.warn("This Ultimate is already queued or resolving.");
   if (game.user.isGM && isAuthority()) return executeUltimate(actor.id, game.user.id,enhancedFormActive(actor));
@@ -4537,15 +4542,16 @@ async function executeUltimate(actorId, requestingUserId, expectedEnhanced=undef
   if(expectedEnhanced!==undefined&&Boolean(expectedEnhanced)!==enhancedFormActive(actor))return ui.notifications.warn("The character changed stance. Activate the current form instead.");
   if(!stanceActionAllowed(actor,"ultimate"))return;
   const config = getConfig(actor);
-  if (!config.enabled || config.current < config.max) return;
+  if (!alternateUltimateCharge(actor, config).ready) return;
   state.ultimateLocks.add(actorId);
   game.socket.emit(SOCKET, {type: "ultimateState", actorId, locked: true});
   refreshOrb(actor);
   try {
     await dispatchTalentEvent("ultimateUsed", {sourceActor: actor, requestingUserId}, `${actor.id}:${Date.now()}`);
-    await setEnergy(actor, 0);
+    if (config.alternateUltimateEnabled) await resetAlternateOrbCounters(actor, {consume: true});
+    else await setEnergy(actor, 0);
     const combat = game.combat;
-    await lockEnergyUntilNextRound(actor, combat);
+    if (!config.alternateUltimateEnabled) await lockEnergyUntilNextRound(actor, combat);
     if (!combat?.started) {
       broadcastUltimateSplash(actor);
       await runUltimateScript(actor);
@@ -6254,16 +6260,18 @@ class DMCombatMenu extends FormApplication {
   static get defaultOptions() { return foundry.utils.mergeObject(super.defaultOptions, {id:"tsru-dm-combat", title:"HSR DM Combat menu", template:`modules/${MODULE_ID}/templates/dm-combat-menu.hbs`, width:480, height:560, minWidth:350, minHeight:260, resizable:true, closeOnSubmit:false, classes:["tsru-dm-combat-window"]}); }
   getData() {
     if (!game.user.isGM) return {};
-    const tabs=[{id:"talents",label:"Talents",icon:"fas fa-star"},{id:"weaknesses",label:"Weaknesses",icon:"fas fa-shield-halved"},{id:"stances",label:"Stances",icon:"fas fa-arrows-rotate"},{id:"phases",label:"Phases",icon:"fas fa-layer-group"},{id:"dot",label:"DoT & Cones",icon:"fas fa-hourglass-half"}].map(tab=>({...tab,active:this.tab===tab.id}));
+    const tabs=[{id:"ultimates",label:"Alt Ultimates",icon:"fas fa-burst"},{id:"talents",label:"Talents",icon:"fas fa-star"},{id:"weaknesses",label:"Weaknesses",icon:"fas fa-shield-halved"},{id:"stances",label:"Stances",icon:"fas fa-arrows-rotate"},{id:"phases",label:"Phases",icon:"fas fa-layer-group"},{id:"dot",label:"DoT & Cones",icon:"fas fa-hourglass-half"}].map(tab=>({...tab,active:this.tab===tab.id}));
     const talentGroups=combatTalentGroups();
     const enemies=(canvas?.tokens?.placeables??[]).filter(token=>token.actor?.type==="npc").map(token=>{const target=token.document,permanent=getToughness(token.actor).weaknesses,active=effectiveToughnessWeaknesses(target),mode=toughnessWeaknessMode(target);return {uuid:target.uuid,name:token.name||token.actor.name,image:token.actor.img,locked:Boolean(target.getFlag(MODULE_ID,"miniWeaknessLocked")),modeLabel:mode==="all"?"All active":mode==="none"?"None active":"",elements:getElements().map(element=>({...element,permanent:permanent.includes(element.id),active:active.includes(element.id)}))};});
     const stances=game.actors.filter(actor=>actor.type==="character"&&getConfig(actor).enhancedStanceEnabled).sort((a,b)=>a.name.localeCompare(b.name)).map(actor=>({id:actor.id,name:actor.name,image:actor.img,active:getConfig(actor).enhancedStanceActive}));
     const bosses=new BossPhaseControl().bosses().map(({combatant,encounter,totalPhases,name})=>({id:combatant.id,name,image:combatant.actor?.img||combatant.img,current:encounter.currentPhase,total:totalPhases,phases:Array.from({length:totalPhases},(_,index)=>({number:index+1,active:encounter.currentPhase===index+1}))}));
-    return {tabs,talentGroups,enemies,stances,bosses,talentsTab:this.tab==="talents",weaknessesTab:this.tab==="weaknesses",stancesTab:this.tab==="stances",dotTab:this.tab==="dot",phasesTab:this.tab==="phases",punchline:currentPunchline(),skillPoints:currentSkillPoints(),hasCombat:Boolean(game.combat?.started)};
+    const alternateActors=game.actors.filter(actor=>actor.type==="character"&&getConfig(actor).alternateUltimateEnabled).sort((a,b)=>a.name.localeCompare(b.name)).map(actor=>({name:actor.name,controls:alternateOrbControls(actor)}));
+    return {tabs,alternateActors,ultimatesTab:this.tab==="ultimates",talentGroups,enemies,stances,bosses,talentsTab:this.tab==="talents",weaknessesTab:this.tab==="weaknesses",stancesTab:this.tab==="stances",dotTab:this.tab==="dot",phasesTab:this.tab==="phases",punchline:currentPunchline(),skillPoints:currentSkillPoints(),hasCombat:Boolean(game.combat?.started)};
   }
   refresh() { if (!this.rendered) return; const scroll=this.element?.find?.("[data-dm-scroll]")?.[0]; if(scroll)this.scrollPositions[this.tab]=scroll.scrollTop; this.render(false); }
   activateListeners(html) {
     super.activateListeners(html); if(!game.user.isGM){this.close();return;}
+    bindAlternateOrbControls(html[0]);
     html.find("[data-dm-scroll]").scrollTop(this.scrollPositions[this.tab]||0).on("scroll",event=>{this.scrollPositions[this.tab]=event.currentTarget.scrollTop;});
     html.find("[data-dm-tab]").on("click",event=>{this.tab=event.currentTarget.dataset.dmTab;this.render(false);});
     html.find("[data-dm-adjusted-stats]").on("click",showAdjustedCombatStats);
@@ -6305,10 +6313,10 @@ class StarRailGMPanel extends FormApplication {
     const collapsedCards = game.settings.get(MODULE_ID, "gmPanelCollapsedCards") ?? {};
     const canvasCharacterIds = new Set((canvas?.tokens?.placeables ?? []).filter(token => token.actor?.type === "character").map(token => token.actor.id));
     const characters = game.actors
-      .filter(actor => actor.type === "character" && (getConfig(actor).mainParty || getConfig(actor).enhancedStanceEnabled || canvasCharacterIds.has(actor.id)))
+      .filter(actor => actor.type === "character" && (getConfig(actor).mainParty || getConfig(actor).enhancedStanceEnabled || getConfig(actor).alternateUltimateEnabled || canvasCharacterIds.has(actor.id)))
       .map(actor => {
         const hasPlayerOwner=game.users.some(user=>!user.isGM && actor.testUserPermission(user,"OWNER"));
-        return {actor, config:getConfig(actor), hasPlayerOwner, isGMPC:!hasPlayerOwner, talentCurrent: currentTalentPoints(actor), talentEligible: Boolean(talentCombatForActor(actor)), modifier: signedNumber(regenModifier(getConfig(actor))), collapsed: Boolean(collapsedCards[`character:${actor.id}`])};
+        return {actor, config:getConfig(actor), alternateControls: getConfig(actor).alternateUltimateEnabled ? alternateOrbControls(actor) : "", hasPlayerOwner, isGMPC:!hasPlayerOwner, talentCurrent: currentTalentPoints(actor), talentEligible: Boolean(talentCombatForActor(actor)), modifier: signedNumber(regenModifier(getConfig(actor))), collapsed: Boolean(collapsedCards[`character:${actor.id}`])};
       });
     const normalCombatants = game.combat?.combatants?.filter(entry => !isAhaCombatant(entry) && !isElationActionCombatant(entry) && !entry.getFlag(MODULE_ID, "temporaryUltimate") && !entry.getFlag(MODULE_ID, "actionAdvance")) ?? [];
     const actionAdvanceCombatants = game.combat?.combatants?.filter(entry => !isElationActionCombatant(entry) && !entry.getFlag(MODULE_ID, "temporaryUltimate") && !entry.getFlag(MODULE_ID, "actionAdvance")) ?? [];
@@ -6334,6 +6342,7 @@ class StarRailGMPanel extends FormApplication {
   }
   activateListeners(html) {
     super.activateListeners(html);
+    bindAlternateOrbControls(html[0]);
     html.find('[data-action="place-blow-up-tatsuo"]').on("click",showBlowUpTatsuoButton);
     html.find('[data-action="configure-blow-up-tatsuo"]').on("click",()=>new BlowUpTatsuoConfig().render(true));
     html.find("[data-toggle-enhanced-stance]").on("click",async event=>{
@@ -6482,12 +6491,13 @@ class StarRailGMPanel extends FormApplication {
   refreshLiveValues() {
     const root = this.element?.jquery ? this.element : $(this.element);
     if (!root?.length) return;
+    refreshAlternateOrbControls(root[0]);
     root.find('[data-resource-input="punchline"]').val(currentPunchline());
     root.find('[name="punchlineOverride"]').prop("checked", punchlineOverrideEnabled());
     root.find('[data-resource-input="skillPoints"]').val(currentSkillPoints());
     for (const actor of game.actors.filter(entry => entry.type === "character")) {
       const config = getConfig(actor);
-      root.find(`[data-actor-id="${actor.id}"][data-actor-field="current"]`).val(config.current);
+      root.find(`[data-actor-id="${actor.id}"][data-actor-field="current"]`).val(config.current).prop("disabled", config.alternateUltimateEnabled);
       root.find(`[data-actor-id="${actor.id}"][data-actor-field="max"]`).val(config.max);
       root.find(`[data-actor-id="${actor.id}"][data-actor-field="talentPointsCurrent"]`).val(currentTalentPoints(actor)).prop("disabled", !talentCombatForActor(actor));
       root.find(`[data-actor-id="${actor.id}"][data-actor-field="talentPointsMax"]`).val(config.talentPointsMax);
@@ -6816,7 +6826,7 @@ function arrangeUltimateSettings(tab) {
   const party=byTitle("Party Membership"),energy=byTitle("Energy"),lock=party?.querySelector('[name="lockEnergyAfterUltimate"]')?.closest(".tsru-field");
   if(lock&&energy)energy.appendChild(lock);
   if(party)party.querySelector(":scope > h3").innerHTML='<i class="fas fa-users"></i> Party, Portraits &amp; HUD';
-  const order=["Element & Path","Energy","Manual Energy Override","Ultimate & Splash Artwork","Floating Ultimate Orb","Enhanced Stance","Skill","Talent","Technique","Break Character","Boss Encounter","Party, Portraits & HUD","Elation & Punchline"];
+  const order=["Element & Path","Energy","Alternate Ultimate","Manual Energy Override","Ultimate & Splash Artwork","Floating Ultimate Orb","Enhanced Stance","Skill","Talent","Technique","Break Character","Boss Encounter","Party, Portraits & HUD","Elation & Punchline"];
   const nav=document.createElement("nav");nav.className="tsru-config-nav";nav.setAttribute("aria-label","Character settings sections");
   for(const title of order){const section=byTitle(title);if(!section)continue;panel.insertBefore(section,panel.querySelector(".tsru-sheet-actions"));const button=document.createElement("button");button.type="button";button.textContent=title.replace("Manual Energy Override","Set Energy").replace("Ultimate & Splash Artwork","Ultimate & Splash").replace("Party, Portraits & HUD","Party & Portraits");button.addEventListener("click",()=>{if(section.classList.contains("is-collapsed"))section.querySelector(".tsru-section-toggle")?.click();section.scrollIntoView({behavior:"smooth",block:"start"});});nav.appendChild(button);}
   panel.querySelector(".tsru-config-heading")?.after(nav);
@@ -6906,10 +6916,10 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
     data[field.name] = field.type === "checkbox" ? field.checked : field.value;
   });
   for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "skillPointCost", "talentPointsCurrent", "talentPointsMax", "talentPointsOvercapMax", "punchlineGain", "splashDuration", "splashX", "splashY", "splashScale", "titleX", "titleY", "titleSize", "combatHudPortraitX", "combatHudPortraitY", "combatHudPortraitScale", "enhancedHudPortraitX", "enhancedHudPortraitY", "enhancedHudPortraitScale", "enhancedCarouselImageX", "enhancedCarouselImageY", "enhancedCarouselImageScale", "enhancedSplashX", "enhancedSplashY", "enhancedSplashScale", "enhancedTransitionDuration", "enhancedTransitionInX", "enhancedTransitionInY", "enhancedTransitionInScale", "enhancedTransitionOutX", "enhancedTransitionOutY", "enhancedTransitionOutScale", "enhancedTransitionInContrast", "enhancedTransitionInSaturation", "enhancedTransitionInBrightness", "enhancedTransitionInHue", "enhancedTransitionOutContrast", "enhancedTransitionOutSaturation", "enhancedTransitionOutBrightness", "enhancedTransitionOutHue", "messagingPortraitX", "messagingPortraitY", "messagingPortraitScale", "ultimateButtonX", "ultimateButtonY", "ultimateButtonScale", "bossPhaseCount", "bossPhase2TokenWidth", "bossPhase2TokenHeight", "bossPhase3TokenWidth", "bossPhase3TokenHeight", "bossHudPortraitX", "bossHudPortraitY", "bossHudPortraitScale", "bossHudWidth", "bossHudHealthHeight", "bossHudToughnessHeight"]) data[key] = Number(data[key]);
-  for (const key of ["enabled", "showPercent", "showHudPercent", "skillEnabled", "techniqueEnabled", "mainParty", "trialCharacter", "combatHudPortraitFlip", "enhancedHudPortraitFlip", "enhancedCarouselImageFlip", "ultimateButtonAdjustEnabled", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter", "isBoss", "bossInheritsMainPhaseCount", "carouselFrameColorOverride", "enhancedStanceEnabled", "enhancedUltimateEnabled"]) data[key] = Boolean(data[key]);
+  for (const key of ["enabled", "alternateUltimateEnabled", "showPercent", "showHudPercent", "skillEnabled", "techniqueEnabled", "mainParty", "trialCharacter", "combatHudPortraitFlip", "enhancedHudPortraitFlip", "enhancedCarouselImageFlip", "ultimateButtonAdjustEnabled", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter", "isBoss", "bossInheritsMainPhaseCount", "carouselFrameColorOverride", "enhancedStanceEnabled", "enhancedUltimateEnabled"]) data[key] = Boolean(data[key]);
   if(!data.enhancedStanceEnabled)data.enhancedStanceActive=false;
   data.max = Math.max(1, data.max || 100);
-  data.current = clamp(data.current, 0, data.max);
+  data.current = energyAfterUpdate({...getConfig(actor), alternateUltimateEnabled: data.alternateUltimateEnabled, max: data.max}, data.current);
   const savedConfig = getConfig(actor);
   if (isEnergyLocked(actor) && data.current > savedConfig.current) {
     data.current = savedConfig.current;
@@ -6945,6 +6955,7 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
 }
 
 function activateConfigListeners(actor, tab, app) {
+  bindAlternateOrbSheet(actor, tab[0]);
   tab.find("input, select, textarea, button").prop("disabled", false);
   arrangeUltimateSettings(tab);
   initializeCollapsibleUltimateSections(actor, tab);
@@ -7853,7 +7864,14 @@ function bindCraftingSceneControl(app,html){
 }
 
 function registerApi() {
+  configureAlternateUltimates({isResolving: actor => state.ultimateLocks.has(actor.id)});
   game.modules.get(MODULE_ID).api = {
+    openAlternateOrbDesigner,
+    getAlternateOrb,
+    getAlternateOrbStates,
+    setAlternateOrbCounter,
+    resetAlternateOrbCounters,
+    getUltimateCharge: actor => alternateUltimateCharge(actor, getConfig(actor)),
     getConfig,
     setEnergy,
     addEnergy: async (actor, amount, reason = "api") => {
@@ -8164,6 +8182,17 @@ Hooks.on("deleteToken", () => state.dmCombatMenu?.refresh());
 Hooks.on("updateCombatant", () => state.dmCombatMenu?.refresh());
 Hooks.on("tsruSkillPointsChanged", value => { state.gmPanel?.refreshLiveValues(); dispatchTalentEvent("skillPointsChanged", {value}); });
 Hooks.on("tsruTalentPointsChanged", (actor, before, after) => { refreshTalentCounter(actor); dispatchTalentEvent("talentPointsChanged", {sourceActor: actor, before, after, amount: after - before}); });
+Hooks.on("preUpdateActor", (actor, changes) => {
+  const expanded = foundry.utils.expandObject(changes);
+  const incoming = foundry.utils.getProperty(expanded, `flags.${MODULE_ID}.ultimate`);
+  if (!incoming || !Object.hasOwn(incoming, "current")) return;
+  const config = getConfig(actor);
+  const alternate = Object.hasOwn(incoming, "alternateUltimateEnabled") ? Boolean(incoming.alternateUltimateEnabled) : config.alternateUltimateEnabled;
+  if (!alternate || Number(incoming.current) <= config.current) return;
+  const path = `flags.${MODULE_ID}.ultimate.current`;
+  if (Object.hasOwn(changes, path)) changes[path] = config.current;
+  else foundry.utils.setProperty(changes, path, config.current);
+});
 Hooks.on("updateActor", (actor, changes, options) => {
   if(isAuthority()&&state.splashArtworkByActor){
     const images=[getConfig(actor).splashImage,getConfig(actor).enhancedSplashImage].join("\n");
@@ -8219,7 +8248,7 @@ Hooks.on("updateActor", (actor, changes, options) => {
   if (!options?.tsruAutosave && foundry.utils.hasProperty(changes, `flags.${MODULE_ID}.eidolons`)) {
     for (const app of Object.values(ui.windows ?? {})) if ((app.actor ?? app.document)?.id === actor.id) app.render(false);
   }
-  if (actor.type === "character" && Number(getConfig(actor).current) >= Number(getConfig(actor).max) && state.ultimateLocks.has(actor.id)) {
+  if (actor.type === "character" && alternateUltimateCharge(actor, getConfig(actor)).ready && state.ultimateLocks.has(actor.id)) {
     reconcileUltimateLock(actor.id);
   }
 });
