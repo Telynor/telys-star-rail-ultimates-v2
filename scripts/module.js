@@ -800,23 +800,23 @@ function breakEffectModifier(config) {
   return Math.floor((score - 10) / 2);
 }
 
-function energyAbilityMarkup(actor, tagName = "div") {
+function energyAbilityMarkup(actor, tagName = "div", native = false, flipped = false) {
   const config = getConfig(actor);
   const editable = game.user.isGM || actor.isOwner;
-  return `<${tagName} class="tsru-energy-ability ability-score" data-tsru-energy-ability data-actor-id="${actor.id}" title="Energy gained = base gain + Energy Regen modifier">
-    <div class="tsru-energy-ability-label">ENERGY REGEN</div>
-    <div class="tsru-energy-ability-modifier">${signedNumber(regenModifier(config))}</div>
-    <input class="tsru-energy-ability-score" type="number" min="1" max="30" step="1" value="${Number.isFinite(Number(config.regenScore)) ? clamp(config.regenScore, 1, 30) : 10}" aria-label="Energy Regen ability score" ${editable ? "" : "disabled"}>
+  return `<${tagName} class="tsru-energy-ability ability-score${flipped ? " flipped" : ""}" data-tsru-energy-ability ${native ? "data-tsru-native-ability" : ""} data-actor-id="${actor.id}" title="Energy Regen — Energy gained = base gain + Energy Regen modifier">
+    <span class="label tsru-energy-ability-label">REGEN</span>
+    <div class="mod tsru-energy-ability-modifier">${signedNumber(regenModifier(config))}</div>
+    <div class="score"><input class="uninput tsru-energy-ability-score" type="number" min="1" max="30" step="1" value="${Number.isFinite(Number(config.regenScore)) ? clamp(config.regenScore, 1, 30) : 10}" aria-label="Energy Regen ability score" ${editable ? "" : "disabled"}></div>
   </${tagName}>`;
 }
 
-function breakAbilityMarkup(actor, tagName = "div") {
+function breakAbilityMarkup(actor, tagName = "div", native = false, flipped = false) {
   const config = getConfig(actor);
   const editable = game.user.isGM || actor.isOwner;
-  return `<${tagName} class="tsru-energy-ability tsru-break-ability ability-score" data-tsru-break-ability data-actor-id="${actor.id}" title="Break damage multiplier uses the Break Effect modifier">
-    <div class="tsru-energy-ability-label">BREAK EFFECT</div>
-    <div class="tsru-energy-ability-modifier">${signedNumber(breakEffectModifier(config))}</div>
-    <input class="tsru-energy-ability-score" type="number" min="1" max="30" step="1" value="${Number.isFinite(Number(config.breakEffectScore)) ? clamp(config.breakEffectScore, 1, 30) : 10}" aria-label="Break Effect ability score" ${editable ? "" : "disabled"}>
+  return `<${tagName} class="tsru-energy-ability tsru-break-ability ability-score${flipped ? " flipped" : ""}" data-tsru-break-ability ${native ? "data-tsru-native-ability" : ""} data-actor-id="${actor.id}" title="Break Effect — Break damage multiplier uses the Break Effect modifier">
+    <span class="label tsru-energy-ability-label">BREAK</span>
+    <div class="mod tsru-energy-ability-modifier">${signedNumber(breakEffectModifier(config))}</div>
+    <div class="score"><input class="uninput tsru-energy-ability-score" type="number" min="1" max="30" step="1" value="${Number.isFinite(Number(config.breakEffectScore)) ? clamp(config.breakEffectScore, 1, 30) : 10}" aria-label="Break Effect ability score" ${editable ? "" : "disabled"}></div>
   </${tagName}>`;
 }
 
@@ -850,9 +850,12 @@ async function injectEnergyAbility(app, html, attempt = 0) {
     return;
   }
   const tagName = chaCard.prop("tagName")?.toLowerCase() || "div";
-  chaCard.after(`${energyAbilityMarkup(actor, tagName)}${breakAbilityMarkup(actor, tagName)}`);
+  const native = chaCard.is(".ability-score") && chaCard.children(".mod").length > 0 && chaCard.children(".score").length > 0;
+  const flipped = chaCard.hasClass("flipped");
+  chaCard.after(`${energyAbilityMarkup(actor, tagName, native, flipped)}${breakAbilityMarkup(actor, tagName, native, flipped)}`);
   const card = chaCard.next("[data-tsru-energy-ability]");
-  card.parent().addClass("tsru-seven-ability-row");
+  const row = card.parent().addClass("tsru-seven-ability-row");
+  row[0].style.setProperty("--tsru-ability-count", row.children().length);
   const score = card.find(".tsru-energy-ability-score");
   score.on("input.tsru", event => {
     event.stopPropagation();

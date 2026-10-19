@@ -36,6 +36,7 @@ jobs:
           npm install --no-save --package-lock=false --no-audit --no-fund playwright
           npx playwright install --with-deps chromium --only-shell
           node tests/alternate-orb-ui.cjs
+          node tests/ability-score-ui.cjs
 
       - name: Save orb designer screenshot
         if: always()
@@ -49,6 +50,9 @@ jobs:
             character-settings-menu-smoke.png
             enhanced-standard-selector-smoke.png
             enhanced-alternate-selector-smoke.png
+            ability-scores-wide-smoke.png
+            ability-scores-compact-smoke.png
+            ability-scores-failure.png
           if-no-files-found: ignore
 
       - name: Create Foundry module ZIP

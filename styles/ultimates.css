@@ -768,52 +768,87 @@
   .tsru-sheet-actions { grid-template-columns: minmax(0, 1fr); }
 }
 
-/* Energy Regen pseudo-ability, injected alongside the system ability cards. */
-.tsru-energy-ability {
-  position: relative;
+/* Keep the six native abilities and the two HSR scores in one fluid row.
+   Native cards supply their own theme artwork, colors and score-box styling. */
+.ability-scores:has(.tsru-seven-ability-row) > .rows { box-sizing: border-box; min-width: 0; max-width: 100%; }
+.tsru-seven-ability-row {
+  --tsru-ability-gap: clamp(2px, 2cqw, 22px);
   box-sizing: border-box;
-  display: flex !important;
-  flex: 0 1 78px !important;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 78px !important;
-  min-width: 70px !important;
-  max-width: 78px !important;
-  min-height: 70px;
-  padding: 7px 7px 5px;
-  border: 1px solid #596171;
-  clip-path: polygon(14% 0, 86% 0, 100% 18%, 100% 82%, 86% 100%, 14% 100%, 0 82%, 0 18%);
-  background: linear-gradient(180deg, #29303a, #171b22);
-  color: #eee9dc;
-  text-align: center;
-  filter: drop-shadow(0 2px 2px rgba(0,0,0,.7));
+  display: grid !important;
+  grid-template-columns: repeat(var(--tsru-ability-count, 8), minmax(0, 1fr));
+  gap: clamp(2px, 2%, 22px) !important;
+  justify-items: center;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  container-type: inline-size;
 }
-.tsru-seven-ability-row { box-sizing: border-box; max-width: 100%; }
-.tsru-seven-ability-row .tsru-energy-ability { flex-shrink: 1 !important; }
-.tsru-break-ability { border-color: #b57b49; background: linear-gradient(180deg, #382f2a, #1d1917); }
-.tsru-break-ability .tsru-energy-ability-score:focus { border-color: #ffad5c !important; box-shadow: 0 0 5px rgba(255,173,92,.55); }
-.tsru-energy-ability-label { color: #d8c89f; font-size: 9px; font-weight: 800; line-height: 1; white-space: nowrap; }
-.tsru-energy-ability-modifier { margin: 3px 0 2px; color: #f2f2f2; font-size: 20px; font-weight: 800; line-height: 1; }
-.tsru-energy-ability-score {
-  box-sizing: border-box !important;
-  width: 52px !important;
-  height: 22px !important;
-  min-height: 22px !important;
-  margin: 0 !important;
-  padding: 1px 4px !important;
-  border: 1px solid rgba(229,200,120,.45) !important;
-  border-radius: 3px !important;
-  background: rgba(0,0,0,.82) !important;
-  color: #eee9dc !important;
-  font-size: 13px !important;
-  font-weight: 700;
-  line-height: 20px !important;
-  text-align: center;
-  pointer-events: auto !important;
+.tsru-seven-ability-row > .ability-score {
+  --tsru-ability-unit: min(1px, calc((100cqw - (var(--tsru-ability-count, 8) - 1) * var(--tsru-ability-gap)) / (var(--tsru-ability-count, 8) * 64)));
+  box-sizing: border-box;
+  width: calc(64 * var(--tsru-ability-unit)) !important;
+  height: calc(64 * var(--tsru-ability-unit)) !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: 100% !important;
+  padding: calc(12 * var(--tsru-ability-unit)) 0 0 !important;
+  gap: 0 !important;
+  justify-content: space-between !important;
 }
-.tsru-energy-ability-score:focus { border-color: #20e6ff !important; box-shadow: 0 0 5px rgba(32,230,255,.55); outline: 0; }
-.tsru-energy-ability-score:disabled { cursor: not-allowed; opacity: .7; }
+.tsru-seven-ability-row > .ability-score > .label {
+  max-width: 100%;
+  font-size: calc(11 * var(--tsru-ability-unit)) !important;
+  line-height: 1;
+  white-space: nowrap;
+}
+.tsru-seven-ability-row > .ability-score > .mod {
+  margin: 0;
+  padding: calc(2 * var(--tsru-ability-unit)) 0 !important;
+  font-size: calc(16 * var(--tsru-ability-unit)) !important;
+  line-height: 1;
+}
+.tsru-seven-ability-row > .ability-score > .score {
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  width: calc(50 * var(--tsru-ability-unit)) !important;
+  height: calc(23 * var(--tsru-ability-unit)) !important;
+  min-width: 0;
+  padding: 0 !important;
+  margin: calc(-2 * var(--tsru-ability-unit)) 0 0 !important;
+  order: initial !important;
+  font-size: calc(13 * var(--tsru-ability-unit)) !important;
+  line-height: 1;
+}
+.tsru-seven-ability-row > .ability-score > .score > input {
+  box-sizing: border-box;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0 !important;
+  font: inherit;
+  text-align: center;
+  appearance: textfield;
+}
+.tsru-seven-ability-row > .ability-score.flipped::before { transform: none !important; }
+.tsru-energy-ability-score::-webkit-inner-spin-button,
+.tsru-energy-ability-score::-webkit-outer-spin-button { appearance: none; margin: 0; }
+.tsru-energy-ability-score:disabled { cursor: not-allowed; }
+/* Fallback for sheets that do not provide the native ability-card structure. */
+.tsru-energy-ability:not([data-tsru-native-ability]) {
+  position: relative; display: flex; flex-direction: column; align-items: center;
+  color: var(--dnd5e-ability-mod-color, #d2d4da); text-align: center;
+}
+.tsru-energy-ability:not([data-tsru-native-ability])::before {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: var(--dnd5e-color-card, #252830);
+  clip-path: polygon(50% 0, 100% 25%, 100% 100%, 0 100%, 0 25%);
+}
+.tsru-energy-ability:not([data-tsru-native-ability]) .label { color: var(--dnd5e-color-gold, #b9ad85); font-weight: bold; }
+.tsru-energy-ability:not([data-tsru-native-ability]) .score { border-radius: 3px; background: #000; }
+.tsru-energy-ability:not([data-tsru-native-ability]) input { border: 1px solid transparent; border-radius: 3px; background: transparent; color: inherit; }
 
 .tsru-aha-widget {
   position: fixed;

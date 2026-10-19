@@ -1,5 +1,9 @@
 # Tely's Star Rail Ultimates
 
+## Character sheet ability scores
+
+The **REGEN** (Energy Regen) and **BREAK** (Break Effect) cards use the native D&D5e ability-card shape, colors, modifier and score-box styling. Hover either card for its full name. All eight scores share a responsive row: cards, labels and score fields scale together as the sheet width or sidebar changes, keeping the row inside the sheet. Owners and GMs can edit the added scores directly; the saved values and modifier calculations are unchanged.
+
 ## Alternate Ultimate orb builder
 
 Check **Character sheet → HSR Settings → Alternate Ultimate → Alternate Ultimate?** to replace that character's Energy orb with a custom orb. The builder button appears while checked. Uncheck to restore the normal orb; the saved design and counters are retained.

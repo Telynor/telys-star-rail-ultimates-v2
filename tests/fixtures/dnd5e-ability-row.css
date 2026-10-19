@@ -1,0 +1,157 @@
+/* Native D&D5e 5.3.3 ability-card geometry for layout integration checks.
+   Source: https://github.com/foundryvtt/dnd5e/blob/release-5.3.3/less/v2/character.less
+   The fixture retains the native fixed-width six-card row that previously overflowed. */
+* { box-sizing: border-box; }
+body { margin: 0; padding: 20px; background: #101319; color: #ddd; font: 14px Arial, sans-serif; }
+#ability-sheet { position: relative; width: 1000px; height: 360px; border: 1px solid #777; border-radius: 5px; background: linear-gradient(135deg,#3d1d1f,#16191e 65%); }
+#ability-sheet > header { padding: 18px; color: #cdb77e; }
+#ability-sheet > footer { position: absolute; inset: auto 24px 24px; padding: 14px; border: 1px solid #a38b53; border-radius: 6px; text-align: center; }
+.dnd5e2.sheet.actor.character {
+  --dnd5e-sheet-sidebar-width: 230px;
+  --dnd5e-sheet-header-right-width: 280px;
+  --dnd5e-font-roboto: Arial, sans-serif;
+  --dnd5e-ability-tab: url('/fixtures/ability-score-tab.svg');
+  --dnd5e-color-gold: #b3a783;
+  --dnd5e-color-black: #000;
+  --dnd5e-ability-mod-color: #cfd1d6;
+  --dnd5e-shadow-45: #0007;
+  .ability-scores {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: calc(var(--dnd5e-sheet-sidebar-width) + 18px);
+    pointer-events: none;
+    container-type: inline-size;
+
+    .rows {
+      padding: 76px 0 76px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      width: 546px;
+      margin-left: auto;
+
+      > div {
+        display: flex;
+        gap: 22px;
+      }
+    }
+
+    &.optional-ability-0 .rows {
+      width: unset;
+      margin: 0;
+      justify-content: center;
+      padding-inline: 12px;
+    }
+
+    .top {
+      padding-right: calc(var(--dnd5e-sheet-header-right-width) + 49px);
+      min-height: 72px;
+      margin-left: auto;
+    }
+
+    .ability-score {
+      width: 64px;
+      height: 64px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--dnd5e-font-roboto);
+      padding-top: 12px;
+      filter: drop-shadow(0 0 6px var(--dnd5e-shadow-45));
+      pointer-events: all;
+
+      &::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: transparent var(--dnd5e-ability-tab) no-repeat top center / contain;
+        z-index: -1;
+      }
+
+      &.flipped {
+        padding: 0 0 8px 0;
+        height: 72px;
+        justify-content: start;
+        gap: 2px;
+
+        &::before { transform: scaleY(-1); }
+        .mod { padding: 0; }
+
+        .score {
+          margin: 0;
+          order: -1;
+        }
+      }
+
+      .mod > button {
+        color: inherit;
+        font-size: inherit;
+        font-weight: inherit;
+      }
+
+      .score {
+        width: 50px;
+        height: 23px;
+        padding: 4px;
+        color: var(--dnd5e-color-gold);
+        background: var(--dnd5e-color-black);
+        border-radius: 3px;
+        margin-top: -2px;
+
+        > input {
+          --input-background-color: transparent;
+          padding: 4px;
+          color: var(--dnd5e-color-gold);
+          width: 50px;
+          height: 23px;
+          border-radius: 3px;
+          border: 1px solid transparent;
+
+          &:hover, &:focus {
+            border: 1px solid var(--dnd5e-color-gold);
+            box-shadow: 0 0 6px var(--dnd5e-color-gold);
+          }
+        }
+      }
+    }
+
+    @container (min-width: 700px) {
+      .rows {
+        justify-content: center;
+        gap: 22px;
+        padding-top: 148px;
+        width: unset;
+        margin: 0;
+
+        .top {
+          padding: 0;
+          margin: 0;
+          min-height: unset;
+          order: 2;
+        }
+
+        .ability-score.flipped {
+          padding: 12px 0 0;
+          height: 64px;
+          justify-content: space-between;
+          gap: unset;
+
+          &::before { transform: unset; }
+          .mod { padding: 3px 0; }
+
+          .score {
+            margin: -2px 0 0;
+            order: unset;
+          }
+        }
+      }
+    }
+  }
+
+}
+.dnd5e2.sheet.actor .ability-scores .ability-score .label { text-transform: uppercase; font-size: 11px; color: var(--dnd5e-color-gold); font-weight: bold; }
+.dnd5e2.sheet.actor .ability-scores .ability-score .mod { font-size: 16px; font-weight: bold; color: var(--dnd5e-ability-mod-color); padding: 3px 0; }
+.dnd5e2.sheet.actor .ability-scores .ability-score .score { text-align: center; font-size: 13px; }
+.dnd5e2.sheet.actor .ability-scores .ability-score .score input { text-align: center; font: inherit; }
