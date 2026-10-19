@@ -37,6 +37,7 @@ jobs:
           npx playwright install --with-deps chromium --only-shell
           node tests/alternate-orb-ui.cjs
           node tests/ability-score-ui.cjs
+          node tests/summoning-ui.cjs
 
       - name: Save orb designer screenshot
         if: always()
@@ -53,6 +54,10 @@ jobs:
             ability-scores-wide-smoke.png
             ability-scores-compact-smoke.png
             ability-scores-failure.png
+            summoning-settings-smoke.png
+            summoning-choice-smoke.png
+            summoning-placement-smoke.png
+            summoning-failure.png
           if-no-files-found: ignore
 
       - name: Create Foundry module ZIP

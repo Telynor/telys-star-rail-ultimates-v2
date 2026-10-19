@@ -30,6 +30,10 @@ const aliases = [
   ["text", "description", "chat", "message", "wording"],
   ["toughness", "weakness", "break", "stagger"],
   ["boss", "phase", "stage", "encounter"],
+  ["summon", "summons", "summoning", "creature", "pet", "minion", "familiar", "spawn"],
+  ["hp", "health", "life", "blood", "sacrifice"],
+  ["radius", "range", "distance", "zone"],
+  ["cost", "price", "payment", "spend"],
   ["skill", "sp"], ["talent", "tp"], ["technique", "tech"],
   ["element", "elemental", "damage", "type"], ["path", "class"],
   ["font", "typeface", "typography", "lettering"]

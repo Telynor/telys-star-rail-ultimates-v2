@@ -1,0 +1,289 @@
+import {normalizeSummons, parseHpDice, fixedHpCost, rectangle, overlaps, rectCorners, insideRadius, wallOccludesFootprint, segmentsCross} from './summoning-rules.mjs';
+const ID = 'telys-star-rail-ultimates', SOCKET = `module.${ID}`;
+const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pending = new Map(), planning = new Set(), sceneQueues = new Map();
+let picker = null, installed = false;
+const configFor = (actor, action) => normalizeSummons(actor.getFlag(ID, 'ultimate')?.[`${action}Summons`]);
+const authority = () => game.user.isGM && game.users.find(user => user.isGM && user.active)?.id === game.user.id;
+const canUse = (actor, user) => Boolean(actor && user && (user.isGM || actor.testUserPermission(user, 'OWNER')));
+const sourceActor = uuid => /^Actor\.[\w-]+$/.test(String(uuid)) ? game.actors.get(uuid.slice(6)) : null;
+const failFit = () => new Error('Cannot Fit: the full token cannot fit inside the summoning zone without overlapping creatures or crossing a lighting barrier.');
+export {normalizeSummons};
+
+export async function evaluateSkillHpCost(actor, config) {
+  const hp = actor.system?.attributes?.hp ?? {value:0,max:0};
+  let cost = fixedHpCost(config, hp), roll = null;
+  if (cost === null) {
+    const formula = parseHpDice(config.skillHpCostRoll || '1d6');
+    roll = await new Roll(formula).evaluate();
+    if (!Number.isFinite(Number(roll.total))) throw new Error('The HP cost roll did not produce a valid amount.');
+    cost = Math.max(0, Math.floor(Number(roll.total)));
+  }
+  if (Number(hp.value) < cost) throw new Error(`This Skill requires ${cost} HP; ${actor.name} has ${Math.max(0, Number(hp.value) || 0)}. Nothing was spent.`);
+  return {cost, before:Number(hp.value) || 0, roll};
+}
+
+export function placementContext(scene, caster) {
+  const active = globalThis.canvas?.scene?.id === scene.id;
+  const grid = typeof scene.grid?.getTopLeftPoint === 'function' ? scene.grid : active && canvas.grid?.getTopLeftPoint ? canvas.grid : null;
+  const gx = Number(scene.grid?.sizeX || scene.grid?.size || scene._source?.grid?.size || (active && canvas.dimensions?.size)) || 100;
+  const gy = Number(scene.grid?.sizeY || scene.grid?.size || scene._source?.grid?.size || (active && canvas.dimensions?.size)) || gx;
+  const distance = Number(scene.grid?.distance || scene._source?.grid?.distance || (active && canvas.dimensions?.distance)) || 5;
+  const raw = scene.dimensions?.sceneRect ?? scene.getDimensions?.().sceneRect ?? {x:0,y:0,width:scene.width,height:scene.height};
+  const bounds = rectangle(Number(raw.x)||0, Number(raw.y)||0, Number(raw.width)||1, Number(raw.height)||1);
+  const level = caster.level?.id ?? caster.level ?? caster.levelId ?? (active ? canvas.level?.id : null);
+  const casterRect = rectangle(caster.x, caster.y, Math.max(.1,Number(caster.width)||1)*gx, Math.max(.1,Number(caster.height)||1)*gy);
+  const elevation = Number(caster.elevation) || 0;
+  const origin = {x:casterRect.x+casterRect.width/2,y:casterRect.y+casterRect.height/2,elevation};
+  const walls = [...(scene.walls ?? [])].flatMap(item => {
+    const wall = item.document ?? item, coords = wall.c;
+    if (!Array.isArray(coords) || !Number(wall.light) || item.isOpen || Number(wall.door)>0 && Number(wall.ds)===(globalThis.CONST?.WALL_DOOR_STATES?.OPEN ?? 1)) return [];
+    const wallLevel = wall.level?.id ?? wall.level ?? wall.levelId;
+    if (level && wallLevel && wallLevel !== level) return [];
+    return [[{x:coords[0],y:coords[1]},{x:coords[2],y:coords[3]}]];
+  });
+  const occupied = [...(scene.tokens ?? [])].filter(token => {
+    const tokenLevel = token.level?.id ?? token.level ?? token.levelId;
+    return !level || !tokenLevel || tokenLevel === level;
+  }).map(token => rectangle(token.x,token.y,Math.max(.1,Number(token.width)||1)*gx,Math.max(.1,Number(token.height)||1)*gy));
+  const pointFor = (i,j) => grid?.getTopLeftPoint({i,j}) ?? {x:bounds.x+j*gx,y:bounds.y+i*gy};
+  const offsetFor = point => grid?.getOffset(point) ?? {i:Math.floor((point.y-bounds.y)/gy),j:Math.floor((point.x-bounds.x)/gx)};
+  const lightCollision = (a,b) => {
+    if (walls.some(([c,d]) => segmentsCross(a,b,c,d))) return true;
+    if (active) {
+      const backend = globalThis.CONFIG?.Canvas?.polygonBackends?.light;
+      if (backend?.testCollision?.({...a,elevation},{...b,elevation},{type:'light',mode:'any',...(level?{level}:{})})) return true;
+    }
+    return Boolean(level && scene.testSurfaceCollision?.({...a,elevation},{...b,elevation},{type:'light',mode:'any',level}));
+  };
+  return {scene,caster,gx,gy,distance,bounds,casterRect,origin,walls,occupied,pointFor,offsetFor,lightCollision};
+}
+
+export function canPlaceSummon(context, choice, position, radius, reserved = []) {
+  if (![position?.x,position?.y].every(Number.isFinite)) return false;
+  const {gx,gy,bounds,casterRect,origin,walls,occupied} = context;
+  const offset = context.offsetFor(position), snapped = context.pointFor(offset.i,offset.j);
+  if (Math.abs(snapped.x-position.x)>.1 || Math.abs(snapped.y-position.y)>.1) return false;
+  const footprint = rectangle(position.x,position.y,choice.width*gx,choice.height*gy);
+  if (footprint.x<bounds.x-.01 || footprint.y<bounds.y-.01 || footprint.right>bounds.right+.01 || footprint.bottom>bounds.bottom+.01) return false;
+  if (!insideRadius(footprint,casterRect,radius/context.distance*gx) || [...occupied,...reserved].some(other=>overlaps(footprint,other))) return false;
+  if (walls.some(([a,b])=>wallOccludesFootprint(origin,footprint,a,b))) return false;
+  const corners = rectCorners(footprint), center = {x:footprint.x+footprint.width/2,y:footprint.y+footprint.height/2};
+  return ![...corners,center].some(point=>context.lightCollision(origin,point));
+}
+
+export function legalSummonPositions(context, choice, radius, reserved = []) {
+  const pixels = radius/context.distance*context.gx, caster = context.casterRect, bounds = context.bounds;
+  const start = context.offsetFor({x:Math.max(bounds.x,caster.x-pixels),y:Math.max(bounds.y,caster.y-pixels)});
+  const end = context.offsetFor({x:Math.min(bounds.right,caster.right+pixels),y:Math.min(bounds.bottom,caster.bottom+pixels)});
+  if ((end.i-start.i+1)*(end.j-start.j+1)>25000) throw new Error('The summoning zone covers too many squares. Reduce its radius before casting. Nothing was spent.');
+  const positions = [];
+  for (let i=start.i;i<=end.i;i++) for (let j=start.j;j<=end.j;j++) {
+    const point = context.pointFor(i,j);
+    if (canPlaceSummon(context,choice,point,radius,reserved)) positions.push({x:point.x,y:point.y});
+  }
+  return positions;
+}
+
+function casterFor(actor, scene, id) {
+  const controlled = globalThis.canvas?.scene?.id===scene.id ? canvas.tokens?.controlled?.find(token=>token.actor?.id===actor.id)?.document : null;
+  const caster = id ? scene.tokens.get(id) : controlled ?? scene.tokens.find(token=>token.actorId===actor.id);
+  if (!caster || caster.actorId!==actor.id) throw new Error('Place the summoning character’s token on the battle map first.');
+  return caster;
+}
+export function describeSummoning(actor, action, sceneId = globalThis.canvas?.scene?.id, casterTokenId) {
+  const settings = configFor(actor,action), scene = game.scenes.get(sceneId);
+  if (!settings.enabled) return null;
+  if (!scene) throw new Error('Open the summoning character’s battle map first.');
+  const caster = casterFor(actor,scene,casterTokenId);
+  const choices = settings.choices.flatMap(entry => {
+    const source = sourceActor(entry.actorUuid);
+    if (!source) return [];
+    return [{...entry,name:source.name,img:source.img || 'icons/svg/mystery-man.svg',width:Math.max(.1,Number(source.prototypeToken?.width)||1),height:Math.max(.1,Number(source.prototypeToken?.height)||1)}];
+  });
+  if (!choices.length) throw new Error('This ability has no available summon Actors. Ask the GM to configure its summon list. Nothing was spent.');
+  return {sceneId:scene.id,casterTokenId:caster.id,radius:settings.radius,units:scene.grid?.units || scene._source?.grid?.units || 'scene units',choices};
+}
+
+export async function validateSummonPlan(actor, action, plan, user = game.user) {
+  if (!configFor(actor,action).enabled) return null;
+  if (!canUse(actor,user)) throw new Error('You do not own this summoning character.');
+  if (!plan) throw new Error('Choose a creature and its placement before using this ability. Nothing was spent.');
+  const description = describeSummoning(actor,action,plan.sceneId,plan.casterTokenId);
+  if (!user.isGM && user.viewedScene && user.viewedScene!==description.sceneId) throw new Error('You must be viewing the summoning scene.');
+  const choice = description.choices.find(entry=>entry.id===plan.choiceId);
+  if (!choice || !Array.isArray(plan.positions) || plan.positions.length!==choice.quantity) throw new Error('The summon selection changed. Select the creature again.');
+  const scene = game.scenes.get(description.sceneId), caster = casterFor(actor,scene,description.casterTokenId), context = placementContext(scene,caster), reserved = [];
+  for (const position of plan.positions) {
+    if (!canPlaceSummon(context,choice,position,description.radius,reserved)) throw failFit();
+    reserved.push(rectangle(position.x,position.y,choice.width*context.gx,choice.height*context.gy));
+  }
+  return {description,choice,source:sourceActor(choice.actorUuid),scene,caster,context};
+}
+
+export async function createAbilitySummons(actor, action, plan, user = game.user) {
+  if (!authority()) throw new Error('A connected GM must create summoned tokens.');
+  const key=plan?.sceneId,previous=sceneQueues.get(key)??Promise.resolve();
+  const work=previous.catch(()=>{}).then(()=>createSummons(actor,action,plan,user));
+  sceneQueues.set(key,work);
+  try{return await work;}finally{if(sceneQueues.get(key)===work)sceneQueues.delete(key);}
+}
+async function createSummons(actor, action, plan, user) {
+  const checked = await validateSummonPlan(actor,action,plan,user);
+  if (!checked) return null;
+  const {source,scene,caster} = checked, operationId = foundry.utils.randomID(), data = [];
+  for (const position of plan.positions) {
+    const token = await source.getTokenDocument({...position,elevation:Number(caster.elevation)||0,...(caster.level?{level:caster.level.id??caster.level}:{})});
+    const entry = token.toObject(); delete entry._id;
+    entry.x=position.x;entry.y=position.y;entry.actorId=source.id;
+    entry.flags={...entry.flags,[ID]:{...entry.flags?.[ID],abilitySummon:{operationId,casterId:actor.id,action,createdAt:Date.now()}}};
+    data.push(entry);
+  }
+  try {
+    // Recheck after document preparation: a creature may have moved meanwhile.
+    const fresh=await validateSummonPlan(actor,action,plan,user);
+    if(!fresh||JSON.stringify(fresh.choice)!==JSON.stringify(checked.choice))throw new Error('The summon Actor or its configuration changed. Select it again.');
+    const tokens = await scene.createEmbeddedDocuments('Token',data);
+    if (tokens.length!==data.length) throw new Error('Foundry could not create every summoned token.');
+    return {sceneId:scene.id,tokenIds:tokens.map(token=>token.id),operationId};
+  } catch (error) {
+    const ids=[...scene.tokens].filter(token=>token.getFlag(ID,'abilitySummon')?.operationId===operationId).map(token=>token.id);
+    if(ids.length) await scene.deleteEmbeddedDocuments('Token',ids);
+    throw error;
+  }
+}
+
+function askGM(type, data, timeout = 15000) {
+  if (!game.users.some(user=>user.isGM&&user.active)) throw new Error('A GM must be connected to use a summoning ability.');
+  const requestId=foundry.utils.randomID();
+  return new Promise((resolve,reject)=>{
+    const timer=setTimeout(()=>{pending.delete(requestId);reject(new Error('The summon request timed out. Nothing was spent.'));},timeout);
+    const responder = type === 'abilitySummonReposition' ? data.targetUserId : game.users.find(user=>user.isGM&&user.active)?.id;
+    pending.set(requestId,{resolve,reject,timer,responder});
+    game.socket.emit(SOCKET,{type,requestId,sourceUserId:game.user.id,...data});
+  });
+}
+
+export async function prepareAbilitySummon(actor, action, {description = null, choiceId = null} = {}) {
+  if (!configFor(actor,action).enabled) return null;
+  if (!game.user.isGM&&!actor.isOwner) throw new Error('You do not own this character.');
+  const key=`${actor.id}:${action}`;
+  if (planning.has(key) || picker) { ui.notifications.warn('Finish or cancel the current summon placement first.'); return false; }
+  planning.add(key);
+  try {
+    const sceneId=globalThis.canvas?.scene?.id;
+    if(!sceneId)throw new Error('Open the battle map first.');
+    const casterTokenId=canvas.tokens?.controlled?.find(token=>token.actor?.id===actor.id)?.id;
+    description ??= authority() ? describeSummoning(actor,action,sceneId,casterTokenId) : await askGM('abilitySummonDescribe',{actorId:actor.id,action,sceneId,casterTokenId});
+    if(!description)return null;
+    if(description.sceneId!==canvas.scene.id)throw new Error('Open the summoning scene before choosing its squares.');
+    const scene=canvas.scene,context=placementContext(scene,casterFor(actor,scene,description.casterTokenId));
+    const choices=description.choices.map(choice=>({...choice,fits:legalSummonPositions(context,choice,description.radius).length>0}));
+    if(!choices.some(choice=>choice.fits)){ui.notifications.warn('Cannot Fit: no summon can fit in the zone. Nothing was spent; you can continue.');return false;}
+    if(!choiceId){
+      choiceId=await foundry.applications.api.DialogV2.wait({window:{title:`${actor.name} — Summon creature`},classes:['tsru-summon-dialog'],rejectClose:false,
+        content:`<p>Choose a creature, then choose ${description.units==='ft'?'its squares on the map':'where to summon it'}. Range: ${description.radius} ${esc(description.units)}.</p><div class="tsru-summon-choices">${choices.map((choice,index)=>`<label class="${choice.fits?'':'cannot-fit'}"><input type="radio" name="summonChoice" value="${esc(choice.id)}" ${choice.id===choices.find(c=>c.fits)?.id?'checked':''} ${choice.fits?'':'disabled'}><img src="${esc(choice.img)}" alt=""><span><strong>${esc(choice.name)}</strong><small>${choice.width} × ${choice.height} squares · ${choice.quantity} creature${choice.quantity===1?'':'s'}${choice.fits?'':' · Cannot Fit'}</small></span></label>`).join('')}</div>`,
+        buttons:[{action:'place',label:'Choose squares',default:true,callback:(_event,_button,dialog)=>dialog.element.querySelector('[name="summonChoice"]:checked')?.value??null},{action:'cancel',label:'Cancel',callback:()=>null}]});
+    }
+    const choice=choices.find(entry=>entry.id===choiceId);
+    if(!choice||!choice.fits)return false;
+    const positions=await chooseSquares(context,choice,description);
+    return positions ? {sceneId:description.sceneId,casterTokenId:description.casterTokenId,choiceId:choice.id,positions} : false;
+  } finally { planning.delete(key); }
+}
+
+function chooseSquares(context,choice,description) {
+  return new Promise(resolve=>{
+    const graphics=new PIXI.Graphics(),preview=new PIXI.Graphics(),positions=[],reserved=[];
+    graphics.zIndex=1000000;preview.zIndex=1000001;
+    const bar=document.createElement('div');bar.className='tsru-summon-placement';
+    bar.innerHTML='<strong></strong><span role="status"></span><button type="button" data-undo>Undo</button><button type="button" data-cancel>Cancel</button>';
+    document.body.append(bar);canvas.stage.addChild(graphics);canvas.stage.addChild(preview);
+    graphics.eventMode='static';preview.eventMode='none';graphics.hitArea=new PIXI.Rectangle(context.bounds.x,context.bounds.y,context.bounds.width,context.bounds.height);
+    let done=false,legal=[];
+    let timer;
+    const view=canvas.app?.canvas??canvas.app?.view;
+    const finish=value=>{if(done)return;done=true;clearTimeout(timer);graphics.destroy();preview.destroy();bar.remove();document.removeEventListener('keydown',onKey,true);view?.removeEventListener('contextmenu',onCancel,true);picker=null;resolve(value);};
+    const onCancel=event=>{event?.preventDefault?.();event?.stopPropagation?.();finish(null);};
+    const onKey=event=>{if(event.key==='Escape')onCancel(event);};
+    const paint=()=>{
+      context.occupied=placementContext(context.scene,context.caster).occupied;
+      legal=legalSummonPositions(context,choice,description.radius,reserved);
+      graphics.clear();
+      for(const p of legal)graphics.rect(p.x+1,p.y+1,context.gx-2,context.gy-2).fill({color:0x51d8e8,alpha:.25}).stroke({color:0x8af1ff,width:1,alpha:.7});
+      for(const p of positions)graphics.rect(p.x,p.y,choice.width*context.gx,choice.height*context.gy).fill({color:0x82ef9c,alpha:.3}).stroke({color:0xafffc2,width:2});
+      bar.querySelector('strong').textContent=`${choice.name}: choose placement ${positions.length+1} of ${choice.quantity}`;
+      bar.querySelector('[role="status"]').textContent=legal.length?`Range ${description.radius} ${description.units} · Esc or right-click cancels`:'Cannot Fit — undo a placement or cancel. Nothing was spent.';
+      bar.querySelector('[data-undo]').disabled=!positions.length;
+    };
+    const pointAt=event=>{const point=canvas.stage.toLocal(event.global),offset=context.offsetFor(point);return context.pointFor(offset.i,offset.j);};
+    graphics.on('pointermove',event=>{
+      const point=pointAt(event),valid=canPlaceSummon(context,choice,point,description.radius,reserved);
+      preview.clear().rect(point.x,point.y,choice.width*context.gx,choice.height*context.gy).fill({color:valid?0x64f0aa:0xff485e,alpha:.3}).stroke({color:valid?0x9affc6:0xff8591,width:2});
+      if(!valid)bar.querySelector('[role="status"]').textContent='Cannot Fit';
+      else bar.querySelector('[role="status"]').textContent=`Range ${description.radius} ${description.units}`;
+    });
+    graphics.on('pointertap',event=>{
+      event.stopPropagation();if(event.button===2)return onCancel(event);
+      const point=pointAt(event);
+      if(!canPlaceSummon(context,choice,point,description.radius,reserved)){bar.querySelector('[role="status"]').textContent='Cannot Fit';return;}
+      positions.push({x:point.x,y:point.y});reserved.push(rectangle(point.x,point.y,choice.width*context.gx,choice.height*context.gy));
+      if(positions.length===choice.quantity)return finish(positions);
+      paint();
+    });
+    graphics.on('rightclick',onCancel);bar.querySelector('[data-cancel]').addEventListener('click',onCancel);
+    bar.querySelector('[data-undo]').addEventListener('click',()=>{positions.pop();reserved.pop();paint();});
+    document.addEventListener('keydown',onKey,true);view?.addEventListener('contextmenu',onCancel,true);
+    timer=setTimeout(()=>finish(null),180000);picker={cancel:()=>finish(null)};
+    try{paint();}catch(error){ui.notifications.error(error.message);finish(null);}
+  });
+}
+
+export async function ensureQueuedSummonPlan(actor, action, plan, requester) {
+  try { await validateSummonPlan(actor,action,plan,requester); return plan; }
+  catch(error) {
+    if(!String(error.message).startsWith('Cannot Fit'))throw error;
+    const description=describeSummoning(actor,action,plan.sceneId,plan.casterTokenId),choice=description.choices.find(entry=>entry.id===plan.choiceId);
+    const scene=game.scenes.get(plan.sceneId),context=placementContext(scene,casterFor(actor,scene,plan.casterTokenId));
+    if(!choice||!legalSummonPositions(context,choice,description.radius).length)throw error;
+    const owner=requester?.active?requester:game.user;
+    const revised=owner.id===game.user.id ? await prepareAbilitySummon(actor,action,{description,choiceId:choice.id}) : await askGM('abilitySummonReposition',{targetUserId:owner.id,actorId:actor.id,action,description,choiceId:choice.id},180000);
+    if(!revised)throw new Error('Summoning cancelled.');
+    await validateSummonPlan(actor,action,revised,requester);return revised;
+  }
+}
+
+export async function handleSummoningSocket(payload) {
+  if(!payload?.type?.startsWith('abilitySummon'))return false;
+  if(payload.type==='abilitySummonResponse'&&payload.targetUserId===game.user.id){
+    const request=pending.get(payload.requestId);if(request&&request.responder===payload.sourceUserId){clearTimeout(request.timer);pending.delete(payload.requestId);payload.error?request.reject(new Error(payload.error)):request.resolve(payload.value);}return true;
+  }
+  if(payload.type==='abilitySummonDescribe'&&authority()){
+    let value,error;try{const actor=game.actors.get(payload.actorId),user=game.users.get(payload.sourceUserId);if(!canUse(actor,user))throw new Error('You do not own this character.');if(!['skill','ultimate'].includes(payload.action))throw new Error('Unknown summoning ability.');value=describeSummoning(actor,payload.action,payload.sceneId,payload.casterTokenId);}catch(cause){error=cause.message;}
+    game.socket.emit(SOCKET,{type:'abilitySummonResponse',requestId:payload.requestId,targetUserId:payload.sourceUserId,sourceUserId:game.user.id,value,error});return true;
+  }
+  if(payload.type==='abilitySummonReposition'&&payload.targetUserId===game.user.id&&game.users.get(payload.sourceUserId)?.isGM){
+    let value,error;try{value=await prepareAbilitySummon(game.actors.get(payload.actorId),payload.action,{description:payload.description,choiceId:payload.choiceId});}catch(cause){error=cause.message;}
+    game.socket.emit(SOCKET,{type:'abilitySummonResponse',requestId:payload.requestId,targetUserId:payload.sourceUserId,sourceUserId:game.user.id,value,error});return true;
+  }
+  return true;
+}
+
+export function installSummoningHooks() {
+  if(installed)return;installed=true;
+  Hooks.on('canvasTearDown',()=>picker?.cancel());
+  Hooks.on('createToken',token=>{if(token.getFlag(ID,'abilitySummon')&&token.parent?.id===canvas.scene?.id)void playSummonAnimation(token);});
+}
+export async function playSummonAnimation(token) {
+  let mesh,graphics,alpha;
+  try {
+    for(let i=0;i<20&&!token.object?.mesh;i++)await new Promise(resolve=>setTimeout(resolve,25));
+    mesh=token.object?.mesh;if(!mesh||!canvas.stage)return;
+    const grid=Number(canvas.scene.grid?.size)||Number(canvas.dimensions?.size)||100;
+    const x=token.x+token.width*grid/2,y=token.y+token.height*grid/2,radius=Math.max(token.width,token.height)*grid*.55;
+    graphics=new PIXI.Graphics();graphics.zIndex=1000002;graphics.eventMode='none';canvas.stage.addChild(graphics);
+    alpha=mesh.alpha;const start=performance.now();mesh.alpha=0;
+    await new Promise((resolve,reject)=>{const tick=now=>{try{if(graphics.destroyed||mesh.destroyed)return resolve();const progress=Math.min(1,(now-start)/650);mesh.alpha=alpha*progress;graphics.clear().circle(x,y,radius*(.35+.65*progress)).stroke({color:0x80efff,width:4*(1-progress)+1,alpha:1-progress});if(progress<1)requestAnimationFrame(tick);else resolve();}catch(error){reject(error);}};requestAnimationFrame(tick);});
+  } catch(error) {console.warn(`${ID} | Summon animation`,error);}
+  finally {if(mesh&&!mesh.destroyed&&alpha!==undefined)mesh.alpha=alpha;if(graphics&&!graphics.destroyed)graphics.destroy();}
+}

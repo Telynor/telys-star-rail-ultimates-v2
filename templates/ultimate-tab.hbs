@@ -69,9 +69,44 @@
       <h3><i class="fas fa-hand-sparkles"></i> Skill</h3>
       <div class="tsru-field tsru-field-toggle"><span class="tsru-field-label"><strong>Enable Skill button</strong><small>Shows this character's movable Skill button to its owner and the GM.</small></span><input type="checkbox" name="skillEnabled" {{checked config.skillEnabled}}></div>
       <div class="tsru-field tsru-field-wide"><label><strong>Skill Text</strong><small>Posted to chat when the Skill button spends its configured shared Skill Point cost. This is descriptive text, not JavaScript.</small></label><textarea name="skillText" rows="7" placeholder="Describe this character's Skill.">{{config.skillText}}</textarea></div>
-      <div class="tsru-field"><label><strong>Skill Point Cost</strong><small>Shared Skill Points consumed when this Skill is used. Set to 0 for a free Skill.</small></label><input type="number" name="skillPointCost" min="0" step="1" value="{{config.skillPointCost}}"></div>
+      <div data-settings-group data-setting-keywords="skill point cost sp price spend resource free custom">
+        <div class="tsru-field"><label><strong>Skill point cost:</strong><small>Automatically deducted from the shared SP bar when the Skill is cast.</small></label><select data-skill-cost-preset aria-label="Skill point cost"><option value="0">0</option><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="custom">Custom</option></select></div>
+        <div class="tsru-field" data-skill-custom-cost hidden><label><strong>Custom Skill Point cost</strong><small>A whole number; 0 makes the Skill free.</small></label><input type="number" name="skillPointCost" min="0" step="1" value="{{config.skillPointCost}}"></div>
+      </div>
+      <div data-settings-group data-setting-keywords="hp health life requirement sacrifice blood cost percent half ten dice roll flat constant damage">
+        <div class="tsru-field tsru-field-toggle"><span class="tsru-field-label"><strong>Has HP requirement?</strong><small>Pay HP as well as any SP cost. Percentages and rolls round down.</small></span><input type="checkbox" name="skillHpCostEnabled" {{checked config.skillHpCostEnabled}}></div>
+        <div data-skill-hp-settings data-settings-group hidden>
+          <div class="tsru-field"><label><strong>HP requirement</strong></label><select name="skillHpCostType"><option value="half">Half HP (50%)</option><option value="ten">10% HP</option><option value="flat">Custom constant</option><option value="roll">Custom roll (xDy)</option></select></div>
+          <div class="tsru-field" data-hp-mode="half ten"><label><strong>Percentage of</strong></label><select name="skillHpCostBasis"><option value="current">Current HP</option><option value="max">Maximum HP</option></select></div>
+          <div class="tsru-field" data-hp-mode="flat" hidden><label><strong>Constant HP cost</strong><small>A flat amount of HP to pay.</small></label><input type="number" name="skillHpCostFlat" min="0" step="1" value="{{config.skillHpCostFlat}}"></div>
+          <div class="tsru-field" data-hp-mode="roll" hidden><label><strong>HP cost roll</strong><small>Number of dice, d, then die size. Rolled once when casting.</small></label><input type="text" name="skillHpCostRoll" value="{{config.skillHpCostRoll}}" placeholder="2d6" spellcheck="false"><small data-hp-roll-error role="status"></small></div>
+          <p class="tsru-ability-cost-help">You must have enough HP to pay the cost. Temporary HP is not spent. A cancelled or blocked summon spends neither HP nor SP.</p>
+        </div>
+      </div>
+      <div data-ability-summons="skill" data-settings-group data-setting-keywords="summon summons summoning creature actor pet minion familiar spawn radius range zone size placement">
+        <div class="tsru-field tsru-field-toggle"><span class="tsru-field-label"><strong>Summons creature?</strong><small>Choose a linked Actor and its placement when this Skill is used. Also applies in Enhanced Form.</small></span><input type="checkbox" data-summons-enabled aria-label="Skill summons creature"></div>
+        <div data-summons-fields data-settings-group hidden>
+          <div class="tsru-field"><label><strong>Summoning radius</strong><small>In scene distance units, measured from the caster’s token. The full summoned token must fit inside the zone without crossing lighting barriers.</small></label><input type="number" min="0" max="1000" step="0.5" value="30" data-summons-radius aria-label="Skill summoning radius"></div>
+          <div class="tsru-field tsru-field-wide"><label><strong>Summonable creatures</strong><small>Drag Actors here from the Actors directory. Reorder the list by dragging rows. Count places multiple copies of the selected creature.</small></label><ol class="tsru-summon-actor-list" data-summons-list aria-label="Skill summonable creatures"></ol></div>
+          <div class="tsru-field"><label><strong>Add existing Actor</strong></label><select data-summons-actor aria-label="Add skill summon Actor"></select></div>
+          <p class="tsru-ability-cost-help">Casting opens this creature menu, then highlights valid squares. If no creature can fit, the action is cancelled and its resources remain available.</p>
+        </div>
+      </div>
       <div class="tsru-field tsru-field-wide"><label><strong>Skill button artwork</strong><small>Displayed inside this character's free-floating circular Skill button. Defaults to the actor portrait.</small></label><div class="tsru-file-control"><input type="text" name="skillButtonImage" value="{{config.skillButtonImage}}" placeholder="Use actor portrait"><button type="button" class="file-picker" data-type="image" data-target="skillButtonImage" title="Browse Files"><i class="fas fa-file-import"></i></button></div></div>
-      <div class="tsru-field tsru-field-wide"><label><strong>Floating Skill button</strong><small>The party must have at least 1 shared Skill Point before it can be pressed.</small></label><button type="button" data-action="show-skill-button"><i class="fas fa-hand-sparkles"></i> Show Skill Button</button></div>
+      <div class="tsru-field tsru-field-wide"><label><strong>Floating Skill button</strong><small>The party must have enough shared SP for this Skill’s configured cost.</small></label><button type="button" data-action="show-skill-button"><i class="fas fa-hand-sparkles"></i> Show Skill Button</button></div>
+    </div>
+
+    <div class="tsru-config-section" data-settings-page="ultimates">
+      <h3><i class="fas fa-dragon"></i> Ultimate Summoning</h3>
+      <div data-ability-summons="ultimate" data-settings-group data-setting-keywords="summon summons summoning creature actor pet minion familiar spawn radius range zone size placement">
+        <div class="tsru-field tsru-field-toggle"><span class="tsru-field-label"><strong>Summons creature?</strong><small>Choose a linked Actor and its placement when this Ultimate is used. Also applies in Enhanced Form.</small></span><input type="checkbox" data-summons-enabled aria-label="Ultimate summons creature"></div>
+        <div data-summons-fields data-settings-group hidden>
+          <div class="tsru-field"><label><strong>Summoning radius</strong><small>In scene distance units, measured from the caster’s token. The full summoned token must fit inside the zone without crossing lighting barriers.</small></label><input type="number" min="0" max="1000" step="0.5" value="30" data-summons-radius aria-label="Ultimate summoning radius"></div>
+          <div class="tsru-field tsru-field-wide"><label><strong>Summonable creatures</strong><small>Drag Actors here from the Actors directory. Reorder the list by dragging rows. Count places multiple copies of the selected creature.</small></label><ol class="tsru-summon-actor-list" data-summons-list aria-label="Ultimate summonable creatures"></ol></div>
+          <div class="tsru-field"><label><strong>Add existing Actor</strong></label><select data-summons-actor aria-label="Add ultimate summon Actor"></select></div>
+          <p class="tsru-ability-cost-help">Casting opens this creature menu, then highlights valid squares. If no creature can fit, the action is cancelled and its resources remain available.</p>
+        </div>
+      </div>
     </div>
 
     <div class="tsru-config-section tsru-technique-config-section">

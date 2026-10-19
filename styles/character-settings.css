@@ -50,3 +50,31 @@
 .tsru-enhanced-orb-actions{display:grid;gap:8px}
 .tsru-enhanced-orb-actions p{margin:0;line-height:1.45}
 @media(max-width:520px){.tsru-settings-menus{grid-template-columns:repeat(2,minmax(0,1fr))}.tsru-settings-toolbar{position:static}}
+
+/* Actor-backed ability summons and costs. */
+.tsru-summon-actor-list{list-style:none;margin:0;padding:8px;min-height:72px;border:1px dashed #77949e80;border-radius:6px;background:#101c232b}
+.tsru-summon-actor-list.is-dragover{border-color:#71e7ee;background:#71e7ee20}
+.tsru-summon-actor-list li[data-summon-row]{display:flex;align-items:center;gap:7px;padding:7px 3px;border-bottom:1px solid #78899440;min-width:0}
+.tsru-summon-actor-list li:last-child{border-bottom:0}
+.tsru-summon-grip{cursor:grab;font-size:22px;opacity:.65}
+.tsru-summon-actor-list img{width:36px;height:36px;object-fit:cover;border:0;border-radius:4px;flex:none}
+.tsru-summon-actor-list .tsru-summon-name{flex:1;min-width:0;text-align:left;display:block;border:0;background:transparent;white-space:normal;overflow-wrap:anywhere;line-height:1.25}
+.tsru-summon-name small{display:block;opacity:.6;font-size:10px;margin-top:3px}
+.tsru-summon-actor-list label{font-size:11px;display:grid;gap:3px;flex:none}
+.tsru-summon-actor-list input{width:48px!important;min-width:0!important}
+.tsru-summon-actor-list button:not(.tsru-summon-name){width:26px;flex:none;padding:0;min-height:27px}
+.tsru-summon-empty{text-align:center;padding:17px 8px;opacity:.65;font-size:12px}
+.tsru-ability-cost-help{font-size:12px;line-height:1.5;opacity:.75;padding:0 6px}
+[data-hp-roll-error]:not(:empty){color:#d94b62;grid-column:1/-1;display:block}
+.tsru-summon-choices{display:grid;gap:8px;max-height:55vh;overflow-y:auto;margin:14px 0}
+.tsru-summon-choices label{display:flex;align-items:center;gap:12px;border:1px solid #829ba34d;border-radius:7px;padding:10px;cursor:pointer}
+.tsru-summon-choices label:has(input:checked){border-color:#69dce7;background:#69dce71a}
+.tsru-summon-choices label.cannot-fit{opacity:.45;cursor:not-allowed}
+.tsru-summon-choices img{height:52px;width:52px;object-fit:cover;border:0;border-radius:5px}
+.tsru-summon-choices span{display:grid;gap:4px;min-width:0}
+.tsru-summon-choices small{opacity:.7}
+.tsru-summon-placement{position:fixed;z-index:10000;bottom:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:12px;flex-wrap:wrap;max-width:calc(100vw - 32px);width:max-content;padding:12px 16px;border:1px solid #70dce7;border-radius:8px;background:#111d29f5;color:#eefcff;box-shadow:0 6px 24px #0009;font:13px/1.4 sans-serif}
+.tsru-summon-placement strong{flex-basis:100%}
+.tsru-summon-placement [role=status]{flex:1;min-width:180px;color:#bddde5}
+.tsru-summon-placement button{background:#263e50;color:inherit;border:1px solid #72a5b280;border-radius:4px;flex:none;width:auto;padding:5px 12px}
+.tsru-summon-placement button:disabled{opacity:.4}

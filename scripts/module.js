@@ -1,3 +1,5 @@
+import * as summoning from './ability-summons.mjs';
+import {bindAbilitySummonSettings} from './ability-summon-settings.mjs';
 import {organizeCharacterSettings} from './character-settings.mjs';
 import {installLightCones,lightConeSkillCapacity,handle as handleLightConeEvent} from './light-cones.mjs';
 import {showCombatStats} from './combat-stats.mjs';
@@ -71,6 +73,13 @@ const DEFAULT_CONFIG = Object.freeze({
   skillScript: "",
   skillText: "",
   skillPointCost: 1,
+  skillHpCostEnabled: false,
+  skillHpCostType: "half",
+  skillHpCostBasis: "current",
+  skillHpCostFlat: 0,
+  skillHpCostRoll: "1d6",
+  skillSummons: {enabled:false,radius:30,choices:[]},
+  ultimateSummons: {enabled:false,radius:30,choices:[]},
   skillButtonImage: "",
   techniqueEnabled: false,
   techniqueText: "",
@@ -204,6 +213,10 @@ const state = {
   runningUltimates: new Set(),
   pendingUltimates: new Map(),
   ultimateQueues: new Map(),
+  ultimateSummonReceipts: new Map(),
+  ultimateRefunds: new Map(),
+  abilityPlanning: new Set(),
+  actionErrors: new Map(),
   splashBroadcasts: new Map(),
   receivedSplashIds: new Set(),
   splashPlaybackPromises: new Map(),
@@ -2136,15 +2149,15 @@ function currentSkillPoints() {
   return clamp(Math.floor(Number(game.settings.get(MODULE_ID, "skillPoints"))), 0, getSkillPointConfig().maximum);
 }
 
-async function setSkillPoints(value, {broadcast = true} = {}) {
+async function setSkillPoints(value, {broadcast = true, emitEvents = true} = {}) {
   if (!isAuthority()) return currentSkillPoints();
   const before = currentSkillPoints();
   const next = clamp(Math.floor(Number(value)), 0, getSkillPointConfig().maximum);
   await game.settings.set(MODULE_ID, "skillPoints", next);
-  void handleLightConeEvent("skillPointsChanged", {before, after:next}, `sp:${Date.now()}`);
+  if (emitEvents) void handleLightConeEvent("skillPointsChanged", {before, after:next}, `sp:${Date.now()}`);
   if (broadcast) game.socket.emit(SOCKET, {type: "skillPointsChanged", value: next, sourceUserId: game.user.id});
   refreshSkillUI();
-  Hooks.callAll("tsruSkillPointsChanged", next);
+  if (emitEvents) Hooks.callAll("tsruSkillPointsChanged", next);
   return next;
 }
 
@@ -4246,15 +4259,24 @@ async function requestUltimate(actor) {
   if (!charge.ready) { ui.notifications.warn(ultimateReadinessMessage(actor, config, charge)); return false; }
   await reconcileUltimateLock(actor.id);
   if (state.ultimateLocks.has(actor.id)) { ui.notifications.warn("This Ultimate is already queued or resolving."); return false; }
+  if (state.abilityPlanning.has(actor.id)) { ui.notifications.warn("Finish or cancel this character's current summon placement first."); return false; }
+  const expectedEnhanced = enhancedFormActive(actor);
+  let summonPlan = null;
+  if (config.ultimateSummons?.enabled) {
+    state.abilityPlanning.add(actor.id);
+    try { summonPlan = await summoning.prepareAbilitySummon(actor, "ultimate"); if (!summonPlan) return false; }
+    catch (error) { ui.notifications.error(error.message); return false; }
+    finally { state.abilityPlanning.delete(actor.id); }
+  }
   if (game.user.isGM && isAuthority()) {
-    const accepted = await executeUltimate(actor.id, game.user.id, enhancedFormActive(actor));
+    const accepted = await executeUltimate(actor.id, game.user.id, expectedEnhanced, summonPlan);
     if (accepted && state.ultimateQueues.get(game.combat?.id)?.waitTurnId) ui.notifications.info("Ultimate queued. It will begin when the current Main Party turn ends.");
     return accepted;
   }
   const gm = activeGM();
   if (!gm) { ui.notifications.error("A GM must be connected to activate an Ultimate."); return false; }
   const requestId = foundry.utils.randomID();
-  game.socket.emit(SOCKET, {type: "activateUltimate", requestId, actorId: actor.id, requestingUserId: game.user.id, enhanced:enhancedFormActive(actor)});
+  game.socket.emit(SOCKET, {type: "activateUltimate", requestId, actorId: actor.id, requestingUserId: game.user.id, enhanced:expectedEnhanced, summonPlan});
   return true;
 }
 
@@ -4420,12 +4442,22 @@ async function requestSkill(actor) {
   const cost = Math.max(0, Math.floor(Number(config.skillPointCost) || 0));
   if (currentSkillPoints() < cost) return ui.notifications.warn(`This Skill requires ${cost} Skill Points.`);
   if (state.skillLocks.has(actor.id)) return ui.notifications.warn("This Skill is already resolving.");
-  if (game.user.isGM && isAuthority()) return executeSkill(actor.id, game.user.id,enhancedFormActive(actor));
+  if (state.abilityPlanning.has(actor.id)) return ui.notifications.warn("Finish or cancel this character's current summon placement first.");
+  const expectedEnhanced = enhancedFormActive(actor);
+  let summonPlan = null;
+  if (config.skillSummons?.enabled) {
+    state.abilityPlanning.add(actor.id);
+    try { summonPlan = await summoning.prepareAbilitySummon(actor, "skill"); if (!summonPlan) return false; }
+    catch (error) { ui.notifications.error(error.message); return false; }
+    finally { state.abilityPlanning.delete(actor.id); }
+  }
+  if (game.user.isGM && isAuthority()) return executeSkill(actor.id, game.user.id,expectedEnhanced,summonPlan);
   const gm = activeGM();
   if (!gm) return ui.notifications.error("A GM must be connected to spend a shared Skill Point.");
   const requestId = foundry.utils.randomID();
   ui.notifications.info(`${actor.name}'s Skill request was sent to the GM.`);
-  game.socket.emit(SOCKET, {type: "activateSkill", requestId, actorId: actor.id, requestingUserId: game.user.id,enhanced:enhancedFormActive(actor)});
+  game.socket.emit(SOCKET, {type: "activateSkill", requestId, actorId: actor.id, requestingUserId: game.user.id,enhanced:expectedEnhanced,summonPlan});
+  return true;
 }
 
 async function completeSkill(actorId) {
@@ -4438,24 +4470,51 @@ async function completeSkill(actorId) {
   refreshSkillUI();
 }
 
-async function executeSkill(actorId, requestingUserId, expectedEnhanced=undefined) {
+function reportAbilityFailure(action, actorId, requestingUserId, message, remote = false) {
+  state.actionErrors.set(`${action}:${actorId}`, message);
+  ui.notifications.error(message);
+  if (remote && requestingUserId !== game.user.id) game.socket.emit(SOCKET, {type:"playerActionResult",targetUserId:requestingUserId,accepted:false,action,message});
+}
+
+async function removeAbilitySummons(receipt) {
+  if (!receipt?.tokenIds?.length) return;
+  const scene = game.scenes.get(receipt.sceneId);
+  const ids = receipt.tokenIds.filter(id => scene?.tokens.get(id)?.getFlag(MODULE_ID,"abilitySummon")?.operationId === receipt.operationId);
+  if (ids.length) await scene.deleteEmbeddedDocuments("Token", ids);
+}
+
+async function executeSkill(actorId, requestingUserId, expectedEnhanced=undefined, summonPlan=null) {
+  state.actionErrors.delete(`Skill:${actorId}`);
   if (!isAuthority() || state.skillLocks.has(actorId) || state.skillSpendLock) return false;
-  const actor = game.actors.get(actorId);
-  const requester = game.users.get(requestingUserId);
-  if (!actor || actor.type !== "character" || (!requester?.isGM && !actor.testUserPermission(requester, "OWNER"))) return false;
+  const actor = game.actors.get(actorId), requester = game.users.get(requestingUserId);
+  if (!actor || actor.type !== "character" || !requester || (!requester.isGM && !actor.testUserPermission(requester, "OWNER"))) return false;
   if(expectedEnhanced!==undefined&&Boolean(expectedEnhanced)!==enhancedFormActive(actor))return false;
   const config = getConfig(actor);
   if (!stanceActionAllowed(actor,"skill"))return false;
   if (!config.skillEnabled) { ui.notifications.warn(`${actor.name}'s Skill button is disabled.`); return false; }
   const cost = Math.max(0, Math.floor(Number(config.skillPointCost) || 0));
   if (currentSkillPoints() < cost) { ui.notifications.warn(`This Skill requires ${cost} Skill Points.`); return false; }
-
   state.skillSpendLock = true;
   state.skillLocks.add(actorId);
   game.socket.emit(SOCKET, {type: "skillState", actorId, locked: true});
+  let paidSp=0,paidHp=0,spawned=null,committed=false;
   try {
-    await setSkillPoints(currentSkillPoints() - cost);
-    await dispatchTalentEvent("skillUsed", {sourceActor: actor, requestingUserId}, `${actor.id}:${Date.now()}`);
+    if (config.skillSummons?.enabled) await summoning.validateSummonPlan(actor,"skill",summonPlan,requester);
+    const hp = config.skillHpCostEnabled ? await summoning.evaluateSkillHpCost(actor,config) : {cost:0};
+    if (config.skillSummons?.enabled) spawned = await summoning.createAbilitySummons(actor,"skill",summonPlan,requester);
+    if (expectedEnhanced!==undefined&&Boolean(expectedEnhanced)!==enhancedFormActive(actor)) throw new Error("The character changed stance. Use the current form instead. Nothing was spent.");
+    if (currentSkillPoints()<cost || Number(actor.system?.attributes?.hp?.value??0)<hp.cost) throw new Error("The character no longer has enough SP or HP. Nothing was spent.");
+    const beforeSp=currentSkillPoints();
+    if(cost){await setSkillPoints(beforeSp-cost,{emitEvents:false});paidSp=cost;}
+    if(hp.cost){
+      const before=Number(actor.system.attributes.hp.value);
+      await actor.update({"system.attributes.hp.value":before-hp.cost});
+      if(Number(actor.system.attributes.hp.value)!==before-hp.cost)throw new Error("The HP payment was blocked. Nothing was spent.");
+      paidHp=hp.cost;
+    }
+    committed=true;
+    if(cost){void handleLightConeEvent("skillPointsChanged",{before:beforeSp,after:beforeSp-cost},`sp:${Date.now()}`);Hooks.callAll("tsruSkillPointsChanged",currentSkillPoints());}
+    await dispatchTalentEvent("skillUsed", {sourceActor: actor, requestingUserId, hpCost:paidHp}, `${actor.id}:${Date.now()}`);
     const pending = {actorId, requestingUserId, timer: window.setTimeout(() => completeSkill(actorId), 120000)};
     state.pendingSkills.set(actorId, pending);
     if (requestingUserId === game.user.id) {
@@ -4465,10 +4524,61 @@ async function executeSkill(actorId, requestingUserId, expectedEnhanced=undefine
     return true;
   } catch (error) {
     console.error(`${MODULE_ID} | Skill failed`, error);
-    ui.notifications.error(`Skill failed: ${error.message}`);
+    if(!committed){
+      const restores=[()=>removeAbilitySummons(spawned),()=>paidSp&&setSkillPoints(currentSkillPoints()+paidSp,{emitEvents:false}),()=>paidHp&&actor.update({"system.attributes.hp.value":Math.min(Number(actor.system.attributes.hp.max)||Infinity,Number(actor.system.attributes.hp.value)+paidHp)})];
+      for(const restore of restores)try{await restore();}catch(refundError){console.error(`${MODULE_ID} | Skill refund failed`,refundError);reportAbilityFailure("Skill",actorId,requestingUserId,`Could not restore the Skill's resources: ${refundError.message}`);}
+    }
+    reportAbilityFailure("Skill",actorId,requestingUserId,`Skill failed: ${error.message}${!committed?" The Skill was cancelled; you can continue.":""}`);
     await completeSkill(actorId);
     return false;
   } finally { state.skillSpendLock = false; }
+}
+
+function ultimateSummonReceipt(actor, config, requestingUserId) {
+  const form=alternateUltimateForm(config),prefix=form==="enhanced"?"enhancedAlternateOrb":"alternateOrb";
+  return {id:foundry.utils.randomID(),actorId:actor.id,requestingUserId,enhanced:enhancedFormActive(actor),alternate:usesAlternateUltimate(config),form,prefix,
+    current:config.current,states:foundry.utils.deepClone(actor.getFlag(MODULE_ID,`${prefix}States`)??{}),counter:Number(actor.getFlag(MODULE_ID,`${prefix}Counter`))||0,
+    lockId:config.energyLockCombatId,lockRound:config.energyLockRound,combatId:game.combat?.id,paid:false,committed:false};
+}
+
+async function refundSummoningUltimate(actorId) {
+  const receipt=state.ultimateSummonReceipts.get(actorId),actor=game.actors.get(actorId);
+  if(!receipt||receipt.committed)return false;
+  let cleanupError;
+  try{await removeAbilitySummons(receipt.spawned);receipt.spawned=null;}catch(error){cleanupError=error;}
+  if(actor&&receipt.paid){
+    if(receipt.alternate){
+      const updates=Object.fromEntries(Object.entries(receipt.states).map(([id,value])=>[`flags.${MODULE_ID}.${receipt.prefix}States.${id}`,value]));
+      updates[`flags.${MODULE_ID}.${receipt.prefix}Counter`]=receipt.counter;
+      await actor.update(updates);
+    } else {
+      const config=getConfig(actor),current=clamp(config.current+receipt.current,0,config.max);
+      state.ultimateRefunds.set(receipt.id,{actorId,current});
+      try {await actor.update({[`flags.${MODULE_ID}.ultimate.current`]:current,[`flags.${MODULE_ID}.ultimate.energyLockCombatId`]:receipt.lockId,[`flags.${MODULE_ID}.ultimate.energyLockRound`]:receipt.lockRound},{tsruUltimateRefund:receipt.id});}
+      finally {state.ultimateRefunds.delete(receipt.id);}
+    }
+  }
+  receipt.paid=false;
+  if(cleanupError)throw cleanupError;
+  state.ultimateSummonReceipts.delete(actorId);refreshOrb(actor);return true;
+}
+
+async function safelyRefundSummoningUltimate(actorId) {
+  try{return await refundSummoningUltimate(actorId);}catch(error){console.error(`${MODULE_ID} | Ultimate refund failed`,error);ui.notifications.error(`Could not finish restoring the Ultimate: ${error.message}`);return false;}
+}
+
+async function materializeSummoningUltimate(actor, plan, requester, receipt) {
+  receipt.spawned=await summoning.createAbilitySummons(actor,"ultimate",plan,requester);
+  if(state.ultimateSummonReceipts.get(actor.id)!==receipt){
+    await removeAbilitySummons(receipt.spawned);receipt.spawned=null;
+    throw new Error("The Ultimate was cancelled before summoning finished.");
+  }
+  if(receipt.enhanced!==enhancedFormActive(actor))throw new Error("The character changed stance before summoning.");
+}
+
+function commitSummoningUltimate(actorId) {
+  const receipt=state.ultimateSummonReceipts.get(actorId);
+  if(receipt){receipt.committed=true;state.ultimateSummonReceipts.delete(actorId);}
 }
 
 async function completeUltimate(actorId) {
@@ -4585,11 +4695,22 @@ function broadcastUltimateSplash(actor) {
 
 async function beginQueuedUltimate(request, queue, combat) {
   const actor = game.actors.get(request.actorId);
-  if (!actor) return completeUltimate(request.actorId);
-  broadcastUltimateSplash(actor);
+  if (!actor) {await safelyRefundSummoningUltimate(request.actorId);return completeUltimate(request.actorId);}
   queue.activeActorId = actor.id;
+  const receipt=state.ultimateSummonReceipts.get(actor.id);
+  if(receipt){
+    if(receipt.enhanced!==enhancedFormActive(actor))throw new Error("The character changed stance while waiting.");
+    const requester=game.users.get(request.requestingUserId);
+    request.summonPlan=await summoning.ensureQueuedSummonPlan(actor,"ultimate",request.summonPlan,requester);
+    if(state.ultimateQueues.get(combat.id)!==queue||!combat.started)throw new Error("Combat ended before the summon could be placed.");
+    await materializeSummoningUltimate(actor,request.summonPlan,requester,receipt);
+    if(state.ultimateQueues.get(combat.id)!==queue||!combat.started)throw new Error("Combat ended before summoning finished.");
+  }
   const temporary = await insertUltimateTurn(actor, {combatantId: queue.resumeCombatantId, round: queue.resumeRound}, combat);
   if (!temporary) throw new Error("Foundry could not create the temporary Ultimate combatant.");
+  commitSummoningUltimate(actor.id);
+  if(receipt)await dispatchTalentEvent("ultimateUsed",{sourceActor:actor,requestingUserId:request.requestingUserId},`${actor.id}:${Date.now()}`);
+  broadcastUltimateSplash(actor);
   const pending = {actorId: actor.id, requestingUserId: request.requestingUserId, combatId: combat.id, combatantId: temporary?.id ?? null, timer: window.setTimeout(() => completeUltimate(actor.id), 600000)};
   state.pendingUltimates.set(actor.id, pending);
   if (request.requestingUserId === game.user.id) await runUltimateScript(actor, temporary?.id ?? "");
@@ -4624,19 +4745,22 @@ async function processUltimateQueue(combatId) {
   if (!queue.requests.length) return finishUltimateQueue(combatId);
   queue.requests.sort((left,right)=>left.requestedAt-right.requestedAt||left.sequence-right.sequence);
   const request = queue.requests.shift();
+  state.runningUltimates.add(request.actorId);
   try { await beginQueuedUltimate(request, queue, combat); }
   catch (error) {
     console.error(`${MODULE_ID} | Could not begin queued Ultimate`, error);
-    ui.notifications.error(`Could not begin ${game.actors.get(request.actorId)?.name ?? "the character"}'s Ultimate turn: ${error.message}`);
+    const refunded=await safelyRefundSummoningUltimate(request.actorId);
+    reportAbilityFailure("Ultimate",request.actorId,request.requestingUserId,`Could not begin the Ultimate: ${error.message}${refunded?" The Ultimate charge was restored; you can continue.":""}`,true);
     await completeUltimate(request.actorId);
-  }
+  } finally {state.runningUltimates.delete(request.actorId);}
 }
 
-async function executeUltimate(actorId, requestingUserId, expectedEnhanced=undefined) {
+async function executeUltimate(actorId, requestingUserId, expectedEnhanced=undefined, summonPlan=null) {
+  state.actionErrors.delete(`Ultimate:${actorId}`);
   if (!isAuthority() || state.ultimateLocks.has(actorId)) return false;
   const actor = game.actors.get(actorId);
   const requester = game.users.get(requestingUserId);
-  if (!actor || (!requester?.isGM && !actor.testUserPermission(requester, "OWNER"))) return false;
+  if (!actor || !requester || (!requester.isGM && !actor.testUserPermission(requester, "OWNER"))) return false;
   if(expectedEnhanced!==undefined&&Boolean(expectedEnhanced)!==enhancedFormActive(actor)){ui.notifications.warn("The character changed stance. Activate the current form instead.");return false;}
   if(!stanceActionAllowed(actor,"ultimate"))return false;
   const config = getConfig(actor);
@@ -4646,12 +4770,21 @@ async function executeUltimate(actorId, requestingUserId, expectedEnhanced=undef
   try {
     game.socket.emit(SOCKET, {type: "ultimateState", actorId, locked: true});
     refreshOrb(actor);
-    await dispatchTalentEvent("ultimateUsed", {sourceActor: actor, requestingUserId}, `${actor.id}:${Date.now()}`);
+    const summonsEnabled=Boolean(config.ultimateSummons?.enabled);
+    if(summonsEnabled){
+      await summoning.validateSummonPlan(actor,"ultimate",summonPlan,requester);
+      if(expectedEnhanced!==undefined&&Boolean(expectedEnhanced)!==enhancedFormActive(actor))throw new Error("The character changed stance. Use the current form instead.");
+      if(!alternateUltimateCharge(actor,getConfig(actor)).ready)throw new Error("The Ultimate charge changed before the cast. Nothing was spent.");
+      state.ultimateSummonReceipts.set(actorId,ultimateSummonReceipt(actor,config,requestingUserId));
+    }
+    else await dispatchTalentEvent("ultimateUsed", {sourceActor: actor, requestingUserId}, `${actor.id}:${Date.now()}`);
     if (usesAlternateUltimate(config)) await resetAlternateOrbCounters(actor, {consume: true, form:alternateUltimateForm(config)});
     else await setEnergy(actor, 0);
+    const receipt=state.ultimateSummonReceipts.get(actorId);if(receipt)receipt.paid=true;
     const combat = game.combat;
     if (!usesAlternateUltimate(config)) await lockEnergyUntilNextRound(actor, combat);
     if (!combat?.started) {
+      if(receipt){await materializeSummoningUltimate(actor,summonPlan,requester,receipt);commitSummoningUltimate(actorId);await dispatchTalentEvent("ultimateUsed",{sourceActor:actor,requestingUserId},`${actor.id}:${Date.now()}`);}
       broadcastUltimateSplash(actor);
       await runUltimateScript(actor);
       state.ultimateLocks.delete(actorId);
@@ -4665,6 +4798,7 @@ async function executeUltimate(actorId, requestingUserId, expectedEnhanced=undef
       && !isElationActionCombatant(current)
       && !isAhaCombatant(current);
     if (isOwnNormalTurn) {
+      if(receipt){await materializeSummoningUltimate(actor,summonPlan,requester,receipt);commitSummoningUltimate(actorId);await dispatchTalentEvent("ultimateUsed",{sourceActor:actor,requestingUserId},`${actor.id}:${Date.now()}`);}
       return await beginImmediateUltimate(actor, requestingUserId);
     }
     let queue = state.ultimateQueues.get(combat.id);
@@ -4674,12 +4808,13 @@ async function executeUltimate(actorId, requestingUserId, expectedEnhanced=undef
       queue = {resumeCombatantId: waitsForAlly ? null : current?.id ?? null, resumeRound: combat.round, waitTurnId: waitsForAlly ? current.id : null, waitRound: combat.round, activeActorId: null, requests: [], sequence: 0, startTimer: null};
       state.ultimateQueues.set(combat.id, queue);
     }
-    queue.requests.push({actorId, requestingUserId, initiative: ultimateInitiative(actor, combat), requestedAt: Date.now(), sequence: queue.sequence++});
+    queue.requests.push({actorId, requestingUserId, summonPlan, initiative: ultimateInitiative(actor, combat), requestedAt: Date.now(), sequence: queue.sequence++});
     scheduleUltimateQueue(combat);
     return true;
   } catch (error) {
     console.error(`${MODULE_ID} | Ultimate failed`, error);
-    ui.notifications.error(`Ultimate failed: ${error.message}`);
+    const refunded=await safelyRefundSummoningUltimate(actorId);
+    reportAbilityFailure("Ultimate",actorId,requestingUserId,`Ultimate failed: ${error.message}${refunded?" The Ultimate charge was restored; you can continue.":""}`);
     await completeUltimate(actorId);
     return false;
   } finally { state.runningUltimates.delete(actorId); }
@@ -4687,6 +4822,7 @@ async function executeUltimate(actorId, requestingUserId, expectedEnhanced=undef
 
 async function onSocket(payload) {
   if (!payload?.type) return;
+  if(payload.type.startsWith("abilitySummon")){await summoning.handleSummoningSocket(payload);return;}
   if(payload.type==="requestSplashPreload"&&isAuthority()){
     const requester=game.users.get(payload.sourceUserId);
     if(requester?.active)broadcastSplashPreload({targetUserId:requester.id});
@@ -4780,8 +4916,8 @@ async function onSocket(payload) {
   if (payload.type === "elationActionComplete" && isAuthority()) return completeElationAction(payload.combatantId, payload.userId);
   if (payload.type === "skillPointsChanged") { refreshSkillUI(); return; }
   if (payload.type === "activateSkill" && isAuthority()) {
-    const accepted = await executeSkill(payload.actorId, payload.requestingUserId,payload.enhanced) === true;
-    game.socket.emit(SOCKET, {type: "playerActionResult", targetUserId: payload.requestingUserId, requestId: payload.requestId, accepted, action: "Skill", message: accepted ? "Skill activated successfully." : "The GM could not activate that Skill. Check ownership, the Skill toggle, and available Skill Points."});
+    const accepted = await executeSkill(payload.actorId, payload.requestingUserId,payload.enhanced,payload.summonPlan) === true;
+    game.socket.emit(SOCKET, {type: "playerActionResult", targetUserId: payload.requestingUserId, requestId: payload.requestId, accepted, action: "Skill", message: accepted ? "Skill activated successfully." : state.actionErrors.get(`Skill:${payload.actorId}`) || "The GM could not activate that Skill. Check ownership, stance, the Skill toggle, and available SP and HP."});
     return;
   }
   if (payload.type === "useSkill" && payload.targetUserId === game.user.id) {
@@ -4860,11 +4996,11 @@ async function onSocket(payload) {
   }
   if (payload.type === "activateUltimate" && isAuthority()) {
     const actor = game.actors.get(payload.actorId);
-    const accepted = await executeUltimate(payload.actorId, payload.requestingUserId,payload.enhanced) === true;
+    const accepted = await executeUltimate(payload.actorId, payload.requestingUserId,payload.enhanced,payload.summonPlan) === true;
     const queue = game.combat?.id ? state.ultimateQueues.get(game.combat.id) : null;
     const waiting = Boolean(accepted && queue?.waitTurnId);
     const rejected = actor && !alternateUltimateCharge(actor, getConfig(actor)).ready ? ultimateReadinessMessage(actor, getConfig(actor)) : "The GM could not activate that Ultimate. Check ownership, stance, and whether another Ultimate is already resolving.";
-    game.socket.emit(SOCKET, {type: "playerActionResult", targetUserId: payload.requestingUserId, requestId: payload.requestId, accepted, action: "Ultimate", message: accepted ? (waiting ? "Ultimate queued. It will begin when the current Main Party turn ends." : "Ultimate activated successfully.") : rejected});
+    game.socket.emit(SOCKET, {type: "playerActionResult", targetUserId: payload.requestingUserId, requestId: payload.requestId, accepted, action: "Ultimate", message: accepted ? (waiting ? "Ultimate queued. It will begin when the current Main Party turn ends." : "Ultimate activated successfully.") : state.actionErrors.get(`Ultimate:${payload.actorId}`) || rejected});
     return;
   }
   if (payload.type === "playerActionResult" && payload.targetUserId === game.user.id) {
@@ -7010,8 +7146,8 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
     if (["alternateUltimateEnabled", "enhancedAlternateUltimateEnabled"].includes(field.name)) return;
     data[field.name] = field.type === "checkbox" ? field.checked : field.value;
   });
-  for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "skillPointCost", "talentPointsCurrent", "talentPointsMax", "talentPointsOvercapMax", "punchlineGain", "splashDuration", "splashX", "splashY", "splashScale", "titleX", "titleY", "titleSize", "combatHudPortraitX", "combatHudPortraitY", "combatHudPortraitScale", "enhancedHudPortraitX", "enhancedHudPortraitY", "enhancedHudPortraitScale", "enhancedCarouselImageX", "enhancedCarouselImageY", "enhancedCarouselImageScale", "enhancedSplashX", "enhancedSplashY", "enhancedSplashScale", "enhancedTransitionDuration", "enhancedTransitionInX", "enhancedTransitionInY", "enhancedTransitionInScale", "enhancedTransitionOutX", "enhancedTransitionOutY", "enhancedTransitionOutScale", "enhancedTransitionInContrast", "enhancedTransitionInSaturation", "enhancedTransitionInBrightness", "enhancedTransitionInHue", "enhancedTransitionOutContrast", "enhancedTransitionOutSaturation", "enhancedTransitionOutBrightness", "enhancedTransitionOutHue", "messagingPortraitX", "messagingPortraitY", "messagingPortraitScale", "ultimateButtonX", "ultimateButtonY", "ultimateButtonScale", "bossPhaseCount", "bossPhase2TokenWidth", "bossPhase2TokenHeight", "bossPhase3TokenWidth", "bossPhase3TokenHeight", "bossHudPortraitX", "bossHudPortraitY", "bossHudPortraitScale", "bossHudWidth", "bossHudHealthHeight", "bossHudToughnessHeight"]) data[key] = Number(data[key]);
-  for (const key of ["enabled", "alternateUltimateEnabled", "showPercent", "showHudPercent", "skillEnabled", "techniqueEnabled", "mainParty", "trialCharacter", "combatHudPortraitFlip", "enhancedHudPortraitFlip", "enhancedCarouselImageFlip", "ultimateButtonAdjustEnabled", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter", "isBoss", "bossInheritsMainPhaseCount", "carouselFrameColorOverride", "enhancedStanceEnabled", "enhancedUltimateEnabled"]) data[key] = Boolean(data[key]);
+  for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "skillHpCostFlat", "skillPointCost", "talentPointsCurrent", "talentPointsMax", "talentPointsOvercapMax", "punchlineGain", "splashDuration", "splashX", "splashY", "splashScale", "titleX", "titleY", "titleSize", "combatHudPortraitX", "combatHudPortraitY", "combatHudPortraitScale", "enhancedHudPortraitX", "enhancedHudPortraitY", "enhancedHudPortraitScale", "enhancedCarouselImageX", "enhancedCarouselImageY", "enhancedCarouselImageScale", "enhancedSplashX", "enhancedSplashY", "enhancedSplashScale", "enhancedTransitionDuration", "enhancedTransitionInX", "enhancedTransitionInY", "enhancedTransitionInScale", "enhancedTransitionOutX", "enhancedTransitionOutY", "enhancedTransitionOutScale", "enhancedTransitionInContrast", "enhancedTransitionInSaturation", "enhancedTransitionInBrightness", "enhancedTransitionInHue", "enhancedTransitionOutContrast", "enhancedTransitionOutSaturation", "enhancedTransitionOutBrightness", "enhancedTransitionOutHue", "messagingPortraitX", "messagingPortraitY", "messagingPortraitScale", "ultimateButtonX", "ultimateButtonY", "ultimateButtonScale", "bossPhaseCount", "bossPhase2TokenWidth", "bossPhase2TokenHeight", "bossPhase3TokenWidth", "bossPhase3TokenHeight", "bossHudPortraitX", "bossHudPortraitY", "bossHudPortraitScale", "bossHudWidth", "bossHudHealthHeight", "bossHudToughnessHeight"]) data[key] = Number(data[key]);
+  for (const key of ["enabled", "alternateUltimateEnabled", "showPercent", "showHudPercent", "skillHpCostEnabled", "skillEnabled", "techniqueEnabled", "mainParty", "trialCharacter", "combatHudPortraitFlip", "enhancedHudPortraitFlip", "enhancedCarouselImageFlip", "ultimateButtonAdjustEnabled", "partyGMOverride", "receivesRewards", "lockEnergyAfterUltimate", "breakCharacter", "superBreakCharacter", "isBoss", "bossInheritsMainPhaseCount", "carouselFrameColorOverride", "enhancedStanceEnabled", "enhancedUltimateEnabled"]) data[key] = Boolean(data[key]);
   if(!data.enhancedStanceEnabled)data.enhancedStanceActive=false;
   data.max = Math.max(1, data.max || 100);
   data.current = energyAfterUpdate({...getConfig(actor), alternateUltimateEnabled: data.alternateUltimateEnabled, max: data.max}, data.current);
@@ -7040,6 +7176,8 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
   const configUpdate = {...data};
   delete configUpdate.alternateUltimateEnabled;
   delete configUpdate.enhancedAlternateUltimateEnabled;
+  delete configUpdate.skillSummons;
+  delete configUpdate.ultimateSummons;
   await actor.update({[`flags.${MODULE_ID}.ultimate`]: configUpdate}, {tsruAutosave: !notify, render: false});
   refreshOrb(actor);
   refreshSkillUI();
@@ -7057,6 +7195,7 @@ function activateConfigListeners(actor, tab, app) {
   tab.find("input, select, textarea, button").prop("disabled", false);
   tab[0].dataset.altActorId = actor.id;
   arrangeUltimateSettings(tab);
+  bindAbilitySummonSettings(actor, tab[0]);
   initializeCollapsibleUltimateSections(actor, tab);
   const updateEnhancedFields=()=>{const enabled=tab.find('[name="enhancedUltimateEnabled"]').prop("checked");tab.find(".tsru-enhanced-ultimate-fields").prop("hidden",!enabled).find("input,textarea,button").prop("disabled",!enabled);};
   tab.find('[name="enhancedUltimateEnabled"]').on("change",updateEnhancedFields);updateEnhancedFields();
@@ -7967,6 +8106,7 @@ function bindCraftingSceneControl(app,html){
 }
 
 function registerApi() {
+  summoning.installSummoningHooks();
   configureAlternateUltimates({isResolving: actor => state.ultimateLocks.has(actor.id)});
   game.modules.get(MODULE_ID).api = {
     openAlternateOrbDesigner,
@@ -8285,11 +8425,13 @@ Hooks.on("deleteToken", () => state.dmCombatMenu?.refresh());
 Hooks.on("updateCombatant", () => state.dmCombatMenu?.refresh());
 Hooks.on("tsruSkillPointsChanged", value => { state.gmPanel?.refreshLiveValues(); dispatchTalentEvent("skillPointsChanged", {value}); });
 Hooks.on("tsruTalentPointsChanged", (actor, before, after) => { refreshTalentCounter(actor); dispatchTalentEvent("talentPointsChanged", {sourceActor: actor, before, after, amount: after - before}); });
-Hooks.on("preUpdateActor", (actor, changes) => {
+Hooks.on("preUpdateActor", (actor, changes, options={}) => {
   const expanded = foundry.utils.expandObject(changes);
   const incoming = foundry.utils.getProperty(expanded, `flags.${MODULE_ID}.ultimate`);
   if (!incoming || !Object.hasOwn(incoming, "current")) return;
   const config = getConfig(actor);
+  const refund=state.ultimateRefunds.get(options.tsruUltimateRefund);
+  if(isAuthority()&&refund?.actorId===actor.id&&Number(incoming.current)===refund.current)return;
   const alternate = usesAlternateUltimate({...config, ...incoming});
   if (!alternate || Number(incoming.current) <= config.current) return;
   const path = `flags.${MODULE_ID}.ultimate.current`;
@@ -8423,6 +8565,7 @@ Hooks.on("deleteCombat", async combat => {
   state.splashBroadcasts.clear();
   state.receivedSplashIds.clear();
   const ultimateQueue = state.ultimateQueues.get(combat.id);
+  if(isAuthority())for(const receipt of [...state.ultimateSummonReceipts.values()])if(receipt.combatId===combat.id){await safelyRefundSummoningUltimate(receipt.actorId);reportAbilityFailure("Ultimate",receipt.actorId,receipt.requestingUserId,"Combat ended before summoning. The Ultimate charge was restored.",true);}
   if (ultimateQueue?.startTimer) window.clearTimeout(ultimateQueue.startTimer);
   state.ultimateQueues.delete(combat.id);
   for (const pending of state.pendingUltimates.values()) if (pending?.timer) window.clearTimeout(pending.timer);

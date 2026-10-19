@@ -1,5 +1,18 @@
 # Tely's Star Rail Ultimates
 
+## Skill and Ultimate summons (preview.15)
+
+In a character’s **HSR Settings → Abilities → Skill**, or **Ultimates → Ultimate Summoning**, enable **Summons creature?**. Drag existing world Actors from the Actors directory into the list, or choose **Add existing Actor**. Drag rows to reorder them; **Count** sets how many copies of the selected creature to place. Skill and Ultimate lists and radii are independent. These settings also apply to the character’s enhanced abilities, with no Path requirement.
+
+Set **Summoning radius** in the scene’s distance units (for example, 30 ft on a 5-ft grid). Using the ability opens the creature menu, then highlights valid anchor squares on the map. Hover to preview the full token footprint, click to place each copy, or use **Undo**, **Cancel**, **Esc** or right-click. Tokens inherit the source Actor’s prototype-token size and settings and appear with a brief summoning animation. Existing Actors are referenced; their base documents are not modified.
+
+The entire footprint must be inside the radius, inside the scene and clear of other tokens. A lighting-blocking wall prevents summoning across it or straddling it, even if that wall allows movement. Open doors and walls on other levels are respected. The active GM validates ownership, the saved creature choice, quantity, size, range, occupancy and barriers before creating tokens; a connected GM is required for player casts.
+
+Invalid placements show **Cannot Fit**. If nothing fits or placement is cancelled, no SP, HP or Ultimate charge is spent. Queued Ultimates create their creatures when their Ultimate turn begins; if the chosen space is no longer available, the player can reposition. A blocked or cancelled queued summon restores the original Energy or alternate counters and continues initiative. Partial token-creation failures are cleaned up, and ending combat restores reserved summoning charges.
+
+In **Abilities → Skill**, **Skill point cost:** offers **0–5** or **Custom**, retaining existing numeric costs. A successful cast automatically deducts that amount from the shared SP bar. **Has HP requirement?** adds **Half HP**, **10% HP**, a **Custom constant**, or a **Custom roll (xDy)** such as `2d6`. Percentages can use **Current HP** (default) or **Maximum HP**; costs round down. Dice are rolled once by the GM, and the character must have enough actual HP to pay; temporary HP is not consumed. A cost may reduce HP to zero. Blocked summons do not trigger Skill/Ultimate cast rewards.
+
+
 ## Character sheet ability scores
 
 The **REGEN** (Energy Regen) and **BREAK** (Break Effect) cards use the native D&D5e ability-card shape, colors, modifier and score-box styling. Hover either card for its full name. All eight scores share a responsive row: cards, labels and score fields scale together as the sheet width or sidebar changes, keeping the row inside the sheet. Owners and GMs can edit the added scores directly; the saved values and modifier calculations are unchanged.
