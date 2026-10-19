@@ -47,6 +47,8 @@ jobs:
             ultimate-sequence-smoke.png
             character-settings-search-smoke.png
             character-settings-menu-smoke.png
+            enhanced-standard-selector-smoke.png
+            enhanced-alternate-selector-smoke.png
           if-no-files-found: ignore
 
       - name: Create Foundry module ZIP

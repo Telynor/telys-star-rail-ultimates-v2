@@ -138,7 +138,7 @@ export function organizeCharacterSettings(root, {key = "character"} = {}) {
     const collect = parent => {
       for (const node of parent.children) {
         if (node.tagName === "H3" || node.matches('input[type="hidden"]')) continue;
-        if (node.matches(".tsru-enhanced-ultimate-fields")) { collect(node); continue; }
+        if (node.matches(".tsru-enhanced-ultimate-fields,[data-settings-group]")) { collect(node); continue; }
         const copy = node.cloneNode(true); copy.querySelectorAll("input,textarea,select").forEach(el => el.remove());
         const names = [...node.querySelectorAll("[name]")].map(el => el.name).join(" ");
         const image = /Image|Portrait|Icon|Font|splash|transition|ultimateButton|carousel/i.test(names) || node.querySelector(".file-picker,[data-action*='designer'],[data-action*='editor']") || /builder|preview/.test([...node.attributes].map(a => a.name).join(" "));

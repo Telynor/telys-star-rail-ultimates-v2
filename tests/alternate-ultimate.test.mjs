@@ -118,6 +118,35 @@ test('manual GM switches serialize independent updates and reject player edits',
  assert.equal(await alternate.setAlternateOrbCounter(a,'red',false),false);assert.equal(a.flags.alternateOrbStates.red,true);
  assert.equal(alternate.openAlternateOrbDesigner(a),undefined);
 });
+for (const mode of ['free','circular']) test(`inheriting a regular ${mode} orb copies its configuration without consuming either form's progress`,async()=>{
+ const {a}=setup({enhancedAlternateUltimateEnabled:false});
+ a.flags.alternateOrb={...orb(),mode,startComponentId:'yellow',firstActivation:3,glowEnabled:false};
+ a.flags.alternateOrbStates={red:true};a.flags.alternateOrbCounter=4;
+ a.flags.enhancedAlternateOrbStates={white:true};a.flags.enhancedAlternateOrbCounter=2;
+ const before=structuredClone(a.flags);
+ assert.equal(await alternate.inheritRegularAlternateOrb(a),true);
+ assert.equal(a.flags.ultimate.enhancedAlternateUltimateEnabled,true);
+ assert.deepEqual(alternate.getAlternateOrb(a,'enhanced'),alternate.getAlternateOrb(a,'regular'));
+ for(const name of ['alternateOrb','alternateOrbStates','alternateOrbCounter','enhancedAlternateOrbStates','enhancedAlternateOrbCounter'])assert.deepEqual(a.flags[name],before[name]);
+ a.flags.enhancedAlternateOrb.components[0].image='enhanced-only.png';
+ assert.equal(a.flags.alternateOrb.components[0].image,'red.png');
+});
+test('inheritance rejects non-GMs, live Ultimate locks and incomplete designs without writing configuration',async()=>{
+ const {a,api,game}=setup({enhancedAlternateUltimateEnabled:false});
+ game.user={isGM:false};assert.equal(await alternate.inheritRegularAlternateOrb(a),false);
+ game.user={isGM:true};api.state.ultimateLocks.add(a.id);assert.equal(await alternate.inheritRegularAlternateOrb(a),false);api.state.ultimateLocks.clear();
+ a.flags.alternateOrb.components[0].image='';assert.equal(await alternate.inheritRegularAlternateOrb(a),false);
+ a.flags.alternateOrb.components=[];assert.equal(await alternate.inheritRegularAlternateOrb(a),false);
+ assert.equal(a.flags.enhancedAlternateOrb,undefined);assert.equal(a.flags.ultimate.enhancedAlternateUltimateEnabled,false);
+});
+test('inheritance rejects ambiguous circular order and propagates a failed document save',async()=>{
+ const {a}=setup({enhancedAlternateUltimateEnabled:false});
+ a.flags.alternateOrb={...orb(),mode:'circular'};a.flags.alternateOrb.components[1].sequence=1;
+ assert.equal(await alternate.inheritRegularAlternateOrb(a),false);
+ a.flags.alternateOrb=orb();a.update=async()=>{throw new Error('Save failed')};
+ await assert.rejects(alternate.inheritRegularAlternateOrb(a),/Save failed/);
+ assert.equal(a.flags.enhancedAlternateOrb,undefined);assert.equal(a.flags.ultimate.enhancedAlternateUltimateEnabled,false);
+});
 test('actual Ultimate activation refuses a partially charged alternate orb',async()=>{
  const {a,api}=setup({current:100});
  a.flags.alternateOrbStates={red:true,white:true,black:true};

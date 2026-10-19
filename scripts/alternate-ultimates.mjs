@@ -19,6 +19,37 @@ export const alternateUltimateEnabled = actor => usesAlternateUltimate(actorConf
 export const alternateUltimateCharge = (actor, config) => ultimateCharge(config, getAlternateOrb(actor, alternateUltimateForm(config)), getAlternateOrbStates(actor, alternateUltimateForm(config)));
 export function configureAlternateUltimates(options) { resolving = options.isResolving; }
 
+function refreshEnhancedUltimateSettings(actor, root) {
+  const toggle = root?.querySelector('[name="enhancedAlternateUltimateEnabled"]');
+  if (!toggle) return;
+  const alternate = toggle.checked, config = actorConfig(actor);
+  const standard = root.querySelector('[data-tsru-enhanced-standard-ultimate]');
+  const builder = root.querySelector('[data-tsru-enhanced-alternate-builder]');
+  if (standard) standard.hidden = alternate;
+  if (builder) builder.hidden = !alternate;
+  const status = root.querySelector('[data-enhanced-ultimate-type]');
+  if (status) status.textContent = alternate ? "ON · Alternate Ultimate" : "OFF · Standard Ultimate";
+  const draftValue = name => root.querySelector(`[name="${name}"]`)?.value ?? config[name];
+  for (const mirror of root.querySelectorAll('[data-enhanced-energy-field]')) {
+    mirror.value = draftValue(mirror.dataset.enhancedEnergyField) ?? "";
+  }
+  const preview = root.querySelector('[data-enhanced-standard-preview]');
+  if (preview) {
+    const max = Math.max(1, Number(draftValue("max")) || 100), current = clamp(draftValue("current"), 0, max);
+    const image = draftValue("enhancedUltimateButtonImage") || draftValue("ultimateButtonImage") || config.orbImage || actor.img || "icons/svg/mystery-man.svg";
+    preview.innerHTML = `<span class="tsru-standard-orb-preview" style="--energy:${current / max * 100}%" role="img" aria-label="Standard Ultimate: ${current} of ${max} Energy"><img src="${escape(image)}" alt=""><span class="tsru-standard-orb-fill"></span><strong>${current}/${max}</strong></span>`;
+  }
+  // Preserve the shared regular design on older characters until a type is saved.
+  const legacy = config.enhancedAlternateUltimateEnabled == null && config.alternateUltimateEnabled;
+  const form = legacy ? "regular" : "enhanced", orb = getAlternateOrb(actor, form);
+  const alternatePreview = root.querySelector('[data-enhanced-alternate-preview]');
+  if (alternatePreview) alternatePreview.innerHTML = renderAlternateOrb(orb, getAlternateOrbStates(actor, form));
+  const summary = root.querySelector('[data-enhanced-alternate-summary]');
+  if (summary) summary.textContent = orb.components.length
+    ? `${orb.components.length} components · ${orb.mode === "circular" ? "Circular counter" : "Free activation"}${legacy ? " · Shared regular design" : ""}`
+    : "Choose a regular design to copy or create a new layout.";
+}
+
 export function syncAlternateOrbSheet(actor, root) {
   for (const [name, selector] of [["alternateUltimateEnabled", "[data-tsru-alternate-builder]"], ["enhancedAlternateUltimateEnabled", "[data-tsru-enhanced-alternate-builder]"]]) {
     const value = actorConfig(actor)[name] ?? actorConfig(actor).alternateUltimateEnabled;
@@ -26,6 +57,30 @@ export function syncAlternateOrbSheet(actor, root) {
     if (toggle) toggle.checked = Boolean(value);
     if (builder) builder.hidden = !value;
   }
+  refreshEnhancedUltimateSettings(actor, root);
+}
+
+function syncActorAlternateSheets(actor) {
+  for (const root of globalThis.document?.querySelectorAll('.tsru-sheet-tab[data-alt-actor-id]') ?? []) {
+    if (root.dataset.altActorId === actor.id) syncAlternateOrbSheet(actor, root);
+  }
+}
+
+export async function inheritRegularAlternateOrb(actor) {
+  if (!game.user.isGM || !actor) return false;
+  if (resolving(actor)) { ui.notifications.warn("Finish the current Ultimate before editing its orb."); return false; }
+  const orb = structuredClone(getAlternateOrb(actor, "regular"));
+  if (!orb.components.length || orb.components.some(c => !c.image)) {
+    ui.notifications.warn("Create a regular alternate orb with an active image for every component before copying it."); return false;
+  }
+  if (orb.mode === "circular" && new Set(orb.components.map(c => c.sequence)).size !== orb.components.length) {
+    ui.notifications.warn("Give every regular circular orb icon a different sequence order before copying it."); return false;
+  }
+  // Copy only configuration. Live progress and the regular design remain separate.
+  await actor.update({[`flags.${MODULE_ID}.enhancedAlternateOrb`]: orb, [`flags.${MODULE_ID}.ultimate.enhancedAlternateUltimateEnabled`]: true}, {tsruAutosave: true, render: false});
+  syncActorAlternateSheets(actor);
+  ui.notifications.info(`${actor.name}'s regular alternate configuration copied to the enhanced Ultimate.`);
+  return true;
 }
 
 export function bindAlternateOrbSheet(actor, root, {onChange = () => {}} = {}) {
@@ -39,7 +94,7 @@ export function bindAlternateOrbSheet(actor, root, {onChange = () => {}} = {}) {
     toggle.dataset.altModeBound = "true";
     const saved = () => Boolean(actorConfig(actor)[name] ?? (form === "enhanced" && actorConfig(actor).alternateUltimateEnabled));
     toggle.disabled = !game.user.isGM;
-    const sync = () => { builder.hidden = !toggle.checked; onChange(); };
+    const sync = () => { builder.hidden = !toggle.checked; refreshEnhancedUltimateSettings(actor, root); onChange(); };
     toggle.addEventListener("change", async () => {
       if (!game.user.isGM) { toggle.checked = saved(); sync(); return; }
       const enabled = toggle.checked;
@@ -48,9 +103,33 @@ export function bindAlternateOrbSheet(actor, root, {onChange = () => {}} = {}) {
       catch (error) { toggle.checked = saved(); sync(); ui.notifications.error(`Could not change ${actor.name}'s Ultimate mode: ${error.message}`); }
       finally { toggle.disabled = !game.user.isGM; }
     });
-    builder.querySelector('button')?.addEventListener("click", () => openAlternateOrbDesigner(actor, {form}));
+    builder.querySelector(`[data-action="${form === "enhanced" ? "open-enhanced-alternate-orb-builder" : "open-alternate-orb-builder"}"]`)?.addEventListener("click", () => openAlternateOrbDesigner(actor, {form}));
     sync();
   }
+  if (!root.dataset.enhancedTypeBound) {
+    root.dataset.enhancedTypeBound = "true";
+    const updateDraft = event => {
+      const mirror = event.target.closest('[data-enhanced-energy-field]');
+      if (mirror) {
+        const master = root.querySelector(`[name="${mirror.dataset.enhancedEnergyField}"]`);
+        if (game.user.isGM && master) { master.value = mirror.value; master.dispatchEvent(new Event(event.type, {bubbles: true})); }
+      }
+      if (mirror || ["current", "max", "regenScore", "ultimateButtonImage", "enhancedUltimateButtonImage"].includes(event.target.name)) refreshEnhancedUltimateSettings(actor, root);
+    };
+    root.addEventListener("input", updateDraft);
+    root.addEventListener("change", updateDraft);
+    root.querySelector('[data-action="inherit-regular-alternate-orb"]')?.addEventListener("click", async event => {
+      event.preventDefault();
+      const button = event.currentTarget, toggle = root.querySelector('[name="enhancedAlternateUltimateEnabled"]');
+      if (!game.user.isGM || button.disabled || toggle?.disabled) return;
+      button.disabled = true;
+      if (toggle) toggle.disabled = true;
+      try { await inheritRegularAlternateOrb(actor); onChange(); }
+      catch (error) { ui.notifications.error(`Could not copy ${actor.name}'s alternate orb: ${error.message}`); }
+      finally { button.disabled = !game.user.isGM; if (toggle) toggle.disabled = !game.user.isGM; }
+    });
+  }
+  refreshEnhancedUltimateSettings(actor, root);
 }
 
 export function renderAlternateOrb(raw, states = {}, {editing = false, selected = ""} = {}) {
@@ -425,7 +504,7 @@ export function openAlternateOrbDesigner(actor, {form = activeForm(actor)} = {})
         // Layout and live counters are separate flags: saving a draft preserves GM progress.
         if (this.form === "enhanced") await this.actor.update({[`flags.${MODULE_ID}.enhancedAlternateOrb`]: orb, [`flags.${MODULE_ID}.ultimate.enhancedAlternateUltimateEnabled`]: true});
         else await this.actor.setFlag(MODULE_ID, "alternateOrb", orb);
-        for (const root of document.querySelectorAll('.tsru-sheet-tab[data-alt-actor-id]')) if (root.dataset.altActorId === this.actor.id) syncAlternateOrbSheet(this.actor, root);
+        syncActorAlternateSheets(this.actor);
         this.draft = orb; this.dirty = false;
         this.element.querySelector("[data-alt-save-status]").textContent = "Design saved";
         ui.notifications.info(`${this.actor.name}'s Ultimate orb design saved.`);
