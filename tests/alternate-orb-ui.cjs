@@ -316,6 +316,13 @@ drawHud();window.ready=true;
     assert.equal(await page.locator('.tsru-orb [data-alt-piece="red"]').count(),1);
     assert.equal(await page.locator('[data-tsru-party-ultimate][data-actor-id="hero"]').isDisabled(),false);
   }
+  const blankCardsBefore=await page.evaluate(()=>chatCards.length);
+  await page.evaluate(()=>{Object.assign(a.flags[ID].ultimate,{enhancedStanceActive:true,ultimateText:'',ultimateScript:'',enhancedUltimateText:'',enhancedUltimateScript:''});a.flags[ID].enhancedAlternateOrbCounter=2;drawHud()});
+  await page.locator('[data-tsru-party-ultimate][data-actor-id="hero"]').click();
+  await page.waitForFunction(n=>chatCards.length===n+1,blankCardsBefore);
+  assert.match(await page.evaluate(()=>chatCards.at(-1).content),/No ability text/,'enhanced counter mechanics do not require a description or script');
+  await page.waitForFunction(()=>!core.state.ultimateLocks.has(a.id));
+  assert.equal(await page.evaluate(()=>a.flags[ID].enhancedAlternateOrbCounter),0);
   // Render the complete real sheet template, then exercise menu/search and save.
   await page.evaluate(async()=>{
     const module=await import('/scripts/character-settings.mjs');window.settingsUI=module;

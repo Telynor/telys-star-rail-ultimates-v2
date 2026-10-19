@@ -251,6 +251,19 @@ test('a queued enhanced circular Ultimate inserts a turn and leaves regular prog
  await api.completeUltimate(a.id);assert.equal(combat.combatant.id,'enemy-turn');assert.equal(api.state.ultimateLocks.size,0);
 });
 
+for(const mode of ['free','circular'])test(`enhanced ${mode} mechanics work without a description or script`,async()=>{
+ const {a,api,events}=setup('energy',{enhancedStanceEnabled:true,enhancedStanceActive:true,enhancedUltimateEnabled:true,enhancedAlternateUltimateEnabled:true,ultimateText:'',ultimateScript:'',enhancedUltimateText:'',enhancedUltimateScript:''});
+ a.flags.enhancedAlternateOrb={mode,components:[{id:'x',image:'x.png'}]};a.flags.enhancedAlternateOrbStates={x:true};a.flags.enhancedAlternateOrbCounter=1;
+ assert.equal(await api.requestUltimate(a),true);assert.equal(a.flags.enhancedAlternateOrbCounter,0);
+ assert.equal(events.messages.length,1);assert.match(events.messages[0].content,/No ability text/);assert.equal(events.errors.length,0);
+});
+
+test('an unenabled enhanced Ultimate remains blocked even with full alternate counters',async()=>{
+ const {a,api}=setup('free',{enhancedStanceEnabled:true,enhancedStanceActive:true,enhancedUltimateEnabled:false,enhancedAlternateUltimateEnabled:true});
+ a.flags.enhancedAlternateOrb={components:[{id:'x',image:'x.png'}]};a.flags.enhancedAlternateOrbStates={x:true};
+ assert.equal(await api.requestUltimate(a),false);assert.equal(a.flags.enhancedAlternateOrbStates.x,true);
+});
+
 test('enhanced Ultimate executes its own code and description instead of the ordinary code',async()=>{
  const {a,api,events}=setup('circular',{enhancedStanceEnabled:true,enhancedStanceActive:true,enhancedUltimateEnabled:true,enhancedUltimateText:'Enhanced description',enhancedUltimateScript:'actor.executions.push("enhanced");'});
  assert.equal(await api.requestUltimate(a),true);

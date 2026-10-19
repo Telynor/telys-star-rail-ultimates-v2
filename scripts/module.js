@@ -1931,7 +1931,7 @@ function enhancedFormActive(actor){const config=getConfig(actor);return Boolean(
 function stanceActionAllowed(actor,action,{notify=true}={}){
   if(!enhancedFormActive(actor))return true;
   const config=getConfig(actor);
-  const ready=action==="skill"?Boolean(String(config.enhancedSkillText||"").trim()):action==="talent"?Boolean(String(config.enhancedTalentText||"").trim()):action==="ultimate"?Boolean(config.enhancedUltimateEnabled&&[config.enhancedUltimateText,config.enhancedUltimateScript,config.ultimateScript].some(value=>String(value||"").trim())):true;
+  const ready=action==="skill"?Boolean(String(config.enhancedSkillText||"").trim()):action==="talent"?Boolean(String(config.enhancedTalentText||"").trim()):action==="ultimate"?Boolean(config.enhancedUltimateEnabled):true;
   if(!ready&&notify)ui.notifications.warn(`Configure ${actor.name}'s enhanced ${action} before using it in the enhanced stance.`);
   return ready;
 }

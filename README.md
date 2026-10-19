@@ -20,7 +20,7 @@ The combat HUD's ready glow sits above the portrait and behind the Ultimate orb.
 
 ## Enhanced alternate Ultimates
 
-In **HSR Settings → Enhanced Form → Enhanced Ultimate**, enable **Enhance Ultimate?** and **Enhanced Alternate Ultimate?**, then open the enhanced orb builder. Regular and enhanced forms can each use Energy or their own alternate orb. Their designs, free switches and circular counters are independent. The active form determines the combat HUD, floating orb, hotbar readiness, GM combat controls, Energy-gain blocking and which counters are consumed. Switching forms restores that form's saved progress.
+In **HSR Settings → Enhanced Form → Enhanced Ultimate**, enable **Enhance Ultimate?** and **Enhanced Alternate Ultimate?**, then open the enhanced orb builder. Regular and enhanced forms can each use Energy or their own alternate orb. Description and automation fields are optional; enabling the enhanced Ultimate and meeting its charge requirements is sufficient to activate it. Their designs, free switches and circular counters are independent. The active form determines the combat HUD, floating orb, hotbar readiness, GM combat controls, Energy-gain blocking and which counters are consumed. Switching forms restores that form's saved progress.
 
 The regular designer has **Copy design to Enhanced**; the enhanced designer has **Use regular orb design**. These copy the layout, images, off images, colors, glow, mode, sequence, starting icon and first activation number into an editable enhanced draft. Press **Save orb design** to apply it and enable the enhanced alternate Ultimate. Copying a design preserves both forms' existing live counters, and later edits do not change the other design.
 
