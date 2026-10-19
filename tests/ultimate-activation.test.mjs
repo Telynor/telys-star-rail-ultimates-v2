@@ -205,6 +205,52 @@ for(const mode of ['energy','free','circular']) {
  });
 }
 
+for(const mode of ['free','circular'])test(`enhanced ${mode} counters consume separately and restore normal progress on stance exit`,async()=>{
+ const {a,api,events}=setup('free',{enhancedStanceEnabled:true,enhancedStanceActive:true,enhancedUltimateEnabled:true,enhancedAlternateUltimateEnabled:true,enhancedUltimateText:'Separate enhanced Ultimate'});
+ a.flags.enhancedAlternateOrb={mode,components:['x','y'].map(id=>({id,image:id+'.png'}))};a.flags.enhancedAlternateOrbStates={x:true,y:true};a.flags.enhancedAlternateOrbCounter=2;
+ const regular=structuredClone({orb:a.flags.alternateOrb,states:a.flags.alternateOrbStates,counter:a.flags.alternateOrbCounter});
+ assert.equal(alternate.alternateUltimateCharge(a,api.getConfig(a)).ready,true);
+ assert.equal(await api.requestUltimate(a),true);assert.match(events.messages[0].content,/Separate enhanced Ultimate/);
+ assert.equal(a.flags.ultimate.current,100);assert.equal(a.flags.enhancedAlternateOrbCounter,0);assert.ok(Object.values(a.flags.enhancedAlternateOrbStates).every(v=>!v));
+ assert.deepEqual({orb:a.flags.alternateOrb,states:a.flags.alternateOrbStates,counter:a.flags.alternateOrbCounter},regular);
+ a.flags.ultimate.enhancedStanceActive=false;assert.equal(alternate.alternateUltimateCharge(a,api.getConfig(a)).ready,true);
+});
+
+test('full normal counters cannot unlock an incomplete enhanced Ultimate',async()=>{
+ const {a,api,events}=setup('free',{enhancedStanceEnabled:true,enhancedStanceActive:true,enhancedUltimateEnabled:true,enhancedAlternateUltimateEnabled:true});
+ a.flags.enhancedAlternateOrb={components:[{id:'enh',image:'enh.png'}]};a.flags.enhancedAlternateOrbStates={enh:false};
+ assert.equal(await api.requestUltimate(a),false);assert.equal(events.messages.length,0);assert.equal(a.flags.alternateOrbCounter,4);
+});
+
+test('enhanced alternate mode works when the normal Ultimate uses Energy and blocks Energy awards',async()=>{
+ const {a,api}=setup('energy',{enhancedStanceEnabled:true,enhancedStanceActive:true,enhancedUltimateEnabled:true,enhancedAlternateUltimateEnabled:true,current:50});
+ a.flags.enhancedAlternateOrb={components:[{id:'enh',image:'enh.png'}]};a.flags.enhancedAlternateOrbStates={enh:true};
+ assert.equal(energyAfterUpdate(api.getConfig(a),90),50);assert.equal(await api.requestUltimate(a),true);assert.equal(a.flags.ultimate.current,50);
+ a.flags.ultimate.enhancedStanceActive=false;assert.equal(alternate.alternateUltimateCharge(a,api.getConfig(a)).ready,false);assert.equal(energyAfterUpdate(api.getConfig(a),90),90);
+});
+
+test('an explicitly regular-energy enhanced Ultimate ignores normal alternate readiness',async()=>{
+ const {a,api}=setup('free',{enhancedStanceEnabled:true,enhancedStanceActive:true,enhancedUltimateEnabled:true,enhancedAlternateUltimateEnabled:false,current:99});
+ assert.equal(await api.requestUltimate(a),false);a.flags.ultimate.current=100;assert.equal(await api.requestUltimate(a),true);
+ assert.equal(a.flags.ultimate.current,0);assert.equal(a.flags.alternateOrbCounter,4);
+});
+
+test('a stale normal-form GM counter control cannot write enhanced progress',async()=>{
+ const {a}=setup('free',{enhancedStanceEnabled:true,enhancedStanceActive:true,enhancedUltimateEnabled:true,enhancedAlternateUltimateEnabled:true});
+ a.flags.enhancedAlternateOrb={components:[{id:'x',image:'x.png'}]};a.flags.enhancedAlternateOrbStates={x:false};
+ assert.equal(await alternate.setAlternateOrbCounter(a,'a',false,{form:'regular'}),false);assert.equal(a.flags.alternateOrbStates.a,true);
+ assert.equal(await alternate.setAlternateOrbCounter(a,'x',true,{form:'enhanced'}),true);assert.equal(a.flags.enhancedAlternateOrbStates.x,true);
+});
+
+test('a queued enhanced circular Ultimate inserts a turn and leaves regular progress untouched',async()=>{
+ const world=setup('free',{enhancedStanceEnabled:true,enhancedStanceActive:true,enhancedUltimateEnabled:true,enhancedAlternateUltimateEnabled:true,enhancedUltimateText:'Queued enhanced cast'}),{a,api,events}=world;
+ a.flags.enhancedAlternateOrb={mode:'circular',firstActivation:3,components:['x','y'].map(id=>({id,image:id+'.png'}))};a.flags.enhancedAlternateOrbCounter=4;
+ const combat=startCombat(world,{ownTurn:false,deferredTurns:true});
+ await api.requestUltimate(a);assert.equal(a.flags.enhancedAlternateOrbCounter,0);assert.equal(a.flags.alternateOrbCounter,4);
+ await world.runTimers(225);assert.equal(combat.combatant.getFlag(ID,'temporaryUltimate'),true);assert.match(events.messages[0].content,/Queued enhanced cast/);
+ await api.completeUltimate(a.id);assert.equal(combat.combatant.id,'enemy-turn');assert.equal(api.state.ultimateLocks.size,0);
+});
+
 test('enhanced Ultimate executes its own code and description instead of the ordinary code',async()=>{
  const {a,api,events}=setup('circular',{enhancedStanceEnabled:true,enhancedStanceActive:true,enhancedUltimateEnabled:true,enhancedUltimateText:'Enhanced description',enhancedUltimateScript:'actor.executions.push("enhanced");'});
  assert.equal(await api.requestUltimate(a),true);

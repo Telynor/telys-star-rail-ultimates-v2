@@ -18,6 +18,22 @@ The custom artwork appears in both the floating orb and party HUD. Hotbar activa
 The combat HUD's ready glow sits above the portrait and behind the Ultimate orb. Its edge is inset beneath the artwork, with a soft halo that pulses in brightness without growing away from the orb. Consuming an Energy, free alternate, or circular alternate Ultimate removes the ready glow.
 
 
+## Enhanced alternate Ultimates
+
+In **HSR Settings → Enhanced Form → Enhanced Ultimate**, enable **Enhance Ultimate?** and **Enhanced Alternate Ultimate?**, then open the enhanced orb builder. Regular and enhanced forms can each use Energy or their own alternate orb. Their designs, free switches and circular counters are independent. The active form determines the combat HUD, floating orb, hotbar readiness, GM combat controls, Energy-gain blocking and which counters are consumed. Switching forms restores that form's saved progress.
+
+The regular designer has **Copy design to Enhanced**; the enhanced designer has **Use regular orb design**. These copy the layout, images, off images, colors, glow, mode, sequence, starting icon and first activation number into an editable enhanced draft. Press **Save orb design** to apply it and enable the enhanced alternate Ultimate. Copying a design preserves both forms' existing live counters, and later edits do not change the other design.
+
+Existing characters whose enhanced alternate mode has never been configured retain the previous shared regular-orb behavior. Changing the enhanced alternate checkbox or saving an enhanced design makes that form independent. Unchecking it uses Energy while enhanced; the normal form keeps its own saved mode.
+
+## Character settings menus and search
+
+GM character settings are grouped into **Character**, **Ultimates**, **Abilities**, **Enhanced Form**, **Artwork**, and **Combat**. Related controls stay together; token transitions start collapsed, and sections retain their saved collapse state. Changes still autosave, with the explicit Save Configuration action available.
+
+Every menu has the shared search bar. Search **All menus**, or choose **This menu**; selecting a menu while searching narrows results to that menu. Nonmatching settings disappear without changing their values. Clear or Escape restores the menu. Search temporarily reveals matching controls inside collapsed or conditional groups; clear the search to see related enabling switches.
+
+Keywords combine to narrow results: `alt` or `alt ult` finds alternate Ultimates, `art` finds artwork and image controls, `picture crop` finds portrait positioning, and `token skin` finds token artwork. Related terms, field names, partial words and small spelling mistakes (such as `portriat`) are supported. Search is local and does not send character information to an external service.
+
 ## Ultimate automation
 
 **HSR Character Settings → Ultimate & Splash Artwork → Ultimate code** runs the character's saved `ultimateScript` once when a charged Ultimate begins. It works from floating orbs, combat HUD buttons, and hotbar macros, with either Energy or alternate counters. It supports asynchronous JavaScript with `actor`, `token`, `combat`, `combatantId`, `config`, `game`, `canvas`, `ui`, `foundry`, `Hooks`, `punchline`, `talent`, `skillPoints`, and `tsru` helpers. The separate Ultimate Text remains descriptive and is posted to chat.

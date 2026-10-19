@@ -57,8 +57,13 @@ export function alternateOrbProgress(orb, states = {}) {
     ready: total > 0 && current === total && components.every(c => Boolean(c.image))};
 }
 
+export const enhancedUltimateActive = config => Boolean(config?.enhancedStanceEnabled && config?.enhancedStanceActive && config?.enhancedUltimateEnabled);
+// Unconfigured older enhanced forms retain their shared regular orb until edited.
+export const alternateUltimateForm = config => enhancedUltimateActive(config) && config.enhancedAlternateUltimateEnabled != null ? "enhanced" : "regular";
+export const usesAlternateUltimate = config => Boolean(enhancedUltimateActive(config) && config.enhancedAlternateUltimateEnabled != null ? config.enhancedAlternateUltimateEnabled : config?.alternateUltimateEnabled);
+
 export function ultimateCharge(config, orb, states) {
-  if (config.alternateUltimateEnabled) {
+  if (usesAlternateUltimate(config)) {
     const progress = alternateOrbProgress(orb, states);
     return {...progress, alternate: true, ready: Boolean(config.enabled) && progress.ready};
   }
@@ -71,6 +76,6 @@ export function ultimateCharge(config, orb, states) {
 export function energyAfterUpdate(config, value, {locked = false, overrideLock = false} = {}) {
   const current = bound(config.current, 0, Math.max(1, number(config.max, 100)), 0);
   const next = bound(value, 0, Math.max(1, number(config.max, 100)), current);
-  if (next > current && (config.alternateUltimateEnabled || (locked && !overrideLock))) return current;
+  if (next > current && (usesAlternateUltimate(config) || (locked && !overrideLock))) return current;
   return next;
 }

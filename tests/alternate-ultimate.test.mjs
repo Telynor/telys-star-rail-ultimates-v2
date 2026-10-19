@@ -97,6 +97,13 @@ test('actual module energy API blocks gains and does not emit misleading gain ho
  await api.addEnergy(a,5,'attack');assert.equal(a.flags.ultimate.current,85);
  assert.equal(events.some(e=>Array.isArray(e)&&e[0]==='tsruEnergyChanged'),true);
 });
+
+test('enhanced-only alternate mode blocks API and direct Energy awards in the active form',async()=>{
+ const {a,api,hooks}=setup({alternateUltimateEnabled:false,enhancedStanceEnabled:true,enhancedStanceActive:true,enhancedUltimateEnabled:true,enhancedAlternateUltimateEnabled:true});
+ await api.addEnergy(a,15,'attack');await api.setEnergy(a,100,{overrideLock:true});assert.equal(a.flags.ultimate.current,80);
+ const changes={[`flags.${ID}.ultimate.current`]:100};hooks.get('preUpdateActor')(a,changes);assert.equal(changes[`flags.${ID}.ultimate.current`],80);
+ a.flags.ultimate.enhancedStanceActive=false;await api.addEnergy(a,5,'attack');assert.equal(a.flags.ultimate.current,85);
+});
 test('preUpdate guard rejects direct third-party Energy awards in flat and nested updates',()=>{
  const {a,hooks}=setup();const guard=hooks.get('preUpdateActor');
  const flat={[`flags.${ID}.ultimate.current`]:100};guard(a,flat);assert.equal(flat[`flags.${ID}.ultimate.current`],80);

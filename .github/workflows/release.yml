@@ -45,6 +45,8 @@ jobs:
           path: |
             orb-designer-smoke.png
             ultimate-sequence-smoke.png
+            character-settings-search-smoke.png
+            character-settings-menu-smoke.png
           if-no-files-found: ignore
 
       - name: Create Foundry module ZIP

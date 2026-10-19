@@ -31,7 +31,7 @@ window.foundry={applications:{api:{ApplicationV2:AppV2,HandlebarsApplicationMixi
 window.a={id:'hero',uuid:'Actor.hero',name:'Alchemical Ultimate',img:'/test-art/red.svg',type:'character',isOwner:true,items:[],effects:[],reset(){},prepareData(){},getActiveTokens:()=>[{id:'hero-token',document:{id:'hero-token'}}],system:{attributes:{hp:{value:20,max:20,temp:0}}},
  flags:{[ID]:{ultimate:{enabled:true,current:80,max:100,mainParty:true,alternateUltimateEnabled:false},alternateOrb:{label:'Alchemical Seals',components:['red','white','black','yellow'].map((id,i)=>({id,name:id[0].toUpperCase()+id.slice(1)+' seal',image:'/test-art/'+id+'.svg',x:i%2?72:28,y:i<2?28:72,scale:45,rotation:0,color:{red:'#e32b38',white:'#f1f5f8',black:'#17171b',yellow:'#efd153'}[id],glow:true}))},alternateOrbStates:{red:true}}},
  getFlag(_,key){return this.flags[ID][key]},async setFlag(_,key,value){this.flags[ID][key]=structuredClone(value);window.drawHud?.()},
- async update(updates){if(window.updateFails)throw new Error('Test save failure');window.updates.push(structuredClone(updates));for(const [p,v]of Object.entries(updates))set(this,p,v);window.drawHud?.()},testUserPermission:()=>true};
+ async update(updates){if(window.updateFails)throw new Error('Test save failure');window.updates.push(structuredClone(updates));for(const [p,v]of Object.entries(updates)){if(p==='flags.'+ID+'.ultimate')Object.assign(this.flags[ID].ultimate,structuredClone(v));else set(this,p,v)}window.drawHud?.()},testUserPermission:()=>true};
 const actors=[a];actors.get=id=>actors.find(v=>v.id===id);
 a.items.get=id=>a.items.find(item=>item.id===id);
 const gm={id:'gm',isGM:true,active:true},users=[gm];users.get=id=>users.find(v=>v.id===id);
@@ -64,15 +64,18 @@ drawHud();window.ready=true;
   try{
    const url=new URL(req.url,'http://local'),pathname=decodeURIComponent(url.pathname);
    if(pathname==='/'){
-    res.setHeader('Content-Type','text/html');res.end('<!doctype html><html><head><link rel="stylesheet" href="/styles/ultimates.css"><link rel="stylesheet" href="/styles/alternate-ultimates.css"><style>body{margin:0;background:#101521;color:#fff;font-family:Arial,sans-serif}.application{position:absolute;left:18px;top:18px;width:1050px;height:830px;border:1px solid #627185;border-radius:10px;overflow:hidden;display:flex;flex-direction:column}.window-header{padding:9px 14px;background:#222f43;font-size:13px}.window-content{flex:1;min-height:0;overflow:auto}#sheet{position:absolute;left:20px;top:20px;width:600px}#gm-controls{position:absolute;left:1110px;top:530px;width:255px}#art-preview{position:absolute;left:20px;top:880px;width:230px}#hud-preview{position:absolute;left:280px;top:880px;width:230px}input{color:inherit}</style></head><body><section id="sheet">'+section+'</section><section id="gm-controls"></section><section id="art-preview" class="tsru-ultimate-adjust-preview"></section><section id="hud-preview"></section><script type="module">'+bootstrap+'</script></body></html>');return;
+    res.setHeader('Content-Type','text/html');res.end('<!doctype html><html><head><link rel="stylesheet" href="/styles/ultimates.css"><link rel="stylesheet" href="/styles/alternate-ultimates.css"><link rel="stylesheet" href="/styles/character-settings.css"><script src="/test-handlebars.js"></script><script src="/test-jquery.js"></script><style>body{margin:0;background:#101521;color:#fff;font-family:Arial,sans-serif}.application{position:absolute;left:18px;top:18px;width:1050px;height:830px;border:1px solid #627185;border-radius:10px;overflow:hidden;display:flex;flex-direction:column}.window-header{padding:9px 14px;background:#222f43;font-size:13px}.window-content{flex:1;min-height:0;overflow:auto}#sheet{position:absolute;left:20px;top:20px;width:600px}#gm-controls{position:absolute;left:1110px;top:530px;width:255px}#art-preview{position:absolute;left:20px;top:880px;width:230px}#hud-preview{position:absolute;left:280px;top:880px;width:230px}input{color:inherit}</style></head><body><section id="sheet">'+section+'</section><section id="gm-controls"></section><section id="art-preview" class="tsru-ultimate-adjust-preview"></section><section id="hud-preview"></section><script type="module">'+bootstrap+'</script></body></html>');return;
    }
    if(pathname.startsWith('/test-art/')){
     const color=({red:'#e32b38',yellow:'#efd153',white:'#f1f5f8',black:'#17171b'})[path.basename(pathname,'.svg')]||'#8494a8';
     res.setHeader('Content-Type','image/svg+xml');res.end('<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160"><path d="M152 152H8A144 144 0 0 1 152 8Z" fill="'+color+'" stroke="#ddd" stroke-width="2"/><path d="M65 56 L93 111 L121 56 Z" fill="none" stroke="#ffffffaa" stroke-width="5"/></svg>');return;
    }
+   if(pathname==='/test-handlebars.js'||pathname==='/test-jquery.js'){
+    res.setHeader('Content-Type','text/javascript');res.end(await fs.readFile(require.resolve(pathname==='/test-jquery.js'?'jquery':'handlebars/dist/handlebars.js')));return;
+   }
    const file=path.resolve(root,'.'+pathname);if(!file.startsWith(root+path.sep)){res.writeHead(403);res.end();return;}
    let content=await fs.readFile(file);
-   if(pathname==='/scripts/module.js')content=content.toString()+'\nexport {UltimateOrb,CombatPartyHud,state,getConfig,combatHudDesignerPreview,ultimateArtworkPreview,registerApi,completeUltimate};';
+   if(pathname==='/scripts/module.js')content=content.toString()+'\nexport {UltimateOrb,CombatPartyHud,state,getConfig,combatHudDesignerPreview,ultimateArtworkPreview,registerApi,completeUltimate,initializeCollapsibleUltimateSections,saveUltimateConfigFromTab};';
    res.setHeader('Content-Type',pathname.endsWith('.css')?'text/css':/\.m?js$/.test(pathname)?'text/javascript':'application/octet-stream');res.end(content);
   }catch(error){res.writeHead(404);res.end(error.message)}
  });
@@ -89,7 +92,7 @@ drawHud();window.ready=true;
   assert.equal(await page.locator('[data-tsru-alternate-builder]').isVisible(),true);
   assert.equal(await page.evaluate(()=>updates.length),1,'binding the sheet twice still saves the toggle once');
   assert.deepEqual(await page.evaluate(()=>Object.keys(updates[0])),['flags.'+ID+'.ultimate.alternateUltimateEnabled'],'checkbox saves its own flag without a whole-sheet write');
-  assert.equal(await page.locator('.tsru-orb-image, .tsru-orb-fill, [data-tsru-party-ultimate]>.tsru-hud-orb-fill, [data-tsru-party-ultimate]>img, #art-preview button>img, #hud-preview .tsru-hud-orb-fill').count(),0,'alternate mode removes standard orb nodes');
+  assert.equal(await page.locator('.tsru-orb-image, .tsru-orb-fill, [data-tsru-party-ultimate][data-actor-id="hero"]>.tsru-hud-orb-fill, [data-tsru-party-ultimate][data-actor-id="hero"]>img, #art-preview button>img, #hud-preview .tsru-hud-orb-fill').count(),0,'alternate mode removes standard orb nodes');
   assert.equal(await page.locator('#art-preview [data-alt-piece], #hud-preview [data-alt-piece]').count(),8);
   assert.equal(await page.locator('.tsru-orb').evaluate(el=>getComputedStyle(el).backgroundColor),'rgba(0, 0, 0, 0)');
   assert.equal(await page.locator('#art-preview .tsru-alt-orb-art').first().evaluate(el=>getComputedStyle(el).borderRadius),'0px');
@@ -133,12 +136,12 @@ drawHud();window.ready=true;
   await page.locator('[data-alt-delete]').click();await page.locator('[data-alt-save]').click();
   await page.waitForFunction(()=>a.getFlag('','alternateOrb').components.length===4);
   assert.equal(await page.locator('.tsru-orb-widget.is-alternate').count(),1);
-  assert.equal(await page.locator('[data-tsru-party-ultimate]').isDisabled(),true);
+  assert.equal(await page.locator('[data-tsru-party-ultimate][data-actor-id="hero"]').isDisabled(),true);
   for(const id of ['white','black','yellow'])await page.locator('#gm-controls [data-alt-counter="'+id+'"]').click();
-  await page.waitForFunction(()=>!document.querySelector('[data-tsru-party-ultimate]').disabled);
+  await page.waitForFunction(()=>!document.querySelector('[data-tsru-party-ultimate][data-actor-id="hero"]').disabled);
   assert.equal(await page.locator('.tsru-orb').isDisabled(),false);
   await page.locator('#gm-controls [data-alt-reset]').click();
-  await page.waitForFunction(()=>document.querySelector('[data-tsru-party-ultimate]').disabled);
+  await page.waitForFunction(()=>document.querySelector('[data-tsru-party-ultimate][data-actor-id="hero"]').disabled);
   assert.equal(await page.locator('.tsru-orb').isDisabled(),true);
   // Color detection handles black/white too, while off-image CSS keeps uploaded artwork.
   const detected=await page.evaluate(async()=>Promise.all(['red','white','black','yellow'].map(c=>alt.detectOrbImageColor('/test-art/'+c+'.svg'))));
@@ -169,7 +172,7 @@ drawHud();window.ready=true;
     if(count){await page.locator('#gm-controls [data-alt-count-step="1"]').click();await page.waitForFunction(n=>a.getFlag('','alternateOrbCounter')===n,count)}
     const lit=await page.locator('.tsru-orb-custom .tsru-alt-orb-piece.is-on').evaluateAll(nodes=>nodes.map(n=>n.dataset.altPiece).sort());
     assert.deepEqual(lit,[...expected[count]].sort(),'cumulative icons at count '+count);
-    assert.equal(await page.locator('[data-tsru-party-ultimate]').isDisabled(),count!==5);
+    assert.equal(await page.locator('[data-tsru-party-ultimate][data-actor-id="hero"]').isDisabled(),count!==5);
   }
   await page.locator('#gm-controls [data-alt-count-value]').fill('3');
   await page.locator('#gm-controls [data-alt-count-value]').press('Tab');
@@ -194,9 +197,9 @@ drawHud();window.ready=true;
   await page.waitForFunction(()=>a.getFlag('','ultimate').alternateUltimateEnabled===false);
   assert.equal(await page.locator('[data-tsru-alternate-builder]').isVisible(),false);
   assert.equal(await page.locator('.tsru-orb-widget.is-alternate').count(),0);
-  assert.equal(await page.locator('[data-tsru-party-ultimate].is-alternate').count(),0);
+  assert.equal(await page.locator('[data-tsru-party-ultimate][data-actor-id="hero"].is-alternate').count(),0);
   assert.equal(await page.locator('.tsru-orb-image, .tsru-orb-fill').count(),2);
-  assert.equal(await page.locator('.tsru-orb [data-alt-piece], [data-tsru-party-ultimate] [data-alt-piece], #art-preview [data-alt-piece], #hud-preview [data-alt-piece]').count(),0);
+  assert.equal(await page.locator('.tsru-orb [data-alt-piece], [data-tsru-party-ultimate][data-actor-id="hero"] [data-alt-piece], #art-preview [data-alt-piece], #hud-preview [data-alt-piece]').count(),0);
   // Existing enhanced artwork also yields to alternate mode and comes back on uncheck.
   await page.evaluate(id=>a.update({['flags.'+id+'.ultimate.enhancedStanceEnabled']:true,['flags.'+id+'.ultimate.enhancedStanceActive']:true,['flags.'+id+'.ultimate.enhancedUltimateEnabled']:true,['flags.'+id+'.ultimate.enhancedUltimateButtonImage']:'/test-art/white.svg'}),ID);
   assert.equal(await page.locator('.tsru-orb-image').getAttribute('src'),'/test-art/white.svg');
@@ -223,9 +226,9 @@ drawHud();window.ready=true;
       a.flags[id].alternateOrbStates={red:true,white:true,black:true,yellow:true};
       drawHud();
     },{mode,enhanced,id:ID});
-    assert.equal(await page.locator('[data-tsru-party-ultimate]').evaluate(el=>getComputedStyle(el.parentElement,'::before').content),'""','a fully charged Ultimate has its ready halo');
+    assert.equal(await page.locator('[data-tsru-party-ultimate][data-actor-id="hero"]').evaluate(el=>getComputedStyle(el.parentElement,'::before').content),'""','a fully charged Ultimate has its ready halo');
     if(source==='floating')await page.locator('.tsru-orb').click();
-    else if(source==='party')await page.locator('[data-tsru-party-ultimate]').click();
+    else if(source==='party')await page.locator('[data-tsru-party-ultimate][data-actor-id="hero"]').click();
     else await page.evaluate(id=>game.modules.get(id).api.requestUltimate(a),ID);
     await page.waitForFunction(n=>ultimateExecutions.length===n+1,before);
     await page.waitForFunction(n=>chatCards.length===n+1,cardsBefore);
@@ -234,7 +237,7 @@ drawHud();window.ready=true;
     assert.match(await page.evaluate(()=>chatCards.at(-1).content),enhanced?/Enhanced cast description/:/Normal cast description/);
     assert.equal(await page.evaluate(()=>a.getFlag('','ultimate').current),mode==='energy'?0:100);
     if(mode!=='energy')assert.equal(await page.evaluate(()=>a.getFlag('','alternateOrbCounter')),0);
-    assert.equal(await page.locator('[data-tsru-party-ultimate]').evaluate(el=>getComputedStyle(el.parentElement,'::before').content),'none','consuming the Ultimate removes its ready halo');
+    assert.equal(await page.locator('[data-tsru-party-ultimate][data-actor-id="hero"]').evaluate(el=>getComputedStyle(el.parentElement,'::before').content),'none','consuming the Ultimate removes its ready halo');
   }
   // Full queued sequence: cached v14 turn order, real asset fetch/decode and splash
   // DOM/CSS, legacy descriptions, the timer wakeup and completion/resume mechanics.
@@ -287,7 +290,98 @@ drawHud();window.ready=true;
     assert.equal(await page.evaluate(()=>core.state.ultimateQueues.size+core.state.pendingUltimates.size+core.state.ultimateLocks.size),0);
     await page.waitForFunction(()=>!document.querySelector('.tsru-splash'));
   }
+  // Explicit enhanced orbs use their own art, GM controls and progress.
+  for(const mode of ['free','circular']){
+    await page.evaluate(({mode})=>{
+      const config=a.flags[ID].ultimate;
+      Object.assign(config,{current:100,alternateUltimateEnabled:true,enhancedStanceEnabled:true,enhancedStanceActive:true,enhancedUltimateEnabled:true,enhancedAlternateUltimateEnabled:true,enhancedUltimateText:'Independent enhanced cast',enhancedUltimateScript:'window.ultimateExecutions.push("independent-enhanced");',splashImage:'',enhancedSplashImage:''});
+      a.flags[ID].enhancedAlternateOrb={mode,components:['e1','e2'].map((id,i)=>({id,name:id,image:'/test-art/'+(i?'white':'red')+'.svg',x:25+i*50,y:50,scale:50}))};
+      a.flags[ID].enhancedAlternateOrbStates={e1:true,e2:false};a.flags[ID].enhancedAlternateOrbCounter=1;
+      a.flags[ID].alternateOrbCounter=4;a.flags[ID].alternateOrbStates={red:true,white:true,black:true,yellow:true};
+      drawHud();
+    },{mode});
+    assert.equal(await page.locator('.tsru-orb [data-alt-piece="e1"]').count(),1);
+    assert.equal(await page.locator('[data-tsru-party-ultimate][data-actor-id="hero"]').isDisabled(),true);
+    assert.equal(await page.locator('#gm-controls [data-alt-form="enhanced"]').count(),1);
+    if(mode==='free')await page.locator('#gm-controls [data-alt-counter="e2"]').check();
+    else await page.locator('#gm-controls [data-alt-count-step="1"]').click();
+    await page.waitForFunction(()=>!document.querySelector('[data-tsru-party-ultimate][data-actor-id="hero"]').disabled);
+    await page.locator('[data-tsru-party-ultimate][data-actor-id="hero"]').click();
+    await page.waitForFunction(()=>!core.state.ultimateLocks.has(a.id));
+    assert.equal(await page.evaluate(()=>ultimateExecutions.at(-1)),'independent-enhanced');
+    assert.equal(await page.evaluate(()=>a.flags[ID].enhancedAlternateOrbCounter),0);
+    assert.equal(await page.evaluate(()=>a.flags[ID].alternateOrbCounter),4);
+    assert.equal(await page.evaluate(()=>Object.values(a.flags[ID].alternateOrbStates).every(Boolean)),true);
+    await page.evaluate(()=>{a.flags[ID].ultimate.enhancedStanceActive=false;drawHud()});
+    assert.equal(await page.locator('.tsru-orb [data-alt-piece="red"]').count(),1);
+    assert.equal(await page.locator('[data-tsru-party-ultimate][data-actor-id="hero"]').isDisabled(),false);
+  }
+  // Render the complete real sheet template, then exercise menu/search and save.
+  await page.evaluate(async()=>{
+    const module=await import('/scripts/character-settings.mjs');window.settingsUI=module;
+    Object.assign(a.flags[ID].ultimate,{enhancedStanceActive:false,enhancedStanceEnabled:true,enhancedUltimateEnabled:true,alternateUltimateEnabled:false,enhancedAlternateUltimateEnabled:false,ultimateText:'Normal saved description',ultimateScript:'window.ultimateExecutions.push("normal");'});
+    Handlebars.registerHelper('checked',value=>value?'checked':'');
+    const source=await (await fetch('/templates/ultimate-tab.hbs')).text();
+    const config=core.getConfig(a),container=document.createElement('div');container.id='full-settings';container.style.cssText='position:absolute;z-index:100;left:15px;top:15px;width:620px;height:930px;overflow:auto;padding:14px;background:#101924;color:white';document.body.append(container);
+    container.innerHTML=Handlebars.compile(source)({actor:a,config,enhancedAlternateUltimateChecked:false,elationEnabled:true,isGM:true,elements:[],paths:[],frameColors:[]});
+    window.settingsRoot=container.querySelector('.tsru-sheet-tab');
+    window.settingNamesBefore=[...settingsRoot.querySelectorAll('[name]')].map(n=>n.name).sort();
+    settingsUI.organizeCharacterSettings(settingsRoot,{key:a.id});core.initializeCollapsibleUltimateSections(a,settingsRoot);
+    alt.bindAlternateOrbSheet(a,settingsRoot);
+    document.querySelector('#sheet').style.display='none';
+  });
+  assert.deepEqual(await page.evaluate(()=>[...settingsRoot.querySelectorAll('[name]')].map(n=>n.name).sort()),await page.evaluate(()=>settingNamesBefore),'reorganizing and search preserve every named setting exactly once');
+  assert.equal(await page.locator('#full-settings [data-settings-menu]').count(),6);
+  assert.equal(await page.locator('#full-settings .tsru-settings-page:visible').count(),1);
+  const search=page.locator('#full-settings [data-settings-search]');
+  await search.fill('alt ult');
+  assert.equal(await page.locator('#full-settings [name="alternateUltimateEnabled"]').isVisible(),true);
+  assert.equal(await page.locator('#full-settings [name="enhancedAlternateUltimateEnabled"]').isVisible(),true);
+  assert.equal(await page.locator('#full-settings [name="max"]').isVisible(),false);
+  assert.equal(await page.locator('#full-settings [name="skillText"]').isVisible(),false);
+  await search.fill('art');
+  assert.equal(await page.locator('#full-settings [name="combatHudPortrait"]').isVisible(),true);
+  assert.equal(await page.locator('#full-settings [name="enhancedTokenImage"]').isVisible(),true);
+  assert.equal(await page.locator('#full-settings [name="ultimateText"]').isVisible(),false);
+  assert.equal(await page.locator('#full-settings [name="current"]').isVisible(),false);
+  await page.screenshot({path:path.join(root,'character-settings-search-smoke.png')});
+  await page.locator('#full-settings [data-settings-scope]').selectOption('page');
+  await page.locator('#full-settings [data-settings-menu="artwork"]').click();
+  assert.equal(await page.locator('#full-settings [name="combatHudPortrait"]').isVisible(),true);
+  assert.equal(await page.locator('#full-settings [name="enhancedTokenImage"]').isVisible(),false,'this-menu search keeps results on the selected menu');
+  await search.fill('portriat crop');
+  assert.equal(await page.locator('#full-settings [name="combatHudPortraitX"]').isVisible(),true);
+  assert.equal(await page.locator('#full-settings [name="attackGain"]').isVisible(),false);
+  await search.fill('zzzzzz');assert.match(await page.locator('#full-settings [data-settings-status]').innerText(),/0 matching/);
+  assert.equal(await page.locator('#full-settings .tsru-settings-page:visible').count(),0);
+  await page.locator('#full-settings [data-settings-clear]').click();
+  await page.locator('#full-settings [data-settings-menu="ultimates"]').click();
+  assert.equal(await page.locator('#full-settings [name="max"]').isVisible(),true);
+  await search.fill('alt');await page.locator('#full-settings [name="alternateUltimateEnabled"]').check();
+  await page.waitForFunction(()=>a.flags[ID].ultimate.alternateUltimateEnabled===true);
+  await page.locator('#full-settings [data-action="open-alternate-orb-builder"]').click();
+  await page.locator('#tsru-alternate-orb-hero-regular [data-alt-copy-regular]').click();
+  await page.waitForSelector('#tsru-alternate-orb-hero-enhanced .tsru-alt-stage [data-alt-piece]');
+  const copied=await page.evaluate(()=>alt.getAlternateOrb(a,'regular'));
+  await page.locator('#tsru-alternate-orb-hero-enhanced [data-alt-save]').click();
+  await page.waitForFunction(()=>a.flags[ID].ultimate.enhancedAlternateUltimateEnabled===true);
+  assert.equal(await page.locator('#full-settings [name="enhancedAlternateUltimateEnabled"]').isChecked(),true,'saving the enhanced designer synchronizes the sheet toggle');
+  assert.deepEqual(await page.evaluate(()=>alt.getAlternateOrb(a,'enhanced')),copied,'copy preserves geometry, images, glow and circular settings');
+  const normalName=copied.components[0].name;
+  await page.locator('#tsru-alternate-orb-hero-enhanced [data-alt-field="name"]').fill('Enhanced-only seal');
+  await page.locator('#tsru-alternate-orb-hero-enhanced [data-alt-save]').click();
+  await page.waitForFunction(()=>a.flags[ID].enhancedAlternateOrb.components[0].name==='Enhanced-only seal');
+  assert.equal(await page.evaluate(()=>alt.getAlternateOrb(a,'regular').components[0].name),normalName,'editing the copy cannot change the regular design');
+  await page.evaluate(async()=>{await alt.openAlternateOrbDesigner(a,{form:'enhanced'}).close();await alt.openAlternateOrbDesigner(a,{form:'regular'}).close()});
+  await page.locator('#full-settings [data-settings-clear]').click();
+  await page.locator('#full-settings [data-settings-menu="enhanced"]').click();
+  await page.screenshot({path:path.join(root,'character-settings-menu-smoke.png')});
+  // A draft created before an enhanced-mode change must not overwrite that change.
+  await page.evaluate(async()=>{settingsRoot.querySelector('[name="enhancedAlternateUltimateEnabled"]').checked=false;await core.saveUltimateConfigFromTab(a,$(settingsRoot))});
+  assert.equal(await page.evaluate(()=>a.flags[ID].ultimate.enhancedAlternateUltimateEnabled),true);
+  assert.equal(await page.evaluate(()=>a.flags[ID].ultimate.ultimateText),'Normal saved description');
+  assert.deepEqual(await page.evaluate(()=>[...settingsRoot.querySelectorAll('[name]')].map(n=>n.name).sort()),await page.evaluate(()=>settingNamesBefore));
   assert.deepEqual(errors,[]);assert.deepEqual(await page.evaluate(()=>failures),[]);
-  console.log('Browser smoke passed: 18 direct activation cases and 6 complete queued casts with real splash fetch/decode/rendering above windows, deferred initiative insertion, legacy normal/enhanced chat text, completion/resume, and Energy/free/circular resource reset. Builder, upload, orb replacement and GM counter checks also passed.');
+  console.log('Browser smoke passed: 18 direct activation cases and 6 complete queued casts with real splash fetch/decode/rendering above windows, deferred initiative insertion, legacy normal/enhanced chat text, completion/resume, and Energy/free/circular resource reset. Enhanced independent counters, designer copy, full settings template/menu/search and saved-field preservation checks also passed.');
  }catch(error){await page.screenshot({path:path.join(root,'orb-designer-smoke.png'),fullPage:true}).catch(()=>{});throw error;}finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
 })().catch(error=>{console.error(error);process.exit(1)});
