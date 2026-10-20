@@ -87,7 +87,9 @@ await drawMenus();window.multitypeReady=true;
   assert.equal(await page.evaluate(()=>pet.flags[ID].ultimate.elementId),"ice");
   await page.screenshot({path:path.join(root,"multitype-element-change-smoke.png")});
   await page.evaluate(()=>window.updateFails=true);
-  await page.locator('#actor-config [name="multitypeEnabled"]').uncheck();
+  // The failed save restores checked immediately; click instead of asking
+  // Playwright to assert an unchecked state that is intentionally rolled back.
+  await page.locator('#actor-config [name="multitypeEnabled"]').click();
   await page.waitForFunction(()=>document.querySelector('#actor-config [name="multitypeEnabled"]').checked&&!document.querySelector('#actor-config [name="multitypeEnabled"]').disabled);
   assert.match(await page.evaluate(()=>notices.at(-1)),/Could not save Element settings/);
   await page.evaluate(()=>{window.updateFails=false;failures.length=0;game.user.isGM=false});
