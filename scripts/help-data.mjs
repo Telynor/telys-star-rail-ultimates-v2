@@ -15,7 +15,7 @@ export function validateHelp(manual,controls){
 }
 export async function loadHelp({refresh=false}={}){
  if(refresh)cached=null;
- if(!cached){const version=globalThis.game?.modules?.get(HELP_MODULE)?.version??'3.14.0-preview.17';cached=Promise.all(['manual.json','controls.json'].map(async name=>{const r=await fetch(`${helpAsset(name)}?v=${encodeURIComponent(version)}`);if(!r.ok)throw Error(`Help file ${name} could not be loaded (${r.status}).`);return r.json();})).then(([m,c])=>validateHelp(m,c)).catch(e=>{cached=null;throw e;});}
+ if(!cached){const version=globalThis.game?.modules?.get(HELP_MODULE)?.version??'3.14.0-preview.18';cached=Promise.all(['manual.json','controls.json'].map(async name=>{const r=await fetch(`${helpAsset(name)}?v=${encodeURIComponent(version)}`);if(!r.ok)throw Error(`Help file ${name} could not be loaded (${r.status}).`);return r.json();})).then(([m,c])=>validateHelp(m,c)).catch(e=>{cached=null;throw e;});}
  return cached;
 }
 const stop=new Set(['a','an','the','and','of','to','for','is','are','do','does','how','what','where','can','i','my','me','it','in','on','with','please']);

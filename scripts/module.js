@@ -1,4 +1,7 @@
 import * as multitype from "./multitype.mjs";
+import * as actorControls from "./actor-sheet-controls.mjs";
+import * as npcRules from "./npc-rules.mjs";
+import * as npcInitiative from "./npc-initiative.mjs";
 import {openDocumentation,installDocumentationHelp} from './help-manual.mjs';
 import * as summoning from './ability-summons.mjs';
 import {bindAbilitySummonSettings} from './ability-summon-settings.mjs';
@@ -441,7 +444,7 @@ function normalizeUltimateContent(config) {
 }
 
 function getConfig(actor) {
-  const stored = actor?.getFlag(MODULE_ID, "ultimate") ?? {};
+  const stored = {...(actor?.getFlag(MODULE_ID, "ultimate") ?? {}), ...npcInitiative.sharedNpcInitiativeConfig(actor, game.actors)};
   const config = normalizeUltimateContent(foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_CONFIG), stored, {
     inplace: false,
     insertKeys: true,
@@ -677,10 +680,11 @@ function resolvedInitiativeFrameColor(config){return getInitiativeFrameColors().
 function initiativeFrameOverrideEnabled(config){const preset=String(config?.carouselFrameColorPreset||"");return Boolean(config?.carouselFrameColorOverride||(preset&&preset!=="ally-blue"));}
 function initiativeFrameColorOptions(config){const selected=String(config.carouselFrameColorPreset||"");return getInitiativeFrameColors().map(entry=>({...entry,selected:entry.id===selected}));}
 
-function getToughness(actor) {
+function getToughness(actor, token = null) {
   const stored = actor?.getFlag(MODULE_ID, "toughness") ?? {};
   const config = foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_TOUGHNESS), stored, {inplace: false, insertKeys: true, overwrite: true});
   config.enabled = Object.hasOwn(stored, "enabled") ? Boolean(stored.enabled) : actor?.type === "npc";
+  config.enabled = npcRules.npcToughnessEnabled(actor, config.enabled, token);
   config.max = Math.max(1, Number(config.max) || 100);
   config.current = clamp(config.current, 0, config.max);
   config.regenScore = Number(config.regenScore || 0) + Number(actor?._lightConeStats?.regen || 0);
@@ -3454,21 +3458,25 @@ function carouselPortraitData(combatant) {
   if (isAhaCombatant(combatant)){const config=getAhaConfig(),scale=clamp(config.combatantImageScale,50,800),bounds=initiativePortraitPositionBounds(scale);return {image:config.combatantImage||config.buttonImage||DEFAULT_AHA_CONFIG.combatantImage,x:clamp(config.combatantImageX,bounds.min,bounds.max),y:clamp(config.combatantImageY,bounds.min,bounds.max),scale,flip:Boolean(config.combatantImageFlip)};}
   const actor=combatant?.actor;
   const config=getVisualConfig(actor);
-  return {image:config.carouselImage || actor?.img || combatant?.img || "icons/svg/mystery-man.svg",x:config.carouselImageX,y:config.carouselImageY,scale:config.carouselImageScale,flip:config.carouselImageFlip};
+  const source = npcInitiative.npcInitiativeSource(actor, game.actors);
+  return {image:config.carouselImage || source?.img || actor?.img || combatant?.img || "icons/svg/mystery-man.svg",x:config.carouselImageX,y:config.carouselImageY,scale:config.carouselImageScale,flip:config.carouselImageFlip};
 }
 
 function openInitiativePortraitEditor(actor,{enhanced=false}={}){
-  if(!game.user.isGM)return;
-  const prefix=enhanced?"enhancedCarouselImage":"carouselImage",editorKey=`${actor?.id}:${enhanced?"enhanced":"normal"}`;
-  if(!actor)return;
+  if(!game.user.isGM||!actor)return;
+  const source=npcInitiative.npcInitiativeSource(actor,game.actors),shared=actor.type==="npc";
+  const prefix=enhanced?"enhancedCarouselImage":"carouselImage",editorKey=`${source?.uuid||source?.id}:${enhanced?"enhanced":"normal"}`;
   const existing=state.initiativePortraitEditors.get(editorKey);
   if(existing)return existing.bringToTop?.();
   const config=getConfig(actor),colors=getInitiativeFrameColors();
   const art={carouselImage:config[prefix]||"",carouselImageX:config[`${prefix}X`],carouselImageY:config[`${prefix}Y`],carouselImageScale:config[`${prefix}Scale`],carouselImageFlip:config[`${prefix}Flip`]};
-  const frameOverride=initiativeFrameOverrideEnabled(config),frameColor=frameOverride?(colors.find(entry=>entry.id===config.carouselFrameColorPreset)?.color||config.carouselFrameColor||"#58dfee"):"#58dfee";
+  const allied=shared?npcRules.npcAllegiance(actor)==="ally":true;
+  const fallbackImage=(enhanced?config.carouselImage:"")||source.img||"icons/svg/mystery-man.svg";
+  const frameOverride=(!shared||!npcRules.storedNpcAllegiance(actor))&&initiativeFrameOverrideEnabled(config),frameColor=frameOverride?(colors.find(entry=>entry.id===config.carouselFrameColorPreset)?.color||config.carouselFrameColor||"#58dfee"):(allied?"#58dfee":"#ee6666");
   const content=`<form class="tsru-initiative-portrait-editor">
+    ${shared?`<p class="notes" data-npc-initiative-sharing>Shared NPC framing: <strong>${escapeHTML(source.name)}</strong>. Used by this NPC’s existing and future token copies, whether Ally or Enemy. This editor changes only initiative artwork and framing.</p>`:""}
     <div class="tsru-initiative-editor-stage" data-initiative-editor-stage>
-      <button type="button" class="tsru-hsr-turn tsru-initiative-art-mask is-ally is-active ${frameOverride?"has-custom-frame":""}" style="--turn-color:${frameColor};--portrait-x:${art.carouselImageX}%;--portrait-y:${art.carouselImageY}%;--portrait-scale:${art.carouselImageScale/100};--portrait-flip:${art.carouselImageFlip?-1:1}"><span class="tsru-hsr-turn-pointer"><i></i></span><span class="tsru-hsr-turn-card"><span class="tsru-initiative-art-layer"><img src="${escapeHTML(art.carouselImage||config.carouselImage||actor.img||"icons/svg/mystery-man.svg")}" alt="${escapeHTML(actor.name)}" draggable="false"></span><b>${escapeHTML(actor.name)}</b><small>19</small></span></button>
+      <button type="button" class="tsru-hsr-turn tsru-initiative-art-mask ${allied?"is-ally":"is-enemy"} is-active ${frameOverride?"has-custom-frame":""}" style="--turn-color:${frameColor};--portrait-x:${art.carouselImageX}%;--portrait-y:${art.carouselImageY}%;--portrait-scale:${art.carouselImageScale/100};--portrait-flip:${art.carouselImageFlip?-1:1}"><span class="tsru-hsr-turn-pointer"><i></i></span><span class="tsru-hsr-turn-card"><span class="tsru-initiative-art-layer"><img src="${escapeHTML(art.carouselImage||fallbackImage)}" alt="${escapeHTML(actor.name)}" draggable="false"></span><b>${escapeHTML(actor.name)}</b><small>19</small></span></button>
     </div>
     <p class="notes">Drop artwork into the preview, drag to reposition it, and use the mouse wheel to zoom. Every change saves automatically.</p>
     <label><strong>Initiative portrait</strong><span class="tsru-file-control"><input type="text" name="carouselImage" value="${escapeHTML(art.carouselImage)}" placeholder="Use actor portrait"><button type="button" data-initiative-image-picker title="Browse Files"><i class="fas fa-file-import"></i></button></span></label>
@@ -3476,11 +3484,23 @@ function openInitiativePortraitEditor(actor,{enhanced=false}={}){
     <div class="tsru-initiative-editor-status"><i class="fas fa-check"></i> <span>Saved</span></div>
   </form>`;
   let saveTimer=null,saving=false,pending=false,flushSave=()=>{},cleanupEditorEvents=()=>{};
-  const dialog=new Dialog({title:`${actor.name} — ${enhanced?"Enhanced ":""}Initiative Portrait`,content,buttons:{close:{label:"Close"}},render:html=>{
+  const dialog=new Dialog({title:`${source.name} — ${shared?"Shared NPC ":""}${enhanced?"Enhanced ":""}Initiative Portrait`,content,buttons:{close:{label:"Close"}},render:html=>{
     const form=html.find(".tsru-initiative-portrait-editor"),stage=form.find("[data-initiative-editor-stage]")[0],image=stage?.querySelector("img"),card=stage?.querySelector(".tsru-hsr-turn"),status=form.find(".tsru-initiative-editor-status span");
     const values=({normalize=false}={})=>{const carouselImageScale=clamp(Number(form.find('[name="carouselImageScale"]').val())||100,50,800),bounds=initiativePortraitPositionBounds(carouselImageScale),data={carouselImage:String(form.find('[name="carouselImage"]').val()||""),carouselImageX:clamp(Number(form.find('[name="carouselImageX"]').val())||0,bounds.min,bounds.max),carouselImageY:clamp(Number(form.find('[name="carouselImageY"]').val())||0,bounds.min,bounds.max),carouselImageScale,carouselImageFlip:Boolean(form.find('[name="carouselImageFlip"]').prop("checked"))};form.find('[name="carouselImageX"],[name="carouselImageY"]').attr({min:bounds.min,max:bounds.max});if(normalize){form.find('[name="carouselImageX"]').val(Math.round(data.carouselImageX));form.find('[name="carouselImageY"]').val(Math.round(data.carouselImageY));form.find('[name="carouselImageScale"]').val(Math.round(data.carouselImageScale));}return data;};
-    const preview=()=>{const data=values();image.src=data.carouselImage||config.carouselImage||actor.img||"icons/svg/mystery-man.svg";card.style.setProperty("--portrait-x",`${data.carouselImageX}%`);card.style.setProperty("--portrait-y",`${data.carouselImageY}%`);card.style.setProperty("--portrait-scale",String(data.carouselImageScale/100));card.style.setProperty("--portrait-flip",data.carouselImageFlip?-1:1);};
-    const save=async()=>{if(saving){pending=true;return;}saving=true;pending=false;status.text("Saving…");const data=values();try{await actor.update({[`flags.${MODULE_ID}.ultimate.${prefix}`]:data.carouselImage,[`flags.${MODULE_ID}.ultimate.${prefix}X`]:data.carouselImageX,[`flags.${MODULE_ID}.ultimate.${prefix}Y`]:data.carouselImageY,[`flags.${MODULE_ID}.ultimate.${prefix}Scale`]:data.carouselImageScale,[`flags.${MODULE_ID}.ultimate.${prefix}Flip`]:data.carouselImageFlip},{tsruAutosave:true,render:false});refreshInitiativeCarousel();if(enhanced)syncEnhancedArtworkSheet(actor,Object.fromEntries(Object.entries(data).map(([field,value])=>[`${prefix}${field.slice("carouselImage".length)}`,value])));status.text("Saved");}catch(error){console.error(`${MODULE_ID} | Initiative portrait autosave failed`,error);status.text("Save failed");}finally{saving=false;if(pending)save();}};
+    const preview=()=>{const data=values();image.src=data.carouselImage||fallbackImage;card.style.setProperty("--portrait-x",`${data.carouselImageX}%`);card.style.setProperty("--portrait-y",`${data.carouselImageY}%`);card.style.setProperty("--portrait-scale",String(data.carouselImageScale/100));card.style.setProperty("--portrait-flip",data.carouselImageFlip?-1:1);};
+    const save=async()=>{
+      if(saving){pending=true;return;}
+      saving=true;pending=false;status.text("Saving…");
+      const data=values(),fields=Object.fromEntries(Object.entries(data).map(([field,value])=>[`${prefix}${field.slice("carouselImage".length)}`,value]));
+      try{
+        if(shared)await npcInitiative.saveNpcInitiativeConfig(actor,fields);
+        else await actor.update(Object.fromEntries(Object.entries(fields).map(([field,value])=>[`flags.${MODULE_ID}.ultimate.${field}`,value])),{tsruAutosave:true,render:false});
+        refreshInitiativeCarousel();
+        if(enhanced)syncEnhancedArtworkSheet(actor,fields);
+        status.text("Saved");
+      }catch(error){console.error(`${MODULE_ID} | Initiative portrait autosave failed`,error);status.text("Save failed");}
+      finally{saving=false;if(pending)save();}
+    };
     flushSave=save;const scheduleSave=()=>{values({normalize:true});preview();status.text("Unsaved changes…");window.clearTimeout(saveTimer);saveTimer=window.setTimeout(()=>{saveTimer=null;save();},180);};
     form.on("input change","input",scheduleSave);
     form.find("[data-initiative-image-picker]").on("click",event=>{event.preventDefault();new FilePicker({type:"image",current:values().carouselImage,callback:path=>form.find('[name="carouselImage"]').val(path).trigger("change")}).browse();});
@@ -3561,10 +3581,8 @@ class HsrInitiativeCarousel {
     const displayName=combatant?.actor?.name||combatant?.name||"Unknown";
     const inserted=kind!=="normal"&&kind!=="aha";
     const actorConfig=getConfig(combatant?.actor);
-    const disposition=Number(combatant?.token?.disposition);
-    const friendlyDisposition=Number(globalThis.CONST?.TOKEN_DISPOSITIONS?.FRIENDLY??1);
-    const allied=Number.isFinite(disposition)?disposition===friendlyDisposition:combatant?.actor?.type==="character";
-    const customFrameColor=initiativeFrameOverrideEnabled(actorConfig)?resolvedInitiativeFrameColor(actorConfig):"";
+    const allied=npcRules.initiativeAlly(combatant);
+    const customFrameColor=!npcRules.storedNpcAllegiance(combatant?.actor)&&initiativeFrameOverrideEnabled(actorConfig)?resolvedInitiativeFrameColor(actorConfig):"";
     const labels={ultimate:"ULT",talent:"TALENT",advance:"ADV",elation:"ELATION",aha:"AHA"};
     const initiative=Number.isFinite(Number(combatant.initiative))?Number(combatant.initiative):"—";
     return `<button type="button" class="tsru-hsr-turn tsru-initiative-art-mask ${active?"is-active":""} ${inserted?"is-inserted":""} ${allied?"is-ally":"is-enemy"} ${customFrameColor?"has-custom-frame":""} is-${kind} ${nextRound?"is-next-round":""}" data-combatant-id="${combatant.id}" title="${escapeHTML(displayName)} — Initiative ${initiative}" style="--portrait-x:${portrait.x}%;--portrait-y:${portrait.y}%;--portrait-scale:${portrait.scale/100};--portrait-flip:${portrait.flip?-1:1};${customFrameColor?`--turn-color:${customFrameColor};`:""}"><span class="tsru-hsr-turn-pointer"><i></i></span><span class="tsru-hsr-turn-card"><span class="tsru-initiative-art-layer"><img src="${escapeHTML(portrait.image)}" alt="${escapeHTML(displayName)}"></span><b>${escapeHTML(displayName)}</b>${labels[kind]?`<em>${labels[kind]}</em>`:""}<small>${initiative}</small></span></button>`;
@@ -3648,12 +3666,12 @@ class BossHud {
       const design=encounter.bossConfig || getConfig(actor);
       const hp=actor?.system?.attributes?.hp ?? {};
       const value=Math.max(0,Number(hp.value)||0),max=Math.max(1,Number(hp.max)||1),percent=clamp(value/max*100,0,100);
-      const toughness=getToughness(actor),toughnessPercent=clamp(toughness.current/toughness.max*100,0,100);
+      const toughness=getToughness(actor,combatant.token),toughnessPercent=clamp(toughness.current/toughness.max*100,0,100);
       const remaining=Math.max(0,encounter.totalPhases-encounter.currentPhase+1);
       const orbs=Array.from({length:encounter.totalPhases},(_v,index)=>`<i class="${index<remaining?"is-active":""}"></i>`).join("");
       const portrait=bossPortraitConfig(actor);
-      const weaknesses=getElements().filter(element=>effectiveToughnessWeaknesses(actor).includes(element.id)).map(element=>`<img src="${escapeHTML(element.icon||"icons/svg/aura.svg")}" title="${escapeHTML(element.name)}">`).join("");
-      return `<article class="tsru-boss-entry" data-combatant-id="${combatant.id}" style="--boss-width:${design.bossHudWidth}px;--boss-health-h:${design.bossHudHealthHeight}px;--boss-toughness-h:${design.bossHudToughnessHeight}px;--boss-portrait-x:${portrait.x}%;--boss-portrait-y:${portrait.y}%;--boss-portrait-scale:${portrait.scale/100}"><div class="tsru-boss-drag" title="Move boss bar"><i class="fas fa-grip-lines"></i></div><div class="tsru-boss-portrait"><img src="${escapeHTML(portrait.image)}" alt="${escapeHTML(actor?.name||combatant.name)}"></div><div class="tsru-boss-main"><header><span class="tsru-boss-phases">${orbs}</span><strong>${escapeHTML(actor?.name||combatant.name)}</strong><span class="tsru-boss-weaknesses">${weaknesses}</span></header><div class="tsru-boss-health" style="--boss-hp:${percent}%"><i></i><span>${Math.round(percent)}%</span></div><div class="tsru-boss-toughness" style="--boss-toughness:${toughnessPercent}%"><i></i></div></div></article>`;
+      const weaknesses=toughness.enabled?getElements().filter(element=>effectiveToughnessWeaknesses(actor).includes(element.id)).map(element=>`<img src="${escapeHTML(element.icon||"icons/svg/aura.svg")}" title="${escapeHTML(element.name)}">`).join(""):"";
+      return `<article class="tsru-boss-entry" data-combatant-id="${combatant.id}" style="--boss-width:${design.bossHudWidth}px;--boss-health-h:${design.bossHudHealthHeight}px;--boss-toughness-h:${design.bossHudToughnessHeight}px;--boss-portrait-x:${portrait.x}%;--boss-portrait-y:${portrait.y}%;--boss-portrait-scale:${portrait.scale/100}"><div class="tsru-boss-drag" title="Move boss bar"><i class="fas fa-grip-lines"></i></div><div class="tsru-boss-portrait"><img src="${escapeHTML(portrait.image)}" alt="${escapeHTML(actor?.name||combatant.name)}"></div><div class="tsru-boss-main"><header><span class="tsru-boss-phases">${orbs}</span><strong>${escapeHTML(actor?.name||combatant.name)}</strong><span class="tsru-boss-weaknesses">${weaknesses}</span></header><div class="tsru-boss-health" style="--boss-hp:${percent}%"><i></i><span>${Math.round(percent)}%</span></div>${toughness.enabled?`<div class="tsru-boss-toughness" style="--boss-toughness:${toughnessPercent}%"><i></i></div>`:""}</div></article>`;
     }).join("");
     return this;
   }
@@ -5576,7 +5594,7 @@ function removeBrokenTokenOverlay(token) {
 async function renderBrokenTokenOverlay(token) {
   if(!token?.actor)return;
   const image=String(getBreakFonts().brokenOverlayImage||"").trim();
-  const broken=getToughness(token.actor).enabled&&getToughness(token.actor).current<=0;
+  const broken=getToughness(token.actor,token.document).enabled&&getToughness(token.actor,token.document).current<=0;
   if(!image||!broken){removeBrokenTokenOverlay(token);return;}
   const existing=token.__tsruBrokenOverlay;
   if(existing?.__tsruSource===image){existing.width=token.w;existing.height=token.h;return;}
@@ -5585,7 +5603,7 @@ async function renderBrokenTokenOverlay(token) {
   token.__tsruBrokenOverlayLoading=image;
   try{
     const texture=await loadTexture(image);
-    if(token.__tsruBrokenOverlayLoading!==image||!token.parent||!token.actor||getToughness(token.actor).current>0||String(getBreakFonts().brokenOverlayImage||"").trim()!==image)return;
+    if(token.__tsruBrokenOverlayLoading!==image||!token.parent||!token.actor||!getToughness(token.actor,token.document).enabled||getToughness(token.actor).current>0||String(getBreakFonts().brokenOverlayImage||"").trim()!==image)return;
     const sprite=new PIXI.Sprite(texture);
     sprite.__tsruSource=image;sprite.name="tsru-broken-token-overlay";sprite.position.set(0,0);sprite.width=token.w;sprite.height=token.h;sprite.zIndex=9999;sprite.eventMode="none";sprite.interactive=false;
     token.sortableChildren=true;token.addChild(sprite);token.__tsruBrokenOverlay=sprite;
@@ -5775,7 +5793,7 @@ async function applyToughnessDamage(attacker, targets, amount, eventKey = "", so
     const actor = target?.actor ?? target?.document?.actor ?? target;
     if (!actor || !["npc","character"].includes(actor.type)) continue;
     if (toughnessWeaknessMode(target) === "none") continue;
-    const toughness = getToughness(actor);
+    const toughness = getToughness(actor, target);
     const matchesWeakness = Boolean(elementId && effectiveToughnessWeaknesses(target).includes(elementId));
     if (!toughness.enabled || (!breakCharacter && !freeForAll && !matchesWeakness)) continue;
     const signature = `${attacker.uuid}:${actor.uuid}:${amount}:${elementId}:${attackElement.itemUuid}:${attackElement.activityId}`;
@@ -6515,7 +6533,7 @@ class DMCombatMenu extends FormApplication {
     if (!game.user.isGM) return {};
     const tabs=[{id:"ultimates",label:"Alt Ultimates",icon:"fas fa-burst"},{id:"talents",label:"Talents",icon:"fas fa-star"},{id:"weaknesses",label:"Weaknesses",icon:"fas fa-shield-halved"},{id:"elements",label:"Element Change",icon:"fas fa-shuffle"},{id:"stances",label:"Stances",icon:"fas fa-arrows-rotate"},{id:"phases",label:"Phases",icon:"fas fa-layer-group"},{id:"dot",label:"DoT & Cones",icon:"fas fa-hourglass-half"}].map(tab=>({...tab,active:this.tab===tab.id}));
     const talentGroups=combatTalentGroups();
-    const enemies=(canvas?.tokens?.placeables??[]).filter(token=>token.actor?.type==="npc").map(token=>{const target=token.document,permanent=getToughness(token.actor).weaknesses,active=effectiveToughnessWeaknesses(target),mode=toughnessWeaknessMode(target);return {uuid:target.uuid,name:token.name||token.actor.name,image:token.actor.img,locked:Boolean(target.getFlag(MODULE_ID,"miniWeaknessLocked")),modeLabel:mode==="all"?"All active":mode==="none"?"None active":"",elements:getElements().map(element=>({...element,permanent:permanent.includes(element.id),active:active.includes(element.id)}))};});
+    const enemies=(canvas?.tokens?.placeables??[]).filter(token=>token.actor?.type==="npc"&&npcRules.npcAllegiance(token.actor,token.document)!=="ally").map(token=>{const target=token.document,permanent=getToughness(token.actor).weaknesses,active=effectiveToughnessWeaknesses(target),mode=toughnessWeaknessMode(target);return {uuid:target.uuid,name:token.name||token.actor.name,image:token.actor.img,locked:Boolean(target.getFlag(MODULE_ID,"miniWeaknessLocked")),modeLabel:mode==="all"?"All active":mode==="none"?"None active":"",elements:getElements().map(element=>({...element,permanent:permanent.includes(element.id),active:active.includes(element.id)}))};});
     const stances=game.actors.filter(actor=>actor.type==="character"&&getConfig(actor).enhancedStanceEnabled).sort((a,b)=>a.name.localeCompare(b.name)).map(actor=>({id:actor.id,name:actor.name,image:actor.img,active:getConfig(actor).enhancedStanceActive}));
     const bosses=new BossPhaseControl().bosses().map(({combatant,encounter,totalPhases,name})=>({id:combatant.id,name,image:combatant.actor?.img||combatant.img,current:encounter.currentPhase,total:totalPhases,phases:Array.from({length:totalPhases},(_,index)=>({number:index+1,active:encounter.currentPhase===index+1}))}));
     const alternateActors=game.actors.filter(actor=>actor.type==="character"&&usesAlternateUltimate(getConfig(actor))).sort((a,b)=>a.name.localeCompare(b.name)).map(actor=>({name:actor.name,controls:alternateOrbControls(actor)}));
@@ -6579,7 +6597,7 @@ class StarRailGMPanel extends FormApplication {
     const initiativeActorUuids = new Set(normalCombatants.map(entry => entry.actor?.uuid).filter(Boolean));
     const elements = getElements();
     const targetedIds = new Set([...(game.user?.targets ?? []), ...(canvas?.tokens?.controlled ?? [])].map(token => token.id));
-    const sceneEnemies = (canvas?.tokens?.placeables ?? []).filter(token => token.actor?.type === "npc" && (initiativeTokenIds.has(token.id) || initiativeActorUuids.has(token.actor.uuid))).map(token => {
+    const sceneEnemies = (canvas?.tokens?.placeables ?? []).filter(token => token.actor?.type === "npc" && npcRules.npcAllegiance(token.actor,token.document)!=="ally" && (initiativeTokenIds.has(token.id) || initiativeActorUuids.has(token.actor.uuid))).map(token => {
       const actor = token.actor;
       const config = getToughness(actor);
       const temporary = temporaryToughnessWeaknesses(token);
@@ -7192,6 +7210,9 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
   data.talentCombatId = talentCombatForActor(actor)?.id ?? "";
   // A pending draft save must not overwrite the independently saved mode switch.
   const configUpdate = {...data};
+  // NPC portrait fields save independently to their shared source. A pending
+  // sheet draft must not restore an older crop after the visual editor saves.
+  if(actor.type==="npc")for(const field of npcInitiative.NPC_INITIATIVE_FIELDS)delete configUpdate[field];
   delete configUpdate.alternateUltimateEnabled;
   delete configUpdate.enhancedAlternateUltimateEnabled;
   delete configUpdate.skillSummons;
@@ -7217,6 +7238,11 @@ function activateConfigListeners(actor, tab, app) {
   tab.find("input, select, textarea, button").prop("disabled", false);
   tab[0].dataset.altActorId = actor.id;
   multitype.bindSettings(actor, tab[0]);
+  if(actor.type==="npc")tab.on("input.tsru-npc-initiative change.tsru-npc-initiative", npcInitiative.NPC_INITIATIVE_FIELDS.map(field=>`[name="${field}"]`).join(","), async event=>{
+    const field=event.currentTarget;
+    try{await npcInitiative.saveNpcInitiativeConfig(actor,{[field.name]:field.type==="checkbox"?field.checked:field.value});refreshInitiativeCarousel();}
+    catch(error){ui.notifications.error(`Could not save shared NPC initiative artwork: ${error.message}`);}
+  });
   arrangeUltimateSettings(tab);
   bindAbilitySummonSettings(actor, tab[0]);
   initializeCollapsibleUltimateSections(actor, tab);
@@ -7938,28 +7964,26 @@ function observeCharacterSheetTabs(app) {
 
 function openToughnessConfig(actor) {
   const config = getToughness(actor);
-  const carousel = getConfig(actor);
   const elements = getElements();
   const weaknessRows = elements.map(element => `<label class="tsru-weakness-choice"><input type="checkbox" name="weakness" value="${escapeHTML(element.id)}" ${config.weaknesses.includes(element.id) ? "checked" : ""}><img src="${escapeHTML(element.icon || "icons/svg/aura.svg")}"><span>${escapeHTML(element.name)}</span></label>`).join("");
   const content = `<form class="tsru-toughness-form">
     <p>Configure this actor's Star Rail Toughness and elemental weaknesses. These controls are GM-only.</p>
-    <label class="tsru-toughness-toggle"><span><strong>Enable Toughness</strong><small>Show and automatically process Toughness while this actor is in combat.</small></span><input type="checkbox" name="enabled" ${config.enabled ? "checked" : ""}></label>
+    <div class="tsru-toughness-related"><div data-npc-allegiance-slot></div><button type="button" data-open-multitype-from-toughness><i class="fas fa-shuffle"></i> Multitype &amp; Elements</button></div>
+    ${actor.type==="npc"?'<p>Ally hides Toughness and uses a blue initiative frame. Enemy enables Toughness and uses a red frame. Switching retains charge and weakness settings.</p>':`<label class="tsru-toughness-toggle"><span><strong>Enable Toughness</strong><small>Show and automatically process Toughness while this actor is in combat.</small></span><input type="checkbox" name="enabled" ${config.enabled ? "checked" : ""}></label>`}
     <div class="tsru-toughness-numbers"><label><strong>Current</strong><input type="number" name="current" min="0" value="${config.current}"></label><label><strong>Maximum</strong><input type="number" name="max" min="1" value="${config.max}"></label></div>
     <fieldset><legend>Elemental Weaknesses</legend><div class="tsru-weakness-grid">${weaknessRows || "<em>Create Elements in Module Settings first.</em>"}</div></fieldset>
-    ${actor.type==="npc"?`<fieldset class="tsru-carousel-art-config"><legend>Initiative Carousel Artwork</legend><label><strong>NPC carousel art</strong><small>Used by the HSR initiative carousel instead of the token portrait.</small><div class="tsru-file-control"><input type="text" name="carouselImage" value="${escapeHTML(carousel.carouselImage)}" placeholder="Use combatant or actor image"><button type="button" data-carousel-picker title="Browse Files"><i class="fas fa-file-import"></i></button></div></label><div class="tsru-toughness-numbers"><label><strong>Art X</strong><input type="number" name="carouselImageX" min="-1000" max="1100" value="${carousel.carouselImageX}"></label><label><strong>Art Y</strong><input type="number" name="carouselImageY" min="-1000" max="1100" value="${carousel.carouselImageY}"></label><label><strong>Zoom %</strong><input type="number" name="carouselImageScale" min="50" max="800" value="${carousel.carouselImageScale}"></label></div></fieldset>`:""}
+    ${actor.type==="npc"?`<div class="tsru-carousel-art-config"><button type="button" data-open-npc-initiative-editor><i class="fas fa-crop"></i> Format Initiative Portrait</button><p class="notes">Drag, zoom and flip the tracker picture. Framing is shared by this NPC’s existing and future copies, whether Ally or Enemy. Portrait edits save immediately.</p></div>`:""}
   </form>`;
   const dialog = new Dialog({title: `${actor.name} — Toughness`, content, buttons: {
     save: {icon: '<i class="fas fa-save"></i>', label: "Save", callback: async html => {
       const max = Math.max(1, Number(html.find('[name="max"]').val()) || 100);
-      const data = {enabled: html.find('[name="enabled"]').prop("checked"), max, current: clamp(html.find('[name="current"]').val(), 0, max), weaknesses: html.find('[name="weakness"]:checked').map((_i, field) => field.value).get(), temporaryWeaknesses: config.temporaryWeaknesses, discoveredWeaknesses: config.discoveredWeaknesses};
-      await actor.setFlag(MODULE_ID, "toughness", data);
-      if(actor.type==="npc"){const scale=clamp(html.find('[name="carouselImageScale"]').val(),50,800),bounds=initiativePortraitPositionBounds(scale);await actor.update({[`flags.${MODULE_ID}.ultimate.carouselImage`]:String(html.find('[name="carouselImage"]').val()||""),[`flags.${MODULE_ID}.ultimate.carouselImageX`]:clamp(html.find('[name="carouselImageX"]').val(),bounds.min,bounds.max),[`flags.${MODULE_ID}.ultimate.carouselImageY`]:clamp(html.find('[name="carouselImageY"]').val(),bounds.min,bounds.max),[`flags.${MODULE_ID}.ultimate.carouselImageScale`]:scale});}
+      await actor.update({[`flags.${MODULE_ID}.toughness.enabled`]:actor.type==="npc"?npcRules.npcAllegiance(actor)==="enemy":html.find('[name="enabled"]').prop("checked"), [`flags.${MODULE_ID}.toughness.max`]:max, [`flags.${MODULE_ID}.toughness.current`]:clamp(html.find('[name="current"]').val(),0,max), [`flags.${MODULE_ID}.toughness.weaknesses`]:html.find('[name="weakness"]:checked').map((_i,field)=>field.value).get()});
       refreshToughnessBars();
       refreshInitiativeCarousel();
     }},
     refill: {icon: '<i class="fas fa-shield"></i>', label: "Refill", callback: async html => {
       const max = Math.max(1, Number(html.find('[name="max"]').val()) || config.max);
-      await actor.setFlag(MODULE_ID, "toughness", {...config, current: max, max});
+      await actor.update({[`flags.${MODULE_ID}.toughness.current`]:max,[`flags.${MODULE_ID}.toughness.max`]:max});
       refreshToughnessBars();
     }},
     hideWeaknesses: {icon: '<i class="fas fa-eye-slash"></i>', label: "Reset Discoveries", callback: async () => {
@@ -7967,7 +7991,11 @@ function openToughnessConfig(actor) {
       refreshToughnessBars();
     }}
   }, default: "save"}, {width: 540, classes: ["tsru-toughness-dialog"]});
-  Hooks.once("renderDialog",rendered=>{if(rendered!==dialog)return;rendered.element.find("[data-carousel-picker]").on("click",event=>{event.preventDefault();const input=rendered.element.find('[name="carouselImage"]');new FilePicker({type:"image",current:input.val(),callback:path=>input.val(path).trigger("change")}).browse();});});
+  Hooks.once("renderDialog",rendered=>{if(rendered!==dialog)return;
+    const root=rendered.element?.jquery?rendered.element[0]:rendered.element;
+    if(actor.type==="npc"){root.querySelector("[data-npc-allegiance-slot]").append(actorControls.allegianceSwitch(actor));actorControls.bindAllegianceControls(actor,root);}
+    root.querySelector("[data-open-multitype-from-toughness]")?.addEventListener("click",()=>multitype.openSettings(actor));
+    root.querySelector("[data-open-npc-initiative-editor]")?.addEventListener("click",()=>openInitiativePortraitEditor(actor));});
   dialog.render(true);
 }
 
@@ -7984,7 +8012,7 @@ function drawToughnessRect(graphics, x, y, width, height, color, alpha = 1, radi
 function renderToughnessBar(token) {
   token?.children?.filter?.(child => child.name === "tsru-toughness-bar").forEach(child => child.destroy({children: true}));
   if (!token?.actor || !["npc","character"].includes(token.actor.type) || !game.combat?.combatants?.some(c => c.tokenId === token.document.id)) return;
-  const config = getToughness(token.actor);
+  const config = getToughness(token.actor, token.document);
   if (!config.enabled) return;
   const PIXIRef = globalThis.PIXI;
   if (!PIXIRef?.Container || !PIXIRef?.Graphics) return;
@@ -8025,39 +8053,30 @@ function refreshToughnessBars() {
 }
 
 function injectToughnessHeaderButton(app, html) {
-  const actor = app.actor ?? app.document;
-  if (!game.user?.isGM || actor?.documentName !== "Actor" || !["npc","character"].includes(actor.type)) return;
-  const appElement = app.element?.jquery ? app.element : $(app.element ?? html);
-  const renderedElement = html?.jquery ? html : $(html);
-  const root = appElement.length ? appElement : renderedElement;
-  if (!root.length) return;
-  const header = root.find(".window-header").first();
-  if (!header.length) return;
-  const controls = header.find(".window-controls").first();
-  const addButton=(button,callback)=>{if(controls.length)controls.prepend(button);else header.find("button.close, [data-action='close']").first().before(button);button.on("click.tsru",event=>{event.preventDefault();event.stopPropagation();callback();});};
-  if(!root.find(".tsru-open-toughness").length)addButton($(`<button type="button" class="header-control icon tsru-open-toughness" data-tooltip="Configure Toughness" aria-label="Configure Toughness"><i class="fas fa-shield-halved"></i></button>`),()=>openToughnessConfig(actor));
-  if(!root.find(".tsru-open-boss-config").length)addButton($(`<button type="button" class="header-control icon tsru-open-boss-config" data-tooltip="Configure Boss Encounter" aria-label="Configure Boss Encounter"><i class="fas fa-skull"></i></button>`),()=>openUltimateConfig(actor,app));
+  const actor = actorControls.sheetActor(app);
+  if (!game.user?.isGM || !actor || !["npc","character"].includes(actor.type)) return;
+  const group = actorControls.actorSheetControls(app, html);
+  if (!group) return;
+  actorControls.actorHeaderButton(group, {key:"toughness", label:"Configure Toughness", icon:"fas fa-shield-halved", order:10, className:"tsru-open-toughness", onClick:()=>openToughnessConfig(actor)});
+  const multitypeButton = actorControls.actorHeaderButton(group, {key:"multitype", label:"Configure Multitype and Elements", icon:"fas fa-shuffle", order:20, className:"tsru-open-multitype tsru-multitype-launcher", onClick:()=>multitype.openSettings(actor)});
+  multitypeButton.dataset.multitypeOpen = actor.uuid;
+  if (actor.type === "npc" && !group.querySelector("[data-npc-allegiance]")) group.append(actorControls.allegianceSwitch(actor,{compact:true}));
+  actorControls.bindAllegianceControls(actor,group);
+  actorControls.actorHeaderButton(group, {key:"boss", label:"Configure Boss Encounter", icon:"fas fa-skull", order:50, className:"tsru-open-boss-config", onClick:()=>openUltimateConfig(actor,app)});
+  if(actor.type==="npc")actorControls.actorHeaderButton(group, {key:"initiative", label:"Format Initiative Portrait — shared by this NPC’s copies", icon:"fas fa-crop", order:35, onClick:()=>openInitiativePortraitEditor(actor)});
+  actorControls.orderActorControls(group);
 }
 
 function addActorHeaderButton(app, buttons) {
-  if (!game.user.isGM) return;
-  if (app.actor?.type === "npc") {
-    buttons.unshift({label: "Toughness", class: "tsru-open-toughness", icon: "fas fa-shield-halved", onclick: () => openToughnessConfig(app.actor)});
-    buttons.unshift({label: "Boss", class: "tsru-open-boss-config", icon: "fas fa-skull", onclick: () => openUltimateConfig(app.actor,app)});
-    return;
-  }
-  if (app.actor?.type !== "character") return;
-  buttons.unshift({label: "Toughness", class: "tsru-open-toughness", icon: "fas fa-shield-halved", onclick: () => openToughnessConfig(app.actor)});
-  buttons.unshift({
-    label: "Ultimate",
-    class: "tsru-open-config",
-    icon: "fas fa-burst",
-    onclick: () => {
-      const tabLink = app.element.find?.('[data-tab="tsru-ultimate"]');
-      if (tabLink?.length) tabLink.trigger("click");
-      else ui.notifications.warn("Open the full character sheet to access the Ultimate tab.");
-    }
-  });
+  const actor = actorControls.sheetActor(app);
+  if (!game.user.isGM || actor?.type !== "character") return;
+  // Toughness, Multitype and Boss use the compact shared header group on both
+  // sheet generations. Retain the legacy direct Ultimate-tab shortcut.
+  buttons.unshift({label:"Ultimate", class:"tsru-open-config", icon:"fas fa-burst", onclick:()=>{
+    const tabLink=app.element.find?.('[data-tab="tsru-ultimate"]');
+    if(tabLink?.length)tabLink.trigger("click");
+    else openUltimateConfig(actor,app);
+  }});
 }
 
 function addHudTool(controls) {
@@ -8131,6 +8150,7 @@ function bindCraftingSceneControl(app,html){
 function registerApi() {
   installDocumentationHelp();
   multitype.installMultitype({getConfig,getElements});
+  actorControls.installActorControls();
   summoning.installSummoningHooks();
   configureAlternateUltimates({isResolving: actor => state.ultimateLocks.has(actor.id)});
   game.modules.get(MODULE_ID).api = {
@@ -8142,6 +8162,9 @@ function registerApi() {
     resetAlternateOrbCounters,
     getUltimateCharge: actor => alternateUltimateCharge(actor, getConfig(actor)),
     getConfig,
+    getActorSheetControls:actorControls.actorSheetControls,
+    setNpcAllegiance:actorControls.setNpcAllegiance,
+    getNpcAllegiance:npcRules.npcAllegiance,
     getAttackElement:(actor,source={})=>multitype.attackContext(actor,source),
     changeElement:multitype.changeElement,
     openElementSettings:multitype.openSettings,
@@ -8269,7 +8292,7 @@ Hooks.on("renderActorSheet", observeCharacterSheetTabs);
 Hooks.on("renderCharacterActorSheet", observeCharacterSheetTabs);
 Hooks.on("renderActorSheet", injectToughnessHeaderButton);
 Hooks.on("renderApplicationV2", (app, html) => {
-  const actor = app.actor ?? app.document;
+  const actor = actorControls.sheetActor(app);
   if (actor?.documentName === "Actor" && actor.type === "character") {
     injectUltimateTab(app, html);
     injectEidolonTab(app, html);
@@ -8288,7 +8311,10 @@ Hooks.on("renderApplicationV2", (app, html) => {
       activateLightConeInventoryContext(app, root);
     });
   }
-  if (actor?.documentName === "Actor" && ["npc","character"].includes(actor.type)) injectToughnessHeaderButton(app, html);
+  if (actor && ["npc","character"].includes(actor.type)) {
+    injectToughnessHeaderButton(app, html);
+    requestAnimationFrame(()=>injectToughnessHeaderButton(app, app.element??html));
+  }
 });
 Hooks.on("renderActorSheet", injectEnergyAbility);
 Hooks.on("renderCharacterActorSheet", injectEnergyAbility);

@@ -252,6 +252,12 @@
       "selector": ".tsru-action-advance-picker",
       "topic": "initiative",
       "label": "Action Advance picker"
+    },
+    {
+      "id": "actor-controls",
+      "selector": ".tsru-actor-config-controls",
+      "topic": "npc-controls",
+      "label": "Compact Actor sheet controls"
     }
   ],
   "fields": [
@@ -4120,6 +4126,63 @@
       "topic": "multitype",
       "source": "templates/multitype-settings.hbs",
       "description": "This specific Actor’s current HSR Element, used by ordinary attacks and unassigned attacks. Define choices in the Element Manager. In Type Changer, live changes update this same value. None removes its HSR Element. Saves immediately without changing Path, weakness definitions, charge or D&D5e damage types."
+    },
+    {
+      "id": "initiative-art--carouselImage",
+      "kind": "field",
+      "scope": "initiative-art",
+      "key": "carouselImage",
+      "label": "Initiative portrait",
+      "description": "Browse or drop an accessible image path for this tracker portrait. Empty uses the source Actor portrait in the normal form, or normal artwork in the enhanced form. Changes save automatically. NPCs share this value through their source Actor, independently for normal and enhanced framing.",
+      "topic": "initiative",
+      "type": "text",
+      "source": "scripts/module.js"
+    },
+    {
+      "id": "initiative-art--carouselImageX",
+      "kind": "field",
+      "scope": "initiative-art",
+      "key": "carouselImageX",
+      "label": "Horizontal position",
+      "description": "Move the artwork horizontally as a percentage of the initiative card width. 50 centers it; 0 is a valid offset. Larger zoom values allow additional travel. Changes save automatically. NPCs share this value through their source Actor, independently for normal and enhanced framing.",
+      "topic": "initiative",
+      "type": "number",
+      "source": "scripts/module.js"
+    },
+    {
+      "id": "initiative-art--carouselImageY",
+      "kind": "field",
+      "scope": "initiative-art",
+      "key": "carouselImageY",
+      "label": "Vertical position",
+      "description": "Move the artwork vertically as a percentage of the initiative card height. 50 centers it. Drag the preview for visual placement. Changes save automatically. NPCs share this value through their source Actor, independently for normal and enhanced framing.",
+      "topic": "initiative",
+      "type": "number",
+      "source": "scripts/module.js"
+    },
+    {
+      "id": "initiative-art--carouselImageScale",
+      "kind": "field",
+      "scope": "initiative-art",
+      "key": "carouselImageScale",
+      "label": "Portrait zoom",
+      "description": "Set image zoom as a percentage: 100 is its normal contained size. Scroll over the preview to adjust by five percentage points. Changes save automatically. NPCs share this value through their source Actor, independently for normal and enhanced framing.",
+      "topic": "initiative",
+      "type": "number",
+      "source": "scripts/module.js",
+      "min": 50,
+      "max": 800
+    },
+    {
+      "id": "initiative-art--carouselImageFlip",
+      "kind": "field",
+      "scope": "initiative-art",
+      "key": "carouselImageFlip",
+      "label": "Flip portrait",
+      "description": "Mirror the tracker portrait horizontally. This changes the artwork presentation and does not change token facing or map artwork. Changes save automatically. NPCs share this value through their source Actor, independently for normal and enhanced framing.",
+      "topic": "initiative",
+      "type": "checkbox",
+      "source": "scripts/module.js"
     }
   ],
   "rules": [
@@ -8280,6 +8343,159 @@
       "label": "Attack Element save status",
       "description": "Confirms the most recent Item/activity Element save. An error restores the previous dropdown selection. Choices persist on owned Items and remain stored when Multitype is disabled or Type Changer is selected.",
       "topic": "multitype"
+    },
+    {
+      "id": "actor-controls--data-actor-control-toughness",
+      "kind": "control",
+      "scope": "actor-controls",
+      "selector": "[data-actor-control=\"toughness\"]",
+      "label": "Configure Toughness",
+      "description": "Open this Actor’s current/max Toughness, weaknesses, NPC allegiance and initiative artwork. The dialog also provides a Multitype & Elements shortcut. Available on actual NPC and PC Actor sheets.",
+      "topic": "weaknesses"
+    },
+    {
+      "id": "actor-controls--data-actor-control-multitype",
+      "kind": "control",
+      "scope": "actor-controls",
+      "selector": "[data-actor-control=\"multitype\"]",
+      "label": "Configure Multitype and Elements",
+      "description": "Enable Multitype? on this exact PC, NPC or summoned Actor. Choose independent Item/activity attack Elements or live Type Changer. The same configuration is available from the Toughness dialog.",
+      "topic": "multitype"
+    },
+    {
+      "id": "actor-controls--data-actor-control-boss",
+      "kind": "control",
+      "scope": "actor-controls",
+      "selector": "[data-actor-control=\"boss\"]",
+      "label": "Configure Boss Encounter",
+      "description": "Open this Actor’s HSR settings, including boss phases, linked phase Actors, token sizes and boss HUD artwork. This opens configuration without starting a phase change.",
+      "topic": "boss-phases"
+    },
+    {
+      "id": "actor-controls--data-actor-control-planar",
+      "kind": "control",
+      "scope": "actor-controls",
+      "selector": "[data-actor-control=\"planar\"]",
+      "label": "Planar Relics",
+      "description": "Open the installed Planar module from a compact Actor-header icon. PC sheets open that character’s equipment, upgrades and set details. On NPC sheets the GM opens global set, currency and material configuration. Spell/Activity windows do not receive this Actor control.",
+      "topic": "npc-controls"
+    },
+    {
+      "id": "actor-controls--data-actor-control-planar-stats",
+      "kind": "control",
+      "scope": "actor-controls",
+      "selector": "[data-actor-control=\"planar-stats\"]",
+      "label": "Original / Buffed stats",
+      "description": "Switch this PC sheet between editable original scores and the read-only values after Planar bonuses. The icon tooltip names the current view; selecting a view does not rewrite the underlying original statistics.",
+      "topic": "combat-stats"
+    },
+    {
+      "id": "actor-controls--data-npc-allegiance",
+      "kind": "control",
+      "scope": "actor-controls",
+      "selector": "[data-npc-allegiance]",
+      "label": "NPC Enemy / Ally",
+      "description": "GM only. ON selects Ally: hide this NPC’s map/boss Toughness bar and weakness display, disable Toughness processing and use a blue initiative card. OFF selects Enemy: enable Toughness and use red. Saves immediately; retains current/max Toughness, weaknesses, HP and Ultimate/Multitype settings. A saved choice overrides old frame colors and token disposition. Unlinked/summoned token Actors change independently.",
+      "topic": "npc-controls"
+    },
+    {
+      "id": "toughness--data-npc-allegiance",
+      "kind": "control",
+      "scope": "toughness",
+      "selector": "[data-npc-allegiance]",
+      "label": "NPC Enemy / Ally",
+      "description": "GM only. ON selects Ally: hide this NPC’s map/boss Toughness bar and weakness display, disable Toughness processing and use a blue initiative card. OFF selects Enemy: enable Toughness and use red. Saves immediately; retains current/max Toughness, weaknesses, HP and Ultimate/Multitype settings. A saved choice overrides old frame colors and token disposition. Unlinked/summoned token Actors change independently.",
+      "topic": "npc-controls"
+    },
+    {
+      "id": "actor-controls--data-npc-choice-ally",
+      "kind": "control",
+      "scope": "actor-controls",
+      "selector": "[data-npc-choice=\"ally\"]",
+      "label": "Ally mode",
+      "description": "Switch ON selects Ally: the NPC uses a blue initiative frame and has no Toughness bar or Toughness reduction. Saved weakness and Toughness values remain available for a later return to Enemy.",
+      "topic": "npc-controls"
+    },
+    {
+      "id": "actor-controls--data-npc-choice-enemy",
+      "kind": "control",
+      "scope": "actor-controls",
+      "selector": "[data-npc-choice=\"enemy\"]",
+      "label": "Enemy mode",
+      "description": "Switch OFF selects Enemy: the NPC uses a red initiative frame and Toughness is enabled. This takes priority over an older custom frame color.",
+      "topic": "npc-controls"
+    },
+    {
+      "id": "toughness--data-npc-choice-ally",
+      "kind": "control",
+      "scope": "toughness",
+      "selector": "[data-npc-choice=\"ally\"]",
+      "label": "Ally mode",
+      "description": "Switch ON hides this NPC’s Toughness and uses a blue initiative frame; stored current/max and weakness values are retained.",
+      "topic": "npc-controls"
+    },
+    {
+      "id": "toughness--data-npc-choice-enemy",
+      "kind": "control",
+      "scope": "toughness",
+      "selector": "[data-npc-choice=\"enemy\"]",
+      "label": "Enemy mode",
+      "description": "Switch OFF enables this NPC’s Toughness and uses a red initiative frame. The switch saves immediately.",
+      "topic": "npc-controls"
+    },
+    {
+      "id": "toughness--data-open-multitype-from-toughness",
+      "kind": "control",
+      "scope": "toughness",
+      "selector": "[data-open-multitype-from-toughness]",
+      "label": "Multitype & Elements",
+      "description": "Open the same Actor’s Multitype? toggle, Multitype attacks / Type Changer switch and current HSR Element. This shortcut is also available as the shuffle icon beside Configure Toughness.",
+      "topic": "multitype"
+    },
+    {
+      "id": "actor-controls--data-actor-control-initiative",
+      "kind": "control",
+      "scope": "actor-controls",
+      "selector": "[data-actor-control=\"initiative\"]",
+      "label": "Format Initiative Portrait",
+      "description": "GM only. Open the drag, zoom and flip editor for this NPC’s initiative tracker picture. Edits save to the source NPC and apply to its existing and future Ally/Enemy copies across scenes; portrait edits do not change allegiance, HP or Toughness.",
+      "topic": "initiative"
+    },
+    {
+      "id": "toughness--data-open-npc-initiative-editor",
+      "kind": "control",
+      "scope": "toughness",
+      "selector": "[data-open-npc-initiative-editor]",
+      "label": "Format Initiative Portrait",
+      "description": "Open the shared NPC initiative picture editor. Browse/drop artwork, drag to reposition, scroll to zoom and toggle Flip. Portrait edits save immediately, separately from the Toughness dialog’s Save button.",
+      "topic": "initiative"
+    },
+    {
+      "id": "initiative-art--data-npc-initiative-sharing",
+      "kind": "control",
+      "scope": "initiative-art",
+      "selector": "[data-npc-initiative-sharing],[data-npc-initiative-sharing] strong",
+      "label": "Shared NPC framing source",
+      "description": "Names the source world NPC that receives portrait edits. Its existing and future token copies, including unlinked summons across scenes, use the same framing. Duplicated configured world Actors retain the source reference. Unlinked copies retain separate allegiance, HP, Toughness and stance; linked tokens continue to share their Actor’s combat state.",
+      "topic": "initiative"
+    },
+    {
+      "id": "initiative-art--data-initiative-editor-stage",
+      "kind": "control",
+      "scope": "initiative-art",
+      "selector": "[data-initiative-editor-stage],[data-initiative-editor-stage] button,[data-initiative-editor-stage] img",
+      "label": "Initiative artwork preview",
+      "description": "Drop an accessible image into this preview to replace the tracker portrait. Drag the card to reposition the artwork and scroll to zoom. The preview uses the tracker’s crop and flip. Every change saves automatically; for NPCs the artwork is shared by copies of the same source.",
+      "topic": "initiative"
+    },
+    {
+      "id": "initiative-art--tsru-initiative-editor-status",
+      "kind": "control",
+      "scope": "initiative-art",
+      "selector": ".tsru-initiative-editor-status,.tsru-initiative-editor-status span",
+      "label": "Portrait save status",
+      "description": "Unsaved changes waits briefly before saving; Saving means a write is in progress. Saved confirms the artwork was stored. Save failed means the previous stored framing is still active; check permissions or retry an edit. Closing flushes pending changes.",
+      "topic": "initiative"
     }
   ]
 }

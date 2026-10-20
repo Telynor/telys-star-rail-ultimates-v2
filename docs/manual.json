@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "title": "Tely’s Star Rail Field Manual",
-  "version": "3.14.0-preview.17",
+  "version": "3.14.0-preview.18",
   "articles": [
     {
       "id": "overview",
@@ -783,7 +783,8 @@
         "hp-costs",
         "ultimates",
         "memosprite-summoning",
-        "multitype"
+        "multitype",
+        "npc-controls"
       ],
       "image": "summoning-placement.png",
       "imageAlt": "Illustrated guide to Skill and Ultimate creature summoning.",
@@ -1040,6 +1041,133 @@
       "imageCaption": "Bundled illustration. Artwork, names and sample values can differ in your world; click to expand."
     },
     {
+      "id": "npc-controls",
+      "group": "Combat systems",
+      "title": "NPCs, summons & compact sheet controls",
+      "summary": "Configure Multitype, Toughness, Ally/Enemy mode, Planar Relics and boss encounters from one small Actor-header control area.",
+      "keywords": [
+        "NPC",
+        "non player",
+        "summon",
+        "creature",
+        "ally",
+        "enemy",
+        "friendly",
+        "hostile",
+        "faction",
+        "allegiance",
+        "blue",
+        "red",
+        "initiative frame",
+        "toughness",
+        "multitype",
+        "shuffle",
+        "header",
+        "planar relics",
+        "boss",
+        "compact",
+        "spell window",
+        "initiative portrait",
+        "combat picture",
+        "shared framing",
+        "NPC copies",
+        "crop",
+        "zoom",
+        "flip"
+      ],
+      "image": "npc-controls.png",
+      "imageAlt": "Compact NPC sheet header containing Toughness, Multitype, an Enemy/Ally switch, Planar configuration and Boss Encounter icons.",
+      "imageCaption": "Example Actor sheet header. The controls stay inside the window and collapse with it; themes may change their appearance.",
+      "sections": [
+        {
+          "title": "Find the NPC configuration controls",
+          "paragraphs": [
+            "Open the NPC or summoned creature’s own Actor sheet as the GM. The small icons beside its normal window controls are, in order: Configure Toughness (shield), Configure Multitype and Elements (shuffle), Enemy/Ally switch, Planar Relics (nodes, when installed), and Configure Boss Encounter (skull). Hover or keyboard-focus a control for its explanation.",
+            "Multitype is available here even when it has never been enabled on this NPC. Click the shuffle icon, turn on Multitype?, and choose Multitype attacks or Type Changer. Configure Toughness also includes a clearly labeled Multitype & Elements shortcut to the same Actor’s settings.",
+            "These Actor controls belong to actual Actor sheets. A spell Item or a Summon activity may expose its owner Actor to automation, but it does not receive NPC Toughness, Boss or Planar Actor-configuration controls. The normal per-Item HSR Attack Elements icon can still appear on an owned Item sheet."
+          ]
+        },
+        {
+          "title": "Format one NPC portrait for all its copies",
+          "paragraphs": [
+            "Choose the crop icon in the compact NPC sheet header, or Configure Toughness → Format Initiative Portrait. Browse for an image or drop one onto the preview. Drag to reposition, scroll to zoom, and use Flip to mirror it. Numeric X/Y and Scale fields support precise positioning. Every change saves automatically; the status line confirms Saved or reports Save failed. Closing after a change flushes the pending save.",
+            "The source world NPC supplies the normal and enhanced initiative artwork, X/Y, zoom and flip for its existing and future linked or unlinked token copies across scenes. You may open the editor from any copy. An editor already open for that source is brought to the front. Duplicating a configured world NPC also retains its shared framing source. Unrelated NPCs are not grouped by matching names.",
+            "Unlinked Ally and Enemy copies keep their own allegiance, HP, Toughness, weakness state and active stance. Linked tokens continue to share their Actor’s combat state. Ally copies still use blue frames and Enemy copies red. Normal and enhanced portrait designs save separately; changing artwork does not activate Enhanced Stance. Old token-only artwork remains available until that form is configured on its source. If the source is unavailable, the token retains its own stored artwork."
+          ]
+        },
+        {
+          "title": "Enemy / Ally: one switch for Toughness and initiative",
+          "steps": [
+            "Open the NPC’s Actor sheet. The compact switch appears between the Multitype and Planar/Boss controls. You can also use the same switch in Configure Toughness.",
+            "Switch ON to Ally. The active label becomes Ally, the initiative card uses blue, and this NPC’s Toughness bar and weakness markers disappear. Toughness reduction and Break processing no longer apply while it is an ally.",
+            "Switch OFF to Enemy. The active label becomes Enemy, the initiative card uses red, and Toughness is enabled. Its previous current/maximum Toughness and configured weaknesses are retained.",
+            "Continue combat normally. Existing map tokens, the initiative carousel and a configured boss HUD refresh after the Actor changes. An allied boss keeps its HP bar while its Toughness bar is hidden."
+          ],
+          "paragraphs": [
+            "An explicit saved Ally/Enemy choice takes priority over a token’s disposition and any old custom initiative frame color. A newly configured NPC without a saved choice follows a friendly token/prototype as Ally; other dispositions default to Enemy. Previously disabled Toughness is retained for an unconfigured enemy until an explicit Enemy choice is made.",
+            "This switch is GM-only and saves immediately. A failed save restores its previous displayed state. It does not transfer Actor ownership, reset HP, empty Ultimate charge, change Multitype assignments, or erase its Toughness values and weakness selections."
+          ]
+        },
+        {
+          "title": "World NPCs, linked tokens and summoned creatures",
+          "paragraphs": [
+            "A linked token uses its world Actor, so a saved Actor allegiance applies to its linked tokens. A summoned or other unlinked token has a synthetic Actor with its own flags. Open that token’s sheet to configure only that creature. A change to the unlinked creature does not overwrite its source Actor or other unlinked copies.",
+            "The same distinction applies to Multitype and Type Changer. The GM/DM Element Change menus identify unlinked Actors as Scene token. Use that token’s row when changing an individual summon’s live Element."
+          ]
+        },
+        {
+          "title": "Compact Planar Relics access",
+          "paragraphs": [
+            "When Tely’s Planar Ornaments is installed, its nodes icon joins the Toughness, Multitype and Boss controls. On a PC sheet it opens that character’s Planar equipment, upgrades and set details. On an NPC sheet the GM icon opens the module’s global set, currency and material configuration.",
+            "The full PC Planar tab remains available on sheets that support tabs. A sheet without a suitable tab area uses the compact header icon instead of a large Planar Relics banner. The Original/Buffed stats view control is also a small header icon with a descriptive tooltip. It retains the original editable / buffed read-only behavior.",
+            "Spell and ability usage windows no longer receive the large Planar fallback. The controls stay inside their Actor window, including when moved or minimized."
+          ]
+        },
+        {
+          "title": "If a control appears to be missing",
+          "table": {
+            "headers": [
+              "Symptom",
+              "Check"
+            ],
+            "rows": [
+              [
+                "No Multitype control on an NPC",
+                "Open its actual Actor/token sheet as the GM, then look for the shuffle icon beside the Toughness shield. The Toughness dialog also has a Multitype & Elements button."
+              ],
+              [
+                "An ally still appears red",
+                "Check the exact Actor represented by the combatant. Linked and unlinked copies may have different allegiance. An explicit Ally selection overrides older frame colors."
+              ],
+              [
+                "An enemy has no map Toughness bar",
+                "Choose Enemy and ensure the token is in combat. Map bars appear for participating tokens; current Toughness can still be zero."
+              ],
+              [
+                "The NPC Planar icon opens a world configuration window",
+                "That is the GM Planar configuration entry. PC sheets open their character-specific equipment collection."
+              ],
+              [
+                "An icon remains after minimizing",
+                "Update both Ultimates and Planar Ornaments and reload Foundry, so both modules use the shared compact header layout."
+              ]
+            ]
+          }
+        }
+      ],
+      "related": [
+        "multitype",
+        "weaknesses",
+        "initiative",
+        "boss-phases",
+        "gm-panel",
+        "dm-combat",
+        "summons",
+        "memosprites",
+        "combat-stats"
+      ]
+    },
+    {
       "id": "multitype",
       "group": "Combat systems",
       "title": "Multitype attacks & Type Changer",
@@ -1192,6 +1320,12 @@
             "changeElement validates GM authority, Type Changer mode and the chosen Element ID. openElementSettings and openAttackElements open the corresponding editors for an Actor document or Actor UUID, including token Actor UUIDs."
           ],
           "code": "const hsr = game.modules.get(\"telys-star-rail-ultimates\").api;\nconst item = actor.items.get(\"ITEM_ID\");\nconst context = hsr.getAttackElement(actor, {item, activityId: \"ACTIVITY_ID\"});\nconsole.log(context.elementId);\n// GM; this Actor must use Type Changer:\nawait hsr.changeElement(actor, \"ice\");\nawait hsr.openAttackElements(actor);"
+        },
+        {
+          "title": "NPC and summon access beside Toughness",
+          "paragraphs": [
+            "The compact shuffle icon now sits beside Configure Toughness and Configure Boss Encounter on actual Actor sheets. Configure Toughness also offers a Multitype & Elements shortcut. This works for NPCs, PCs and summoned/unlinked token Actors."
+          ]
         }
       ],
       "related": [
@@ -1204,7 +1338,8 @@
         "summons",
         "memosprites",
         "api",
-        "manual-damage"
+        "manual-damage",
+        "npc-controls"
       ]
     },
     {
@@ -1241,12 +1376,19 @@
           "paragraphs": [
             "Element IDs must agree between character and target. A display name or icon alone is not a new damage-resistance rule. Temporary Toughness weakness does not automatically rewrite D&D5e resistance, immunity or vulnerability fields. Use the supported damage application to keep Toughness and HP processing together."
           ]
+        },
+        {
+          "title": "Allied NPCs",
+          "paragraphs": [
+            "Use the NPC’s Enemy/Ally switch in its header or Toughness dialog. Ally disables Toughness processing and hides map/boss Toughness display; Enemy enables it again with retained current/max and weakness values. The initiative frame uses blue for Ally and red for Enemy."
+          ]
         }
       ],
       "related": [
         "elements-paths",
         "break",
-        "manual-damage"
+        "manual-damage",
+        "npc-controls"
       ]
     },
     {
@@ -1443,7 +1585,8 @@
       "related": [
         "gm-panel",
         "dm-combat",
-        "artwork"
+        "artwork",
+        "npc-controls"
       ]
     },
     {
@@ -1457,7 +1600,14 @@
         "action advance",
         "extra turn",
         "frame colors",
-        "portrait"
+        "portrait",
+        "NPC",
+        "combat picture",
+        "shared",
+        "copies",
+        "framing",
+        "flip",
+        "zoom"
       ],
       "sections": [
         {
@@ -1473,13 +1623,30 @@
             "Choose an existing initiative participant in the GM Panel or DM Combat Action Advance picker. Confirming inserts one extra turn and then returns to the interrupted participant. The picker can include Aha Instant. It does not create a new world Actor or grant permanent initiative duplicates.",
             "Previous/Next controls advance live combat. If an inserted Ultimate or Elation Action is current, use its matching completion flow. Reading an initiative preview does not progress the round."
           ]
+        },
+        {
+          "title": "Explicit NPC Ally/Enemy colors",
+          "paragraphs": [
+            "The NPC sheet’s Ally/Enemy switch governs its initiative color: Ally is blue, Enemy is red. An explicit mode takes priority over an older custom frame color or token disposition. PCs continue to use their existing frame and disposition options."
+          ]
+        },
+        {
+          "title": "Shared NPC initiative pictures",
+          "paragraphs": [
+            "Use the crop icon on any NPC Actor sheet, including a summoned token sheet, or the Format Initiative Portrait button beside its Toughness settings. Drop or browse artwork, drag its position, scroll to zoom and toggle Flip. Changes save to the source NPC and update all of its tracker copies, whether Ally or Enemy. Existing unlinked token deltas no longer keep an older crop once the source is configured.",
+            "Each source has one normal framing and one enhanced framing. Each unlinked token keeps its own stance, combat resources and Ally/Enemy mode. Linked tokens continue to share their Actor’s combat state. New token copies inherit automatically; duplicating the configured world Actor also retains its shared portrait source. A different NPC with the same name stays independent."
+          ]
         }
       ],
       "related": [
         "combat-flow",
         "gm-panel",
-        "artwork"
-      ]
+        "artwork",
+        "npc-controls"
+      ],
+      "image": "npc-initiative.png",
+      "imageAlt": "NPC initiative portrait editor with shared source, image field, X/Y, zoom and Flip controls.",
+      "imageCaption": "Configure the source NPC once. Ally and Enemy token copies share the picture and crop while retaining their own combat state."
     },
     {
       "id": "light-cones",
@@ -1601,7 +1768,8 @@
       "related": [
         "light-cones",
         "manual-damage",
-        "break"
+        "break",
+        "npc-controls"
       ]
     },
     {

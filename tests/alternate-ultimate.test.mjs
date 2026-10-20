@@ -1,3 +1,6 @@
+import * as npcInitiative from "../scripts/npc-initiative.mjs";
+import * as npcRules from "../scripts/npc-rules.mjs";
+import * as actorControls from "../scripts/actor-sheet-controls.mjs";
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -28,7 +31,7 @@ function setup(options={}) {
   globalThis.game=game;
   globalThis.fromUuid=async uuid=>uuid===a.uuid?a:null;
   globalThis.ui={notifications:{warn:msg=>events.push(msg),error:msg=>events.push(msg),info(){}}};
-  const sandbox={console,structuredClone,FormApplication:class {},Hooks:{on:(name,fn)=>hooks.set(name,fn),once(){},callAll:(...args)=>events.push(args)},
+  const sandbox={console,npcRules,actorControls,npcInitiative,structuredClone,FormApplication:class {},Hooks:{on:(name,fn)=>hooks.set(name,fn),once(){},callAll:(...args)=>events.push(args)},
     foundry:{utils:{deepClone:structuredClone,mergeObject:(base,stored)=>({...base,...stored}),expandObject:updates=>{const out={};for(const [p,v]of Object.entries(updates))set(out,p,v);return out;},getProperty:get,setProperty:set},applications:{api:{ApplicationV2:class {},HandlebarsApplicationMixin:c=>c}}},
     game,ui:globalThis.ui,canvas:{},window:{setTimeout:()=>1,clearTimeout(){}},setTimeout,clearTimeout,
     energyAfterUpdate,...alternate};

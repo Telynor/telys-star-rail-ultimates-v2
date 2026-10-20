@@ -1,3 +1,6 @@
+import * as npcInitiative from "../scripts/npc-initiative.mjs";
+import * as npcRules from "../scripts/npc-rules.mjs";
+import * as actorControls from "../scripts/actor-sheet-controls.mjs";
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -30,7 +33,7 @@ function setup(mode='energy',config={}) {
  const ui={notifications:{warn:message=>events.warnings.push(message),error:message=>events.errors.push(message),info:message=>events.infos.push(message)}};
  Object.assign(globalThis,{game,ui,fromUuid:async uuid=>uuid===a.uuid?a:null});
  const textEditor={enrichHTML:async text=>text};
- const context=vm.createContext({game,ui,structuredClone,energyAfterUpdate,...alternate,
+ const context=vm.createContext({game,ui,npcRules,actorControls,npcInitiative,structuredClone,energyAfterUpdate,...alternate,
   console:{...console,error:(...args)=>events.errors.push(args.map(String).join(' '))},FormApplication:class{},
   Hooks:{on(name,fn){const list=hooks.get(name)??[];list.push(fn);hooks.set(name,list)},once(){},callAll(){}},
   foundry:{utils:{deepClone:structuredClone,randomID:()=>`request-${events.socket.length}`,mergeObject:(a,b)=>({...a,...b}),getProperty:get,setProperty:set},applications:{api:{ApplicationV2:class{},HandlebarsApplicationMixin:C=>C},ux:{TextEditor:{implementation:textEditor}}}},

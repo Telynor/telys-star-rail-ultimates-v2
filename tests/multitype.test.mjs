@@ -1,3 +1,6 @@
+import * as npcInitiative from "../scripts/npc-initiative.mjs";
+import * as npcRules from "../scripts/npc-rules.mjs";
+import * as actorControls from "../scripts/actor-sheet-controls.mjs";
 import {test} from "node:test";
 import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
@@ -41,7 +44,7 @@ async function setup({type="character",mode="attacks",enabled=true,synthetic=fal
   Object.assign(globalThis,{game,canvas,Hooks,foundry,fromUuid,ui:{notifications:{info:m=>notices.push(m),warn:m=>notices.push(m),error:m=>notices.push(m)}}});
   const multitype=await import("../scripts/multitype.mjs?case="+(++caseId));
   multitype.installMultitype();
-  const context=vm.createContext({game,canvas,Hooks,foundry,fromUuid,Actor,multitype,structuredClone,console,
+  const context=vm.createContext({game,canvas,Hooks,foundry,fromUuid,Actor,multitype,npcRules,actorControls,npcInitiative,structuredClone,console,
     FormApplication:class{},ui:globalThis.ui,document:{querySelectorAll:()=>[]},
     window:{setTimeout(){},clearTimeout(){}},setTimeout(){},clearTimeout(){}});
   vm.runInContext(source.replace(/^import .*;\n/gm,"")+'\nglobalThis.api={applyToughnessDamage,processDnd5eDamageRolls,processCoreAttackMessage,processAppliedDamage,processMidiWorkflow,onSocket,state,getConfig,getToughness,saveUltimateConfigFromTab};',context);
@@ -208,4 +211,17 @@ test("separate Midi workflows for the same Item and identical damage remain sepa
  const create=()=>({uuid:w.item.uuid,actor:w.attacker,item:w.item,activity:w.item.system.activities.get("first"),targets:new Set([hit]),hitTargets:new Set([hit]),attackRoll:{},damageRolls:[w.roll()]});
  await w.api.processMidiWorkflow(create());await w.api.processMidiWorkflow(create());
  assert.equal(w.target.getFlag(ID,"toughness").current,86);
+});
+
+test("allied NPCs ignore Toughness damage and enemy mode restores normal attack Element matching",async()=>{
+ const w=await setup(),before=structuredClone(w.target.getFlag(ID,"toughness"));
+ const attackElement=w.multitype.attackContext(w.attacker,{item:w.item});
+ await actorControls.setNpcAllegiance(w.target,"ally");
+ assert.equal(w.api.getToughness(w.target).enabled,false);
+ assert.equal(await w.api.applyToughnessDamage(w.attacker,[w.target],7,"role-attack",{attackElement}),0);
+ assert.equal(w.target.getFlag(ID,"toughness").current,before.current);
+ await actorControls.setNpcAllegiance(w.target,"enemy");
+ assert.equal(await w.api.applyToughnessDamage(w.attacker,[w.target],7,"role-attack",{attackElement}),7);
+ assert.equal(w.target.getFlag(ID,"toughness").current,before.current-7);
+ assert.deepEqual(w.target.getFlag(ID,"toughness").weaknesses,before.weaknesses);
 });

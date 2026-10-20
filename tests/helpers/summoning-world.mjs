@@ -1,3 +1,4 @@
+import * as npcInitiative from "../../scripts/npc-initiative.mjs";
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import {energyAfterUpdate} from '../../scripts/alternate-ultimate-rules.mjs';
@@ -31,7 +32,7 @@ export function world({mode='energy',quantity=1,config={},size=1}={}){
   const hookApi={on(name,fn){const list=hooks.get(name)??[];list.push(fn);hooks.set(name,list)},once(){},callAll(){}};
   const dice={total:7};class Roll{constructor(formula){this.formula=formula}async evaluate(){events.rolls++;this.total=dice.total;return this;}}
   Object.assign(globalThis,{game,ui,foundry,canvas,fromUuid:async uuid=>actors.find(actor=>actor.uuid===uuid),Roll});
-  const context=vm.createContext({game,ui,foundry,canvas,Roll,summoning,structuredClone,energyAfterUpdate,...alternate,Hooks:hookApi,FormApplication:class{},
+  const context=vm.createContext({game,ui,foundry,canvas,Roll,summoning,npcInitiative,structuredClone,energyAfterUpdate,...alternate,Hooks:hookApi,FormApplication:class{},
     lightConeSkillCapacity:()=>0,handleLightConeEvent:async(type,detail)=>events.lightCone.push({type,detail}),
     console:{...console,error:(...args)=>events.errors.push(args.map(String).join(' '))},TextEditor:{enrichHTML:async text=>text},
     ChatMessage:{getSpeaker:({actor})=>({actor:actor.id}),create:async data=>{events.messages.push(data);return data}},

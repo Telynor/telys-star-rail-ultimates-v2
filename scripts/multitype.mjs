@@ -1,4 +1,5 @@
 import {MODULE_ID as ID, multitypeMode, isTypeChanger, isMultitypeAttacks, resolveAttackElement, storedAttackContext, attackSource, attackElementPatch, collectionValues} from "./multitype-rules.mjs";
+import {actorSheetControls, actorHeaderButton} from "./actor-sheet-controls.mjs";
 export {multitypeMode, isTypeChanger, isMultitypeAttacks, resolveAttackElement} from "./multitype-rules.mjs";
 const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 let services = {
@@ -297,11 +298,19 @@ export function renderSheetControls(app, html) {
   const root = dom(app?.element) ?? dom(html);
   if (!root?.querySelector) return;
   const document = app.document ?? app.object ?? app.actor;
+  if (!["Actor","Item"].includes(document?.documentName)) return;
   const actor = document?.documentName === "Actor" ? document : document?.actor;
   if (!actor) return;
   const isItem = document?.documentName === "Item";
   const canConfigure = !isItem ? globalThis.game?.user?.isGM : (globalThis.game?.user?.isGM || actor.isOwner);
   if (canConfigure) {
+    if (!isItem) {
+      const group = actorSheetControls(app, html);
+      if (group) {
+        const button = actorHeaderButton(group,{key:"multitype",label:"Configure Multitype and Elements",icon:"fas fa-shuffle",order:20,className:"tsru-open-multitype tsru-multitype-launcher",onClick:()=>openSettings(actor)});
+        button.dataset.multitypeOpen = actor.uuid;
+      }
+    } else {
     const header = root.querySelector(".window-header") ?? root.closest(".application,.window-app")?.querySelector(".window-header");
     const marker = isItem ? "data-multitype-item-open" : "data-multitype-open";
     if (header && !header.querySelector("[" + marker + "]")) {
@@ -311,6 +320,7 @@ export function renderSheetControls(app, html) {
       button.innerHTML = '<i class="fas fa-shuffle"></i>';
       button.addEventListener("click",event => {event.preventDefault();event.stopPropagation();isItem ? openAttackElements(actor,document) : openSettings(actor);});
       (header.querySelector(".window-controls") ?? header).prepend(button);
+    }
     }
   }
   if (isItem) return;

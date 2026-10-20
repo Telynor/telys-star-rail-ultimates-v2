@@ -1,5 +1,11 @@
 # Tely's Star Rail Ultimates
 
+## Compact Actor controls and NPC allies
+
+Toughness, Multitype, NPC Enemy/Ally, Planar Relics and Boss Encounter share a compact Actor sheet header area. The Toughness dialog also links directly to Multitype. Ally NPCs use blue initiative frames and hide/disable Toughness; Enemy NPCs use red and enable it. Current/max Toughness, weaknesses and ability settings are retained. Unlinked summons retain independent combat state. The NPC header’s crop icon (also in Toughness → Format Initiative Portrait) opens the visual initiative picture editor: drop/browse an image, drag, zoom and flip. Framing saves on the source NPC and applies to all of its existing and future token copies across scenes, whether Ally or Enemy. Duplicating a configured world NPC retains the same portrait source. Normal and enhanced portraits remain separate designs.
+
+Planar Ornaments 1.0.16 adds its compact Relics and Original/Buffed stats icons to the same area and excludes spell/ability usage windows. Search **NPC ally** or **compact header** in Help Documentation for the illustrated guide.
+
 ## Multitype Elements for every Actor
 
 Enable **Multitype?** on any PC, NPC or summoned creature. On PC sheets use **HSR Settings → Combat → Multitype & Element Change**; the GM can also use the **HSR Element Settings** shuffle button in any Actor sheet header.

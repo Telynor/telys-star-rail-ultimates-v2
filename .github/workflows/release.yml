@@ -31,6 +31,14 @@ jobs:
           npm run build:light-cones
           npm test
 
+      - name: Check out tested Planar sheet integration
+        uses: actions/checkout@v4
+        with:
+          repository: Telynor/telys-planar-ornaments
+          ref: 48f761348107bb8a9fd4c981acabddd56b6e0c0d
+          path: .test-planar
+          persist-credentials: false
+
       - name: Test alternate orb designer in Chromium
         run: |
           npm install --no-save --package-lock=false --no-audit --no-fund playwright
@@ -40,6 +48,7 @@ jobs:
           node tests/summoning-ui.cjs
           node tests/help-ui.cjs
           node tests/multitype-ui.cjs
+          PLANAR_SOURCE_ROOT=.test-planar node tests/npc-controls-ui.cjs
 
       - name: Save orb designer screenshot
         if: always()
@@ -69,6 +78,10 @@ jobs:
             multitype-attacks-smoke.png
             multitype-element-change-smoke.png
             multitype-failure.png
+            npc-controls-smoke.png
+            npc-controls-compact-smoke.png
+            npc-initiative-smoke.png
+            npc-controls-failure.png
           if-no-files-found: ignore
 
       - name: Create Foundry module ZIP
