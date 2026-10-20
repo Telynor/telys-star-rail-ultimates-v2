@@ -1,0 +1,70 @@
+import {loadHelp,canonicalHelpKey,referenceLimits} from './help-data.mjs';
+const candidates='button,input:not([type="hidden"]):not([type="file"]),select,textarea,label,p,strong,small,.tsru-field-label,h1,h2,h3,h4,summary,legend,output,img,svg,[title],[data-tooltip],[role="tab"],[data-tsru-help-ready],[data-alt-piece],[data-alt-handle],[data-part],[data-drop-source],[data-summons-list],[data-settings-menu],[data-tsru-design-preview],[data-tsru-splash-designer],[data-tsru-boss-preview],[data-tsru-combat-hud-preview],[data-tsru-ultimate-preview],[data-transition-editor],[data-messaging-portrait-preview],[data-initiative-editor-stage],[data-enhanced-preview],[data-hub-wallpaper-preview],[data-hub-pose-preview],.tms-preview-stage,.tsru-alt-stage,.tsru-stat-baseline,.tsru-dm-status,.tsru-gm-badge,.tsru-dm-actions>b,.tsru-dm-resources span,.tsru-alt-gm-progress';
+const panels='.tsru-sheet-tab,.tsru-gm-panel-form,.tsru-dm-combat-menu,.tms-tab,.tms-portrait-editor,.tsru-alt-designer,.tsru-light-cone-panel,.tsru-hub-config-form';
+const nativeHelp=new WeakMap();let state=null;
+const compact=value=>String(value??'').replace(/\s+/g,' ').trim();
+function ownText(node){const c=node.cloneNode(true);c.querySelectorAll('input,select,textarea,button,small,svg,img,.tsru-context-help-button').forEach(n=>n.remove());return compact(c.textContent);}
+export function helpScope(node,data){
+ if(!node?.closest||node.closest('.tsru-help-window,.tsru-help-tooltip,.tsru-context-help-row'))return null;
+ let best=null,depth=Infinity;
+ for(const scope of data.scopes){const p=node.closest(scope.selector);if(!p)continue;let d=0,n=node;while(n&&n!==p){d++;n=n.parentElement;}if(d<depth){best=scope;depth=d;}}
+ if(best)return best;
+ if(node.closest('.dialog-buttons,.form-footer,.window-header')){const app=node.closest('.application,.window-app,[data-appid]');if(app)for(const scope of data.scopes)if(app.querySelector(scope.selector))return scope;}
+ return null;
+}
+const fieldKey=n=>canonicalHelpKey(n.getAttribute('name')||n.dataset.actorField||n.dataset.enhancedEnergyField||'');
+function fieldFor(node,scope,data){const key=fieldKey(node);if(!key)return null;const fields=data.fields.filter(f=>f.scope===scope.id),exact=fields.find(f=>f.key===key);return exact??fields.find(f=>f.key.includes('*')&&new RegExp('^'+f.key.split('*').map(p=>p.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('[^.]+')+'$').test(key))??null;}
+function rememberNative(node){const old=nativeHelp.get(node)??{};for(const attr of ['title','data-tooltip'])if(node.hasAttribute(attr)){old[attr]=node.getAttribute(attr);node.removeAttribute(attr);}nativeHelp.set(node,old);return old;}
+function labelFor(node){const wrap=node.closest('.tsru-field,.form-group,.tsru-aha-config-field,.tsru-combat-stat-row,label'),label=wrap?.querySelector('label,strong,.tsru-field-label')??(wrap?.tagName==='LABEL'?wrap:null);return compact(node.getAttribute('aria-label')||(label&&ownText(label))||ownText(node)||node.getAttribute('alt')||fieldKey(node)||'Interface control');}
+const standardActions={save:'Apply the current editor’s configuration; this does not itself cast an ability.',cancel:'Close without confirming the pending action. Already saved live changes are not undone.',close:'Close this local window while retaining saved configuration and live resources.','save portrait':'Apply the circular portrait image and crop to the companion HUD.','advance action':'Insert one extra turn for the selected existing initiative participant and resume the interrupted turn.'};
+export function describeHelp(node,data,{inherit=true}={}){
+ const scope=helpScope(node,data);if(!scope)return null;let entry=fieldFor(node,scope,data);
+ if(node.hasAttribute('data-tsru-context-help'))entry={label:'Open '+scope.label+' help',description:'Open the illustrated guide for these controls. Reading help does not save configuration or change resources.',topic:scope.topic};
+ // File pickers explain the adjacent field rather than a generic button label.
+ if(node.matches('.file-picker,[data-pick-portrait],[data-enhanced-browse],[data-initiative-image-picker],[data-carousel-picker]')){
+  const wrap=node.closest('.tsru-field,.form-group,label,.tsru-file-control,.tsru-aha-config-field'),target=node.dataset.target,input=target?wrap?.querySelector(`[name="${CSS.escape(target)}"]`):wrap?.querySelector('input'),f=input&&fieldFor(input,scope,data);
+  entry={label:'Browse '+(f?.label??'artwork or font'),description:`Choose/upload the file for ${f?.label??'the adjacent image field'} through Foundry storage. ${f?.description??'Use a Foundry-accessible path so connected clients can load it.'}`,topic:f?.topic??scope.topic};
+ }else{
+  const matched=data.rules.filter(r=>r.scope===scope.id&&node.matches(r.selector)).sort((a,b)=>((b.selector.match(/=/g)||[]).length-(a.selector.match(/=/g)||[]).length)||b.selector.length-a.selector.length);
+  if(matched.length&&(!entry||matched[0].selector.includes('=')))entry=matched[0];
+ }
+ if(!entry&&node.matches('label,.tsru-field-label,strong,small')){const wrap=node.closest('.tsru-field,.form-group,.tsru-aha-config-field')??node,controls=[...wrap.querySelectorAll('input:not([type="hidden"]),select,textarea')];const children=controls.map(n=>describeHelp(n,data,{inherit:false})).filter(Boolean);if(children.length)entry={label:ownText(node)||children[0].label,description:[...new Set(children.map(c=>c.description))].join(' '),topic:children[0].topic};}
+ if(!entry&&inherit&&node.matches('img,svg,[data-alt-handle]')){const parent=node.closest('button,label,[data-alt-piece],[data-part],[data-drop-source]');if(parent&&parent!==node)entry=describeHelp(parent,data,{inherit:false});}
+ if(!entry){
+  const label=labelFor(node),old=nativeHelp.get(node)??{},native=compact(node.getAttribute('title')||old.title||node.getAttribute('data-tooltip')||old['data-tooltip']),wrap=node.closest('.tsru-field,.form-group,.tsru-aha-config-field'),notes=wrap&&compact([...wrap.querySelectorAll('small,.notes')].map(n=>n.textContent).join(' '));
+  let desc=standardActions[label.toLowerCase()]||(native.length>20?native:'')||notes;
+  if(!desc&&node.matches('h1,h2,h3,h4,legend,summary'))desc=label+' groups the related controls below. '+data.articleMap.get(scope.topic).summary;
+  if(!desc&&node.matches('p,small,strong,.tsru-field-label'))desc=ownText(node)||data.articleMap.get(scope.topic).summary;
+  if(!desc&&node.matches('img,svg'))desc='Artwork or state illustration for '+label+'. '+data.articleMap.get(scope.topic).summary;
+  if(!desc&&node.matches('output,.tsru-stat-baseline,.tsru-dm-status,.tsru-gm-badge,.tsru-dm-actions>b,.tsru-dm-resources span'))desc='Read-only '+label+'. This displays current state; use its associated control to edit a live value.';
+  if(!desc)desc=label+' in '+scope.label+'. '+data.articleMap.get(scope.topic).summary;
+  entry={label,description:desc,topic:scope.topic,fallback:true};
+ }
+ return {...entry,scope:scope.id,label:compact(entry.label),description:compact(entry.description)};
+}
+function detail(node,meta){const p=[meta.description],limits=referenceLimits({min:node.getAttribute('min')??meta.min,max:node.getAttribute('max')??meta.max,step:node.getAttribute('step')??meta.step});if(limits)p.push(limits);if(node.type==='checkbox')p.push(`Currently ${node.checked?'on':'off'}.`);if(node.tagName==='SELECT'&&node.selectedOptions?.[0])p.push('Selected: '+compact(node.selectedOptions[0].textContent)+'.');if(node.disabled)p.push(meta.scope==='memosprite'&&['hp','maxHp'].includes(node.name)?'Disabled because a linked Actor supplies HP; edit that Actor’s sheet.':!globalThis.game?.user?.isGM&&['character','gm','memosprite'].includes(meta.scope)?'Configuration is GM-only; separately permitted owner use actions retain their normal access.':'Currently unavailable: its feature mode, combat state, resolving lock or permission requirement must be satisfied.');const delta=Number(node.dataset.delta??node.dataset.altCountStep??node.dataset.altPreviewStep);if(Number.isFinite(delta)&&delta)p.push((delta>0?'Increase':'Decrease')+' by '+Math.abs(delta)+'.');return p.join(' ');}
+export function decorateHelp(root,data,{open=()=>{}}={}){
+ const nodes=[];if(root?.matches?.(candidates))nodes.push(root);nodes.push(...(root?.querySelectorAll?.(candidates)??[]));
+ for(const n of nodes){if(!helpScope(n,data))continue;rememberNative(n);const meta=describeHelp(n,data);if(!meta)continue;n.dataset.tsruHelpReady='true';n.dataset.tsruHelpTopic=meta.topic;n.setAttribute('aria-description',meta.description);}
+ const forms=[];if(root?.matches?.(panels))forms.push(root);forms.push(...(root?.querySelectorAll?.(panels)??[]));
+ for(const form of forms){if(form.querySelector(':scope > [data-tsru-context-help],:scope > header [data-tsru-context-help],:scope > .tsru-config-panel > header [data-tsru-context-help]'))continue;const scope=helpScope(form,data);if(!scope)continue;const b=document.createElement('button');b.type='button';b.className='tsru-context-help-button';b.dataset.tsruContextHelp='true';b.setAttribute('aria-label','Help for '+scope.label);b.textContent='? Help';b.onclick=e=>{e.preventDefault();e.stopPropagation();open(scope.topic);};const h=form.querySelector(':scope > header,:scope > .tsru-config-panel > header');if(h)h.append(b);else{const row=document.createElement('div');row.className='tsru-context-help-row';row.dataset.tsruContextHelp='true';row.append(b);form.prepend(row);}}
+}
+export function auditHelp(root,data){const nodes=[...root.querySelectorAll(candidates)].filter(n=>helpScope(n,data));return {total:nodes.length,covered:nodes.filter(n=>n.dataset.tsruHelpReady==='true').length,fallback:nodes.map(n=>({n,m:describeHelp(n,data)})).filter(x=>x.m?.fallback&&x.n.matches('button,input,select,textarea')).map(x=>({scope:x.m.scope,key:fieldKey(x.n),label:x.m.label,description:x.m.description,html:x.n.outerHTML}))};}
+export function installContextualHelp({open=()=>{}}={}){
+ if(state||!globalThis.document?.addEventListener||typeof MutationObserver==='undefined')return state?.ready;
+ state={timer:null,pending:null,active:null,tooltip:null,dragging:false};
+ state.ready=loadHelp().then(data=>{
+  state.data=data;const scan=root=>decorateHelp(root,data,{open}),queued=new Set();let frame=null;scan(document);
+  state.observer=new MutationObserver(records=>{for(const r of records){const parent=r.target?.nodeType===1?r.target:r.target?.parentElement;if(parent?.closest('.tsru-help-window,.tsru-help-tooltip,.tsru-context-help-row'))continue;for(const n of r.addedNodes)if(n.nodeType===1&&!n.matches('.tsru-context-help-row,.tsru-context-help-button'))queued.add(n);else if(parent&&helpScope(parent,data))queued.add(parent);}if(state.active&&!state.active.isConnected)hide();if(!queued.size||frame!==null)return;frame=requestAnimationFrame(()=>{frame=null;const roots=[...queued];queued.clear();for(const r of roots)if(r.isConnected)scan(r);});});state.observer.observe(document.body,{childList:true,subtree:true});
+  const target=e=>{let n=e.target?.nodeType===1?e.target:e.target?.parentElement;n=n?.closest('[data-tsru-help-ready]');return n&&helpScope(n,data)?n:null;};
+  const schedule=(n,delay)=>{if(!n||state.dragging)return hide();if(state.active===n&&state.tooltip&&!state.tooltip.hidden)return;if(state.pending===n&&state.timer!==null)return;clearTimeout(state.timer);state.pending=n;state.timer=setTimeout(()=>show(n,data),delay);};
+  document.addEventListener('pointerover',e=>schedule(target(e),350),true);document.addEventListener('pointermove',e=>schedule(target(e),350),true);document.addEventListener('pointerout',e=>{const n=target(e);if(n&&e.relatedTarget&&n.contains(e.relatedTarget))return;hide();},true);document.addEventListener('focusin',e=>schedule(target(e),0),true);document.addEventListener('focusout',hide,true);document.addEventListener('pointerdown',()=>{state.dragging=true;hide();},true);document.addEventListener('pointerup',()=>{state.dragging=false;},true);document.addEventListener('pointercancel',()=>{state.dragging=false;hide();},true);document.addEventListener('keydown',e=>{if(e.key==='Escape')hide();},true);document.addEventListener('scroll',hide,true);window.addEventListener('resize',hide);return data;
+ }).catch(e=>{console.warn('telys-star-rail-ultimates | Context help could not load',e);state=null;});return state.ready;
+}
+function show(node,data){
+ if(!node.isConnected||state.dragging)return;hide();rememberNative(node);const meta=describeHelp(node,data);if(!meta)return;
+ let tip=state.tooltip;if(!tip){tip=document.createElement('div');tip.id='tsru-context-tooltip';tip.className='tsru-help-tooltip';tip.role='tooltip';document.body.append(tip);state.tooltip=tip;}
+ const title=document.createElement('strong'),body=document.createElement('span'),guide=document.createElement('small');title.textContent=meta.label;body.textContent=detail(node,meta);guide.textContent='Guide: '+data.articleMap.get(meta.topic).title;tip.replaceChildren(title,body,guide);tip.hidden=false;
+ const old=node.getAttribute('aria-describedby')?.split(/\s+/).filter(Boolean)??[];node.setAttribute('aria-describedby',[...new Set([...old,tip.id])].join(' '));state.active=node;const box=node.getBoundingClientRect(),r=tip.getBoundingClientRect(),pad=12;const left=Math.max(pad,Math.min(window.innerWidth-r.width-pad,box.left+Math.min(20,box.width/2)));let top=box.bottom+9;if(top+r.height>window.innerHeight-pad)top=box.top-r.height-9;tip.style.left=left+'px';tip.style.top=Math.max(pad,Math.min(top,window.innerHeight-r.height-pad))+'px';
+}
+function hide(){if(!state)return;clearTimeout(state.timer);state.timer=null;state.pending=null;if(state.tooltip)state.tooltip.hidden=true;if(state.active){const ids=(state.active.getAttribute('aria-describedby')??'').split(/\s+/).filter(id=>id&&id!=='tsru-context-tooltip');if(ids.length)state.active.setAttribute('aria-describedby',ids.join(' '));else state.active.removeAttribute('aria-describedby');}state.active=null;}

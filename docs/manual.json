@@ -1,0 +1,2527 @@
+{
+  "schema": 1,
+  "title": "Tely’s Star Rail Field Manual",
+  "version": "3.14.0-preview.16",
+  "articles": [
+    {
+      "id": "overview",
+      "group": "Start here",
+      "title": "The Star Rail field manual",
+      "summary": "Find a workflow, learn a mechanic or look up an individual control.",
+      "keywords": [
+        "help",
+        "documentation",
+        "guide",
+        "manual",
+        "instructions",
+        "index",
+        "start"
+      ],
+      "sections": [
+        {
+          "title": "Find an answer",
+          "paragraphs": [
+            "Open the Star Rail rocket on the left rail, then choose Help Documentation below the other tools. The grouped Contents follows the game workflow. The A–Z Index includes both guides and individual fields and controls. Search reads the entire manual and reference, including related terms, shorthand and small spelling mistakes.",
+            "Every keyword narrows your search. Try “alt ult”, “pet range”, “HP cost”, “memosprite dots”, “art” or “aha crit”. Selecting a field result opens its guide and scrolls directly to that reference. Back retraces visited guides and index pages. Press / to focus search; Escape clears an active search."
+          ]
+        },
+        {
+          "title": "Learn in context",
+          "paragraphs": [
+            "Hover a control, label, image, menu entry or preview to see its explanation. Keyboard focus also opens hover help. Numeric controls show their limits and units where defined; checkboxes report their current state, and disabled controls explain their requirements. Escape, scrolling or dragging dismisses the tooltip.",
+            "The same field reference supplies the manual and tooltips. Dynamic ability rows and refreshed combat panels receive help when rendered. A contextual ? Help button opens the relevant guide. Reading help does not change configuration, spend a resource, send a message or advance combat."
+          ]
+        },
+        {
+          "title": "What this manual covers",
+          "paragraphs": [
+            "Character GM settings, Energy, standard and alternate Ultimates, enhanced forms, skills, HP requirements, summons, combat, Toughness, Break, Aha, Light Cones, DoT, artwork, the phone hub, Messenger, missions, crafting and Eidolons are covered here. Memosprites are supplied by a separate addon; its supported configuration is documented alongside its integration.",
+            "Images are bundled with the module and can be expanded to inspect labels. The manual needs no external documentation service. GM-only game actions retain their existing permission checks; opening their explanations does not grant access."
+          ]
+        }
+      ],
+      "related": [
+        "quick-start",
+        "menus",
+        "settings-search",
+        "field-reference"
+      ],
+      "image": "manual-map.svg",
+      "imageAlt": "Illustrated guide to The Star Rail field manual.",
+      "imageCaption": "Bundled illustration. Artwork, names and sample values can differ in your world; click to expand."
+    },
+    {
+      "id": "quick-start",
+      "group": "Start here",
+      "title": "GM setup: first character to first combat",
+      "summary": "Configure a complete kit and verify it in a small encounter.",
+      "keywords": [
+        "setup",
+        "tutorial",
+        "first",
+        "gm",
+        "start",
+        "configure"
+      ],
+      "sections": [
+        {
+          "title": "Prepare a character",
+          "paragraphs": [
+            "Enable Ultimates for the world, use a supported D&D5e character Actor, and give its player ownership. Place its token on a scene before testing map-dependent abilities. Configure reusable Elements and Paths first so each character can refer to stable IDs."
+          ],
+          "steps": [
+            "Open the character sheet’s HSR Settings as GM. Choose Element, Path and party membership.",
+            "In Ultimates, enable the system, set Maximum Energy and either configure standard artwork/text or enable an alternate Ultimate.",
+            "In Abilities, enable the Skill, choose its SP cost, and add HP requirements or an Actor summon list if needed.",
+            "Configure enhanced abilities independently if the kit has an enhanced form.",
+            "Set shared Skill and Technique Points in their configuration menus, then show the desired widgets.",
+            "Add a character and test enemy to initiative. Test readiness, chat text, costs, placement and completion."
+          ]
+        },
+        {
+          "title": "Run a controlled check",
+          "paragraphs": [
+            "Set enough charge/SP to cast once. A successful Skill posts its description and pays its configured costs. An Ultimate uses its active form’s charge system, shows its splash and runs its optional code. If an off-turn Ultimate inserts a temporary participant, finish it with the completion flow and confirm the original turn resumes.",
+            "For a summon, test one creature that fits and one that cannot. Confirm the full footprint stays inside the range and respects lighting-blocking walls. A cancelled or impossible placement must leave costs unspent or restore a queued reservation."
+          ]
+        },
+        {
+          "title": "Before players rely on it",
+          "paragraphs": [
+            "Verify images load for another connected client, not just the GM. Check ownership, selected main character and party flags separately. Descriptive text explains the kit; unsupported mechanics in prose need an explicit item workflow or deliberate automation. A separate companion addon must be enabled before its own configuration tab can appear."
+          ]
+        }
+      ],
+      "related": [
+        "settings-search",
+        "skills",
+        "ultimates",
+        "summons"
+      ]
+    },
+    {
+      "id": "player-workflow",
+      "group": "Start here",
+      "title": "Player workflow and ownership",
+      "summary": "Select your main character, use abilities and finish temporary turns.",
+      "keywords": [
+        "player",
+        "owner",
+        "permission",
+        "hotbar",
+        "main character",
+        "play"
+      ],
+      "sections": [
+        {
+          "title": "Choose and show your character",
+          "paragraphs": [
+            "Main Character selection tells the module which owned character your personal widgets and phone actions should prioritize. Ownership permits using an Actor; selection and Main Party membership are separate. A GM Party Override can lock membership against player selection changes.",
+            "Show the combat HUD or ability bubbles from the Star Rail/phone controls. Closing a local widget hides its display and does not disable the underlying ability. Drag grips and resize handles change your local arrangement."
+          ]
+        },
+        {
+          "title": "Use the normal ability flow",
+          "paragraphs": [
+            "Skills check the shared SP balance, optional actual-HP cost and any creature placement. Ultimates check the active form’s Energy or alternate components. Techniques use their separate shared resource outside initiative. Unsupported or unauthorized casts are rejected before they become legitimate extra casts.",
+            "A connected active GM is required for player requests that need authority. If a button is unavailable, inspect charge, combat state, ownership and active form. Repeated clicks while an ability resolves do not bypass its lock."
+          ]
+        },
+        {
+          "title": "Complete the action",
+          "paragraphs": [
+            "Resolve the chat card’s instructions and supported damage controls. Complete Ultimate and Complete Elation Action remove the corresponding temporary participant and resume initiative. A chat description does not automatically implement every effect written in prose."
+          ]
+        }
+      ],
+      "related": [
+        "party",
+        "combat-flow",
+        "manual-damage",
+        "shortcuts"
+      ]
+    },
+    {
+      "id": "menus",
+      "group": "Start here",
+      "title": "Left rail and Star Rail menus",
+      "summary": "Know which menu opens configuration, live combat tools or player apps.",
+      "keywords": [
+        "rocket",
+        "left rail",
+        "star rail",
+        "menu",
+        "hub",
+        "help button"
+      ],
+      "sections": [
+        {
+          "title": "The left rail",
+          "paragraphs": [
+            "The rocket groups the Star Rail tools. The GM rail keeps its compact Hub, Battle Pass and DM Combat entries, followed by Help Documentation. Player-visible tools and their permissions differ, but Help stays last and is available to both roles.",
+            "HSR Hub opens the phone-style launcher. DM Combat opens the encounter panel. Battle Pass requires its separate module. Help opens this manual; it never starts an encounter action."
+          ]
+        },
+        {
+          "title": "Configuration and live controls",
+          "paragraphs": [
+            "The GM Panel provides live shared resources and per-character tuning, plus launchers for specialized editors. Character HSR Settings belongs to one Actor. DM Combat focuses on the current encounter. The Phone Hub Designer changes launcher layout and artwork; its preview does not activate a live phone action.",
+            "Menu buttons can open missions, crafting, Messenger, equipment tools and character selection. A GM-only destination keeps its ordinary restrictions even if a player can read its documentation. An unavailable addon should be enabled before trying its launcher."
+          ]
+        }
+      ],
+      "related": [
+        "gm-panel",
+        "dm-combat",
+        "phone-hub"
+      ],
+      "image": "manual-map.svg",
+      "imageAlt": "Illustrated guide to Left rail and Star Rail menus.",
+      "imageCaption": "Bundled illustration. Artwork, names and sample values can differ in your world; click to expand."
+    },
+    {
+      "id": "settings-search",
+      "group": "Character setup",
+      "title": "Character settings: menus, search and saving",
+      "summary": "Use grouped settings and related-keyword filtering without losing configuration.",
+      "keywords": [
+        "character sheet",
+        "gm configuration",
+        "search",
+        "alt",
+        "art",
+        "save",
+        "menus"
+      ],
+      "sections": [
+        {
+          "title": "Six related menus",
+          "paragraphs": [
+            "Character contains membership, identity and Element/Path controls. Ultimates contains Energy, charge mode and Ultimate effects. Abilities contains Skill, Talent, Technique and Elation settings. Enhanced Form groups stance behavior and replacement abilities. Artwork groups portraits, orb/splash art and cropping. Combat contains Break, Toughness and boss behavior.",
+            "Find a setting searches labels, field identifiers, hints and related words. “alt” and “alt ult” find Alternate Ultimate. “art” finds image-related controls, including portraits, icons, splash art and token skin. Multiple words must all match; results hide unrelated settings rather than merely highlighting everything."
+          ]
+        },
+        {
+          "title": "Scope and expansion",
+          "paragraphs": [
+            "All menus searches the character’s full configuration; This menu limits the search to the selected page. Clear removes the filter. Expand sections opens the collapsible groups. Choosing another menu while searching adjusts the scope to that menu.",
+            "A filter changes the view, not the Actor’s configuration. Hidden fields keep their values. Alternate mode switches save immediately. The regular sheet’s existing autosave behavior still applies; dedicated designers have their own Save action. A preview or search is not a cast."
+          ]
+        },
+        {
+          "title": "Know the meaning of a value",
+          "paragraphs": [
+            "Read the field’s tooltip for units and whether it changes a live value, draft or display. Current Energy is not Maximum Energy; an orb image is not a splash image; shared SP is not the per-character Skill cost. Use the reference links to distinguish similarly named fields."
+          ]
+        }
+      ],
+      "related": [
+        "energy",
+        "alternate-orbs",
+        "enhanced-form",
+        "artwork"
+      ],
+      "image": "settings-overview.png",
+      "imageAlt": "Illustrated guide to Character settings: menus, search and saving.",
+      "imageCaption": "Bundled illustration. Artwork, names and sample values can differ in your world; click to expand."
+    },
+    {
+      "id": "party",
+      "group": "Character setup",
+      "title": "Party membership, selection and rewards",
+      "summary": "Main Party, GM overrides, trial labels and reward eligibility are separate switches.",
+      "keywords": [
+        "main party",
+        "team",
+        "trial",
+        "gmpc",
+        "rewards",
+        "ownership",
+        "membership"
+      ],
+      "sections": [
+        {
+          "title": "Main Party and selection",
+          "paragraphs": [
+            "Main Party influences allied-turn waiting for queued Ultimates. A player selecting an owned main character requests synchronized membership; GM Party Override prevents that selector from changing a locked Actor’s status. A GM-controlled character can be managed directly in the GM Panel.",
+            "Trial Character adds a red Trial label to its combat HUD orb. This is presentation and does not grant ownership, charge or extra turns."
+          ]
+        },
+        {
+          "title": "Rewards",
+          "paragraphs": [
+            "Mission assignment identifies the intended recipients. Characters with non-GM owners and GM-controlled characters explicitly marked Receives Rewards can be eligible. Owning, selecting, assigning and receiving rewards are different concepts. Inspect the assignment list before distributing a mission’s Items.",
+            "Receives Rewards does not itself grant an Item. Main Party membership does not turn a hidden mission public. Use each campaign app’s own visibility and reward controls."
+          ]
+        }
+      ],
+      "related": [
+        "player-workflow",
+        "mission-rewards",
+        "combat-flow"
+      ]
+    },
+    {
+      "id": "elements-paths",
+      "group": "Character setup",
+      "title": "Elements and Paths",
+      "summary": "Maintain reusable catalogs and stable character assignments.",
+      "keywords": [
+        "element",
+        "path",
+        "damage type",
+        "icon",
+        "color",
+        "hunt",
+        "elation"
+      ],
+      "sections": [
+        {
+          "title": "Reusable definitions",
+          "paragraphs": [
+            "Element Manager defines display name, stable ID, icon and charge/ready colors. Path Manager defines a name, ID, icon and Path color. Characters select from these catalogs. An Element’s ID is used for weakness matching and related automation, while its icon and colors affect presentation.",
+            "Use Foundry-accessible icon paths. Renaming a display label is different from changing an ID that existing Actors or effects reference. Check existing assignments before removing or changing identifiers."
+          ]
+        },
+        {
+          "title": "Mechanical connections",
+          "paragraphs": [
+            "The selected Element participates in Toughness weaknesses and relevant Light Cone checks. A Path can determine eligibility for Path-specific effects, such as the configured Elation Path. Selecting a label does not automatically create a class, subclass or spell list.",
+            "Memosprite availability is controlled by the installed companion addon. Reading its guide does not change an older addon’s Path restrictions. Skill and Ultimate Actor summons in this module have no Path restriction."
+          ]
+        }
+      ],
+      "related": [
+        "weaknesses",
+        "aha",
+        "light-cones",
+        "memosprites"
+      ]
+    },
+    {
+      "id": "energy",
+      "group": "Abilities and Ultimates",
+      "title": "Energy and the REGEN ability score",
+      "summary": "Set charge capacity, automatic gains and the after-Ultimate round lock.",
+      "keywords": [
+        "energy",
+        "regen",
+        "regeneration",
+        "battery",
+        "mana",
+        "ep",
+        "charge"
+      ],
+      "sections": [
+        {
+          "title": "Current, maximum and regeneration",
+          "paragraphs": [
+            "Current Energy is stored charge. Maximum Energy is the threshold needed for a standard Ultimate. The Energy Regen score uses floor((score − 10) / 2), like an ordinary ability modifier. The added REGEN card on the sheet edits this same score.",
+            "Configured attack, being-hit and ability-related Energy awards use the module’s normal event flow and regeneration rules. They are not extra guaranteed awards for each line of descriptive text. The score is clamped to 1–30."
+          ],
+          "table": {
+            "headers": [
+              "REGEN score",
+              "Modifier"
+            ],
+            "rows": [
+              [
+                "8",
+                "−1"
+              ],
+              [
+                "10",
+                "0"
+              ],
+              [
+                "14",
+                "+2"
+              ],
+              [
+                "18",
+                "+4"
+              ],
+              [
+                "20",
+                "+5"
+              ]
+            ]
+          }
+        },
+        {
+          "title": "Active charge mode",
+          "paragraphs": [
+            "A standard Ultimate becomes ready when Current reaches Maximum. Casting consumes its charge. When the active form uses an alternate Ultimate, all alternate components must be lit and positive standard Energy gains are blocked. The ordinary Energy pool is retained separately.",
+            "Set Energy in the sheet is an explicit current-value override. It does not change Maximum, ability text or artwork, and the active alternate mode still governs whether positive Energy changes are allowed."
+          ]
+        },
+        {
+          "title": "After-Ultimate lock",
+          "paragraphs": [
+            "Pause Energy after Ultimate blocks ordinary recovery until the next combat round after the standard cast. For example, a round-2 cast empties the orb and prevents normal awards for the rest of that round. Check both this lock and the active charge type when an orb seems stuck.",
+            "Enhanced standard Ultimates share the character’s existing Energy pool and regeneration settings. They do not create a second enhanced Energy reserve."
+          ]
+        }
+      ],
+      "related": [
+        "ultimates",
+        "alternate-orbs",
+        "enhanced-form"
+      ],
+      "image": "energy-and-charge.svg",
+      "imageAlt": "Illustrated guide to Energy and the REGEN ability score.",
+      "imageCaption": "Bundled illustration. Artwork, names and sample values can differ in your world; click to expand."
+    },
+    {
+      "id": "ultimates",
+      "group": "Abilities and Ultimates",
+      "title": "Standard Ultimates: readiness, code and turn order",
+      "summary": "Keep charge, splash art, chat descriptions and optional code in one activation flow.",
+      "keywords": [
+        "ultimate",
+        "ult",
+        "burst",
+        "finisher",
+        "script",
+        "chat",
+        "queued",
+        "interrupt"
+      ],
+      "sections": [
+        {
+          "title": "Configure a standard Ultimate",
+          "paragraphs": [
+            "Enable the Ultimate system, set Maximum Energy, then configure button/orb artwork, splash artwork, title/subtitle and Ultimate Text. Orb art appears in charge displays; splash art is the cast presentation; text is the chat description. These slots serve different purposes.",
+            "Optional Ultimate code is deliberate JavaScript in its code field. Descriptions are prose and do not need code to be displayed. Existing text-only kits still post their descriptions when activated. A returned string from code can supply text if the configured description is empty."
+          ]
+        },
+        {
+          "title": "Request and resolve",
+          "paragraphs": [
+            "Floating orbs, the party HUD and supported hotbar/API requests use the same readiness and ownership checks. The active form supplies its charge system and ability configuration. A resolving lock prevents duplicate requests and conflicting progress edits.",
+            "An Ultimate outside its own turn can wait for another Main Party member’s normal turn before the module inserts its temporary turn. The actual cast runs its configured code, posts ability text and shows splash art. The Complete Ultimate flow removes the temporary entry and resumes the interrupted participant."
+          ]
+        },
+        {
+          "title": "Summoning reservations",
+          "paragraphs": [
+            "A summoning Ultimate plans legal positions first. A queued cast revalidates its placement when its turn begins. If the scene changed, the player can reposition; a blocked or cancelled queued summon restores reserved charge and continues initiative. Merely reading the guide or previewing artwork never reserves charge."
+          ]
+        }
+      ],
+      "related": [
+        "combat-flow",
+        "splash-art",
+        "api",
+        "summons"
+      ],
+      "image": "ultimate-turns.svg",
+      "imageAlt": "Illustrated guide to Standard Ultimates: readiness, code and turn order.",
+      "imageCaption": "Bundled illustration. Artwork, names and sample values can differ in your world; click to expand."
+    },
+    {
+      "id": "alternate-orbs",
+      "group": "Abilities and Ultimates",
+      "title": "Alternate Ultimate orb builder",
+      "summary": "Design separate icon components and choose how the GM lights them.",
+      "keywords": [
+        "alternate",
+        "alt ult",
+        "custom orb",
+        "seal",
+        "segment",
+        "glow",
+        "off image",
+        "free activation"
+      ],
+      "sections": [
+        {
+          "title": "Replace the Energy orb",
+          "paragraphs": [
+            "In HSR Settings, enable Alternate Ultimate. Its builder appears and the character uses its saved components in the floating orb, combat HUD and previews. Positive standard Energy gains are blocked while the active form uses alternate charge. Switching it off restores the regular Energy orb while retaining its saved alternate design and progress.",
+            "Alternate charge is assigned by GM controls. An image’s color, shape, file name or glow does not automatically award a counter for an attack or debuff."
+          ]
+        },
+        {
+          "title": "Build the artwork",
+          "paragraphs": [],
+          "steps": [
+            "Open Ultimate Orb Builder and add a component, browse/upload images or drop supported artwork or Items.",
+            "Select a component from the layer list or canvas. Drag it to move, use handles to rotate/resize, or enter X/Y, Scale and Rotation numerically.",
+            "Choose the active image and optional off image. Without an off image, inactive art is greyed out from the active image.",
+            "Set the glow color or detect its main image color. Both per-component glow and overall active glow can be toggled.",
+            "Choose Free activation or Circular counter and configure its sequence when applicable.",
+            "Preview All off, All on or Live counters, then Save orb design. Preview switches do not change live charge."
+          ]
+        },
+        {
+          "title": "Readiness and layer order",
+          "paragraphs": [
+            "Free activation exposes one GM checkbox per component; checking it lights that icon. Every component must be active before the Ultimate can be used. A successful cast resets alternate switches and circular progress.",
+            "Layers determine what is drawn on top. Sequence order determines circular charging; they are independent. Duplicate and reorder controls change the design, while Reset counters changes live progress. Normal and enhanced forms can keep different layouts and counters."
+          ]
+        }
+      ],
+      "related": [
+        "circular-orbs",
+        "enhanced-form",
+        "dm-combat"
+      ],
+      "image": "alternate-orb-designer.png",
+      "imageAlt": "Illustrated guide to Alternate Ultimate orb builder.",
+      "imageCaption": "Bundled illustration. Artwork, names and sample values can differ in your world; click to expand."
+    },
+    {
+      "id": "circular-orbs",
+      "group": "Abilities and Ultimates",
+      "title": "Circular alternate counters and sequence order",
+      "summary": "A single counter lights a cumulative sequence from a chosen start.",
+      "keywords": [
+        "circular",
+        "sequence",
+        "start",
+        "first activation",
+        "counter",
+        "clockwise",
+        "increment"
+      ],
+      "sections": [
+        {
+          "title": "Configure the sequence",
+          "paragraphs": [
+            "Choose Circular counter in the builder. Assign each component a unique Sequence order, select a Starting icon, and set the First activation number. The route follows sequence order from the chosen starting icon and wraps after the final order.",
+            "First activation number is the counter value at which the first icon lights. It does not change the number of components or their layer order. Each subsequent increment lights one more icon and keeps all previous icons lit."
+          ]
+        },
+        {
+          "title": "Worked four-icon example",
+          "paragraphs": [
+            "With four components and First activation number 2, counter values 0 and 1 light nothing. Value 2 lights the starting icon, 3 lights two, 4 lights three and 5 lights all four. Decreasing the count extinguishes later icons for correction."
+          ],
+          "table": {
+            "headers": [
+              "Counter",
+              "Lit icons",
+              "Ready?"
+            ],
+            "rows": [
+              [
+                "0–1",
+                "0 / 4",
+                "No"
+              ],
+              [
+                "2",
+                "1 / 4",
+                "No"
+              ],
+              [
+                "3",
+                "2 / 4",
+                "No"
+              ],
+              [
+                "4",
+                "3 / 4",
+                "No"
+              ],
+              [
+                "5",
+                "4 / 4",
+                "Yes"
+              ]
+            ]
+          }
+        },
+        {
+          "title": "Use and reset",
+          "paragraphs": [
+            "The GM Panel and DM Combat show the numeric charge field and −/+ controls for the active form. They do not interpret attacks, skills or debuffs automatically. Edit orb changes the saved layout; Reset counters empties progress. Casting can happen only when every configured component is active and clears alternate charge afterward. Duplicate sequence numbers must be corrected before saving."
+          ]
+        }
+      ],
+      "related": [
+        "alternate-orbs",
+        "enhanced-form",
+        "energy"
+      ],
+      "image": "alternate-sequence.svg",
+      "imageAlt": "Illustrated guide to Circular alternate counters and sequence order.",
+      "imageCaption": "Bundled illustration. Artwork, names and sample values can differ in your world; click to expand."
+    },
+    {
+      "id": "enhanced-form",
+      "group": "Abilities and Ultimates",
+      "title": "Enhanced form and its independent Ultimate",
+      "summary": "Choose Standard or Alternate charge and copy or design enhanced artwork.",
+      "keywords": [
+        "enhanced",
+        "stance",
+        "transform",
+        "inherit",
+        "copy",
+        "standard alternate toggle"
+      ],
+      "sections": [
+        {
+          "title": "Enable and switch",
+          "paragraphs": [
+            "Enable Enhanced Stance in the sheet, then configure replacement Skill/Talent text, portraits, orb/splash artwork, token image and optional transition media. GM Panel and DM Combat → Stances switch the live form. Finish a resolving ability before changing it. Blank artwork overrides generally retain the normal counterpart.",
+            "Enhanced ability restrictions are mechanical configuration, while token transition media is a visual overlay during the change. The resulting token artwork comes from its separate enhanced token slot."
+          ]
+        },
+        {
+          "title": "Enhanced Ultimate type",
+          "paragraphs": [
+            "Enable Enhance Ultimate, then use Enhanced Ultimate type: OFF means Standard and ON means Alternate. Standard shows the ordinary Energy orb, shared Current/Maximum Energy, regeneration and enhanced orb artwork. Alternate shows its custom components and builder tools. Enhanced text, code and splash art apply to either type.",
+            "Use regular alternate configuration copies the regular alternate orb’s saved layout, images, off images, glow, mode, sequence and starting settings. It is a copy, so later edits can differ. Design different layout opens the independent enhanced builder."
+          ]
+        },
+        {
+          "title": "Independent progress",
+          "paragraphs": [
+            "The active form controls readiness, which orb is shown, which alternate counters are consumed and whether normal Energy gains are blocked. Regular and enhanced alternate counters remain independent; switching forms restores that form’s progress. Copying a layout preserves existing progress, and switching the type retains saved designs. Enhanced Standard uses the character’s existing Energy pool rather than a second one."
+          ]
+        }
+      ],
+      "related": [
+        "alternate-orbs",
+        "energy",
+        "token-transitions",
+        "artwork"
+      ],
+      "image": "enhanced-standard-selector.png",
+      "imageAlt": "Illustrated guide to Enhanced form and its independent Ultimate.",
+      "imageCaption": "Bundled illustration. Artwork, names and sample values can differ in your world; click to expand."
+    },
+    {
+      "id": "skills",
+      "group": "Abilities and Ultimates",
+      "title": "Skills and shared Skill Point costs",
+      "summary": "Configure per-character Skill text, SP cost and optional HP or summon requirements.",
+      "keywords": [
+        "skill",
+        "sp cost",
+        "custom",
+        "free",
+        "points",
+        "abilities"
+      ],
+      "sections": [
+        {
+          "title": "The per-character Skill",
+          "paragraphs": [
+            "Enable Skill button makes the Skill available through its normal widgets. Skill Text is the description posted after a successful cast; Skill button artwork is the action’s circular image. The enhanced form can replace its text and artwork while using the same configured mechanical cost and summon workflow.",
+            "Skill descriptions are not executable JavaScript. Apply attacks, damage and custom effects through supported items, chat controls or explicitly implemented mechanics."
+          ]
+        },
+        {
+          "title": "Skill point cost",
+          "paragraphs": [
+            "Choose 0, 1, 2, 3, 4, 5 or Custom. Zero is free; Custom reveals a whole-number cost field. The shared SP balance is party-wide, while this amount belongs to the character’s Skill. A cost of 2 with a balance of 5 leaves 3 after a successful cast.",
+            "Affordability is checked before the action commits. Successful casts deduct automatically; cancelled or impossible summons do not pay SP or HP. Editing the configured cost does not immediately spend SP. Use shared-resource controls to adjust the current party balance."
+          ]
+        },
+        {
+          "title": "Combine requirements",
+          "paragraphs": [
+            "Has HP requirement adds its actual-HP cost in addition to SP. Summons creature adds an Actor choice and placement flow. A player needs normal Actor ownership and a connected GM for the authoritative action. A resolving lock prevents overlapping duplicate casts."
+          ]
+        }
+      ],
+      "related": [
+        "hp-costs",
+        "shared-resources",
+        "summons"
+      ]
+    },
+    {
+      "id": "hp-costs",
+      "group": "Abilities and Ultimates",
+      "title": "HP requirements and dice costs",
+      "summary": "Round down percentage costs and pay actual HP only when a Skill commits.",
+      "keywords": [
+        "hp",
+        "health",
+        "life",
+        "cost",
+        "half",
+        "ten percent",
+        "xdy",
+        "dice",
+        "sacrifice"
+      ],
+      "sections": [
+        {
+          "title": "Choose the cost type",
+          "paragraphs": [
+            "Enable Has HP requirement on the Skill. Half HP pays 50% of the selected basis, rounded down; 10% HP pays one tenth, rounded down. Percentage of selects Current HP (default) or Maximum HP. Custom constant is a fixed whole amount. Custom roll accepts strict xDy such as 2d6.",
+            "Dice are rolled once by the authority for that cast. x is the number of dice and y is the die size. Supported limits are 1–100 dice and 1–1000 sides. Additions, arbitrary expressions and JavaScript are not accepted in this cost field."
+          ]
+        },
+        {
+          "title": "Worked examples",
+          "paragraphs": [
+            "At 39 current / 55 maximum HP, half-current costs floor(39/2) = 19. Half-maximum costs floor(55/2) = 27. Ten-percent-current costs 3, while ten-percent-maximum costs 5. A flat cost of 7 pays exactly 7. A 2d6 cost pays that one rolled total.",
+            "The character must have enough actual current HP to pay, regardless of the chosen maximum-HP basis. Temporary HP does not pay this requirement. Paying an exact balance can reduce actual HP to zero. It is a cost, not a normal incoming damage roll."
+          ]
+        },
+        {
+          "title": "Cancellation and commitment",
+          "paragraphs": [
+            "HP is combined with the normal SP requirement. Illegal or cancelled summon placement spends neither. An HP cost preview or configuration edit does not itself deduct HP; the live ability cast performs the authority checks and payment. Repeated requests while resolving do not provide extra independent cost rolls."
+          ]
+        }
+      ],
+      "related": [
+        "skills",
+        "summons",
+        "shared-resources"
+      ]
+    },
+    {
+      "id": "shared-resources",
+      "group": "Abilities and Ultimates",
+      "title": "Shared SP, Technique Points and Punchline",
+      "summary": "Distinguish party balances, individual ability costs and combat resources.",
+      "keywords": [
+        "shared",
+        "sp",
+        "skill points",
+        "technique points",
+        "punchline",
+        "meter",
+        "override"
+      ],
+      "sections": [
+        {
+          "title": "Shared Skill Points",
+          "paragraphs": [
+            "The party uses one live Skill Point balance and a configured maximum. Character Skills choose their own costs from that pool. GM Panel and DM Combat −/+ controls change the live balance; Skill Point Configuration changes its presentation and limits. Refill is an explicit live refill, not a preview.",
+            "A character’s configured Skill cost does not change the pool until a successful cast. Light Cone effects can affect capacity or awards through their supported event rules."
+          ]
+        },
+        {
+          "title": "Technique Points and Talent Points",
+          "paragraphs": [
+            "Technique Points are a separate shared out-of-combat ability resource. Talent Points belong to individual eligible combat characters and have their own maximum and overcap settings. These are not interchangeable pools merely because their widgets look similar."
+          ]
+        },
+        {
+          "title": "Punchline",
+          "paragraphs": [
+            "Punchline is the shared Elation resource. Aha Configuration selects the Elation master switch and Path. Matching characters use their configured Punchline gain; other eligible damage events use their normal gain rule.",
+            "Override Punchline lets its meter display independently of the normal Elation master-switch visibility. DM Combat → Show Punchline restores the display. Override does not freeze the total or force an Aha critical hit. Meter icon, number font and offsets affect presentation, not the amount."
+          ]
+        }
+      ],
+      "related": [
+        "skills",
+        "talents",
+        "techniques",
+        "aha"
+      ]
+    },
+    {
+      "id": "summons",
+      "group": "Abilities and Ultimates",
+      "title": "Skill and Ultimate creature summoning",
+      "summary": "Link existing Actors and place full-size animated tokens inside a valid zone.",
+      "keywords": [
+        "summon",
+        "pet",
+        "creature",
+        "spawn",
+        "range",
+        "radius",
+        "cannot fit",
+        "refund"
+      ],
+      "sections": [
+        {
+          "title": "Build the summon list",
+          "paragraphs": [
+            "Enable Summons creature in the Skill or Ultimate settings. Drag existing world Actors from the directory into its list, or choose Add existing Actor. Drag rows to reorder choices. Count is the number of copies of the selected creature to place. Skill and Ultimate lists and radii are independent, and enhanced abilities use their character’s configured mechanical lists.",
+            "Source Actors are references, not copied Actor definitions. Placed tokens inherit the source Actor’s prototype size and settings. Linking the source does not rename or change its base Actor."
+          ]
+        },
+        {
+          "title": "Range, footprint and barriers",
+          "paragraphs": [
+            "Summoning radius uses the scene’s distance units: 30 ft means six 5-ft squares of distance. The entire token footprint must be inside the valid radius and scene bounds, clear of other tokens and lighting-blocking walls. A creature cannot cross or straddle a lighting barrier even if movement is permitted. Open doors and relevant wall levels are respected.",
+            "The chooser marks a creature Cannot Fit when there is no valid footprint. If no choice fits, the cast is cancelled without costs. A GM validates ownership, saved choice, quantity, token dimensions, occupancy, range and barriers before creation."
+          ]
+        },
+        {
+          "title": "Place the creatures",
+          "paragraphs": [],
+          "steps": [
+            "Use the Skill or charged Ultimate and choose an available configured creature.",
+            "Inspect highlighted valid anchor squares; hover a square to preview its full footprint.",
+            "Click one square for each requested copy. Undo removes a pending placement.",
+            "Cancel, Escape or right-click abandons placement without paying the normal Skill costs.",
+            "After a successful cast the tokens appear with a brief animation. Generic ability summons do not automatically receive initiative entries."
+          ]
+        },
+        {
+          "title": "Queued Ultimates and failure recovery",
+          "paragraphs": [
+            "A queued Ultimate reserves charge and rechecks placement when its temporary turn begins. If its selected space is no longer valid, reposition. A cancelled or blocked queued summon restores the original Energy or alternate counters and continues initiative. Partial token-creation failures are cleaned up. Ending combat restores reserved summoning charges.",
+            "Blocked casts do not trigger successful-cast resource rewards. This is separate from the companion addon’s adjacent-square summon and automatic initiative behavior."
+          ]
+        }
+      ],
+      "related": [
+        "skills",
+        "hp-costs",
+        "ultimates",
+        "memosprite-summoning"
+      ],
+      "image": "summoning-placement.png",
+      "imageAlt": "Illustrated guide to Skill and Ultimate creature summoning.",
+      "imageCaption": "Bundled illustration. Artwork, names and sample values can differ in your world; click to expand."
+    },
+    {
+      "id": "talents",
+      "group": "Abilities and Ultimates",
+      "title": "Talents and Talent Points",
+      "summary": "Manage individual combat resources and read Talent descriptions.",
+      "keywords": [
+        "talent",
+        "tp",
+        "threshold",
+        "overcap",
+        "extra turn",
+        "script"
+      ],
+      "sections": [
+        {
+          "title": "Talent text and eligibility",
+          "paragraphs": [
+            "Talent Text describes the character’s Talent and can be viewed from its widget or the combat panel. Talent Points are individual, unlike the shared SP pool. An eligible character must be in an active combat and on its battlefield/initiative roster; outside that context its live pool is unavailable.",
+            "Current Talent Points reset for a new combat while its configured maximum is preserved. Maximum is the trigger threshold. Overcap Maximum limits how much may be held beyond that threshold. A zero threshold disables readiness-triggered Talent turns."
+          ]
+        },
+        {
+          "title": "Reaching the threshold",
+          "paragraphs": [
+            "The GM can adjust current points through the supported resource fields and −/+ controls. Reaching a positive trigger threshold queues the module’s Talent turn flow. The active encounter and resolving-action rules determine insertion; repeatedly clicking is not a legitimate way to duplicate the temporary turn.",
+            "The point icon, scale and text presentation can be configured separately. Hiding the summoner’s Talent on a companion HUD affects its display and does not turn that character’s Talent into shared SP."
+          ]
+        },
+        {
+          "title": "Automation limits",
+          "paragraphs": [
+            "Do not assume a Talent description or a legacy Talent script field is an active general event interpreter. The current event dispatcher forwards supported events to Light Cone automation; custom kit behavior needs an explicit supported workflow or deliberate code. Use live point controls when no automation implements the intended award."
+          ]
+        }
+      ],
+      "related": [
+        "shared-resources",
+        "combat-flow",
+        "memosprite-hud",
+        "api"
+      ]
+    },
+    {
+      "id": "techniques",
+      "group": "Abilities and Ultimates",
+      "title": "Techniques outside combat",
+      "summary": "Configure pre-combat descriptions, artwork and shared Technique Points.",
+      "keywords": [
+        "technique",
+        "tech",
+        "outside combat",
+        "tp",
+        "prebattle"
+      ],
+      "sections": [
+        {
+          "title": "Configuration",
+          "paragraphs": [
+            "Enable the character’s Technique and enter its description and button artwork. The description is posted by the successful Technique flow. The separate Technique Point configuration controls the shared amount, maximum, icon and display options.",
+            "Technique Points are distinct from the Talent pool, even when an abbreviation could be read as TP. Hover the field or use its full name to confirm which resource you are editing."
+          ]
+        },
+        {
+          "title": "Using a Technique",
+          "paragraphs": [
+            "Use the normal owned-character action outside active initiative, with enough shared Technique Points and a connected GM when authority is required. The ordinary use consumes its Technique resource. Merely opening the description or configuring artwork does not use the ability.",
+            "If the button is disabled, check that it is enabled for that character, that combat is not already running and that the shared pool is available. Descriptive pre-battle benefits still need their explicit supported item or effect implementation."
+          ]
+        }
+      ],
+      "related": [
+        "skills",
+        "shared-resources",
+        "player-workflow"
+      ]
+    },
+    {
+      "id": "combat-flow",
+      "group": "Combat and GM tools",
+      "title": "Turn flow, interrupts and completion buttons",
+      "summary": "Keep ordinary, Ultimate, Elation, Talent and Action Advance turns distinct.",
+      "keywords": [
+        "initiative",
+        "turn",
+        "interrupt",
+        "complete",
+        "queue",
+        "resume",
+        "end"
+      ],
+      "sections": [
+        {
+          "title": "Ordinary and inserted turns",
+          "paragraphs": [
+            "Ordinary initiative participants remain the encounter’s baseline. An off-turn Ultimate, an Elation action, a ready Talent or Action Advance can add a temporary turn with its own purpose. Main Party waiting rules affect when queued Ultimates begin. A temporary entry is not an additional permanent token or Actor.",
+            "Use the matching completion button after resolving an Ultimate or Elation Action. The module removes that temporary participant and resumes the appropriate interrupted turn. Next/Previous Turn affect the live initiative state and should be used deliberately."
+          ]
+        },
+        {
+          "title": "Queue and cleanup",
+          "paragraphs": [
+            "Ultimate charge can be reserved while waiting. Summoning placement is validated again at the actual cast. If it is no longer legal, reposition or cancel; cancellation restores reserved charge and continues initiative. Ending combat cleans up its reserved and temporary state.",
+            "When the tracker appears stuck, inspect the current temporary participant and relevant completion chat card before deleting entries manually. Readiness, ownership and resolving locks prevent ordinary duplicate activation."
+          ]
+        }
+      ],
+      "related": [
+        "ultimates",
+        "aha",
+        "talents",
+        "initiative"
+      ],
+      "image": "ultimate-turns.svg",
+      "imageAlt": "Illustrated guide to Turn flow, interrupts and completion buttons.",
+      "imageCaption": "Bundled illustration. Artwork, names and sample values can differ in your world; click to expand."
+    },
+    {
+      "id": "gm-panel",
+      "group": "Combat and GM tools",
+      "title": "The full Star Rail GM Panel",
+      "summary": "Live resources, character tuning, temporary weaknesses and editor launchers.",
+      "keywords": [
+        "gm panel",
+        "resources",
+        "energy override",
+        "tuning",
+        "carousel",
+        "weakness"
+      ],
+      "sections": [
+        {
+          "title": "Live party resources",
+          "paragraphs": [
+            "Punchline and Shared Skill Points are current party-wide balances. Their number fields set a total immediately; −/+ adjusts by the indicated step. Override Punchline changes meter availability independently of the usual master-switch visibility. It does not make Aha crit or prevent future resource changes.",
+            "Place Character Action Button selects an Actor and Skill/Ultimate action, then creates the GM’s movable action widget. It does not cast immediately. Blow Up Tatsuo opens or places its separate configured visual effect."
+          ]
+        },
+        {
+          "title": "Encounter and interface controls",
+          "paragraphs": [
+            "Special Action Advance inserts one extra turn for an existing initiative participant. Boss Phase Controls opens live multi-phase boss controls. Carousel configuration enables the tracker, permits resizing and sets its maximum width and visible length. Show scene navigator and nameplate affects that display.",
+            "The carousel preview demonstrates presentation; Save Carousel commits configuration. Moving or resizing it affects UI layout rather than token positions or initiative scores."
+          ]
+        },
+        {
+          "title": "Temporary weaknesses",
+          "paragraphs": [
+            "NPC rows show permanent sheet weaknesses and temporary selections. Permanent ones cannot be unchecked as temporary entries. Save Temporary Weaknesses applies the selection; Reset returns to sheet-defined weaknesses. All/None overrides temporary Toughness matching rather than changing the NPC’s base damage resistances.",
+            "Bulk actions affect scene enemies covered by the panel. Reset Scene Toughness restores configured Toughness maxima; Reset weaknesses restores the weakness configuration. These are different actions."
+          ]
+        },
+        {
+          "title": "Character Resources and launchers",
+          "paragraphs": [
+            "Per-character fields edit Energy, Maximum, REGEN score, attack/hit awards, Punchline gain, Talent current/maximum and the after-Ultimate lock. Main Party, GM Party Override and Receives Rewards control separate rules. Enhanced Stance and alternate counters refer to that character’s active form.",
+            "Rows collapse without changing values. Module Configuration opens specialized Aha, SP, Element, Path, Recipe and Eidolon tools. A launcher opens an editor; it does not automatically save a draft or spend an activation currency."
+          ]
+        }
+      ],
+      "related": [
+        "dm-combat",
+        "party",
+        "weaknesses",
+        "shared-resources"
+      ]
+    },
+    {
+      "id": "dm-combat",
+      "group": "Combat and GM tools",
+      "title": "DM Combat: every tab and footer control",
+      "summary": "Use encounter-focused tabs and always-available resource and turn controls.",
+      "keywords": [
+        "dm combat",
+        "gm combat",
+        "tabs",
+        "footer",
+        "talent",
+        "stance",
+        "phases"
+      ],
+      "sections": [
+        {
+          "title": "Encounter tabs",
+          "paragraphs": [],
+          "table": {
+            "headers": [
+              "Tab",
+              "Controls and effect"
+            ],
+            "rows": [
+              [
+                "Alt Ultimates",
+                "Active-form free component switches or circular counter; Reset empties charge and Edit opens the design."
+              ],
+              [
+                "Talents",
+                "View descriptions and adjust eligible combat Talent Points."
+              ],
+              [
+                "Weaknesses",
+                "Lock/unlock temporary controls; toggle Elements or choose All, None or Reset."
+              ],
+              [
+                "Stances",
+                "Switch configured characters between Normal and Enhanced."
+              ],
+              [
+                "DoT",
+                "Open the recurring damage, condition and Light Cone editor."
+              ],
+              [
+                "Phases",
+                "Select among configured phases for live multi-phase bosses."
+              ]
+            ]
+          },
+          "note": "Disabled actions may require an active encounter, an eligible combatant or a configured feature. A lock is not removed by hovering help."
+        },
+        {
+          "title": "Footer actions",
+          "paragraphs": [
+            "View Adjusted PC Stats opens effective combat values and automatic baselines. Show Punchline restores its meter. Punchline and Skill Points −/+ change live shared balances. Previous and Next move initiative. Action Advance selects an existing participant for one extra turn. End Combat finishes the encounter.",
+            "Footer controls are live actions, except windows opened solely for inspection. A phase change, stance switch, resource edit or turn advance can immediately affect play. Use each tooltip to distinguish current state from a preview."
+          ]
+        },
+        {
+          "title": "Avoid confusing controls",
+          "paragraphs": [
+            "Lock Weaknesses protects that NPC’s temporary controls; it does not change its permanent sheet weaknesses. Edit orb opens a draft designer; component checkboxes change live readiness. View Talent reads text; its neighboring −/+ changes points. An unavailable Planar combat-stats integration must be installed/updated before its editor can work."
+          ]
+        }
+      ],
+      "related": [
+        "gm-panel",
+        "dot",
+        "combat-stats",
+        "circular-orbs"
+      ],
+      "image": "combat-controls.svg",
+      "imageAlt": "Illustrated guide to DM Combat: every tab and footer control.",
+      "imageCaption": "Bundled illustration. Artwork, names and sample values can differ in your world; click to expand."
+    },
+    {
+      "id": "weaknesses",
+      "group": "Combat and GM tools",
+      "title": "NPC Toughness and Element weaknesses",
+      "summary": "Separate base weaknesses, temporary overrides and current Toughness.",
+      "keywords": [
+        "npc",
+        "toughness",
+        "weakness",
+        "element",
+        "all none",
+        "lock",
+        "reset"
+      ],
+      "sections": [
+        {
+          "title": "Configure the NPC",
+          "paragraphs": [
+            "Enable Toughness and choose its maximum and permanent Element weaknesses on the NPC configuration. Current Toughness tracks the live breakable bar. Matching attacks can reduce it according to the module’s normal damage rules. The weakness icons can also display discovered weakness information.",
+            "A permanent weakness is a sheet setting. Temporary GM weakness selections and All/None modes are encounter controls. Discovered display history is another separate value. Resetting one does not necessarily reset the others."
+          ]
+        },
+        {
+          "title": "Temporary changes and locks",
+          "paragraphs": [
+            "The GM Panel and DM Combat Weaknesses tab expose temporary Elements, Reset and All/None modes. Lock controls prevent incidental changes in the combat panel. Permanent sheet-selected Elements remain protected in temporary checklists.",
+            "Reset Scene Toughness restores each Toughness-enabled scene NPC to its own configured maximum, preserving maximums and weakness definitions. Reset Discovered Weaknesses clears discovery display history. Neither action is a normal HP heal."
+          ]
+        },
+        {
+          "title": "What matching means",
+          "paragraphs": [
+            "Element IDs must agree between character and target. A display name or icon alone is not a new damage-resistance rule. Temporary Toughness weakness does not automatically rewrite D&D5e resistance, immunity or vulnerability fields. Use the supported damage application to keep Toughness and HP processing together."
+          ]
+        }
+      ],
+      "related": [
+        "elements-paths",
+        "break",
+        "manual-damage"
+      ]
+    },
+    {
+      "id": "break",
+      "group": "Combat and GM tools",
+      "title": "Break and Super Break characters",
+      "summary": "Read the added BREAK score and the module’s actual damage formulas.",
+      "keywords": [
+        "break",
+        "super break",
+        "effect",
+        "toughness damage",
+        "dice",
+        "modifier"
+      ],
+      "sections": [
+        {
+          "title": "Break Effect",
+          "paragraphs": [
+            "The Break Effect score uses floor((score − 10)/2), with the configured score limited to 1–30. The sheet’s added BREAK card edits this same value. Weakness Break uses the configured dice count and die size when the character reduces Toughness to zero.",
+            "Normal Break damage is floor(dice total × max(1, Break Effect modifier)). The minimum multiplier of 1 prevents a nonpositive modifier from making that break roll vanish. Example: 2d6 totals 7 and modifier +3 produces 21."
+          ]
+        },
+        {
+          "title": "Break Character and Super Break",
+          "paragraphs": [
+            "A Break Character’s successful ordinary attack deals 1 HP damage and directs its full rolled damage to Toughness. Ordinary non-Break attacks use their damage dice for Toughness rather than treating every flat bonus as dice damage.",
+            "Can deal Super Break enables eligible hits against an already broken enemy to roll the configured Break dice plus (Break Effect modifier + 1). Example: dice total 7 and modifier +3 produces 11 Super Break damage. This is not the same multiplication used by Weakness Break."
+          ]
+        },
+        {
+          "title": "Apply the damage",
+          "paragraphs": [
+            "Break/Super Break rolls post their supported damage cards. Use Apply Damage to carry out the HP application; displaying a roll is not proof that HP has already changed. Their typography and Element colors are configured in Damage/Break appearance, separate from these formulas."
+          ]
+        }
+      ],
+      "related": [
+        "weaknesses",
+        "manual-damage",
+        "damage-appearance"
+      ]
+    },
+    {
+      "id": "manual-damage",
+      "group": "Combat and GM tools",
+      "title": "Chat damage controls and application tracking",
+      "summary": "Use the module’s supported roll and Apply Damage flow.",
+      "keywords": [
+        "damage",
+        "chat card",
+        "apply",
+        "hp",
+        "toughness",
+        "critical",
+        "duplicate"
+      ],
+      "sections": [
+        {
+          "title": "Roll and target",
+          "paragraphs": [
+            "The module tracks relevant damage roll cards and their source, targets and kind. Apply Damage uses the actual supported application workflow, including HP, Toughness and Break behavior. A displayed number or descriptive ability paragraph is not an automatic HP change.",
+            "Confirm the intended target and damage type before applying. A non-Break hit, a Break Character hit and a Break/Super Break roll have different processing. The card’s recorded applications help identify what has already been applied."
+          ]
+        },
+        {
+          "title": "Avoid duplicate application",
+          "paragraphs": [
+            "Use one authoritative damage application path for a given result. If another automation has already applied damage, inspect the card and target HP before applying it again manually. The module records application identity and results to guard its own duplicate processing.",
+            "Critical thresholds and damage bonuses can come from equipment and compatible Planar integration. Read Adjusted PC Stats for effective values; do not assume a visually larger number means the target has been changed."
+          ]
+        }
+      ],
+      "related": [
+        "break",
+        "combat-stats",
+        "light-cones"
+      ]
+    },
+    {
+      "id": "aha",
+      "group": "Combat and GM tools",
+      "title": "Aha Instant, Punchline and Elation Actions",
+      "summary": "Configure the final initiative participant and its following action sequence.",
+      "keywords": [
+        "aha",
+        "instant",
+        "punchline",
+        "elation",
+        "initiative",
+        "video",
+        "masks"
+      ],
+      "sections": [
+        {
+          "title": "Enable the system",
+          "paragraphs": [
+            "Aha Configuration’s Elation master switch and selected Elation Path govern the normal Aha/Punchline features. Add Aha Instant to initiative creates the special participant when initiative is rolled. Add/Refresh Aha Combatant Now updates it in the current encounter.",
+            "Aha is placed one point below the lowest ordinary initiative score, so it follows the existing participants. The initiative preview’s sample numeral is presentation, not a promise that its live initiative is always zero."
+          ]
+        },
+        {
+          "title": "Resolve the sequence",
+          "paragraphs": [
+            "At Aha’s turn, matching living Elation characters receive temporary Elation Action turns immediately afterward in their existing initiative order. Each posts its configured action description. Its owner uses Complete Elation Action after resolving it.",
+            "After the final action, the temporary sequence is removed, Punchline resets and normal combat resumes. Aha’s video, floating button and Punchline icon/font controls affect presentation. Preview Locally shows media on the current client and does not run the complete encounter sequence."
+          ]
+        },
+        {
+          "title": "Critical turns",
+          "paragraphs": [
+            "The Joyseeker Light Cone can enable Aha critical behavior for a turn. Its separate GM question confirms whether another source already enabled that critical. It is not the same as Override Punchline, the Aha artwork preview or the initiative refresh action."
+          ]
+        }
+      ],
+      "related": [
+        "joyseeker",
+        "combat-flow",
+        "shared-resources"
+      ]
+    },
+    {
+      "id": "joyseeker",
+      "group": "Combat and GM tools",
+      "title": "As the Joyseeker Remembers It: Aha critical check",
+      "summary": "Understand the automatic d20 check and the GM’s other-source question.",
+      "keywords": [
+        "joyseeker",
+        "light cone",
+        "can aha crit",
+        "critical",
+        "popup",
+        "5 energy"
+      ],
+      "sections": [
+        {
+          "title": "Eligibility and roll",
+          "paragraphs": [
+            "The Light Cone must be eligible through its equipment/attunement workflow. Its critical threshold benefit depends on Elation allies with distinct Elements. When Aha Instant occurs, the automated d20 is compared with the wearer’s effective critical threshold; meeting or exceeding it succeeds.",
+            "On success, Aha can crit that turn and Elation Action damage uses the corresponding doubled behavior. This is turn state, not a permanent replacement for every character’s weapon critical range."
+          ]
+        },
+        {
+          "title": "The GM popup",
+          "paragraphs": [
+            "The GM is asked whether at least one other player/source already enabled Aha to crit. Answer Yes only if another source supplied that ability. Yes grants 5 base Energy to Elation characters before their regeneration bonuses and posts the Light Cone information. No posts its information with “AHA INSTANT CAN NOW CRIT”.",
+            "The question supplements the automatic wearer roll; it is not a request to manually roll that same d20. An eligible active GM, correct equipped item, Aha event and successful threshold check are prerequisites. Alternate Ultimate Energy-gain restrictions still apply to those characters."
+          ]
+        },
+        {
+          "title": "If it did not appear",
+          "paragraphs": [
+            "Check equipment eligibility, selected Elation Path and Elements, effective threshold, the roll result, active GM and current module version. A failed check does not produce the successful critical branch. See the encounter chat and DoT/Light Cone runtime controls before manually awarding an additional copy of Energy."
+          ]
+        }
+      ],
+      "related": [
+        "aha",
+        "light-cones",
+        "combat-stats",
+        "energy"
+      ]
+    },
+    {
+      "id": "boss-phases",
+      "group": "Combat and GM tools",
+      "title": "Multi-phase bosses",
+      "summary": "Configure replacement Actors, inherited bar layout and live phase changes.",
+      "keywords": [
+        "boss",
+        "phase",
+        "transition",
+        "token dimensions",
+        "hp bar",
+        "portrait"
+      ],
+      "sections": [
+        {
+          "title": "Configure the chain",
+          "paragraphs": [
+            "Is Boss enables the shared boss HP display while the Actor is in active combat. Phase count selects the number of represented phases. Drag replacement Actors into Phase 2/3 slots; their tokens replace the current phase when its HP reaches zero.",
+            "Phase token dimensions are grid units. A zero dimension inherits that phase Actor’s prototype-token size. Each phase Actor supplies its own portrait and crop. Phase 1’s bar layout controls the encounter-wide presentation."
+          ]
+        },
+        {
+          "title": "Control and inspect",
+          "paragraphs": [
+            "Show Phase Controls opens the live phase window, and DM Combat → Phases offers the configured choices. Changing a phase is a real token/encounter operation, not an artwork preview. Review source Actors and token space before using it.",
+            "Boss bar width and HP/Toughness heights are display pixels. Portrait X/Y and scale adjust its crop. These values do not change the creature’s HP maximum or battle-map size."
+          ]
+        }
+      ],
+      "related": [
+        "gm-panel",
+        "dm-combat",
+        "artwork"
+      ]
+    },
+    {
+      "id": "initiative",
+      "group": "Combat and GM tools",
+      "title": "HSR initiative carousel and Action Advance",
+      "summary": "Arrange the tracker and insert a deliberate extra turn.",
+      "keywords": [
+        "initiative",
+        "carousel",
+        "action advance",
+        "extra turn",
+        "frame colors",
+        "portrait"
+      ],
+      "sections": [
+        {
+          "title": "Carousel presentation",
+          "paragraphs": [
+            "The HSR tracker stays at the left edge. Its top-left grip changes vertical position and its resize handle changes width/visible length within configured limits. Enable/Allow resizing and maximum dimensions are GM interface settings, not initiative bonuses.",
+            "Reusable frame colors supply default identity treatments. A per-character override can force its chosen frame/dot color. Initiative portrait artwork has its own crop and enhanced-form replacement; it is separate from the HUD portrait and Actor token image."
+          ]
+        },
+        {
+          "title": "Action Advance",
+          "paragraphs": [
+            "Choose an existing initiative participant in the GM Panel or DM Combat Action Advance picker. Confirming inserts one extra turn and then returns to the interrupted participant. The picker can include Aha Instant. It does not create a new world Actor or grant permanent initiative duplicates.",
+            "Previous/Next controls advance live combat. If an inserted Ultimate or Elation Action is current, use its matching completion flow. Reading an initiative preview does not progress the round."
+          ]
+        }
+      ],
+      "related": [
+        "combat-flow",
+        "gm-panel",
+        "artwork"
+      ]
+    },
+    {
+      "id": "light-cones",
+      "group": "Equipment and effects",
+      "title": "Light Cone equipment and eligibility",
+      "summary": "Effects depend on equipped, eligible items and supported event rules.",
+      "keywords": [
+        "light cone",
+        "equip",
+        "attune",
+        "slot",
+        "loot",
+        "automation",
+        "stacks"
+      ],
+      "sections": [
+        {
+          "title": "Install the item",
+          "paragraphs": [
+            "The module supplies a Light Cone loot type, frame presentation and compendium content. Import a cone onto the intended Actor and equip/attune it through the designated Light Cone slot workflow. Merely owning a named Item or viewing its artwork is not enough to activate its effects.",
+            "Eligibility can depend on Path and the supported item definition. Use the item’s actual effect description and the compatible automation rules rather than assuming an arbitrary renamed Item will implement a full kit."
+          ]
+        },
+        {
+          "title": "Runtime effects",
+          "paragraphs": [
+            "Supported Light Cones can change stats, stacks, cooldowns, resource awards, DoT or event-triggered effects. The DoT/Light Cone editor exposes live counters and ability classification. Cooldown counters may record the Actor turn at which an effect last triggered, rather than a number of turns remaining.",
+            "Damage and resource events are GM-authoritative and guarded against duplicate/recursive processing. Adjusted PC Stats shows compatible effective combat values. Unequipping or losing eligibility removes the item from the normal eligible-effect path."
+          ]
+        },
+        {
+          "title": "Known special cases",
+          "paragraphs": [
+            "Joyseeker uses the Aha critical flow described separately. Sleep Like the Dead’s noncritical/no-damage trigger uses the translated threshold benefit in this module, rather than assuming the original video-game percentage. Do not manually apply a second copy of an effect already handled by its supported rule."
+          ]
+        }
+      ],
+      "related": [
+        "joyseeker",
+        "dot",
+        "combat-stats"
+      ]
+    },
+    {
+      "id": "dot",
+      "group": "Equipment and effects",
+      "title": "Damage over time and tracked conditions",
+      "summary": "Assign recurring damage and manage its remaining ticks.",
+      "keywords": [
+        "dot",
+        "damage over time",
+        "burn",
+        "shock",
+        "bleed",
+        "wind shear",
+        "condition",
+        "duration"
+      ],
+      "sections": [
+        {
+          "title": "Apply a DoT",
+          "paragraphs": [
+            "Start combat and open DM Combat → DoT → Open DoT & Light Cone editor. Select Target, optional Source, DoT type, damage attribute, dice count/size and turn count, then Apply DoT. Source identifies whose eligible modifiers apply; No source uses base damage.",
+            "DoT type identifies the condition for cone rules, while damage attribute controls resistance/immunity processing. Burn/shock/bleed/wind shear identity is therefore separate from the damage attribute selection. Damage is rolled and applied at the affected creature’s turn start."
+          ]
+        },
+        {
+          "title": "Duration and editing",
+          "paragraphs": [
+            "Turn count defines remaining future ticks. Effects clear after their final tick. Current effect rows show their base dice, attribute and ticks left; editing remaining duration or Remove changes the live effect. Source die upgrades are applied when the tick rolls.",
+            "Tracked conditions use the selected target and duration with a condition classification and penalty magnitude. Assigning a condition is not the same action as rolling DoT damage. Check reduced AC, slowed, implanted weakness or other-debuff classification for the intended rule."
+          ]
+        },
+        {
+          "title": "Light Cone controls",
+          "paragraphs": [
+            "Actor sections show their eligible cone, stored stacks/cooldowns, DoTs and conditions. Ability classifications help supported cone rules distinguish attack types; a prose name alone is not a guaranteed classification. Runtime counters are mechanical data, separate from the visual remaining-ticks label."
+          ]
+        }
+      ],
+      "related": [
+        "light-cones",
+        "dm-combat",
+        "manual-damage"
+      ]
+    },
+    {
+      "id": "combat-stats",
+      "group": "Equipment and effects",
+      "title": "Adjusted PC combat stats and temporary buffs",
+      "summary": "Compare effective values with their automatic baselines.",
+      "keywords": [
+        "adjusted",
+        "buffed",
+        "original",
+        "stats",
+        "ac",
+        "speed",
+        "crit rate",
+        "threshold",
+        "planar"
+      ],
+      "sections": [
+        {
+          "title": "Inspect before editing",
+          "paragraphs": [
+            "View Adjusted PC Stats requires the compatible Planar combat-buff integration and an active combat. It shows effective encounter values and the automatic baseline. Manual adjustments are tracked separately from permanent sheet data.",
+            "AC, HP and speed bonuses are additive to their original values through the supported integration. Speed bonuses should add distance, rather than replace the character’s base walking speed. Show Original/automatic baseline helps distinguish the sheet value from encounter changes."
+          ]
+        },
+        {
+          "title": "Critical values",
+          "paragraphs": [
+            "Critical Rate reduces the effective d20 critical threshold: for example a +3 rate benefit against a base threshold of 20 gives 17. The effective threshold combines the applicable sheet/equipment/integration values. Critical Damage Bonus is a separate additive damage benefit.",
+            "Reset buffs for one character clears its manual encounter adjustments rather than editing its permanent ability scores. A disabled or unavailable editor can indicate an outdated/missing Planar integration, not that the Actor’s ordinary stats were deleted."
+          ]
+        }
+      ],
+      "related": [
+        "light-cones",
+        "manual-damage",
+        "break"
+      ]
+    },
+    {
+      "id": "memosprites",
+      "group": "Memosprites",
+      "title": "Memosprite setup and linked sources",
+      "summary": "Configure the companion addon’s source, HP, resource and ability list.",
+      "keywords": [
+        "memosprite",
+        "sprite",
+        "companion",
+        "pet",
+        "source uuid",
+        "configuration"
+      ],
+      "sections": [
+        {
+          "title": "Separate addon, integrated help",
+          "paragraphs": [
+            "Tely’s Memosprites supplies the companion character tab and HUD behavior. Ultimates supplies this documentation and contextual hover help when that addon is installed. Enabling Help does not install the companion addon or change the Path rules in an older installed version.",
+            "A GM configures the companion; owners retain permitted summon/ability actions. Open its character Memosprite tab or configuration link. The companion’s saved settings belong to the summoner Actor."
+          ]
+        },
+        {
+          "title": "Source and identity",
+          "paragraphs": [
+            "Drag an Actor or Item into the source slot to link its UUID and display information. Memosprite name is a separate display label and does not rename the summoner. A valid world Actor is needed for the placed-creature workflow; an Item supplies a reference/art but is not itself a creature Actor.",
+            "An Actor source supplies live HP from its sheet, so Current HP and Maximum HP in the configuration become disabled. Edit HP on that linked Actor. Without linked Actor HP, the addon uses its manual values."
+          ]
+        },
+        {
+          "title": "Setup order",
+          "paragraphs": [],
+          "steps": [
+            "Enable Has a memosprite and link the intended source.",
+            "Choose its name, tab icon and circular HUD portrait.",
+            "Set its resource type and current/maximum values, then add up to five abilities.",
+            "Choose visible HUD parts and arrange them in the designer.",
+            "Place the summoner on the map and test the actual summon action with its owner and GM."
+          ]
+        }
+      ],
+      "related": [
+        "memosprite-hud",
+        "memosprite-resources",
+        "memosprite-summoning"
+      ],
+      "image": "memosprite-anatomy.svg",
+      "imageAlt": "Illustrated guide to Memosprite setup and linked sources.",
+      "imageCaption": "Bundled illustration. Artwork, names and sample values can differ in your world; click to expand."
+    },
+    {
+      "id": "memosprite-hud",
+      "group": "Memosprites",
+      "title": "Memosprite HUD and portrait designer",
+      "summary": "Move the whole frame or individual visible parts independently.",
+      "keywords": [
+        "memosprite",
+        "hud",
+        "frame",
+        "portrait",
+        "hp arc",
+        "crop",
+        "scale",
+        "dots"
+      ],
+      "sections": [
+        {
+          "title": "Visibility",
+          "paragraphs": [
+            "Show HUD name controls the bottom character name. Hide summoner Talent affects the summoner’s Talent widget while the companion is enabled. Show floating Summon button controls that local companion launcher. Portrait, HP arc, HP number, resource and abilities each have their own visibility setting.",
+            "The unsummoned portrait is normally greyed out; summoned state reveals the live HP and selected additions according to the configured visibility. Preview summoned changes the designer’s sample state, not the battle-map creature."
+          ]
+        },
+        {
+          "title": "Frame versus parts",
+          "paragraphs": [
+            "Frame X/Y and width position the complete companion HUD. Whole HUD scale changes the complete design. Portrait, HP text, resource and abilities each have their own X/Y offsets and scale. Drag a part in the preview to place it, scroll to scale, or enter its numeric values. Dragging empty frame space moves the group.",
+            "Offsets are pixels in this editor, while scale is percent of base size. These controls do not move a map token, change its footprint or grant combat bonuses. Restore/Remove from HUD changes part visibility rather than deleting its underlying ability."
+          ]
+        },
+        {
+          "title": "Portrait crop",
+          "paragraphs": [
+            "Open portrait editor controls the circular image, crop X/Y and crop scale. Drag inside its circle to reposition and scroll to zoom, or enter the values. Save Portrait applies that editor; Cancel leaves its pending crop unconfirmed. The tab icon and source Actor token artwork are separate image slots."
+          ]
+        }
+      ],
+      "related": [
+        "memosprites",
+        "memosprite-resources",
+        "artwork"
+      ],
+      "image": "memosprite-anatomy.svg",
+      "imageAlt": "Illustrated guide to Memosprite HUD and portrait designer.",
+      "imageCaption": "Bundled illustration. Artwork, names and sample values can differ in your world; click to expand."
+    },
+    {
+      "id": "memosprite-resources",
+      "group": "Memosprites",
+      "title": "Memosprite resources and abilities",
+      "summary": "Use a counter, up-to-three dots or a percentage with a five-ability kit.",
+      "keywords": [
+        "memosprite",
+        "dots",
+        "resource",
+        "counter",
+        "fang",
+        "percent",
+        "ability cost"
+      ],
+      "sections": [
+        {
+          "title": "Resource styles",
+          "paragraphs": [
+            "X/Y counter displays current against maximum. Usage dots display up to three charges. Fang percentage uses a percent display with a 100 maximum. The numeric counter supports a larger configured maximum. Resource style changes the companion’s display/limits, not the party SP pool.",
+            "Current resource is the spendable live amount. Maximum is its cap. Restore resource explicitly refills it. Inactive dots are simply the companion’s unfilled charges; their appearance can differ between installed addon versions."
+          ]
+        },
+        {
+          "title": "Abilities",
+          "paragraphs": [
+            "Add up to five abilities. Name is the button label; Description is its explanatory chat text; optional Damage formula is its supported damage roll; Resource cost spends the companion resource; Icon supplies that button’s art. Use runs the ability and checks its available companion resource.",
+            "Remove ability deletes that entry from the companion kit, not the linked source Actor. These costs are separate from the summoner’s shared Skill Points and the base module’s Skill HP requirement. Configuration saves through the addon’s normal automatic flow."
+          ]
+        }
+      ],
+      "related": [
+        "memosprites",
+        "memosprite-hud",
+        "memosprite-summoning"
+      ]
+    },
+    {
+      "id": "memosprite-summoning",
+      "group": "Memosprites",
+      "title": "Summoning and unsummoning a Memosprite",
+      "summary": "Place the linked companion adjacent to its summoner and track its token.",
+      "keywords": [
+        "memosprite",
+        "summon",
+        "unsummon",
+        "adjacent",
+        "initiative",
+        "token",
+        "owner"
+      ],
+      "sections": [
+        {
+          "title": "Prepare and place",
+          "paragraphs": [
+            "Use a valid linked world Actor and put the summoner’s owned token on the current scene. The addon’s summon action highlights available surrounding squares. The player or GM chooses a valid position; the linked Actor’s token appears there, its HUD portrait becomes active and the addon adds the companion to initiative.",
+            "This is the companion addon’s adjacent-square workflow. The base module’s Skill/Ultimate summon list instead has a configurable range, count and lighting-barrier validation and does not automatically create initiative entries."
+          ]
+        },
+        {
+          "title": "Unsummon and recover",
+          "paragraphs": [
+            "Unsummon removes the addon’s tracked companion token/combat participant and returns its HUD to the inactive state. A configuration source drop links data; it does not itself perform a summon. Show floating summon button now displays the launcher without placing a creature.",
+            "If the action is unavailable, check Has a memosprite, owner permissions, a valid Actor source, summoner token, scene space and installed addon version/Path rules. Do not confuse a designer’s summoned preview with an actual map token."
+          ]
+        }
+      ],
+      "related": [
+        "memosprites",
+        "memosprite-hud",
+        "summons"
+      ]
+    },
+    {
+      "id": "artwork",
+      "group": "Artwork and interface",
+      "title": "Artwork, image paths and coordinate systems",
+      "summary": "Choose the right image slot and distinguish pixels, percentages and token units.",
+      "keywords": [
+        "art",
+        "image",
+        "portrait",
+        "icon",
+        "crop",
+        "scale",
+        "font",
+        "file picker"
+      ],
+      "sections": [
+        {
+          "title": "Image slots have different jobs",
+          "paragraphs": [
+            "Actor portrait is the general fallback image. Combat HUD portrait is the party lineup artwork. Initiative portrait belongs to the tracker. Orb/button art sits inside an action/charge display. Splash art is the cast presentation. Messenger portrait is the circular chat identity. Enhanced and boss forms can supply their own replacements.",
+            "Use each slot’s file picker or supported image drop target. The same file can be reused, but changing one slot does not automatically rewrite every other portrait. A Foundry-accessible path must load for all clients; a private local drive path is not a shared asset."
+          ]
+        },
+        {
+          "title": "Units and crop",
+          "paragraphs": [
+            "X/Y can mean a percentage center in one editor and pixels of offset in another. Scale is a display percentage: 100% is base size. Token width/height use grid units. Summon radius uses the scene’s distance units. Read the field tooltip rather than transferring a number between unrelated editors.",
+            "Flip mirrors the rendered image without editing the source file. Hue, saturation and brightness affect a visual overlay. A crop or font does not change attack range, token footprint or mechanical statistics."
+          ]
+        },
+        {
+          "title": "Readable assets",
+          "paragraphs": [
+            "Transparent PNG/WebP/SVG images preserve a silhouette where supported. Keep icons legible at their actual small HUD size. Test the cast splash at the clients’ screen sizes and use Preload when large images create delays. Expand manual screenshots to inspect their sample labels."
+          ]
+        }
+      ],
+      "related": [
+        "hud-design",
+        "splash-art",
+        "token-transitions"
+      ]
+    },
+    {
+      "id": "hud-design",
+      "group": "Artwork and interface",
+      "title": "Combat Party HUD designer",
+      "summary": "Arrange portraits, action orbs and companion overlays.",
+      "keywords": [
+        "hud",
+        "combat party",
+        "lineup",
+        "portrait",
+        "resize",
+        "glow ring"
+      ],
+      "sections": [
+        {
+          "title": "Layout and preview",
+          "paragraphs": [
+            "The combat Party HUD groups character portraits, HP and configured action indicators. Its designer adjusts the saved display arrangement; previews show artwork and relative positions without casting abilities. Drag the relevant grip or element, resize within its control limits and save the design.",
+            "Character portrait crop settings determine how its art fits the frame. The active form supplies enhanced replacements where configured. Alternate Ultimate components replace the normal Energy orb artwork in their active charge mode."
+          ]
+        },
+        {
+          "title": "Ready and consumed state",
+          "paragraphs": [
+            "The Ultimate ready glow is above the portrait and behind the orb, inset under its edge. It disappears when the charge is consumed. A grey component indicates alternate charge state rather than a missing Actor image.",
+            "An enabled companion addon can overlay its own memosprite design onto the summoner’s HUD card, subject to its visibility settings. Local widget placement and per-character portrait configuration are different saved values."
+          ]
+        }
+      ],
+      "related": [
+        "artwork",
+        "alternate-orbs",
+        "memosprite-hud"
+      ]
+    },
+    {
+      "id": "splash-art",
+      "group": "Artwork and interface",
+      "title": "Ultimate splash art, title cards and preloading",
+      "summary": "Configure the cast image and title separately from the charging orb.",
+      "keywords": [
+        "splash",
+        "cinematic",
+        "title",
+        "subtitle",
+        "preload",
+        "animation",
+        "font"
+      ],
+      "sections": [
+        {
+          "title": "Splash layout",
+          "paragraphs": [
+            "Ultimate splash art is shown by the cast presentation. X/Y, scale, title placement, title size, alignment, subtitle and fonts control its composition. These are distinct from the Ultimate orb image and the character’s ordinary combat portrait.",
+            "Enhanced Ultimate artwork can replace the standard splash when that enhanced ability is active. Missing enhanced art can use the normal counterpart where the configuration supports fallback. Test actual active-form casts after arranging the preview."
+          ]
+        },
+        {
+          "title": "Loading and timing",
+          "paragraphs": [
+            "Preload Splash Art fetches/decodes the configured images on clients before a cast needs them. It does not grant charge, run Ultimate code or insert an extra turn. Large media can still take time to transfer; verify that all clients can access the image path.",
+            "Previewing a splash is a local presentation test. A real Ultimate request performs the separate ownership, readiness, charge, chat/code and combat flow. If a cast works but art is missing, check the active form’s image slot and asset load before changing mechanical charge."
+          ]
+        }
+      ],
+      "related": [
+        "ultimates",
+        "enhanced-form",
+        "artwork"
+      ]
+    },
+    {
+      "id": "token-transitions",
+      "group": "Artwork and interface",
+      "title": "Enhanced token artwork and transition overlays",
+      "summary": "Keep the resulting token image separate from its switching animation.",
+      "keywords": [
+        "token",
+        "enhanced",
+        "skin",
+        "transition",
+        "gif",
+        "webp",
+        "hue",
+        "brightness"
+      ],
+      "sections": [
+        {
+          "title": "Result versus overlay",
+          "paragraphs": [
+            "Enhanced token image is the artwork the token should use while the form is active. Transition media plays visually during the stance switch. Set normal/enhanced art and the overlay in their respective slots so the temporary animation does not become the permanent token image.",
+            "Position, scale, duration, flip, hue, saturation and brightness tune the overlay. They are presentation settings; they do not resize the token’s mechanical footprint or modify HP. Use a suitable transparent image/animation and a Foundry-accessible path."
+          ]
+        },
+        {
+          "title": "Preview and test",
+          "paragraphs": [
+            "Use the transition preview to arrange the visual, then test an actual stance switch with a token on the scene. The GM Panel and DM Combat use the saved enhanced state. The normal art should return when the stance is turned off.",
+            "When the picture seems wrong, check the actual token art slot, active form and saved transition configuration independently. The enhanced Skill/Ultimate art and initiative portrait are additional, separate replacements."
+          ]
+        }
+      ],
+      "related": [
+        "enhanced-form",
+        "artwork",
+        "initiative"
+      ]
+    },
+    {
+      "id": "damage-appearance",
+      "group": "Artwork and interface",
+      "title": "Damage, Break and Super Break appearance",
+      "summary": "Configure shared typography and Element-driven color treatments.",
+      "keywords": [
+        "damage font",
+        "break text",
+        "super break",
+        "gradient",
+        "color",
+        "size"
+      ],
+      "sections": [
+        {
+          "title": "Three visual categories",
+          "paragraphs": [
+            "Damage, Break and Super Break have separate font files, sizes, bold choices, gradient switches and colors. Inherit Element color uses the relevant Element treatment instead of forcing the custom color pair. Top and bottom colors define the gradient when enabled.",
+            "Font files can be selected/uploaded through Foundry storage. Supported webfont formats should be accessible to connected clients. Size is display pixels at the configured baseline, not extra damage or a token scale."
+          ]
+        },
+        {
+          "title": "Preview versus mechanics",
+          "paragraphs": [
+            "The preview shows text appearance and sample values. Save applies the shared styling. Ordinary damage, Break and Super Break calculations remain determined by their own mechanical rules and damage cards.",
+            "A critical-hit label is presentation of the recorded damage state; changing its color does not change the effective critical threshold. Use Adjusted PC Stats and item effects for supported critical mechanics."
+          ]
+        }
+      ],
+      "related": [
+        "break",
+        "manual-damage",
+        "artwork"
+      ]
+    },
+    {
+      "id": "phone-hub",
+      "group": "Campaign apps",
+      "title": "HSR phone hub and button designer",
+      "summary": "Customize per-character phones and their live menu destinations.",
+      "keywords": [
+        "phone",
+        "hub",
+        "wallpaper",
+        "button",
+        "grid",
+        "pose",
+        "double width",
+        "standard"
+      ],
+      "sections": [
+        {
+          "title": "Live hub versus designer",
+          "paragraphs": [
+            "HSR Hub is the actual launcher. The GM can view a character’s phone and open Configure Phone for that profile. The designer preview shows that profile’s wallpaper, pose and buttons. Clicking or dragging a preview button edits its layout rather than triggering the live menu destination.",
+            "Player character selects the edited profile. Pose image/X/Y/zoom/flip controls the character illustration. Wallpaper fit, X/Y and zoom control the screen background. The per-character wallpaper library can save an image for an individual PC and open that phone for further editing."
+          ]
+        },
+        {
+          "title": "Buttons and snapping",
+          "paragraphs": [
+            "Add a Button creates a layout entry with label, icon class, Opens destination, optional sheet tab/CSS target, width/height and position. Drag it in the preview; use its resize handle or dimensions. Double width expands that button’s footprint in the phone layout.",
+            "Snap to grid and Grid size affect positioning in the designer. They are UI percentages/grid steps, not battle-map squares or spell range. Removing a phone button does not remove the destination feature or underlying Actor."
+          ]
+        },
+        {
+          "title": "Player standard",
+          "paragraphs": [
+            "Save as Player Standard stores the current layout as a reusable template. Load Standard copies that saved template into the current editing workflow. Apply Standard to All PCs applies it across player profiles. These operations can replace configured layouts; review the preview and profile before committing.",
+            "Phone actions keep their normal permissions. A player-visible layout does not grant access to GM-only configuration, and an optional addon’s button requires that addon to be enabled."
+          ]
+        }
+      ],
+      "related": [
+        "menus",
+        "messenger",
+        "artwork"
+      ]
+    },
+    {
+      "id": "messenger",
+      "group": "Campaign apps",
+      "title": "HSR Messenger and contacts",
+      "summary": "Manage conversations, speakers, unread state and GM contact availability.",
+      "keywords": [
+        "messenger",
+        "chat",
+        "contacts",
+        "group",
+        "speaking as",
+        "unread",
+        "message"
+      ],
+      "sections": [
+        {
+          "title": "Contacts and conversations",
+          "paragraphs": [
+            "Contacts shows characters available for new conversations. The GM’s Configure Contacts enables which characters appear to players; this restriction does not apply to the GM. Jump to a character scrolls to its availability row, while Filter contacts narrows the visible list. Save Contact Availability commits the checkboxes.",
+            "Messages lists existing text chains and unread indicators. Select a chain to read it. Make Group Chat selects its members and group title; its search filters choices without sending a message. Player owners of selected characters can read and reply through the normal rules."
+          ]
+        },
+        {
+          "title": "Writing as a character",
+          "paragraphs": [
+            "The GM’s Speaking as dropdown chooses the message’s speaker Actor. Write text, then press Send to publish to that thread. Selecting a speaker does not rename the logged-in user or alter the Actor’s sheet. Messenger portrait and crop settings determine the character’s chat identity image.",
+            "PC only filters the GM’s thread view. Deleting a message or text chain changes its saved conversation content, unlike simply clearing a search. Hover help and the manual never send messages or reveal a hidden conversation."
+          ]
+        },
+        {
+          "title": "Unread and drafts",
+          "paragraphs": [
+            "Unread counts/dots identify unseen messages; they are not combat debuffs. A different selected thread has its own content and speaker context. Confirm the selected chain and speaker before sending. The ordinary interface retains its configured behavior on updates; documentation only explains the controls."
+          ]
+        }
+      ],
+      "related": [
+        "phone-hub",
+        "artwork",
+        "player-workflow"
+      ]
+    },
+    {
+      "id": "missions",
+      "group": "Campaign apps",
+      "title": "Mission Manager, stages and objectives",
+      "summary": "Prepare hidden missions, assign recipients and track progress separately from rewards.",
+      "keywords": [
+        "quest",
+        "mission",
+        "stage",
+        "objective",
+        "hidden",
+        "archive",
+        "assign"
+      ],
+      "sections": [
+        {
+          "title": "Prepare and activate",
+          "paragraphs": [
+            "Mission Manager is the GM browser with search and status filters. New Mission prepares an entry privately. Edit its title, type, location, optional card image and description. Assignment checkboxes select Main Party or other player characters. Activate for Players makes it visible; Hide from Players reverses that visibility.",
+            "Mission type supplies default icon/background, while a mission-specific card image overrides that background for this entry. A filter or collapsed list changes only the browser view, not saved mission visibility."
+          ]
+        },
+        {
+          "title": "Stages and objectives",
+          "paragraphs": [
+            "Current Stage selects the active stage. Stage title names it; Add Stage creates another stage; Add Objective creates an entry within the selected stage. Each objective has text, Hidden, Revealed and Done fields. Hidden/Reveal affects its player-facing content, while Done records completion.",
+            "Save Mission commits the editor. Mark Complete records mission completion. Distribute Rewards is a separate live inventory grant; completing an objective or mission does not mean its Item rewards have already been distributed."
+          ]
+        },
+        {
+          "title": "Player log and archive",
+          "paragraphs": [
+            "The Mission Log shows accessible missions and their stages/revealed objectives. Hidden and archived states are distinct from active/complete progress. Use the normal reward and archive workflow to preserve which missions have been rewarded. Deleting a prepared mission is a saved-content operation, not merely closing its card."
+          ]
+        }
+      ],
+      "related": [
+        "mission-rewards",
+        "mission-types",
+        "party"
+      ]
+    },
+    {
+      "id": "mission-rewards",
+      "group": "Campaign apps",
+      "title": "Mission rewards and distribution",
+      "summary": "Know who receives Items and how Split differs from Copy mode.",
+      "keywords": [
+        "reward",
+        "distribute",
+        "quantity",
+        "split",
+        "copy",
+        "rarity",
+        "claimed"
+      ],
+      "sections": [
+        {
+          "title": "Configure the reward",
+          "paragraphs": [
+            "Drag Item documents into the mission’s reward area. Each entry keeps its Item reference, quantity, artwork and rarity. Quantity is a whole count, while rarity changes its presentation and sorting rather than multiplying it. Remove Reward deletes that mission’s reference, not the source Item or previously granted inventory copies.",
+            "Assignments and eligibility determine recipients. Characters with non-GM owners and GM-controlled characters marked Receives Rewards can qualify. Main Party membership is not itself a substitute for assignment."
+          ]
+        },
+        {
+          "title": "Split or copy",
+          "paragraphs": [
+            "Split total evenly divides the listed quantity among eligible assigned characters. Each gets the whole-number share and any remainder goes to randomly selected recipients. Full copy per assigned character grants the full listed amount to each eligible recipient."
+          ],
+          "table": {
+            "headers": [
+              "Reward / recipients",
+              "Split total evenly",
+              "Full copy per character"
+            ],
+            "rows": [
+              [
+                "7 potions / 3 characters",
+                "Two receive 2; one receives 3.",
+                "Each receives 7; 21 granted total."
+              ],
+              [
+                "1 potion / 3 characters",
+                "One random recipient receives 1.",
+                "Each receives 1."
+              ]
+            ]
+          }
+        },
+        {
+          "title": "Live distribution and repeat prevention",
+          "paragraphs": [
+            "Distribute Rewards grants the inventory Items and records claimed/distributed state. The normal workflow prevents repeated grants through the same completed reward state. Completion and distribution are separate; inspect both when a player reports missing loot.",
+            "Before a live grant, verify assignments, Receives Rewards, Item UUID, quantities and mode. Reading the reward icon or hovering Quantity does not grant an Item. Recreating the Item manually and then distributing again can duplicate the intended reward."
+          ]
+        }
+      ],
+      "related": [
+        "missions",
+        "party",
+        "crafting"
+      ]
+    },
+    {
+      "id": "mission-types",
+      "group": "Campaign apps",
+      "title": "Mission types, rarity hierarchy and backgrounds",
+      "summary": "Configure reusable mission and reward presentation.",
+      "keywords": [
+        "mission type",
+        "rarity",
+        "order",
+        "background",
+        "all missions icon"
+      ],
+      "sections": [
+        {
+          "title": "Types",
+          "paragraphs": [
+            "Mission Settings defines mission type name, enabled state, order, icon and background. Enabled types appear in the supported mission views. Order sorts entries; it is not character level, difficulty or reward quantity. The All Missions icon has its own field.",
+            "A mission can override its type background with a mission-specific card image. Removing a type should be considered alongside existing mission assignments so stable references remain understandable."
+          ]
+        },
+        {
+          "title": "Rarities",
+          "paragraphs": [
+            "Rarity entries define name, order, color and background for reward treatment. Their hierarchy controls visual organization rather than creating hidden damage bonuses or multiplying the Item count. Use accessible image paths and test contrast with the reward artwork.",
+            "Add/Remove controls change the catalog draft and Save commits its supported configuration. A type or rarity file picker selects artwork; it does not create a mission or distribute rewards."
+          ]
+        }
+      ],
+      "related": [
+        "missions",
+        "mission-rewards",
+        "artwork"
+      ]
+    },
+    {
+      "id": "crafting",
+      "group": "Campaign apps",
+      "title": "Party crafting, reagents and recipe cards",
+      "summary": "Learn a recipe and exchange configured ingredients for its output.",
+      "keywords": [
+        "crafting",
+        "synthesize",
+        "reagent",
+        "recipe",
+        "redeem",
+        "inventory",
+        "quantity"
+      ],
+      "sections": [
+        {
+          "title": "Discover recipes",
+          "paragraphs": [
+            "The crafting browser groups available recipes and supports filtering. A recipe must be available under its party/unlock rules. Recipe unlock cards are Items created by the recipe editor; redeeming a card teaches its corresponding recipe through the normal workflow. Owning an arbitrary similarly named Item is not automatically an unlock.",
+            "The source recipe defines its ingredients and crafted result. Quantity controls affect how many crafts are requested and therefore how many ingredients are needed. Inspect the selected Actor/party inventory context before committing."
+          ]
+        },
+        {
+          "title": "Craft deliberately",
+          "paragraphs": [
+            "The live craft validates available ingredients, removes the required amounts and creates the defined output. A card preview or recipe selection does not consume materials. An ingredient count and an output count have different meanings, even if they display the same number.",
+            "Redeem All handles supported recipe cards through their actual unlock flow, not every inventory Item. If a recipe is missing, check party access, learned unlocks, category filter and the saved definition before creating duplicate recipes."
+          ]
+        }
+      ],
+      "related": [
+        "recipe-editor",
+        "missions",
+        "mission-rewards"
+      ]
+    },
+    {
+      "id": "recipe-editor",
+      "group": "Campaign apps",
+      "title": "Recipe editor and classifications",
+      "summary": "Link ingredient/output Items and create reusable unlock cards.",
+      "keywords": [
+        "recipe editor",
+        "classification",
+        "category",
+        "output",
+        "ingredient",
+        "card"
+      ],
+      "sections": [
+        {
+          "title": "Recipe definition",
+          "paragraphs": [
+            "New Recipe creates an editor entry. Name is its display label, Card artwork is its recipe/unlock art, Classification groups it and Description explains it. Drag ingredient Items into Ingredients and set each required Qty. Drag the crafted Item into Result and set Produces to its output count.",
+            "The recipe’s prose does not replace Item references or quantities. Removing an ingredient deletes its recipe reference; it does not delete the world Item. Delete Recipe removes that definition rather than deleting all crafted copies."
+          ]
+        },
+        {
+          "title": "Availability and cards",
+          "paragraphs": [
+            "The recipe browser’s Party access checkbox controls visibility/crafting for party members who have that recipe unlocked. Existing unlocks are retained. Create Recipe Card creates the supported inventory unlock Item. Save Recipe commits definition edits.",
+            "Crafting classifications have reusable names/icons and sort entries for the browser. Category selection is not an ingredient multiplier. Search recipes narrows name, category or description without altering the definition."
+          ]
+        }
+      ],
+      "related": [
+        "crafting",
+        "artwork",
+        "mission-rewards"
+      ]
+    },
+    {
+      "id": "eidolons",
+      "group": "Campaign apps",
+      "title": "Eidolons, sequential unlocks and effects",
+      "summary": "Configure six artwork/effect slots and unlock them with the designated currency.",
+      "keywords": [
+        "eidolon",
+        "e1",
+        "e6",
+        "resonance",
+        "currency",
+        "glass",
+        "artwork",
+        "unlock"
+      ],
+      "sections": [
+        {
+          "title": "Character slots",
+          "paragraphs": [
+            "Eidolons unlock sequentially E1 through E6. Each slot has a title, effect text, artwork and crop/scale. Active state indicates its unlock. The GM’s Configure controls edit that slot; activation uses the designated currency Item and normal sequence checks.",
+            "Activation currency Item is a UUID/reference to the Item used for unlocks; one copy is consumed per unlock through the supported workflow. Viewing a slot or Check Eidolon Effects does not consume currency."
+          ]
+        },
+        {
+          "title": "Artwork layers",
+          "paragraphs": [
+            "Eidolon Appearance configures the shared background, glass shards/overlays and related presentation. The background should be the underlying scene without duplicating glass fragments. E3 has its separate upper glass layer. Character slot artwork is independent of these shared masks and overlays.",
+            "Select Existing Eidolons supports the module’s existing-item workflow. Effects need their supported item/effect implementation; prose and a decorative image alone are not arbitrary JavaScript. Save and activation are different actions."
+          ]
+        }
+      ],
+      "related": [
+        "artwork",
+        "party",
+        "api"
+      ]
+    },
+    {
+      "id": "shortcuts",
+      "group": "Artwork and interface",
+      "title": "Keyboard shortcuts and movable widgets",
+      "summary": "Open normal workflows quickly and arrange local controls.",
+      "keywords": [
+        "keyboard",
+        "keybinding",
+        "shortcut",
+        "drag",
+        "widget",
+        "hotbar"
+      ],
+      "sections": [
+        {
+          "title": "Shortcut settings",
+          "paragraphs": [
+            "Keyboard shortcut configuration selects the actions and key combinations offered by the module. A shortcut opens the same supported workflow as its normal button; it does not bypass ownership, resource costs, combat restrictions or resolving locks.",
+            "Check conflicts with other Foundry bindings if a key appears unresponsive. Editing a binding changes input behavior, not a character’s configured Skill/Ultimate text or charge."
+          ]
+        },
+        {
+          "title": "Move and reopen",
+          "paragraphs": [
+            "Use widget grips for movement and resize handles for scale. Avoid dragging an action face when intending to move its frame. Local layout can differ between players. Close hides the local widget; show actions in the rail/phone/GM Panel restore the display.",
+            "The manual uses / to focus search, Escape to clear its query or dismiss a tooltip/image, and Back to revisit navigation. These documentation controls do not trigger combat shortcuts."
+          ]
+        }
+      ],
+      "related": [
+        "menus",
+        "player-workflow",
+        "hud-design"
+      ]
+    },
+    {
+      "id": "tatsuo",
+      "group": "Artwork and interface",
+      "title": "Blow Up Tatsuo visual effect",
+      "summary": "Choose the target player and configure the separate token overlay.",
+      "keywords": [
+        "tatsuo",
+        "blow up",
+        "animation",
+        "floating button",
+        "macro"
+      ],
+      "sections": [
+        {
+          "title": "Configure and place",
+          "paragraphs": [
+            "The GM Panel’s Configure Animation opens this effect’s settings. Select the intended player/character targeting and media presentation, then save. Place Floating Button shows a movable local trigger. The script API can also show or trigger the configured effect.",
+            "Media scale, position and timing tune the displayed animation. These are distinct from enhanced-form token replacement and Ultimate splash art. Choosing a file or reading the preview does not cast a character’s ability."
+          ]
+        },
+        {
+          "title": "Trigger",
+          "paragraphs": [
+            "Using the live button broadcasts the configured visual over the selected player’s character tokens. It is an intentionally configured effect; it is not an implicit HP damage operation just because its name says Blow Up.",
+            "If nothing appears, verify target player/Actor, tokens on the scene, image/video path and current effect configuration. Reposition the local launcher through its grip rather than changing token placement."
+          ]
+        }
+      ],
+      "related": [
+        "gm-panel",
+        "artwork",
+        "api"
+      ]
+    },
+    {
+      "id": "api",
+      "group": "Reference and recovery",
+      "title": "Macros, optional code and integration API",
+      "summary": "Use supported entry points and keep prose separate from executable code.",
+      "keywords": [
+        "api",
+        "macro",
+        "script",
+        "javascript",
+        "automation",
+        "helpers",
+        "state"
+      ],
+      "sections": [
+        {
+          "title": "Public API",
+          "paragraphs": [
+            "After module readiness, access game.modules.get(\"telys-star-rail-ultimates\").api. Read-only getters inspect state; request/trigger/setter methods are live actions with their normal restrictions. The tooltip system never evaluates configured prose as JavaScript."
+          ],
+          "code": "const hsr = game.modules.get(\"telys-star-rail-ultimates\")?.api;\nhsr?.openDocumentation?.(\"summons\");"
+        },
+        {
+          "title": "Request an ability",
+          "paragraphs": [
+            "requestSkill(actor), requestUltimate(actor) and requestTechnique(actor) follow ownership, readiness, costs and summoning. getConfig(actor) reads merged configuration; getUltimateCharge(actor) reads active-form readiness. Use these flows instead of manually setting charge to simulate a completed cast."
+          ],
+          "code": "const hsr = game.modules.get(\"telys-star-rail-ultimates\")?.api;\nconst actor = game.actors.get(\"REPLACE_WITH_ACTOR_ID\");\nif (actor) await hsr.requestSkill(actor);"
+        },
+        {
+          "title": "Resources and alternate charge",
+          "paragraphs": [],
+          "table": {
+            "headers": [
+              "API names",
+              "Purpose"
+            ],
+            "rows": [
+              [
+                "getSkillPoints(), setSkillPoints(value)",
+                "Shared Skill Points."
+              ],
+              [
+                "getTechniquePoints(), setTechniquePoints(value)",
+                "Shared Technique Points."
+              ],
+              [
+                "getTalentPoints(actor), setTalentPoints(actor, value)",
+                "Eligible Actor-specific Talent pool."
+              ],
+              [
+                "getPunchline(), setPunchline(value), addPunchline(amount), spendPunchline(amount)",
+                "Shared Punchline; spending can fail if unaffordable."
+              ],
+              [
+                "setEnergy(actor, value), addEnergy(actor, amount, reason)",
+                "Energy changes under active-form/round-lock rules; direct award is GM-only."
+              ],
+              [
+                "getAlternateOrb(actor, form), getAlternateOrbStates(actor, form)",
+                "Read regular/enhanced design and states; omitted form means active."
+              ],
+              [
+                "setAlternateOrbCounter(actor, id, active, {form})",
+                "GM free-mode component switch; active form and resolving checks apply."
+              ],
+              [
+                "resetAlternateOrbCounters(actor, {form}), openAlternateOrbDesigner(actor, {form})",
+                "Reset progress or edit regular/enhanced design. Circular charge is edited in its GM interfaces."
+              ]
+            ]
+          }
+        },
+        {
+          "title": "Ultimate code context",
+          "paragraphs": [
+            "The optional Ultimate code field runs as an async function with actor, token, combat, combatantId, config, game, canvas, ui, foundry and Hooks. A missing scene/combat can mean token or combat is absent. Await mechanical changes. A returned string may supply chat text when its configured description is empty.",
+            "punchline has get/set/add/spend. talent and skillPoints also provide max. tsru.moduleId identifies this module; tsru.state.get(key, fallback), set(key, value) and unset(key) keep custom state on the Actor. tsru.specialAha(fixedPunchline) requests its special Aha flow. Skill and HP-cost description fields are not this code context."
+          ]
+        },
+        {
+          "title": "Other public tools",
+          "paragraphs": [
+            "openGMPanel, openDMCombatMenu, openCombatHudDesigner, openAhaConfig, openSkillPointConfig, openTalentPointConfig, openTechniquePointConfig, openBreakAppearance, openElementManager and openPathManager open their named interfaces. openEidolonConfig, openEidolonEffectsBrowser, openLightConeGenerator, openCrafting, openRecipeManager and openCraftingClassifications open their tools.",
+            "showOrb(actor), showCombatPartyHud, showUltimateUI, showSkillUI, showTalentUI, showAllAbilityBubbles and showTalentPopup(actor) show widgets/text. refreshOrbs and refreshResourceHuds repaint existing state. getSelectedMainCharacter and setLocalMainCharacter(actorId) handle the local selection.",
+            "setTemporaryToughnessWeaknesses(target, elementIds), addTemporaryToughnessWeakness(target, elementId) and resetTemporaryToughnessWeaknesses(target) manage temporary weaknesses. resetCanvasToughness restores scene NPC Toughness. insertActionAdvanceTurn(combatantId) inserts an extra turn. showAhaButton, toggleAhaOrb, triggerAhaInstant, triggerSpecialAha(actor, fixedPunchline), showBlowUpTatsuoButton and triggerBlowUpTatsuo operate their named systems. showSplash(options) is a local visual presentation call, not an Ultimate cast."
+          ]
+        }
+      ],
+      "related": [
+        "ultimates",
+        "summons",
+        "light-cones"
+      ]
+    },
+    {
+      "id": "troubleshooting",
+      "group": "Reference and recovery",
+      "title": "Troubleshooting by symptom",
+      "summary": "Check active state, eligibility and assets before replacing configuration.",
+      "keywords": [
+        "troubleshoot",
+        "broken",
+        "not working",
+        "missing",
+        "no popup",
+        "cannot fit",
+        "refund"
+      ],
+      "sections": [
+        {
+          "title": "Ability or orb",
+          "paragraphs": [],
+          "table": {
+            "headers": [
+              "Symptom",
+              "Check first"
+            ],
+            "rows": [
+              [
+                "Alternate orb did not replace Energy",
+                "Active form’s Standard/Alternate toggle, saved components and installed version."
+              ],
+              [
+                "Ultimate button is disabled",
+                "Enabled system, active charge, ownership and resolving lock."
+              ],
+              [
+                "No Ultimate chat or code",
+                "Correct active-form text/code fields and normal activation path; inspect reported script errors."
+              ],
+              [
+                "No splash",
+                "Active-form splash slot, accessible path and image preload/load result."
+              ],
+              [
+                "Turn does not resume",
+                "Current temporary participant and its matching completion button."
+              ],
+              [
+                "Energy does not increase",
+                "Active alternate mode and Pause Energy after Ultimate round lock."
+              ],
+              [
+                "Aha crit popup missing",
+                "Eligible Joyseeker, effective threshold roll, Aha event, active GM and installed version."
+              ]
+            ]
+          }
+        },
+        {
+          "title": "Placement and companion",
+          "paragraphs": [],
+          "table": {
+            "headers": [
+              "Symptom",
+              "Check first"
+            ],
+            "rows": [
+              [
+                "Cannot Fit",
+                "Full footprint within radius/bounds, occupancy and lighting barriers."
+              ],
+              [
+                "Player summon unavailable",
+                "Connected GM, owner permissions, source Actor and saved choice/count."
+              ],
+              [
+                "Memosprite tab absent",
+                "Companion addon enabled and installed version’s Path/eligibility rules."
+              ],
+              [
+                "Memosprite HP fields disabled",
+                "Valid linked Actor supplies live HP; edit that Actor."
+              ],
+              [
+                "Memosprite preview active but no token",
+                "Preview summoned is a designer state; use the actual summon action."
+              ],
+              [
+                "HUD part missing",
+                "Visibility switch, frame/part offsets, scale and saved design."
+              ]
+            ]
+          }
+        },
+        {
+          "title": "Menus, search and updates",
+          "paragraphs": [
+            "Clear a search and choose All menus before assuming a setting was removed. Check the selected phone/Actor profile and active enhanced stance. A missing optional editor can require a compatible addon.",
+            "After an update, confirm the installed module version and reload the world/clients. A cached old module manifest or old browser script can leave new controls unavailable. If the manual reports a missing docs file, verify that the release ZIP includes docs/ and retry; hovering help must never be used as a substitute for missing module files."
+          ]
+        }
+      ],
+      "related": [
+        "overview",
+        "settings-search",
+        "summons",
+        "joyseeker"
+      ]
+    },
+    {
+      "id": "glossary",
+      "group": "Reference and recovery",
+      "title": "Glossary and common abbreviations",
+      "summary": "Distinguish the module’s similarly named resources and states.",
+      "keywords": [
+        "glossary",
+        "definition",
+        "abbreviation",
+        "sp",
+        "tp",
+        "hp",
+        "regen",
+        "be"
+      ],
+      "sections": [
+        {
+          "title": "Resources",
+          "paragraphs": [],
+          "table": {
+            "headers": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Energy",
+                "Character’s stored charge for a standard Ultimate."
+              ],
+              [
+                "REGEN",
+                "Energy Regen ability score and its D&D-style modifier."
+              ],
+              [
+                "BREAK / BE",
+                "Break Effect score/modifier."
+              ],
+              [
+                "SP",
+                "Shared Skill Point pool; separate from an individual Skill’s cost."
+              ],
+              [
+                "Technique Points",
+                "Shared resource for Techniques outside initiative."
+              ],
+              [
+                "Talent Points",
+                "Actor-specific combat pool with trigger and overcap limits."
+              ],
+              [
+                "Punchline",
+                "Shared Elation resource associated with Aha."
+              ],
+              [
+                "Memosprite resource",
+                "The companion’s independent counter, dots or percentage."
+              ]
+            ]
+          }
+        },
+        {
+          "title": "State and presentation",
+          "paragraphs": [],
+          "table": {
+            "headers": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Active form",
+                "Normal or Enhanced stance selecting the applicable kit."
+              ],
+              [
+                "Alternate Ultimate",
+                "Custom components replacing Energy charging for the active form."
+              ],
+              [
+                "Free activation",
+                "GM independently switches each component on/off."
+              ],
+              [
+                "Circular counter",
+                "A number lights a cumulative ordered sequence."
+              ],
+              [
+                "Layer / sequence",
+                "Drawing order / charge order; independent concepts."
+              ],
+              [
+                "Preview",
+                "Designer display state, rather than a live cast or resource payment."
+              ],
+              [
+                "Token footprint",
+                "Map width/height inherited from an Actor’s prototype token."
+              ],
+              [
+                "Source UUID",
+                "Stable reference to an existing Actor or Item document."
+              ],
+              [
+                "Current / maximum",
+                "Live amount / capacity or threshold, depending on the named resource."
+              ]
+            ]
+          }
+        }
+      ],
+      "related": [
+        "field-reference",
+        "energy",
+        "shared-resources"
+      ]
+    },
+    {
+      "id": "field-reference",
+      "group": "Reference and recovery",
+      "title": "Complete field and control reference",
+      "summary": "Search individual settings and read their meanings, options and limits.",
+      "keywords": [
+        "reference",
+        "every field",
+        "controls",
+        "settings list",
+        "parameters",
+        "index"
+      ],
+      "sections": [
+        {
+          "title": "Read a field entry",
+          "paragraphs": [
+            "Each reference identifies its interface and human-readable label. Its description explains what it changes; numeric limits and dropdown choices appear when defined by the control. The optional identifier helps distinguish similarly named values and supports exact-name searching.",
+            "A maximum supplied by another setting is described as a configured limit. Current Energy, current HP and the shared SP balance are not interchangeable merely because each has a Current field."
+          ]
+        },
+        {
+          "title": "Read-only help and live actions",
+          "paragraphs": [
+            "The same descriptions are used by hover help and searchable reference cards. New rows and refreshed panels receive help on rendering. Hovering, focusing or reading the manual does not save a field, spend a point, send a message, cast or advance a turn.",
+            "Use live buttons deliberately and draft editors’ Save actions when required. A picture, crop, font or color usually affects display; charge, HP cost, weakness, phase and turn controls affect mechanics. Search and contextual guide links connect the fields to their complete workflow."
+          ]
+        }
+      ],
+      "related": [
+        "overview",
+        "settings-search",
+        "glossary"
+      ]
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import {openDocumentation,installDocumentationHelp} from './help-manual.mjs';
 import * as summoning from './ability-summons.mjs';
 import {bindAbilitySummonSettings} from './ability-summon-settings.mjs';
 import {organizeCharacterSettings} from './character-settings.mjs';
@@ -6525,7 +6526,7 @@ class DMCombatMenu extends FormApplication {
     html.find("[data-dm-resource]").on("click",async event=>{const {dmResource,delta}=event.currentTarget.dataset;if(dmResource==="skill")await setSkillPoints(currentSkillPoints()+Number(delta));else await setPunchline(currentPunchline()+Number(delta));this.refresh();});
     html.find("[data-dm-turn]").on("click",async event=>{const combat=game.combat;if(!combat?.started)return;await (event.currentTarget.dataset.dmTurn==="next"?combat.nextTurn():combat.previousTurn());this.refresh();});
     html.find("[data-dm-end]").on("click",async()=>{if(game.combat?.started)await game.combat.deleteDialog();this.refresh();});
-    html.find("[data-dm-advance]").on("click",()=>{const choices=(game.combat?.turns??[]).filter(entry=>!isElationActionCombatant(entry)&&!entry.getFlag(MODULE_ID,"temporaryUltimate")&&!entry.getFlag(MODULE_ID,"actionAdvance"));if(!choices.length)return ui.notifications.warn("No combatants are in initiative.");const options=choices.map(entry=>`<option value="${escapeHTML(entry.id)}">${escapeHTML(entry.name)}</option>`).join("");new Dialog({title:"Action Advance",content:`<form><p>Choose an actor in initiative or Aha Instant.</p><select name="combatant">${options}</select></form>`,buttons:{advance:{label:"Advance Action",callback:async dialog=>{const id=dialog.find('[name="combatant"]').val();if(id){await insertActionAdvanceTurn(id);this.refresh();}}},cancel:{label:"Cancel"}},default:"advance"}).render(true);});
+    html.find("[data-dm-advance]").on("click",()=>{const choices=(game.combat?.turns??[]).filter(entry=>!isElationActionCombatant(entry)&&!entry.getFlag(MODULE_ID,"temporaryUltimate")&&!entry.getFlag(MODULE_ID,"actionAdvance"));if(!choices.length)return ui.notifications.warn("No combatants are in initiative.");const options=choices.map(entry=>`<option value="${escapeHTML(entry.id)}">${escapeHTML(entry.name)}</option>`).join("");new Dialog({title:"Action Advance",content:`<form class="tsru-action-advance-picker"><p>Choose an actor in initiative or Aha Instant.</p><select name="combatant">${options}</select></form>`,buttons:{advance:{label:"Advance Action",callback:async dialog=>{const id=dialog.find('[name="combatant"]').val();if(id){await insertActionAdvanceTurn(id);this.refresh();}}},cancel:{label:"Cancel"}},default:"advance"}).render(true);});
   }
   async close(...args) { if(state.dmCombatMenu===this)state.dmCombatMenu=null;return super.close(...args); }
   async _updateObject() {}
@@ -8106,9 +8107,11 @@ function bindCraftingSceneControl(app,html){
 }
 
 function registerApi() {
+  installDocumentationHelp();
   summoning.installSummoningHooks();
   configureAlternateUltimates({isResolving: actor => state.ultimateLocks.has(actor.id)});
   game.modules.get(MODULE_ID).api = {
+    openDocumentation,
     openAlternateOrbDesigner,
     getAlternateOrb,
     getAlternateOrbStates,

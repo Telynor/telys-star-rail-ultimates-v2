@@ -1,5 +1,13 @@
 # Tely's Star Rail Ultimates
 
+## Illustrated help and hover documentation (preview.16)
+
+Open **Star Rail rocket on the left rail → Help Documentation**, below the other tools. GMs and players can search the entire manual, browse grouped contents or use its A–Z index. The 54 guides include worked examples, screenshots, diagrams and individual field/control references. Click an illustration to expand it. Try `alt ult`, `pet range`, `HP cost`, `art` or `memosprite dots`; multiple keywords narrow results. Press `/` to focus search and Escape to clear it.
+
+Hover or keyboard-focus controls throughout character HSR settings, GM Panel, DM Combat, Star Rail apps and installed Memosprite configuration for meanings, units, limits and disabled/current state. Dynamic rows receive the same help. Contextual **? Help** buttons open the relevant guide. Reading help never spends resources or changes configuration. The current in-game manual takes precedence over older README feature notes.
+
+The documentation and illustrations are bundled in `docs/` inside the release ZIP and require no external documentation service. Companion hover help is supplied by Ultimates when the separate Memosprites addon is installed.
+
 ## Skill and Ultimate summons (preview.15)
 
 In a character’s **HSR Settings → Abilities → Skill**, or **Ultimates → Ultimate Summoning**, enable **Summons creature?**. Drag existing world Actors from the Actors directory into the list, or choose **Add existing Actor**. Drag rows to reorder them; **Count** sets how many copies of the selected creature to place. Skill and Ultimate lists and radii are independent. These settings also apply to the character’s enhanced abilities, with no Path requirement.
@@ -88,12 +96,12 @@ Character sheets include a shared GM/player Eidolon tab with six sequential unlo
 - Each temporary turn posts that character's Elation Action text to chat and waits for its owner to press **Complete Elation Action**. After the final action, Punchline resets to zero, the temporary turns disappear, and combat resumes.
 - Skill, Ultimate, and Elation Action descriptions are descriptive text. Ultimate automation has a separate optional GM JavaScript field. Their normal resource, animation, and turn behavior still resolves when the description is empty.
 
-## Programmable Talents
+## Talents and Talent Points
 
-- Every character has a GM-authored Talent script plus editable current and maximum Talent Points.
-- Held Talent Points reset to zero whenever combat starts; the configured maximum is preserved.
-- Talent scripts receive event-driven conditions for combat, turns, damage, Energy, Skill Points, Punchline, Skills, Ultimates, Elation Actions, and Talent Point changes.
-- Scripts receive `event`, `punchline`, and actor-specific `talent.get/max/add/spend/set` helpers. Execution is GM-authoritative with recursion and duplicate-event protection.
+- Talent Text is the character’s displayed description. Combat Talent Points have separate current, trigger-maximum and overcap values.
+- Held points reset for a new combat; the configured limits are preserved. Eligible actors need the active combat/battlefield context.
+- Reaching a positive trigger threshold queues the supported Talent turn flow. GMs can assign points through the live resource controls.
+- The current general event dispatcher forwards supported events to Light Cones. A legacy Talent script field is not a promise of arbitrary event-driven kit automation; implement custom mechanics through an explicit supported workflow or deliberate code.
 
 A Foundry Virtual Tabletop v14 module for D&D 5e that recreates Honkai: Star Rail-style Ultimate energy and interrupt turns.
 

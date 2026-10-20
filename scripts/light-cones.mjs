@@ -1884,7 +1884,7 @@ export async function openPanel() {
     .map((a) => `<option value="${esc(a.uuid)}">${esc(a.name)}</option>`)
     .join("");
   const build = () =>
-    `<form><p class="tsru-panel-hint">DoT means damage over time. Assign a target, damage and duration; the engine rolls and applies damage at that creature’s turn start. Effects clear after their last tick.</p><h3>Apply damage over time</h3><label>Target<select name="target">${options}</select></label><label>Source<select name="source"><option value="">No source / base damage only</option>${options}</select></label><label>DoT type<select name="type">${["custom", "burn", "shock", "bleed", "windShear"].map((x) => `<option value="${x}">${friendlyLabel(x)}</option>`).join("")}</select></label><label>Damage attribute<select name="attribute">${Object.entries(
+    `<form class="tsru-light-cone-panel"><p class="tsru-panel-hint">DoT means damage over time. Assign a target, damage and duration; the engine rolls and applies damage at that creature’s turn start. Effects clear after their last tick.</p><h3>Apply damage over time</h3><label>Target<select name="target">${options}</select></label><label>Source<select name="source"><option value="">No source / base damage only</option>${options}</select></label><label>DoT type<select name="type">${["custom", "burn", "shock", "bleed", "windShear"].map((x) => `<option value="${x}">${friendlyLabel(x)}</option>`).join("")}</select></label><label>Damage attribute<select name="attribute">${Object.entries(
       CONFIG.DND5E.damageTypes,
     )
       .map(

@@ -38,6 +38,7 @@ jobs:
           node tests/alternate-orb-ui.cjs
           node tests/ability-score-ui.cjs
           node tests/summoning-ui.cjs
+          node tests/help-ui.cjs
 
       - name: Save orb designer screenshot
         if: always()
@@ -58,13 +59,18 @@ jobs:
             summoning-choice-smoke.png
             summoning-placement-smoke.png
             summoning-failure.png
+            help-manual-smoke.png
+            help-search-smoke.png
+            help-tooltip-smoke.png
+            help-compact-smoke.png
+            help-failure.png
           if-no-files-found: ignore
 
       - name: Create Foundry module ZIP
         shell: bash
         run: |
           zip -r "telys-star-rail-ultimates-v${{ steps.version.outputs.version }}.zip" \
-            module.json README.md LICENSE assets data packs lang scripts styles templates
+            module.json README.md LICENSE assets data docs packs lang scripts styles templates
 
       - name: Create or update GitHub release
         env:

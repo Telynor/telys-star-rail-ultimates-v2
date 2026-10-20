@@ -728,7 +728,8 @@ function hubToolbarActions() {
     "tsru-skill-config": ["Skill Point Configuration", () => api()?.openSkillPointConfig?.()],
     "tsru-elements": ["Element Manager", () => api()?.openElementManager?.()],
     "tsru-paths": ["Path Manager", () => api()?.openPathManager?.()],
-    "tsru-eidolons": ["Eidolon Configuration", () => api()?.openEidolonConfig?.()]
+    "tsru-eidolons": ["Eidolon Configuration", () => api()?.openEidolonConfig?.()],
+    "tsru-help": ["Help Documentation", () => api()?.openDocumentation?.()]
   };
 }
 
@@ -766,9 +767,10 @@ function consolidateToolbar(controls) {
     ["tsru-skill-config","Skill Point Configuration","fas fa-diamond",game.user.isGM,toolbarAction("Skill Point Configuration",()=>api()?.openSkillPointConfig?.())],
     ["tsru-elements","Manage Elements","fas fa-sparkles",game.user.isGM,toolbarAction("Element Manager",()=>api()?.openElementManager?.())],
     ["tsru-paths","Manage Paths","fas fa-route",game.user.isGM,toolbarAction("Path Manager",()=>api()?.openPathManager?.())],
-    ["tsru-eidolons","Configure Eidolon Layers","fas fa-gem",game.user.isGM,toolbarAction("Eidolon Configuration",()=>api()?.openEidolonConfig?.())]
+    ["tsru-eidolons","Configure Eidolon Layers","fas fa-gem",game.user.isGM,toolbarAction("Eidolon Configuration",()=>api()?.openEidolonConfig?.())],
+    ["tsru-help","Help Documentation","fas fa-book-open",true,toolbarAction("Help Documentation",()=>api()?.openDocumentation?.())]
   ].map(([name,title,icon,visible,handler])=>({name,title,icon,button:true,visible,onClick:handler,onChange:handler}));
-  if(game.user.isGM) hubTools=hubTools.filter(tool=>["tsru-hub-window","tsru-battle-pass","tsru-dm-combat"].includes(tool.name));
+  if(game.user.isGM) hubTools=hubTools.filter(tool=>["tsru-hub-window","tsru-battle-pass","tsru-dm-combat","tsru-help"].includes(tool.name));
   const hub={name:"tsru-hsr-hub",title:"HSR Hub",icon:"fas fa-rocket",order:89,layer:"controls",tools:hubTools};
   if(Array.isArray(controls)){const existing=controls.findIndex(c=>c.name===hub.name);if(existing>=0)controls.splice(existing,1);controls.push(hub);}
   else controls[hub.name]=hub;
