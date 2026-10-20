@@ -57,6 +57,9 @@
     <div class="tsru-gm-bulk-weakness-actions"><button type="button" data-action="bulk-enable-toughness"><i class="fas fa-toggle-on"></i> Enable Toughness for All</button><button type="button" data-action="bulk-weakness-mode" data-mode="all"><i class="fas fa-rainbow"></i> All Weaknesses for All</button><button type="button" data-action="bulk-weakness-mode" data-mode="none"><i class="fas fa-shield"></i> No Weaknesses for All</button><button type="button" data-action="reset-all-temporary-weaknesses"><i class="fas fa-rotate-left"></i> Reset All to Sheet Weaknesses</button></div>
   </section>
 
+    <section class="tsru-gm-section tsru-multitype-live"><h3><i class="fas fa-shuffle"></i> Element Change</h3><p>Hot-swap the current HSR Element of any Type Changer: PCs, NPCs, or summons. Linked tokens share their world Actor; unlinked tokens have their own row.</p>
+      {{#each elementActors}}<article class="tsru-element-change-row"><div><strong>{{name}}</strong><small>{{sourceLabel}}</small></div><label>Current Element<select data-element-change="{{uuid}}">{{#each elements}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select></label></article>{{else}}<p>Enable Multitype? → Type Changer in an Actor’s HSR Element Settings to show it here. NPCs and summons have an HSR Elements button in their sheet header.</p>{{/each}}
+    </section>
   <section class="tsru-gm-section tsru-gm-character-settings">
     <h3><i class="fas fa-users-gear"></i> Character Resources</h3>
     <p>Energy, regeneration, automatic gains, Punchline gain, and Talent Points update as soon as a field is changed.</p>

@@ -35,6 +35,7 @@ const aliases = [
   ["radius", "range", "distance", "zone"],
   ["cost", "price", "payment", "spend"],
   ["skill", "sp"], ["talent", "tp"], ["technique", "tech"],
+  ["multitype", "multi", "dual", "hybrid", "changer", "change", "swap", "switch"],
   ["element", "elemental", "damage", "type"], ["path", "class"],
   ["font", "typeface", "typography", "lettering"]
 ];

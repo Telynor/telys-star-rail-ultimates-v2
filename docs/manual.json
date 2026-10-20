@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "title": "Tely’s Star Rail Field Manual",
-  "version": "3.14.0-preview.16",
+  "version": "3.14.0-preview.17",
   "articles": [
     {
       "id": "overview",
@@ -289,13 +289,20 @@
             "The selected Element participates in Toughness weaknesses and relevant Light Cone checks. A Path can determine eligibility for Path-specific effects, such as the configured Elation Path. Selecting a label does not automatically create a class, subclass or spell list.",
             "Memosprite availability is controlled by the installed companion addon. Reading its guide does not change an older addon’s Path restrictions. Skill and Ultimate Actor summons in this module have no Path restriction."
           ]
+        },
+        {
+          "title": "One Actor with multiple Elements",
+          "paragraphs": [
+            "Enable Multitype? on any PC, NPC or summon to choose between independent Item/activity attack Elements and Type Changer. Type Changer updates this Actor’s Assigned Element from the live GM or combat menus; Multitype attacks leaves its identity in place and resolves each attack separately. See Multitype attacks & Type Changer for the complete setup."
+          ]
         }
       ],
       "related": [
         "weaknesses",
         "aha",
         "light-cones",
-        "memosprites"
+        "memosprites",
+        "multitype"
       ]
     },
     {
@@ -775,7 +782,8 @@
         "skills",
         "hp-costs",
         "ultimates",
-        "memosprite-summoning"
+        "memosprite-summoning",
+        "multitype"
       ],
       "image": "summoning-placement.png",
       "imageAlt": "Illustrated guide to Skill and Ultimate creature summoning.",
@@ -944,7 +952,8 @@
         "dm-combat",
         "party",
         "weaknesses",
-        "shared-resources"
+        "shared-resources",
+        "multitype"
       ]
     },
     {
@@ -1011,17 +1020,192 @@
           "paragraphs": [
             "Lock Weaknesses protects that NPC’s temporary controls; it does not change its permanent sheet weaknesses. Edit orb opens a draft designer; component checkboxes change live readiness. View Talent reads text; its neighboring −/+ changes points. An unavailable Planar combat-stats integration must be installed/updated before its editor can work."
           ]
+        },
+        {
+          "title": "Element Change tab",
+          "paragraphs": [
+            "Element Change lists every configured Type Changer, including NPCs, PCs and summoned/unlinked token Actors. Select the row’s current Element to change that exact Actor immediately. Enable Multitype? → Type Changer on its sheet first. The dropdown changes future attacks and HSR Element visuals; existing rolls retain their captured Element."
+          ]
         }
       ],
       "related": [
         "gm-panel",
         "dot",
         "combat-stats",
-        "circular-orbs"
+        "circular-orbs",
+        "multitype"
       ],
       "image": "combat-controls.svg",
       "imageAlt": "Illustrated guide to DM Combat: every tab and footer control.",
       "imageCaption": "Bundled illustration. Artwork, names and sample values can differ in your world; click to expand."
+    },
+    {
+      "id": "multitype",
+      "group": "Combat systems",
+      "title": "Multitype attacks & Type Changer",
+      "summary": "Give any PC, NPC or summoned creature independent attack Elements, or let the GM hot-swap its current HSR Element.",
+      "keywords": [
+        "multitype",
+        "multi type",
+        "dual element",
+        "hybrid",
+        "type changer",
+        "change element",
+        "swap",
+        "switch",
+        "attack element",
+        "spell element",
+        "activity",
+        "NPC",
+        "PC",
+        "summon",
+        "memosprite",
+        "toughness",
+        "weakness",
+        "MidiQOL",
+        "standard attack"
+      ],
+      "image": "multitype.svg",
+      "imageAlt": "Two Multitype modes: a live Actor Element switch, and activity-to-Item-to-Actor attack inheritance.",
+      "imageCaption": "Type Changer edits the Actor’s live Element. Multitype attacks resolves each attack separately, using the most specific saved assignment.",
+      "sections": [
+        {
+          "title": "Start here: which mode do I want?",
+          "paragraphs": [
+            "An HSR Element is the module’s elemental identity used for Toughness matching and Element-based presentation. Create the reusable Elements in Star Rail GM Panel → Module Configuration → Elements first. Their stable IDs, not just their display names, identify weaknesses and attack assignments.",
+            "Multitype? is an Actor setting available to PCs, NPCs and summoned creatures on every Path. Turn it on to reveal the mode switch. Switch OFF selects Multitype attacks; switch ON selects Type Changer. The mode labels appear beside the switch and the selected label is emphasized."
+          ],
+          "table": {
+            "headers": [
+              "Choice",
+              "What changes",
+              "Use it when"
+            ],
+            "rows": [
+              [
+                "Multitype? OFF",
+                "Every attack uses the Actor’s Assigned Element.",
+                "The creature has a single ordinary Element."
+              ],
+              [
+                "ON → Multitype attacks",
+                "Each Item or activity may choose its own HSR Element; the Actor’s Element stays the same.",
+                "A Fire character has an Ice spell and a Lightning weapon technique."
+              ],
+              [
+                "ON → Type Changer",
+                "The GM changes the Actor’s current Assigned Element immediately; attack overrides are inactive.",
+                "A creature transforms its elemental identity between Fire, Ice and other Elements."
+              ]
+            ]
+          }
+        },
+        {
+          "title": "Where to configure PCs, NPCs and summons",
+          "paragraphs": [
+            "On a PC sheet, open HSR Settings → Combat → Multitype & Element Change. Use the setting search for multitype, change element, type changer, swap or attack element. The ordinary Assigned Element is still in the Character menu’s Element & Path section.",
+            "Every Actor sheet, including NPC and summoned-creature sheets, has an HSR Element Settings button with a shuffle icon in its window header for the GM. This opens the same Multitype controls plus Assigned Element in a compact window. The sheet’s Combat tab also gains an Element Change panel when that tab exists.",
+            "Summons use the settings on their own Actor and Items. Configure the summon’s source Actor before placing it if all its tokens should inherit the same setup. To change an existing unlinked summon only, open that token’s sheet and configure its synthetic Actor. It appears in the live menus as a Scene token, with its full token Actor reference.",
+            "Linked tokens share their world Actor’s setting, so changing that Actor updates every linked token. An unlinked token keeps its own Actor data. A world NPC and an unlinked token may therefore appear as separate rows with the same name. The Scene token / NPC / PC label identifies the source."
+          ]
+        },
+        {
+          "title": "Type Changer: change the live Element",
+          "steps": [
+            "As GM, open this Actor’s HSR Element Settings. Set an Assigned Element, turn on Multitype?, and turn the mode switch ON to select Type Changer.",
+            "Choose Change Element now in these settings or in the sheet’s Combat panel. Alternatively, open Star Rail GM Panel → Element Change, or DM Combat → Element Change, and find this Actor’s row.",
+            "Select an Element from that row’s dropdown. The change saves immediately to this specific Actor’s Assigned Element. You can also choose None to remove its HSR Element.",
+            "Make the next attack. It uses the new Actor Element. Saved Item/activity overrides remain stored for a later return to Multitype attacks, but Type Changer does not use them."
+          ],
+          "paragraphs": [
+            "The switch does not spend an action or resource by itself. It updates supported HSR visuals that read the Actor’s Element, including elemental colors. It does not change Path, standard Energy, alternate-orb counters, enhanced stance, the target’s weaknesses, or D&D5e damage/resistance definitions.",
+            "Turning Multitype? off retains the last selected Actor Element as the ordinary Assigned Element. There is no automatic return to an older Element. A roll already captured in chat retains the Element used for that roll, even if the GM changes the Actor before applying its damage."
+          ]
+        },
+        {
+          "title": "Multitype attacks: assign an Item and its activities",
+          "steps": [
+            "Turn Multitype? on and leave the mode switch OFF on Multitype attacks.",
+            "Choose Assign attack Elements. You can also use the HSR Attack Elements header button on an owned Item sheet. The editor lists the Actor’s owned weapons, spells, features and other Items, with their individual activities.",
+            "Choose an Item Element to supply a default for that Item. Set an activity’s dropdown when only that attack or damage activity should use a different Element.",
+            "Leave an activity on Inherit Item / Actor to use its Item’s selection. Leave the Item on Inherit Actor to use the Actor’s Assigned Element. Changes save immediately, and the status line confirms each save.",
+            "Use Find an Item or activity to narrow the list by multiple words from their names. Roll the attack normally through D&D5e or MidiQOL."
+          ],
+          "paragraphs": [
+            "Resolution order is the activity override, then the Item override, then the Actor’s current Assigned Element. For example: an Actor assigned Fire owns a weapon assigned Ice. Its normal attack inherits Ice; a second activity assigned Lightning uses Lightning; an unrelated unassigned spell uses Fire.",
+            "Each attack/activity resolves one HSR Element for its damage event. D&D5e’s fire, cold, slashing and other damage types remain the system’s own damage types. Selecting an HSR Element does not rewrite a spell’s formula or D&D5e resistances. A blank or removed Element override falls back to its parent.",
+            "Actor owners and GMs can edit attack assignments. The GM controls Multitype? itself, the active mode and live Actor Element changes. Item and activity selections are retained when changing modes, disabling Multitype? or entering/exiting enhanced stance."
+          ]
+        },
+        {
+          "title": "Toughness matching in both attack handlers",
+          "paragraphs": [
+            "The standard damage-roll/chat/apply-damage handlers and MidiQOL use the same captured attack Element. A normal attack reduces Toughness when that Element matches an effective weakness and Toughness is enabled. It discovers the matching attack Element, rather than incorrectly discovering the Actor’s default Element.",
+            "The ordinary Toughness amount still comes from rolled damage dice, excluding flat bonuses. Existing Break Character, Super Break, temporary weakness and other module exceptions continue to apply. None weakness mode blocks reduction; All mode accepts every defined Element under the existing rules.",
+            "MidiQOL uses its confirmed hit targets for attacks with attack rolls, so a miss does not reduce Toughness through the chat card. Attacks without an attack roll use the workflow’s damage targets. A repeated notification for the same captured damage event applies once per target; a later separate attack with the same amount remains a new event.",
+            "Damage rolls capture an Element and event identity before application. Chat damage, standard hooks, player requests to the active GM and MidiQOL can carry that same context. The actor’s live Element and an Item’s later edits do not silently retype an already captured roll. Manually choosing Apply Damage again is still a deliberate separate manual application."
+          ]
+        },
+        {
+          "title": "First-use troubleshooting",
+          "table": {
+            "headers": [
+              "What you see",
+              "What to check"
+            ],
+            "rows": [
+              [
+                "The Actor is missing from Element Change.",
+                "Enable Multitype? and select Type Changer on that exact Actor. The menus include world Actors, scene token Actors and current combatants, without a Path/PC-only gate."
+              ],
+              [
+                "An attack keeps using the Actor Element.",
+                "Select Multitype attacks, check the actual Item/activity being rolled, and save its HSR Element. A different activity can have its own override."
+              ],
+              [
+                "Changing the world NPC did not change an existing token.",
+                "The token may be unlinked. Open its token sheet and configure that specific Actor; its menu row is labeled Scene token."
+              ],
+              [
+                "A player cannot change the Actor Element.",
+                "Live Element changes and mode configuration are GM controls. Actor owners can edit their Item/activity attack assignments."
+              ],
+              [
+                "An old card still uses its previous Element.",
+                "That is the roll’s saved Element. Make a new roll after changing the Actor or Item."
+              ],
+              [
+                "No Toughness is lost.",
+                "Check Toughness enabled/current, effective target weaknesses, the attack’s resolved Element, None override, and MidiQOL hit confirmation."
+              ],
+              [
+                "The Element dropdown is empty.",
+                "Create reusable Elements in the Element Manager. None is available even when no Element definitions exist."
+              ]
+            ]
+          }
+        },
+        {
+          "title": "Macros and module API",
+          "paragraphs": [
+            "Use getAttackElement to inspect the same resolution used by the handlers. Supply the actual Item and optional activityId so a macro can find the correct per-attack override. The returned context includes elementId, actorUuid, itemUuid and activityId; inspecting it does not apply damage.",
+            "changeElement validates GM authority, Type Changer mode and the chosen Element ID. openElementSettings and openAttackElements open the corresponding editors for an Actor document or Actor UUID, including token Actor UUIDs."
+          ],
+          "code": "const hsr = game.modules.get(\"telys-star-rail-ultimates\").api;\nconst item = actor.items.get(\"ITEM_ID\");\nconst context = hsr.getAttackElement(actor, {item, activityId: \"ACTIVITY_ID\"});\nconsole.log(context.elementId);\n// GM; this Actor must use Type Changer:\nawait hsr.changeElement(actor, \"ice\");\nawait hsr.openAttackElements(actor);"
+        }
+      ],
+      "related": [
+        "elements-paths",
+        "weaknesses",
+        "break",
+        "gm-panel",
+        "dm-combat",
+        "enhanced-form",
+        "summons",
+        "memosprites",
+        "api",
+        "manual-damage"
+      ]
     },
     {
       "id": "weaknesses",
@@ -1139,7 +1323,8 @@
       "related": [
         "break",
         "combat-stats",
-        "light-cones"
+        "light-cones",
+        "multitype"
       ]
     },
     {
@@ -1462,7 +1647,8 @@
       "related": [
         "memosprite-hud",
         "memosprite-resources",
-        "memosprite-summoning"
+        "memosprite-summoning",
+        "multitype"
       ],
       "image": "memosprite-anatomy.svg",
       "imageAlt": "Illustrated guide to Memosprite setup and linked sources.",
@@ -2264,7 +2450,8 @@
       "related": [
         "ultimates",
         "summons",
-        "light-cones"
+        "light-cones",
+        "multitype"
       ]
     },
     {

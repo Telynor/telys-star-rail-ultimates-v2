@@ -39,6 +39,7 @@ jobs:
           node tests/ability-score-ui.cjs
           node tests/summoning-ui.cjs
           node tests/help-ui.cjs
+          node tests/multitype-ui.cjs
 
       - name: Save orb designer screenshot
         if: always()
@@ -64,6 +65,10 @@ jobs:
             help-tooltip-smoke.png
             help-compact-smoke.png
             help-failure.png
+            multitype-settings-smoke.png
+            multitype-attacks-smoke.png
+            multitype-element-change-smoke.png
+            multitype-failure.png
           if-no-files-found: ignore
 
       - name: Create Foundry module ZIP

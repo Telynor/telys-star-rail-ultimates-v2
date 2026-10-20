@@ -1,3 +1,4 @@
+import * as multitype from "./multitype.mjs";
 import {openDocumentation,installDocumentationHelp} from './help-manual.mjs';
 import * as summoning from './ability-summons.mjs';
 import {bindAbilitySummonSettings} from './ability-summon-settings.mjs';
@@ -185,6 +186,8 @@ const DEFAULT_CONFIG = Object.freeze({
   showPercent: true,
   showHudPercent: true,
   elementId: "",
+  multitypeEnabled: false,
+  multitypeMode: "attacks",
   pathId: ""
 });
 
@@ -4988,7 +4991,7 @@ async function onSocket(payload) {
     const attacker = await actorFromUuid(payload.attackerUuid);
     if (!attacker || (!requestingUser?.isGM && !attacker.testUserPermission(requestingUser, "OWNER"))) return;
     const targets = (await Promise.all((payload.targetUuids ?? []).map(actorFromUuid))).filter(Boolean);
-    await applyToughnessDamage(attacker, targets, Number(payload.amount) || 0, payload.eventKey);
+    await applyToughnessDamage(attacker, targets, Number(payload.amount) || 0, payload.eventKey, {attackElement:payload.attackElement});
     return;
   }
   if (payload.type === "showAhaVideo") {
@@ -5071,7 +5074,7 @@ async function onSocket(payload) {
 function isAttackMessage(message) {
   const flags = message.flags ?? {};
   const dnd = flags.dnd5e ?? {};
-  const type = String(dnd.roll?.type ?? dnd.type ?? message.rolls?.[0]?.options?.type ?? "").toLowerCase();
+  const type = String(dnd.roll?.type ?? dnd.type ?? message.type ?? message.rolls?.[0]?.options?.rollType ?? message.rolls?.[0]?.options?.type ?? "").toLowerCase();
   return type.includes("attack") || Boolean(dnd.item?.activityId || dnd.activity?.id) && message.rolls?.some(roll => String(roll.options?.type ?? "").includes("attack"));
 }
 
@@ -5126,7 +5129,7 @@ function fullDamageTotal(rolls) {
 }
 
 function actorFromChatMessage(message) {
-  return game.actors.get(message?.speaker?.actor) ?? canvas?.tokens?.get(message?.speaker?.token)?.actor ?? null;
+  return multitype.actorFromMessage(message);
 }
 
 function manualChatDamageAmount(message) {
@@ -5146,7 +5149,7 @@ function manualDamageApplications(message) {
 function isManualChatDamageEligible(message) {
   const actor = actorFromChatMessage(message);
   const combat = game.combat;
-  if (!combat?.started || actor?.type !== "character" || manualChatDamageAmount(message) <= 0) return false;
+  if (!combat?.started || !["character","npc"].includes(actor?.type) || manualChatDamageAmount(message) <= 0) return false;
   if (!combat.combatants.some(combatant => combatant.actorId === actor.id)) return false;
   return message.getFlag(MODULE_ID, "breakDamageRoll") || !/weakness break/i.test(String(message.flavor ?? ""));
 }
@@ -5198,7 +5201,8 @@ async function applyChatRollAsDamage(message, target, requestingUser, applicatio
   };
   await applyDirectChatDamage(targetActor, hpDamage);
   if (hpDamage > 0) await awardDamageEnergy(attacker, `manual:${message.id}`);
-  const appliedToughness = toughnessDamage > 0 ? await applyToughnessDamage(attacker, [target], toughnessDamage, eventKey) : 0;
+  const attackElement = multitype.attackContext(attacker, message);
+  const appliedToughness = toughnessDamage > 0 ? await applyToughnessDamage(attacker, [target], toughnessDamage, eventKey, {attackElement}) : 0;
   const detail = {sourceActor: attacker, targetActor, amount: hpDamage, origin: message, manual: true};
   await dispatchTalentEvent("damageDealt", detail, eventKey);
   await dispatchTalentEvent("damageTaken", detail, eventKey);
@@ -5207,7 +5211,7 @@ async function applyChatRollAsDamage(message, target, requestingUser, applicatio
     const targetConfig = getConfig(targetActor);
     if (targetConfig.attackedMode === "targeted" || targetConfig.attackedMode === "hit") await addEnergy(targetActor, energyGain(targetConfig, "attacked"), "hit");
   }
-  const application = {id: resolvedApplicationId, actorUuid: attacker.uuid, targetUuid, targetName: targetActor.name, amount: hpDamage, total, damageKind: isSuperBreakDamageRoll ? "superBreak" : isBreakDamageRoll ? "break" : "normal", toughnessDamage: appliedToughness, toughnessAttempted: toughnessDamage, userId: requestingUser?.id, appliedAt: Date.now()};
+  const application = {id: resolvedApplicationId, actorUuid: attacker.uuid, targetUuid, targetName: targetActor.name, amount: hpDamage, total, damageKind: isSuperBreakDamageRoll ? "superBreak" : isBreakDamageRoll ? "break" : "normal", elementId:attackElement.elementId, toughnessDamage: appliedToughness, toughnessAttempted: toughnessDamage, userId: requestingUser?.id, appliedAt: Date.now()};
   const applications = [...manualDamageApplications(message), application];
   await message.setFlag(MODULE_ID, "manualDamageApplications", applications);
   return {ok: true, applications, done: false, message: isBreakDamageRoll ? `${superBreakLabel(isSuperBreakDamageRoll)} applied ${hpDamage} HP damage to ${targetActor.name}.` : `${total} roll damage applied to ${targetActor.name} (${hpDamage} HP, ${appliedToughness} Toughness).`};
@@ -5476,9 +5480,9 @@ async function broadcastDamageResult(target, damage, {plainDamage=false, critica
   game.socket.emit(SOCKET,display);
 }
 
-function damageResultColor(attacker, {_hpDamage = false} = {}) {
+function damageResultColor(attacker, {_hpDamage = false, elementId = null} = {}) {
   const config = getConfig(attacker);
-  const assigned = String(config.elementId ?? "").trim();
+  const assigned = String(elementId ?? config.elementId ?? "").trim();
   const element = getElements().find(entry =>
     String(entry.id ?? "") === assigned ||
     (assigned && String(entry.name ?? "").toLowerCase() === assigned.toLowerCase())
@@ -5555,10 +5559,10 @@ async function showBreakResult(payload) {
   });
 }
 
-async function broadcastWeaknessBreak(attacker, target) {
+async function broadcastWeaknessBreak(attacker, target, attackElement = null) {
   const {actor}=toughnessTargetParts(target);
   const token=breakDisplayTarget(target);
-  const display={type:"weaknessBreak",actorId:actor?.id??"",tokenId:token?.id??"",sceneId:canvas?.scene?.id??"",damage:0,announcementOnly:true,forceElementColor:true,color:damageResultColor(attacker)};
+  const display={type:"weaknessBreak",actorId:actor?.id??"",tokenId:token?.id??"",sceneId:canvas?.scene?.id??"",damage:0,announcementOnly:true,forceElementColor:true,color:damageResultColor(attacker,{elementId:attackElement?.elementId})};
   await showBreakResult(display);
   game.socket.emit(SOCKET,display);
 }
@@ -5590,7 +5594,7 @@ async function renderBrokenTokenOverlay(token) {
 
 function refreshBrokenTokenOverlays(){for(const token of canvas?.tokens?.placeables??[])renderBrokenTokenOverlay(token);}
 
-async function applyWeaknessBreakDamage(attacker, target, {superBreak = false} = {}) {
+async function applyWeaknessBreakDamage(attacker, target, {superBreak = false, attackElement = null} = {}) {
   const config = getConfig(attacker);
   const targetActor = toughnessTargetParts(target).actor;
   if (!targetActor || !config.breakCharacter || (superBreak && !config.superBreakCharacter)) return 0;
@@ -5599,12 +5603,13 @@ async function applyWeaknessBreakDamage(attacker, target, {superBreak = false} =
   const modifier = Math.max(1, breakEffectModifier(config));
   const roll = await new Roll(`${count}d${faces}`).evaluate();
   const damage = Math.max(0, Math.floor(superBreak ? (Number(roll.total) || 0) + breakEffectModifier(config) + 1 : (Number(roll.total) || 0) * modifier));
-  const element = getElements().find(entry => entry.id === config.elementId);
+  const element = getElements().find(entry => entry.id === (attackElement?.elementId ?? config.elementId));
   await roll.toMessage({
     speaker: ChatMessage.getSpeaker({actor: attacker}),
     flavor: `${attacker.name} — ${superBreak ? "Super Break" : "Break"} (${count}d${faces} ${superBreak ? `+ ${breakEffectModifier(config) + 1}` : `× ${modifier}`}): ${damage} HP damage`,
     flags: {
       [MODULE_ID]: {
+        attackElement,
         breakDamageRoll: true,
         superBreakDamageRoll: Boolean(superBreak),
         damageKind: superBreak ? "superBreak" : "break",
@@ -5628,8 +5633,8 @@ function midiDamageRolls(workflow) {
 
 function isDamageMessage(message) {
   const dnd = message.flags?.dnd5e ?? {};
-  const type = String(dnd.roll?.type ?? dnd.type ?? message.rolls?.[0]?.options?.type ?? "").toLowerCase();
-  return type.includes("damage") || message.rolls?.some(roll => String(roll.options?.type ?? roll.options?.rollType ?? "").toLowerCase().includes("damage"));
+  const type = String(dnd.roll?.type ?? dnd.type ?? message.type ?? message.rolls?.[0]?.options?.rollType ?? message.rolls?.[0]?.options?.type ?? "").toLowerCase();
+  return type.includes("damage") || message.rolls?.some(roll => String(roll.constructor?.name ?? "").includes("DamageRoll") || String(roll.options?.rollType ?? roll.options?.type ?? "").toLowerCase().includes("damage"));
 }
 
 function damageRollsFromAppliedMessage(message) {
@@ -5659,8 +5664,7 @@ async function processAppliedDamage(target, amount, options = {}) {
   let attacker = options.sourceActor ?? options.workflow?.actor ?? (sourceUuid ? await fromUuid(sourceUuid).catch(() => null) : null);
   attacker = attacker?.actor ?? attacker;
   if (!attacker && options.item?.actor) attacker=options.item.actor;
-  if (!attacker && origin?.speaker?.actor) attacker = game.actors.get(origin.speaker.actor);
-  if (!attacker && origin?.speaker?.token) attacker = canvas?.tokens?.get(origin.speaker.token)?.actor;
+  if (!attacker && origin) attacker = multitype.actorFromMessage(origin);
   if (!attacker || attacker.documentName !== "Actor") return;
 
   const targetActor = target?.actor ?? target?.document?.actor ?? target;
@@ -5692,7 +5696,7 @@ async function processAppliedDamage(target, amount, options = {}) {
   const toughnessDamage = getConfig(attacker).breakCharacter ? fullDamageTotal(damageRolls) : rawDiceTotal(damageRolls);
   if (toughnessDamage <= 0) return;
   const eventKey = `applied-damage:${damageEventId}:${targetActor.uuid}:${toughnessDamage}`;
-  await applyToughnessDamage(attacker, [target], toughnessDamage, eventKey);
+  await applyToughnessDamage(attacker, [target], toughnessDamage, eventKey, options);
 }
 
 async function delayBrokenCombatant(target) {
@@ -5757,58 +5761,59 @@ async function skipBrokenCombatantTurn(combat, combatant) {
   return true;
 }
 
-async function applyToughnessDamage(attacker, targets, amount, eventKey = "") {
+async function applyToughnessDamage(attacker, targets, amount, eventKey = "", source = {}) {
   if (!isAuthority() || !attacker || amount <= 0) return 0;
-  const targetList = [...targets].filter(Boolean);
-  const targetSignature = targetList.map(target => (target?.actor ?? target?.document?.actor ?? target)?.uuid ?? target?.id ?? "target").sort().join(",");
-  const signature = `${attacker.uuid}:${targetSignature}:${amount}`;
-  const now = Date.now();
-  const isManualApplication = String(eventKey).startsWith("manual-chat-damage:");
-  if (!isManualApplication && now - (state.recentToughness.get(signature) ?? 0) < 1500) return 0;
-  const processedKey = eventKey ? `toughness:${eventKey}` : "";
-  if (!isManualApplication && processedKey && state.processedMessages.has(processedKey)) return 0;
-  const elementId = getConfig(attacker).elementId;
+  const attackElement = multitype.attackContext(attacker, source);
+  const elementId = attackElement.elementId;
   const breakCharacter = getConfig(attacker).breakCharacter;
   const freeForAll = game.actors.some(entry => entry.type === "character" && foundry.utils.getProperty(entry.getFlag(MODULE_ID, "scriptState") ?? {}, "lark.freeForAll.active"));
   if (!elementId && !freeForAll) return 0;
+  const manual = String(eventKey).startsWith("manual-chat-damage:");
+  const eventId = manual ? eventKey : attackElement.eventId || eventKey;
   let applied = false;
-  for (const target of targetList) {
+  for (const target of [...targets].filter(Boolean)) {
     const actor = target?.actor ?? target?.document?.actor ?? target;
     if (!actor || !["npc","character"].includes(actor.type)) continue;
     if (toughnessWeaknessMode(target) === "none") continue;
     const toughness = getToughness(actor);
     const matchesWeakness = Boolean(elementId && effectiveToughnessWeaknesses(target).includes(elementId));
     if (!toughness.enabled || (!breakCharacter && !freeForAll && !matchesWeakness)) continue;
-    if (toughness.current <= 0) {
-      if (breakCharacter && getConfig(attacker).superBreakCharacter) {
-        await applyWeaknessBreakDamage(attacker, target, {superBreak:true});
+    const signature = `${attacker.uuid}:${actor.uuid}:${amount}:${elementId}:${attackElement.itemUuid}:${attackElement.activityId}`;
+    const processedKey = eventId ? `toughness:${attacker.uuid}:${eventId}:${actor.uuid}` : "";
+    if (processedKey && state.processedMessages.has(processedKey)) continue;
+    // Older macro rolls without a shared event identity still need a short
+    // bridge across chat and apply-damage hooks. Captured attacks use their ID.
+    if (!manual && !attackElement.eventId && Date.now() - (state.recentToughness.get(signature) ?? 0) < 1500) continue;
+    if (toughness.current <= 0 && !(breakCharacter && getConfig(attacker).superBreakCharacter)) continue;
+    if (processedKey) state.processedMessages.add(processedKey);
+    try {
+      if (toughness.current <= 0) {
+        await applyWeaknessBreakDamage(attacker, target, {superBreak:true, attackElement});
         applied = true;
+      } else {
+        const next = clamp(toughness.current - amount, 0, toughness.max);
+        const discoveredWeaknesses = matchesWeakness ? [...new Set([...toughness.discoveredWeaknesses, elementId])] : toughness.discoveredWeaknesses;
+        await actor.update({
+          [`flags.${MODULE_ID}.toughness.current`]: next,
+          [`flags.${MODULE_ID}.toughness.discoveredWeaknesses`]: discoveredWeaknesses
+        });
+        applied = true;
+        if (next === 0 && toughness.current > 0) {
+          void handleLightConeEvent("toughnessBreak", {sourceActor:attacker,targetActor:actor,elementId}, eventId+":"+actor.uuid);
+          ui.notifications.info(`${actor.name}'s Toughness was broken!`);
+          await broadcastWeaknessBreak(attacker,target,attackElement);
+          if (breakCharacter) await applyWeaknessBreakDamage(attacker,target,{attackElement});
+          await delayBrokenCombatant(target);
+        }
       }
-      continue;
-    }
-    const next = clamp(toughness.current - amount, 0, toughness.max);
-    const discoveredWeaknesses = matchesWeakness ? [...new Set([...toughness.discoveredWeaknesses, elementId])] : toughness.discoveredWeaknesses;
-    await actor.update({
-      [`flags.${MODULE_ID}.toughness.current`]: next,
-      [`flags.${MODULE_ID}.toughness.discoveredWeaknesses`]: discoveredWeaknesses
-    });
-    applied = true;
-    if (next === 0 && toughness.current > 0) {
-      void handleLightConeEvent("toughnessBreak", {sourceActor: attacker, targetActor: actor}, eventKey+":"+actor.uuid);
-      ui.notifications.info(`${actor.name}'s Toughness was broken!`);
-      await broadcastWeaknessBreak(attacker,target);
-      if (breakCharacter) await applyWeaknessBreakDamage(attacker, target);
-      await delayBrokenCombatant(target);
-    }
-  }
-  if (!isManualApplication && processedKey && applied) {
-    state.processedMessages.add(processedKey);
-    window.setTimeout(() => state.processedMessages.delete(processedKey), 120000);
-  }
-  if (applied) {
-    if (!isManualApplication) {
-      state.recentToughness.set(signature, now);
-      window.setTimeout(() => state.recentToughness.delete(signature), 2000);
+      if (processedKey) window.setTimeout(() => state.processedMessages.delete(processedKey), 120000);
+      if (!manual && !attackElement.eventId) {
+        state.recentToughness.set(signature, Date.now());
+        window.setTimeout(() => state.recentToughness.delete(signature), 2000);
+      }
+    } catch (error) {
+      if (processedKey) state.processedMessages.delete(processedKey);
+      throw error;
     }
   }
   return applied ? amount : 0;
@@ -5819,6 +5824,7 @@ async function processDnd5eDamageRolls(rolls, data = {}) {
   const attacker = subject?.actor ?? subject?.item?.actor ?? subject?.parent?.actor ?? subject?.parent;
   if (!attacker || attacker.documentName !== "Actor") return;
   const rollList = Array.isArray(rolls) ? rolls : [rolls];
+  const attackElement = multitype.stampDamageRolls(attacker, rollList, data);
   state.lastDamageDisplay = {
     color: damageResultColor(attacker, {hpDamage:true}),
     critical: damageRollWasCritical({rolls:rollList}),
@@ -5828,14 +5834,15 @@ async function processDnd5eDamageRolls(rolls, data = {}) {
   };
   const amount = getConfig(attacker).breakCharacter ? fullDamageTotal(rollList) : rawDiceTotal(rollList);
   if (amount <= 0) return;
+  if (attackElement.workflowId && game.modules.get("midi-qol")?.active) return;
   const targets = [...(game.user?.targets ?? [])];
   if (!targets.length) return;
   const rollKey = (Array.isArray(rolls) ? rolls : [rolls]).map(roll => roll?.id ?? roll?._id ?? roll?.formula ?? "roll").join(":");
-  const eventKey = `dnd5e-damage:${attacker.uuid}:${rollKey}`;
-  if (isAuthority()) return applyToughnessDamage(attacker, targets, amount, eventKey);
+  const eventKey = attackElement.eventId || `dnd5e-damage:${attacker.uuid}:${rollKey}`;
+  if (isAuthority()) return applyToughnessDamage(attacker, targets, amount, eventKey, {attackElement});
   if (!attacker.isOwner) return;
-  const targetUuids = targets.map(target => target.document?.uuid ?? target.actor?.uuid).filter(Boolean);
-  if (targetUuids.length) game.socket.emit(SOCKET, {type: "applyToughness", sourceUserId: game.user.id, attackerUuid: attacker.uuid, targetUuids, amount, eventKey});
+  const targetUuids = targets.map(target => target.document?.uuid ?? target.uuid ?? target.actor?.uuid).filter(Boolean);
+  if (targetUuids.length) game.socket.emit(SOCKET, {type: "applyToughness", sourceUserId: game.user.id, attackerUuid: attacker.uuid, targetUuids, amount, eventKey, attackElement});
 }
 
 async function processCoreAttackMessage(message) {
@@ -5850,7 +5857,8 @@ async function processCoreAttackMessage(message) {
   window.setTimeout(() => state.processedMessages.delete(message.id), 60000);
   const midiWorkflowId = message.flags?.["midi-qol"]?.workflowId ?? message.flags?.["midi-qol"]?.workflowUuid ?? message.flags?.["midi-qol"]?.itemUuid;
   const midiWorkflow = midiActive && midiWorkflowId ? globalThis.MidiQOL?.Workflow?.getWorkflow?.(midiWorkflowId) : null;
-  const attacker = midiWorkflow?.actor ?? game.actors.get(message.speaker?.actor) ?? canvas?.tokens?.get(message.speaker?.token)?.actor;
+  const attacker = midiWorkflow?.actor ?? multitype.actorFromMessage(message);
+  const attackElement = attacker ? multitype.attackContext(attacker, midiWorkflow ?? message) : null;
   if (attacker?.type === "character" && (damageMessage || macroDamageMessage)) {
     state.lastDamageDisplay = {
       color: damageResultColor(attacker, {hpDamage:true}),
@@ -5868,14 +5876,20 @@ async function processCoreAttackMessage(message) {
       if (actor) targetIds.add(actor.id);
     }
   }
-  if (attackMessage && attacker) state.lastTargetsByActor.set(attacker.id, [...targetIds]);
-  if (!targetIds.size && attacker) targetIds = new Set(state.lastTargetsByActor.get(attacker.id) ?? []);
+  let toughnessTargets = multitype.messageTargets(message);
+  if (!toughnessTargets.length && midiWorkflow) toughnessTargets = [...(midiWorkflow.hitTargets ?? midiWorkflow.targets ?? [])];
+  if (!toughnessTargets.length) toughnessTargets = [...targetIds].map(id => game.actors.get(id)).filter(Boolean);
+  if (attackMessage && attacker) state.lastTargetsByActor.set(attacker.uuid, [...targetIds]);
+  if (!targetIds.size && attacker) targetIds = new Set(state.lastTargetsByActor.get(attacker.uuid) ?? []);
+  if (!toughnessTargets.length) toughnessTargets = [...targetIds].map(id => game.actors.get(id)).filter(Boolean);
+  // Midi owns hit confirmation. Its chat cards must not reduce Toughness for misses.
+  if (midiActive && midiWorkflowId) return;
   if (!isAuthority()) {
     if (!taggedBreakDamage && attacker?.isOwner && (damageMessage || macroDamageMessage)) {
-      const ownedTargets = [...(game.user.targets ?? [])];
-      const targetUuids = ownedTargets.map(target => target.document?.uuid ?? target.actor?.uuid).filter(Boolean);
+      const ownedTargets = toughnessTargets.length ? toughnessTargets : [...(game.user.targets ?? [])];
+      const targetUuids = ownedTargets.map(target => target.document?.uuid ?? target.uuid ?? target.actor?.uuid).filter(Boolean);
       const amount = getConfig(attacker).breakCharacter ? fullDamageTotal(message.rolls) : rawDiceTotal(message.rolls);
-      if (amount > 0 && targetUuids.length) game.socket.emit(SOCKET, {type: "applyToughness", sourceUserId: game.user.id, attackerUuid: attacker.uuid, targetUuids, amount, eventKey: midiWorkflowId || `chat:${message.id}`});
+      if (amount > 0 && targetUuids.length) game.socket.emit(SOCKET, {type: "applyToughness", sourceUserId: game.user.id, attackerUuid: attacker.uuid, targetUuids, amount, eventKey: midiWorkflowId || `chat:${message.id}`, attackElement});
     }
     return;
   }
@@ -5883,7 +5897,7 @@ async function processCoreAttackMessage(message) {
     if (taggedBreakDamage) return;
     if (!midiActive) await awardPunchlineForAttack(attacker, `chat:${message.id}`);
     const toughnessDamage = getConfig(attacker).breakCharacter ? fullDamageTotal(message.rolls) : rawDiceTotal(message.rolls);
-    await applyToughnessDamage(attacker, [...targetIds].map(id => game.actors.get(id)), toughnessDamage, midiWorkflowId || message.id);
+    await applyToughnessDamage(attacker, toughnessTargets, toughnessDamage, midiWorkflowId || message.id, {attackElement});
   }
   if (midiActive) return;
   if (!attackMessage) return;
@@ -5896,13 +5910,14 @@ async function processCoreAttackMessage(message) {
 }
 
 async function processMidiWorkflow(workflow) {
-  const key = workflow?.uuid ?? workflow?.id ?? workflow?.itemCardId ?? foundry.utils.randomID();
   const attacker = workflow?.actor;
   const targets = workflow?.targets ?? new Set();
   const hitTargets = workflow?.hitTargets ?? new Set();
   const usedAttackRoll = Boolean(workflow?.attackRoll || workflow?.attackRolls?.length || workflow?.activity?.attack);
   const toughnessTargets = usedAttackRoll ? hitTargets : (hitTargets.size ? hitTargets : targets);
   const damageRolls = midiDamageRolls(workflow);
+  const attackElement = attacker ? multitype.attackContext(attacker, workflow) : null;
+  const key = attackElement?.eventId || workflow?.itemCardId || workflow?.uuid || workflow?.id || foundry.utils.randomID();
   const diceDamage = getConfig(attacker).breakCharacter ? fullDamageTotal(damageRolls) : rawDiceTotal(damageRolls);
   if (attacker?.type === "character" && diceDamage > 0) {
     state.lastDamageDisplay = {
@@ -5915,8 +5930,8 @@ async function processMidiWorkflow(workflow) {
   }
   if (!isAuthority()) {
     if (attacker && diceDamage > 0 && toughnessTargets.size !== 0) {
-      const targetUuids = [...toughnessTargets].map(target => target?.document?.uuid ?? target?.actor?.uuid).filter(Boolean);
-      game.socket.emit(SOCKET, {type: "applyToughness", sourceUserId: game.user.id, attackerUuid: attacker.uuid, targetUuids, amount: diceDamage, eventKey: key});
+      const targetUuids = [...toughnessTargets].map(target => target?.document?.uuid ?? target?.uuid ?? target?.actor?.uuid).filter(Boolean);
+      game.socket.emit(SOCKET, {type: "applyToughness", sourceUserId: game.user.id, attackerUuid: attacker.uuid, targetUuids, amount: diceDamage, eventKey: key, attackElement});
     }
     return;
   }
@@ -5940,7 +5955,7 @@ async function processMidiWorkflow(workflow) {
   if (diceDamage > 0 && !state.processedMessages.has(damageKey)) {
     state.processedMessages.add(damageKey);
     window.setTimeout(() => state.processedMessages.delete(damageKey), 120000);
-    await applyToughnessDamage(attacker, toughnessTargets, diceDamage, key);
+    await applyToughnessDamage(attacker, toughnessTargets, diceDamage, key, {attackElement});
   }
   for (const target of targets) {
     const actor = target.actor ?? target.document?.actor;
@@ -6498,18 +6513,19 @@ class DMCombatMenu extends FormApplication {
   static get defaultOptions() { return foundry.utils.mergeObject(super.defaultOptions, {id:"tsru-dm-combat", title:"HSR DM Combat menu", template:`modules/${MODULE_ID}/templates/dm-combat-menu.hbs`, width:480, height:560, minWidth:350, minHeight:260, resizable:true, closeOnSubmit:false, classes:["tsru-dm-combat-window"]}); }
   getData() {
     if (!game.user.isGM) return {};
-    const tabs=[{id:"ultimates",label:"Alt Ultimates",icon:"fas fa-burst"},{id:"talents",label:"Talents",icon:"fas fa-star"},{id:"weaknesses",label:"Weaknesses",icon:"fas fa-shield-halved"},{id:"stances",label:"Stances",icon:"fas fa-arrows-rotate"},{id:"phases",label:"Phases",icon:"fas fa-layer-group"},{id:"dot",label:"DoT & Cones",icon:"fas fa-hourglass-half"}].map(tab=>({...tab,active:this.tab===tab.id}));
+    const tabs=[{id:"ultimates",label:"Alt Ultimates",icon:"fas fa-burst"},{id:"talents",label:"Talents",icon:"fas fa-star"},{id:"weaknesses",label:"Weaknesses",icon:"fas fa-shield-halved"},{id:"elements",label:"Element Change",icon:"fas fa-shuffle"},{id:"stances",label:"Stances",icon:"fas fa-arrows-rotate"},{id:"phases",label:"Phases",icon:"fas fa-layer-group"},{id:"dot",label:"DoT & Cones",icon:"fas fa-hourglass-half"}].map(tab=>({...tab,active:this.tab===tab.id}));
     const talentGroups=combatTalentGroups();
     const enemies=(canvas?.tokens?.placeables??[]).filter(token=>token.actor?.type==="npc").map(token=>{const target=token.document,permanent=getToughness(token.actor).weaknesses,active=effectiveToughnessWeaknesses(target),mode=toughnessWeaknessMode(target);return {uuid:target.uuid,name:token.name||token.actor.name,image:token.actor.img,locked:Boolean(target.getFlag(MODULE_ID,"miniWeaknessLocked")),modeLabel:mode==="all"?"All active":mode==="none"?"None active":"",elements:getElements().map(element=>({...element,permanent:permanent.includes(element.id),active:active.includes(element.id)}))};});
     const stances=game.actors.filter(actor=>actor.type==="character"&&getConfig(actor).enhancedStanceEnabled).sort((a,b)=>a.name.localeCompare(b.name)).map(actor=>({id:actor.id,name:actor.name,image:actor.img,active:getConfig(actor).enhancedStanceActive}));
     const bosses=new BossPhaseControl().bosses().map(({combatant,encounter,totalPhases,name})=>({id:combatant.id,name,image:combatant.actor?.img||combatant.img,current:encounter.currentPhase,total:totalPhases,phases:Array.from({length:totalPhases},(_,index)=>({number:index+1,active:encounter.currentPhase===index+1}))}));
     const alternateActors=game.actors.filter(actor=>actor.type==="character"&&usesAlternateUltimate(getConfig(actor))).sort((a,b)=>a.name.localeCompare(b.name)).map(actor=>({name:actor.name,controls:alternateOrbControls(actor)}));
-    return {tabs,alternateActors,ultimatesTab:this.tab==="ultimates",talentGroups,enemies,stances,bosses,talentsTab:this.tab==="talents",weaknessesTab:this.tab==="weaknesses",stancesTab:this.tab==="stances",dotTab:this.tab==="dot",phasesTab:this.tab==="phases",punchline:currentPunchline(),skillPoints:currentSkillPoints(),hasCombat:Boolean(game.combat?.started)};
+    return {tabs,elementActors:multitype.elementChangeRows(),elementsTab:this.tab==="elements",alternateActors,ultimatesTab:this.tab==="ultimates",talentGroups,enemies,stances,bosses,talentsTab:this.tab==="talents",weaknessesTab:this.tab==="weaknesses",stancesTab:this.tab==="stances",dotTab:this.tab==="dot",phasesTab:this.tab==="phases",punchline:currentPunchline(),skillPoints:currentSkillPoints(),hasCombat:Boolean(game.combat?.started)};
   }
   refresh() { if (!this.rendered) return; const scroll=this.element?.find?.("[data-dm-scroll]")?.[0]; if(scroll)this.scrollPositions[this.tab]=scroll.scrollTop; this.render(false); }
   activateListeners(html) {
     super.activateListeners(html); if(!game.user.isGM){this.close();return;}
     bindAlternateOrbControls(html[0]);
+    multitype.bindElementChanges(html[0]);
     html.find("[data-dm-scroll]").scrollTop(this.scrollPositions[this.tab]||0).on("scroll",event=>{this.scrollPositions[this.tab]=event.currentTarget.scrollTop;});
     html.find("[data-dm-tab]").on("click",event=>{this.tab=event.currentTarget.dataset.dmTab;this.render(false);});
     html.find("[data-dm-adjusted-stats]").on("click",showAdjustedCombatStats);
@@ -6576,11 +6592,12 @@ class StarRailGMPanel extends FormApplication {
       };
     });
     const actionCharacters = game.actors.filter(actor => actor.type === "character").sort((left, right) => left.name.localeCompare(right.name)).map(actor => ({id: actor.id, name: actor.name}));
-    return {characters, actionCharacters, sceneEnemies, punchline: currentPunchline(), punchlineOverride: punchlineOverrideEnabled(), skillPoints: currentSkillPoints(), skillPointMax: getSkillPointConfig().maximum, combatants, hasCombat: Boolean(game.combat?.started), initiativeCarousel:getInitiativeCarouselConfig(), showSceneNavigation:game.settings.get(MODULE_ID,"showSceneNavigation")};
+    return {characters, actionCharacters, sceneEnemies, elementActors:multitype.elementChangeRows(), punchline: currentPunchline(), punchlineOverride: punchlineOverrideEnabled(), skillPoints: currentSkillPoints(), skillPointMax: getSkillPointConfig().maximum, combatants, hasCombat: Boolean(game.combat?.started), initiativeCarousel:getInitiativeCarouselConfig(), showSceneNavigation:game.settings.get(MODULE_ID,"showSceneNavigation")};
   }
   activateListeners(html) {
     super.activateListeners(html);
     bindAlternateOrbControls(html[0]);
+    multitype.bindElementChanges(html[0]);
     html.find('[data-action="place-blow-up-tatsuo"]').on("click",showBlowUpTatsuoButton);
     html.find('[data-action="configure-blow-up-tatsuo"]').on("click",()=>new BlowUpTatsuoConfig().render(true));
     html.find("[data-toggle-enhanced-stance]").on("click",async event=>{
@@ -6968,7 +6985,7 @@ async function injectUltimateTab(app, html) {
   const elements = getElements().map(entry => ({...entry, selected: entry.id === config.elementId}));
   const paths = getPaths().map(entry => ({...entry, selected: entry.id === config.pathId}));
   const content = await renderTemplate(`modules/${MODULE_ID}/templates/ultimate-tab.hbs`, {
-    actor, config, enhancedAlternateUltimateChecked:config.enhancedAlternateUltimateEnabled ?? config.alternateUltimateEnabled, elements, paths, frameColors:initiativeFrameColorOptions(config),
+    actor, config, multitypeSettings:await multitype.renderSettings(actor), enhancedAlternateUltimateChecked:config.enhancedAlternateUltimateEnabled ?? config.alternateUltimateEnabled, elements, paths, frameColors:initiativeFrameColorOptions(config),
     elationEnabled: getAhaConfig().elationEnabled,
     selectedElement: elements.find(entry => entry.selected),
     selectedPath: paths.find(entry => entry.selected),
@@ -7025,7 +7042,7 @@ async function openUltimateConfig(actor, sheetApp = null) {
   const elements = getElements().map(entry => ({...entry, selected: entry.id === config.elementId}));
   const paths = getPaths().map(entry => ({...entry, selected: entry.id === config.pathId}));
   const content = await renderTemplate(`modules/${MODULE_ID}/templates/ultimate-tab.hbs`, {
-    actor, config, enhancedAlternateUltimateChecked:config.enhancedAlternateUltimateEnabled ?? config.alternateUltimateEnabled, elements, paths, frameColors:initiativeFrameColorOptions(config),
+    actor, config, multitypeSettings:await multitype.renderSettings(actor), enhancedAlternateUltimateChecked:config.enhancedAlternateUltimateEnabled ?? config.alternateUltimateEnabled, elements, paths, frameColors:initiativeFrameColorOptions(config),
     elationEnabled: getAhaConfig().elationEnabled,
     selectedElement: elements.find(entry => entry.selected),
     selectedPath: paths.find(entry => entry.selected),
@@ -7144,7 +7161,7 @@ function initializeCollapsibleUltimateSections(actor, tab) {
 async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp = false, app = null} = {}) {
   const data = foundry.utils.deepClone(getConfig(actor));
   tab.find("[name]").each((_index, field) => {
-    if (["alternateUltimateEnabled", "enhancedAlternateUltimateEnabled"].includes(field.name)) return;
+    if (["alternateUltimateEnabled", "enhancedAlternateUltimateEnabled", "multitypeEnabled", "multitypeMode", "elementId"].includes(field.name)) return;
     data[field.name] = field.type === "checkbox" ? field.checked : field.value;
   });
   for (const key of ["current", "max", "regenScore", "breakEffectScore", "breakDamageDice", "breakDamageDie", "attackGain", "attackedGain", "skillHpCostFlat", "skillPointCost", "talentPointsCurrent", "talentPointsMax", "talentPointsOvercapMax", "punchlineGain", "splashDuration", "splashX", "splashY", "splashScale", "titleX", "titleY", "titleSize", "combatHudPortraitX", "combatHudPortraitY", "combatHudPortraitScale", "enhancedHudPortraitX", "enhancedHudPortraitY", "enhancedHudPortraitScale", "enhancedCarouselImageX", "enhancedCarouselImageY", "enhancedCarouselImageScale", "enhancedSplashX", "enhancedSplashY", "enhancedSplashScale", "enhancedTransitionDuration", "enhancedTransitionInX", "enhancedTransitionInY", "enhancedTransitionInScale", "enhancedTransitionOutX", "enhancedTransitionOutY", "enhancedTransitionOutScale", "enhancedTransitionInContrast", "enhancedTransitionInSaturation", "enhancedTransitionInBrightness", "enhancedTransitionInHue", "enhancedTransitionOutContrast", "enhancedTransitionOutSaturation", "enhancedTransitionOutBrightness", "enhancedTransitionOutHue", "messagingPortraitX", "messagingPortraitY", "messagingPortraitScale", "ultimateButtonX", "ultimateButtonY", "ultimateButtonScale", "bossPhaseCount", "bossPhase2TokenWidth", "bossPhase2TokenHeight", "bossPhase3TokenWidth", "bossPhase3TokenHeight", "bossHudPortraitX", "bossHudPortraitY", "bossHudPortraitScale", "bossHudWidth", "bossHudHealthHeight", "bossHudToughnessHeight"]) data[key] = Number(data[key]);
@@ -7179,6 +7196,10 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
   delete configUpdate.enhancedAlternateUltimateEnabled;
   delete configUpdate.skillSummons;
   delete configUpdate.ultimateSummons;
+  // Element controls save independent dotted flags; pending drafts must not restore an old mode or live Element.
+  delete configUpdate.multitypeEnabled;
+  delete configUpdate.multitypeMode;
+  delete configUpdate.elementId;
   await actor.update({[`flags.${MODULE_ID}.ultimate`]: configUpdate}, {tsruAutosave: !notify, render: false});
   refreshOrb(actor);
   refreshSkillUI();
@@ -7195,6 +7216,7 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
 function activateConfigListeners(actor, tab, app) {
   tab.find("input, select, textarea, button").prop("disabled", false);
   tab[0].dataset.altActorId = actor.id;
+  multitype.bindSettings(actor, tab[0]);
   arrangeUltimateSettings(tab);
   bindAbilitySummonSettings(actor, tab[0]);
   initializeCollapsibleUltimateSections(actor, tab);
@@ -7412,7 +7434,7 @@ function activateConfigListeners(actor, tab, app) {
     autosaveTimer = window.setTimeout(runAutosave, immediate ? 0 : 550);
   };
   tab.on("input.tsru-autosave change.tsru-autosave", "[name]", event => {
-    if (["alternateUltimateEnabled", "enhancedAlternateUltimateEnabled"].includes(event.target.name)) return;
+    if (["alternateUltimateEnabled", "enhancedAlternateUltimateEnabled", "multitypeEnabled", "multitypeMode", "elementId"].includes(event.target.name)) return;
     if ($(event.target).closest(".tsru-energy-override").length) return;
     scheduleAutosave(event.type === "change" && ["checkbox", "select-one", "radio"].includes(event.target.type));
   });
@@ -8108,6 +8130,7 @@ function bindCraftingSceneControl(app,html){
 
 function registerApi() {
   installDocumentationHelp();
+  multitype.installMultitype({getConfig,getElements});
   summoning.installSummoningHooks();
   configureAlternateUltimates({isResolving: actor => state.ultimateLocks.has(actor.id)});
   game.modules.get(MODULE_ID).api = {
@@ -8119,6 +8142,10 @@ function registerApi() {
     resetAlternateOrbCounters,
     getUltimateCharge: actor => alternateUltimateCharge(actor, getConfig(actor)),
     getConfig,
+    getAttackElement:(actor,source={})=>multitype.attackContext(actor,source),
+    changeElement:multitype.changeElement,
+    openElementSettings:multitype.openSettings,
+    openAttackElements:multitype.openAttackElements,
     setEnergy,
     addEnergy: async (actor, amount, reason = "api") => {
       if (!game.user.isGM) throw new Error("Only a GM can change Energy through the API.");
@@ -8461,7 +8488,7 @@ Hooks.on("updateActor", (actor, changes, options) => {
   state.enhancedStanceSeen.set(actor.id,active);
   const transition=stanceChanged?playEnhancedTokenTransition(actor,active):Promise.resolve();
   if(enhancedChanges&&["enhancedStanceEnabled","enhancedStanceActive","enhancedTokenImage"].some(key=>Object.hasOwn(enhancedChanges,key)))queueEnhancedTokenArtwork(actor,transition);
-  if(enhancedChanges && ["enhancedStanceEnabled","enhancedStanceActive","enhancedUltimateEnabled","enhancedAlternateUltimateEnabled","alternateUltimateEnabled"].some(key=>Object.hasOwn(enhancedChanges,key)))state.gmPanel?.render(false);
+  if(enhancedChanges && ["enhancedStanceEnabled","enhancedStanceActive","enhancedUltimateEnabled","enhancedAlternateUltimateEnabled","alternateUltimateEnabled","multitypeEnabled","multitypeMode","elementId"].some(key=>Object.hasOwn(enhancedChanges,key)))state.gmPanel?.render(false);
   else state.gmPanel?.refreshLiveValues();
   refreshCombatPartyHud();
   refreshUltimateHotbarMacros();

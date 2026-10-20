@@ -1,5 +1,16 @@
 # Tely's Star Rail Ultimates
 
+## Multitype Elements for every Actor
+
+Enable **Multitype?** on any PC, NPC or summoned creature. On PC sheets use **HSR Settings → Combat → Multitype & Element Change**; the GM can also use the **HSR Element Settings** shuffle button in any Actor sheet header.
+
+- **Multitype attacks** (mode switch OFF): assign an HSR Element to an owned Item or individual activity. Resolution is activity → Item → Actor. Open **Assign attack Elements** or the Item sheet’s **HSR Attack Elements** button. Each dropdown saves immediately.
+- **Type Changer** (mode switch ON): hot-swap the Actor’s Assigned Element from its sheet, **Star Rail GM Panel → Element Change**, or **DM Combat → Element Change**. Linked tokens share their world Actor; unlinked NPCs and summons use their own token Actor row.
+
+Standard D&D5e and MidiQOL use the same captured attack Element for Toughness matching. MidiQOL respects confirmed hits; repeated notifications apply once per damage event/target. Existing rolls retain their captured Element after live changes. This does not rewrite D&D5e damage types or resistances. Disabling Multitype preserves attack assignments and the last Actor Element.
+
+Open **Star Rail → Help Documentation** and search **multitype**, **type changer** or **attack element** for the illustrated guide and detailed field reference. New controls include hover and keyboard help.
+
 ## Illustrated help and hover documentation (preview.16)
 
 Open **Star Rail rocket on the left rail → Help Documentation**, below the other tools. GMs and players can search the entire manual, browse grouped contents or use its A–Z index. The 54 guides include worked examples, screenshots, diagrams and individual field/control references. Click an illustration to expand it. Try `alt ult`, `pet range`, `HP cost`, `art` or `memosprite dots`; multiple keywords narrow results. Press `/` to focus search and Escape to clear it.

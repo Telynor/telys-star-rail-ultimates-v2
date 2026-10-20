@@ -1,0 +1,16 @@
+<form class="tsru-multitype-attacks" data-multitype-attack-actor="{{actor.uuid}}">
+  <p><strong>{{actor.name}} — Attack Elements</strong></p>
+  <p>These are HSR Toughness Elements. Each change saves immediately. An activity overrides its Item; an Item overrides the Actor. Empty selections inherit the next level. Standard attacks and MidiQOL use the same assignments.</p>
+  {{#unless active}}<p class="tsru-panel-hint">Saved assignments become active when the GM enables Multitype? and selects Multitype attacks on this Actor.</p>{{/unless}}
+  <label class="tsru-multitype-search"><span>Find an Item or activity</span><input type="search" data-multitype-attack-search placeholder="Search weapon, spell or activity name"></label>
+  <div class="tsru-multitype-item-list">{{#each items}}
+    <article data-multitype-item="{{uuid}}">
+      <h4>{{name}}</h4>
+      <label class="tsru-multitype-attack-row"><span>Item Element <small>Inherited by every activity without its own assignment.</small></span><select data-attack-element-item="{{uuid}}" data-attack-element-activity=""><option value="">Inherit Actor ({{../actorElementName}})</option>{{#each elements}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select></label>
+      {{#each activities}}<label class="tsru-multitype-attack-row"><span>{{name}} <small>{{type}} activity — overrides this Item only for this attack.</small></span><select data-attack-element-item="{{../uuid}}" data-attack-element-activity="{{id}}"><option value="">Inherit Item / Actor</option>{{#each elements}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select></label>{{/each}}
+    </article>
+    {{else}}<p>No owned Items found. Add an attack, weapon, spell or feature to this Actor first.</p>{{/each}}
+  </div>
+  <p data-multitype-attack-empty hidden>No matching Items or activities.</p>
+  <p data-multitype-attack-status role="status" aria-live="polite"></p>
+</form>
