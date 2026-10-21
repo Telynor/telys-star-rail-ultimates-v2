@@ -1,3 +1,4 @@
+import {removeSummonedTokens} from './summon-lifecycle.mjs';
 const ID = 'telys-star-rail-ultimates';
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const casts = new WeakMap(), active = new WeakMap(), cancelled = new WeakMap();
@@ -110,7 +111,7 @@ export function installSkillSpellHooks() {
 async function removeTokens(tokens) {
   const scenes = new Map();
   for (const token of tokens) if (token.parent?.tokens.get(token.id)) { const ids = scenes.get(token.parent) ?? new Set(); ids.add(token.id); scenes.set(token.parent,ids); }
-  for (const [scene,ids] of scenes) await scene.deleteEmbeddedDocuments('Token',[...ids]);
+  for (const [scene,ids] of scenes) await removeSummonedTokens([...ids].map(id=>scene.tokens.get(id)));
 }
 export async function castSkillSpell(actor, {itemId,castId}) {
   const cache = casts.get(actor) ?? new Map(); casts.set(actor,cache);

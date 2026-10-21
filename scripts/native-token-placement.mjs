@@ -29,11 +29,17 @@ export async function chooseNativeSummonPositions(actor, source, {scene,origin,c
       if (canvas.scene?.id !== scene.id) return null;
       ui.notifications.info(`${source.name}: place creature ${positions.length+1} of ${count}. Left-click places; right-click or Escape cancels.`);
       const previous = view?.oncontextmenu;
+      const previousPlacement = canvas.tokens?._placementContext;
       let cancelPoll;
       session.skip = () => {
         // TokenPlacement installs its context-menu cancel handler after drawing
         // the native preview. Also handle Escape during that initial draw.
         const skip = () => {
+          // D&D5e 6 uses Foundry v14's TokenLayer placement context rather
+          // than installing an oncontextmenu handler on the canvas view.
+          if(canvas.tokens?._placementContext&&canvas.tokens._placementContext!==previousPlacement&&typeof canvas.tokens._cancelPlacement==='function'){
+            clearInterval(cancelPoll);canvas.tokens._cancelPlacement();return;
+          }
           const handler = view?.oncontextmenu;
           if (typeof handler !== 'function' || handler === previous) return;
           clearInterval(cancelPoll);
@@ -42,7 +48,7 @@ export async function chooseNativeSummonPositions(actor, source, {scene,origin,c
         cancelPoll ??= setInterval(skip,20); skip();
       };
       let placements;
-      try { placements = await NativePlacement.place({origin,tokens:[source.prototypeToken]}); }
+      try { placements = await NativePlacement.place({origin,tokens:[source.prototypeToken],minimizeWindows:false}); }
       finally { clearInterval(cancelPoll); session.skip = null; }
       if (session.cancelled || canvas.scene?.id !== scene.id || !placements?.length) return null;
       const raw = placements[0];

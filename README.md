@@ -1,5 +1,11 @@
 # Tely's Star Rail Ultimates
 
+## Summon resources and replacement (preview.23)
+
+Update Memosprites to **1.4.0** as well. Every live summon supplies its own HP semicircle, including when an older saved design hid the arc. In each Skill or Ultimate summon row, choose **Show resource? → None / Dots (3) / Percentage / HP**, its initial value and maximum, and **Uses own initiative / Takes its turn with you**. Dots float without an enclosing shape. Direct Skill companions default to dots; spell summons, including spells cast by Skills, default to no extra resource. **Abilities → Skill → Spell summons** lists each summon profile from the character's spells with independent settings.
+
+An occupied companion slot opens **“you still have a summon out, do you wish to dismiss and summon your new creature?”** with Yes/No. No or cancelled placement keeps the existing creature and its turn. Yes followed by completed placement removes the old scene token, its synthetic Actor, and its initiative entries before the replacement appears with its new portrait, HP and resource. Multiple creatures from the same cast are dismissed together. Source Actors in the Actors directory remain available for later summons. The default gives each new creature a rolled initiative; **Takes its turn with you** gives it no separate tracker turn.
+
 ## Native spell-style summon placement (preview.22)
 
 Skill/Ultimate creature lists and Memosprites 1.3.3 now use D&D5e’s native token placement, the same preview used by summon spells. Move the token preview, left-click to place each copy, and right-click or Escape to cancel the whole pending cast. No custom PIXI square overlay is used. Invalid positions reopen the native preview with a warning. The GM still validates range, occupancy and lighting walls before creation; existing cancellation/refund, initiative and live HP/portrait behavior remains. Update both Ultimates and Memosprites.

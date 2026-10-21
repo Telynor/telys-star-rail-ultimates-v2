@@ -64,6 +64,12 @@
 .tsru-summon-actor-list input{width:48px!important;min-width:0!important}
 .tsru-summon-actor-list button:not(.tsru-summon-name){width:26px;flex:none;padding:0;min-height:27px}
 .tsru-summon-empty{text-align:center;padding:17px 8px;opacity:.65;font-size:12px}
+.tsru-summon-actor-list li[data-summon-row],.tsru-summon-actor-list li[data-spell-summon-row]{flex-wrap:wrap}
+.tsru-summon-actor-list li[data-spell-summon-row]{display:flex;align-items:center;gap:8px;padding:8px 3px;border-bottom:1px solid #78899440}
+.tsru-summon-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;flex-basis:100%;padding:8px;background:#10192344;border-radius:5px}
+.tsru-summon-options select,.tsru-summon-options input{width:100%!important;min-width:0;max-width:100%;font-size:11px}
+.tsru-summon-options label{min-width:0}
+.tsru-summon-options [hidden]{display:none!important}
 .tsru-ability-cost-help{font-size:12px;line-height:1.5;opacity:.75;padding:0 6px}
 [data-hp-roll-error]:not(:empty){color:#d94b62;grid-column:1/-1;display:block}
 .tsru-summon-choices{display:grid;gap:8px;max-height:55vh;overflow-y:auto;margin:14px 0}

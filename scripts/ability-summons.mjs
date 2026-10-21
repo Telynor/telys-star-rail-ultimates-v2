@@ -1,17 +1,30 @@
 import {normalizeSummons, parseHpDice, fixedHpCost, rectangle, overlaps, rectCorners, insideRadius, wallOccludesFootprint, segmentsCross} from './summoning-rules.mjs';
 import {isSkillSpellCancelled} from './ability-spells.mjs';
 import {chooseNativeSummonPositions,isNativeSummonPlacementActive,cancelNativeSummonPlacement} from './native-token-placement.mjs';
+import {normalizeSummonOptions,spellSummonOptions} from './summon-options.mjs';
+import {activeSummon,summonMetadata,ownsSummon,confirmSummonReplacement,validateSummonReplacement,replacementTokens,dismissForReplacement,setupSummonInitiative,removeSummonedTokens} from './summon-lifecycle.mjs';
 export {chooseNativeSummonPositions,isNativeSummonPlacementActive,cancelNativeSummonPlacement};
+export {activeSummon,confirmSummonReplacement,validateSummonReplacement,replacementTokens,setupSummonInitiative,removeSummonedTokens};
 const ID = 'telys-star-rail-ultimates', SOCKET = `module.${ID}`;
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pending = new Map(), planning = new Set(), sceneQueues = new Map();
 let installed = false;
-const configFor = (actor, action) => normalizeSummons(actor.getFlag(ID, 'ultimate')?.[`${action}Summons`]);
+const configFor = (actor, action) => normalizeSummons(actor.getFlag(ID, 'ultimate')?.[`${action}Summons`],{resourceType:action==='skill'?'dots':'none'});
 const authority = () => game.user.isGM && game.users.find(user => user.isGM && user.active)?.id === game.user.id;
 const canUse = (actor, user) => Boolean(actor && user && (user.isGM || actor.testUserPermission(user, 'OWNER')));
 const sourceActor = uuid => /^Actor\.[\w-]+$/.test(String(uuid)) ? game.actors.get(uuid.slice(6)) : null;
 const failFit = () => new Error('Cannot Fit: choose a square in the summoning zone with space clear of creatures and lighting barriers.');
 export {normalizeSummons};
+
+export function getSummonOptions(actor,token) {
+  const meta=summonMetadata(token),native=token?.getFlag?.('telys-memosprites','summonerUuid')===actor.uuid;
+  if(native)return normalizeSummonOptions(actor.getFlag('telys-memosprites','config')??{},{resourceType:'dots'});
+  if(meta?.action&&meta.choiceId){const entry=configFor(actor,meta.action).choices.find(row=>row.id===meta.choiceId);if(entry)return normalizeSummonOptions(entry);}
+  const origin=token.actor?.getFlag?.('dnd5e','summon')??token.actor?.flags?.dnd5e?.summon;
+  const key=meta?.options?.key??(meta?.itemUuid&&origin?.activity&&origin?.profile?`${meta.itemUuid}:${origin.activity}:${origin.profile}`:null);
+  const preference=key&&(actor.getFlag(ID,'summonPreferences')??[]).find(row=>row.key===key);
+  return normalizeSummonOptions(preference??meta?.options);
+}
 
 export async function evaluateSkillHpCost(actor, config) {
   const hp = actor.system?.attributes?.hp ?? {value:0,max:0};
@@ -26,7 +39,7 @@ export async function evaluateSkillHpCost(actor, config) {
   return {cost, before:Number(hp.value) || 0, roll};
 }
 
-export function placementContext(scene, caster) {
+export function placementContext(scene, caster, ignoredTokens = []) {
   const active = globalThis.canvas?.scene?.id === scene.id;
   const grid = typeof scene.grid?.getTopLeftPoint === 'function' ? scene.grid : active && canvas.grid?.getTopLeftPoint ? canvas.grid : null;
   const gx = Number(scene.grid?.sizeX || scene.grid?.size || scene._source?.grid?.size || (active && canvas.dimensions?.size)) || 100;
@@ -51,6 +64,7 @@ export function placementContext(scene, caster) {
     return [[{x:coords[0],y:coords[1]},{x:coords[2],y:coords[3]}]];
   });
   const occupied = [...(scene.tokens ?? [])].filter(token => {
+    if(ignoredTokens.some(ignored=>ignored.id===token.id&&ignored.parent?.id===scene.id))return false;
     const tokenLevel = token.level?.id ?? token.level ?? token.levelId;
     return !level || !tokenLevel || tokenLevel === level;
   }).map(token => rectangle(token.x,token.y,Math.max(.1,Number(token.width)||1)*gx,Math.max(.1,Number(token.height)||1)*gy));
@@ -126,7 +140,8 @@ export async function validateSummonPlan(actor, action, plan, user = game.user) 
   if (!user.isGM && user.viewedScene && user.viewedScene!==description.sceneId) throw new Error('You must be viewing the summoning scene.');
   const choice = description.choices.find(entry=>entry.id===plan.choiceId);
   if (!choice || !Array.isArray(plan.positions) || plan.positions.length!==choice.quantity) throw new Error('The summon selection changed. Select the creature again.');
-  const scene = game.scenes.get(description.sceneId), caster = casterFor(actor,scene,description.casterTokenId), context = placementContext(scene,caster), reserved = [];
+  validateSummonReplacement(actor,plan.replaces);
+  const scene = game.scenes.get(description.sceneId), caster = casterFor(actor,scene,description.casterTokenId), context = placementContext(scene,caster,replacementTokens(actor,plan.replaces)), reserved = [];
   for (const position of plan.positions) {
     if (!canPlaceSummon(context,choice,position,description.radius,reserved)) throw failFit();
     reserved.push(rectangle(position.x,position.y,choice.width*context.gx,choice.height*context.gy));
@@ -144,24 +159,26 @@ export async function createAbilitySummons(actor, action, plan, user = game.user
 async function createSummons(actor, action, plan, user) {
   const checked = await validateSummonPlan(actor,action,plan,user);
   if (!checked) return null;
-  const {source,scene,caster} = checked, operationId = foundry.utils.randomID(), data = [];
+  const {source,scene,caster,choice} = checked, operationId = foundry.utils.randomID(), data = [];
   for (const position of plan.positions) {
     const token = await source.getTokenDocument({x:position.x,y:position.y,...(Number.isFinite(position.rotation)?{rotation:position.rotation}:{}),elevation:Number(caster.elevation)||0,...(caster.level?{level:caster.level.id??caster.level}:{})});
     const entry = token.toObject(); delete entry._id;
     entry.x=position.x;entry.y=position.y;entry.actorId=source.id;entry.actorLink=false;
-    entry.flags={...entry.flags,[ID]:{...entry.flags?.[ID],abilitySummon:{operationId,casterId:actor.id,casterUuid:actor.uuid,casterTokenId:caster.id,action,createdAt:Date.now()}}};
+    entry.flags={...entry.flags,[ID]:{...entry.flags?.[ID],abilitySummon:{operationId,casterId:actor.id,casterUuid:actor.uuid,casterTokenId:caster.id,choiceId:choice.id,action,createdAt:Date.now(),options:normalizeSummonOptions(choice)}}};
     data.push(entry);
   }
   try {
     // Recheck after document preparation: a creature may have moved meanwhile.
     const fresh=await validateSummonPlan(actor,action,plan,user);
     if(!fresh||JSON.stringify(fresh.choice)!==JSON.stringify(checked.choice))throw new Error('The summon Actor or its configuration changed. Select it again.');
+    await dismissForReplacement(actor,plan.replaces,user);
     const tokens = await scene.createEmbeddedDocuments('Token',data);
     if (tokens.length!==data.length) throw new Error('Foundry could not create every summoned token.');
+    for(const token of tokens)await setupSummonInitiative(actor,token,choice);
     return {sceneId:scene.id,tokenIds:tokens.map(token=>token.id),operationId};
   } catch (error) {
     const ids=[...scene.tokens].filter(token=>token.getFlag(ID,'abilitySummon')?.operationId===operationId).map(token=>token.id);
-    if(ids.length) await scene.deleteEmbeddedDocuments('Token',ids);
+    if(ids.length) await removeSummonedTokens(ids.map(id=>scene.tokens.get(id)));
     throw error;
   }
 }
@@ -177,7 +194,7 @@ function askGM(type, data, timeout = 15000) {
   });
 }
 
-export async function prepareAbilitySummon(actor, action, {description = null, choiceId = null} = {}) {
+export async function prepareAbilitySummon(actor, action, {description = null, choiceId = null, replaces = undefined} = {}) {
   if (!configFor(actor,action).enabled) return null;
   if (!game.user.isGM&&!actor.isOwner) throw new Error('You do not own this character.');
   const key=`${actor.id}:${action}`;
@@ -190,7 +207,10 @@ export async function prepareAbilitySummon(actor, action, {description = null, c
     description ??= authority() ? describeSummoning(actor,action,sceneId,casterTokenId) : await askGM('abilitySummonDescribe',{actorId:actor.id,action,sceneId,casterTokenId});
     if(!description)return null;
     if(description.sceneId!==canvas.scene.id)throw new Error('Open the summoning scene before choosing its squares.');
-    const scene=canvas.scene,context=placementContext(scene,casterFor(actor,scene,description.casterTokenId));
+    if(replaces===undefined)replaces=await confirmSummonReplacement(actor);
+    if(replaces===false)return false;
+    validateSummonReplacement(actor,replaces);
+    const scene=canvas.scene,context=placementContext(scene,casterFor(actor,scene,description.casterTokenId),replacementTokens(actor,replaces));
     const choices=description.choices.map(choice=>({...choice,fits:legalSummonPositions(context,choice,description.radius).length>0}));
     if(!choices.some(choice=>choice.fits)){ui.notifications.warn('Cannot Fit: no summon can fit in the zone. Nothing was spent; you can continue.');return false;}
     if(!choiceId){
@@ -200,16 +220,16 @@ export async function prepareAbilitySummon(actor, action, {description = null, c
     }
     const choice=choices.find(entry=>entry.id===choiceId);
     if(!choice||!choice.fits)return false;
-    const positions=await chooseSquares(context,choice,description);
-    return positions ? {sceneId:description.sceneId,casterTokenId:description.casterTokenId,choiceId:choice.id,positions} : false;
+    const positions=await chooseSquares(context,choice,description,replaces);
+    return positions ? {sceneId:description.sceneId,casterTokenId:description.casterTokenId,choiceId:choice.id,positions,replaces} : false;
   } finally { planning.delete(key); }
 }
 
-async function chooseSquares(context,choice,description) {
+async function chooseSquares(context,choice,description,replaces) {
   const source=sourceActor(choice.actorUuid),actor=game.actors.get(context.caster.actorId);
   return chooseNativeSummonPositions(actor,source,{scene:context.scene,origin:context.caster,count:choice.quantity,
     validate:(point,positions)=>{
-      const fresh=placementContext(context.scene,context.caster);
+      const fresh=placementContext(context.scene,context.caster,replacementTokens(actor,replaces));
       const reserved=positions.map(p=>rectangle(p.x,p.y,choice.width*fresh.gx,choice.height*fresh.gy));
       return canPlaceSummon(fresh,choice,point,description.radius,reserved);
     }});
@@ -220,10 +240,10 @@ export async function ensureQueuedSummonPlan(actor, action, plan, requester) {
   catch(error) {
     if(!String(error.message).startsWith('Cannot Fit'))throw error;
     const description=describeSummoning(actor,action,plan.sceneId,plan.casterTokenId),choice=description.choices.find(entry=>entry.id===plan.choiceId);
-    const scene=game.scenes.get(plan.sceneId),context=placementContext(scene,casterFor(actor,scene,plan.casterTokenId));
+    const scene=game.scenes.get(plan.sceneId),context=placementContext(scene,casterFor(actor,scene,plan.casterTokenId),replacementTokens(actor,plan.replaces));
     if(!choice||!legalSummonPositions(context,choice,description.radius).length)throw error;
     const owner=requester?.active?requester:game.user;
-    const revised=owner.id===game.user.id ? await prepareAbilitySummon(actor,action,{description,choiceId:choice.id}) : await askGM('abilitySummonReposition',{targetUserId:owner.id,actorId:actor.id,action,description,choiceId:choice.id},180000);
+    const revised=owner.id===game.user.id ? await prepareAbilitySummon(actor,action,{description,choiceId:choice.id,replaces:plan.replaces}) : await askGM('abilitySummonReposition',{targetUserId:owner.id,actorId:actor.id,action,description,choiceId:choice.id,replaces:plan.replaces},180000);
     if(!revised)throw new Error('Summoning cancelled.');
     await validateSummonPlan(actor,action,revised,requester);return revised;
   }
@@ -234,12 +254,16 @@ export async function handleSummoningSocket(payload) {
   if(payload.type==='abilitySummonResponse'&&payload.targetUserId===game.user.id){
     const request=pending.get(payload.requestId);if(request&&request.responder===payload.sourceUserId){clearTimeout(request.timer);pending.delete(payload.requestId);payload.error?request.reject(new Error(payload.error)):request.resolve(payload.value);}return true;
   }
+  if(payload.type==='abilitySummonReplace'&&authority()){
+    let value,error;try{value=await dismissForReplacement(game.actors.get(payload.actorId),payload.replaces,game.users.get(payload.sourceUserId));}catch(cause){error=cause.message;}
+    game.socket.emit(SOCKET,{type:'abilitySummonResponse',requestId:payload.requestId,targetUserId:payload.sourceUserId,sourceUserId:game.user.id,value,error});return true;
+  }
   if(payload.type==='abilitySummonDescribe'&&authority()){
     let value,error;try{const actor=game.actors.get(payload.actorId),user=game.users.get(payload.sourceUserId);if(!canUse(actor,user))throw new Error('You do not own this character.');if(!['skill','ultimate'].includes(payload.action))throw new Error('Unknown summoning ability.');value=describeSummoning(actor,payload.action,payload.sceneId,payload.casterTokenId);}catch(cause){error=cause.message;}
     game.socket.emit(SOCKET,{type:'abilitySummonResponse',requestId:payload.requestId,targetUserId:payload.sourceUserId,sourceUserId:game.user.id,value,error});return true;
   }
   if(payload.type==='abilitySummonReposition'&&payload.targetUserId===game.user.id&&game.users.get(payload.sourceUserId)?.isGM){
-    let value,error;try{value=await prepareAbilitySummon(game.actors.get(payload.actorId),payload.action,{description:payload.description,choiceId:payload.choiceId});}catch(cause){error=cause.message;}
+    let value,error;try{value=await prepareAbilitySummon(game.actors.get(payload.actorId),payload.action,{description:payload.description,choiceId:payload.choiceId,replaces:payload.replaces});}catch(cause){error=cause.message;}
     game.socket.emit(SOCKET,{type:'abilitySummonResponse',requestId:payload.requestId,targetUserId:payload.sourceUserId,sourceUserId:game.user.id,value,error});return true;
   }
   return true;
@@ -247,21 +271,60 @@ export async function handleSummoningSocket(payload) {
 
 export function installSummoningHooks() {
   if(installed)return;installed=true;
+  installNativeSummonLifecycle();
   Hooks.on('dnd5e.summonToken',stampSpellSummon);
   Hooks.on('preCreateToken',validateSummonCreation);
-  Hooks.on('createToken',token=>{if(token.getFlag(ID,'abilitySummon')&&token.parent?.id===canvas.scene?.id)void playSummonAnimation(token);});
+  Hooks.on('createToken',token=>{
+    const meta=summonMetadata(token),actor=meta&&game.actors.get(meta.casterId);
+    if(authority()&&actor)void setupSummonInitiative(actor,token,getSummonOptions(actor,token)).catch(error=>ui.notifications.error(`Summon initiative: ${error.message}`));
+    if(token.getFlag(ID,'abilitySummon')&&token.parent?.id===canvas.scene?.id)void playSummonAnimation(token);
+  });
+  Hooks.on('preCreateCombatant',(entry,data)=>{
+    const scene=game.scenes.get(data.sceneId??entry.parent?.scene?.id),token=scene?.tokens.get(data.tokenId);
+    const meta=summonMetadata(token),actor=meta&&game.actors.get(meta.casterId);
+    if(actor&&getSummonOptions(actor,token).initiativeMode==='owner')return false;
+  });
+  Hooks.on('updateActor',(actor,changes)=>{
+    const changed=Object.keys(changes).some(key=>key==='flags'||key.startsWith(`flags.${ID}.`)||key.startsWith('flags.telys-memosprites.config'));
+    if(!authority()||!changed)return;
+    for(const scene of game.scenes)for(const token of scene.tokens)if(ownsSummon(actor,token))void setupSummonInitiative(actor,token,getSummonOptions(actor,token)).catch(error=>ui.notifications.error(`Summon initiative: ${error.message}`));
+  });
+}
+
+export async function requestSummonReplacement(actor,replaces) {
+  return authority()?dismissForReplacement(actor,replaces):askGM('abilitySummonReplace',{actorId:actor.id,replaces});
+}
+
+export function installNativeSummonLifecycle() {
+  const Class=globalThis.CONFIG?.DND5E?.activityTypes?.summon?.documentClass;
+  const prototype=Class?.prototype;if(!prototype?.getPlacement||prototype.getPlacement.tsruSummonLifecycle)return;
+  const wrapper=async function(original,...args){
+    const actor=this.actor??this.item?.actor;if(!actor)return original(...args);
+    const replaces=await confirmSummonReplacement(actor);if(replaces===false)return [];
+    const positions=await original(...args);
+    if(positions?.length)await requestSummonReplacement(actor,replaces);
+    return positions;
+  };
+  if(globalThis.libWrapper?.register){
+    libWrapper.register(ID,'CONFIG.DND5E.activityTypes.summon.documentClass.prototype.getPlacement',wrapper,'WRAPPER');
+  }else{
+    const original=prototype.getPlacement;
+    prototype.getPlacement=function(...args){return wrapper.call(this,original.bind(this),...args);};
+  }
+  prototype.getPlacement.tsruSummonLifecycle=true;
 }
 
 // Stamp the exact caster before native D&D5e creates the token. This also covers
 // ordinary spell casts made outside an HSR Skill.
-export function stampSpellSummon(activity, _profile, data, options = {}) {
+export function stampSpellSummon(activity, profile, data, options = {}) {
   const actor=activity.actor??activity.item?.actor;
   if(!actor)return;
   const usage=activity.getUsageToken?.(),candidate=usage?.document??usage;
   const caster=candidate??globalThis.canvas?.tokens?.controlled?.find(token=>token.actor?.uuid===actor.uuid)?.document??actor.getActiveTokens?.(true,true)?.[0];
   const token=caster?.document??caster;
+  options.tsruSummonOperationId??=foundry.utils.randomID();
   data.actorLink=false;
-  data.flags={...data.flags,[ID]:{...data.flags?.[ID],summonOwner:{casterId:actor.id,casterUuid:actor.uuid,casterTokenId:token?.id,itemUuid:activity.item?.uuid,castId:options.tsruSkillCastId??'',createdAt:Date.now()}}};
+  data.flags={...data.flags,[ID]:{...data.flags?.[ID],summonOwner:{operationId:options.tsruSummonOperationId,casterId:actor.id,casterUuid:actor.uuid,casterTokenId:token?.id,itemUuid:activity.item?.uuid,castId:options.tsruSkillCastId??'',createdAt:Date.now(),options:spellSummonOptions(actor,activity,profile)}}};
 }
 
 export function validateSummonCreation(token, data = {}) {

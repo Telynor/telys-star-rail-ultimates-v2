@@ -27,8 +27,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Telynor/telys-memosprites
-          ref: v1.3.3
+          ref: 029823a6c9defecb89bf2860dd65639b5533c6a5
           path: .test-memosprites
+          persist-credentials: false
+
+      - name: Check out D&D5e 6 summon lifecycle and v14 placement
+        uses: actions/checkout@v4
+        with:
+          repository: foundryvtt/dnd5e
+          ref: release-6.0.6
+          path: .test-dnd5e6
           persist-credentials: false
 
       - name: Check out native D&D5e placement for integration tests
@@ -45,7 +53,7 @@ jobs:
           npm run build:materials
           node tools/fetch-light-cone-art.mjs
           npm run build:light-cones
-          DND5E_SOURCE_ROOT=.test-dnd5e MEMOSPRITES_SOURCE_ROOT=.test-memosprites npm test
+          DND5E_SOURCE_ROOT=.test-dnd5e DND5E_V6_SOURCE_ROOT=.test-dnd5e6 MEMOSPRITES_SOURCE_ROOT=.test-memosprites npm test
 
       - name: Check out tested Planar sheet integration
         uses: actions/checkout@v4
@@ -57,8 +65,9 @@ jobs:
 
       - name: Test alternate orb designer in Chromium
         run: |
-          npm install --no-save --package-lock=false --no-audit --no-fund playwright
+          npm install --no-save --package-lock=false --no-audit --no-fund playwright jsdom
           npx playwright install --with-deps chromium --only-shell
+          MEMOSPRITES_SOURCE_ROOT=.test-memosprites node tests/summon-settings-dom.cjs
           node tests/alternate-orb-ui.cjs
           node tests/ability-score-ui.cjs
           DND5E_SOURCE_ROOT=.test-dnd5e node tests/summoning-ui.cjs

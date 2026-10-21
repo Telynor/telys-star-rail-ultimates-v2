@@ -4504,7 +4504,7 @@ async function removeAbilitySummons(receipt) {
   if (!receipt?.tokenIds?.length) return;
   const scene = game.scenes.get(receipt.sceneId);
   const ids = receipt.tokenIds.filter(id => scene?.tokens.get(id)?.getFlag(MODULE_ID,"abilitySummon")?.operationId === receipt.operationId);
-  if (ids.length) await scene.deleteEmbeddedDocuments("Token", ids);
+  if (ids.length) await summoning.removeSummonedTokens(ids.map(id=>scene.tokens.get(id)));
 }
 
 // Serialize cast payments and refunds around the authoritative shared balance.
@@ -8227,7 +8227,7 @@ function registerApi() {
   skillSpells.installSkillSpellHooks();
   configureAlternateUltimates({isResolving: actor => state.ultimateLocks.has(actor.id)});
   game.modules.get(MODULE_ID).api = {
-    summoning: {chooseNativeSummonPositions:summoning.chooseNativeSummonPositions,cancelNativeSummonPlacement:summoning.cancelNativeSummonPlacement,isNativeSummonPlacementActive:summoning.isNativeSummonPlacementActive,placementContext:summoning.placementContext,canPlaceSummon:summoning.canPlaceSummon,legalSummonPositions:summoning.legalSummonPositions,playSummonAnimation:summoning.playSummonAnimation},
+    summoning: {...summoning},
     openDocumentation,
     openAlternateOrbDesigner,
     getAlternateOrb,

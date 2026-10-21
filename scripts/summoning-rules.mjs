@@ -1,13 +1,14 @@
+import {normalizeSummonOptions} from './summon-options.mjs';
 const finite = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 const bound = (value, min, max, fallback) => Math.min(max, Math.max(min, finite(value, fallback)));
-export function normalizeSummons(raw = {}) {
+export function normalizeSummons(raw = {}, defaults = {}) {
   const seen = new Set();
   return {enabled: raw?.enabled === true, radius: bound(raw?.radius, 0, 1000, 30),
     choices: (Array.isArray(raw?.choices) ? raw.choices : []).slice(0, 100).flatMap((choice, index) => {
       if (!/^Actor\.[\w-]+$/.test(String(choice?.actorUuid))) return [];
       let id = /^[\w-]{1,80}$/.test(String(choice.id)) ? choice.id : `summon-${index}`;
       while (seen.has(id)) id += '-copy'; seen.add(id);
-      return [{id, actorUuid: choice.actorUuid, quantity: Math.floor(bound(choice.quantity, 1, 20, 1))}];
+      return [{id, actorUuid: choice.actorUuid, quantity: Math.floor(bound(choice.quantity, 1, 20, 1)),...normalizeSummonOptions(choice,defaults)}];
     })};
 }
 export function parseHpDice(formula) {
