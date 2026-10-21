@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "title": "Tely’s Star Rail Field Manual",
-  "version": "3.14.0-preview.21",
+  "version": "3.14.0-preview.22",
   "articles": [
     {
       "id": "overview",
@@ -293,7 +293,7 @@
         {
           "title": "One Actor with multiple Elements",
           "paragraphs": [
-            "Memosprites 1.3.2 allows configured companions on every Path. Skill and Ultimate Actor summons have no Path restriction. Install matching Ultimates preview.19 or later for shared full-footprint lighting-wall validation."
+            "Memosprites 1.3.3 allows configured companions on every Path. Skill and Ultimate Actor summons have no Path restriction. Install Ultimates preview.22 or later for shared native spell-style token placement and lighting-wall validation."
           ]
         }
       ],
@@ -765,8 +765,8 @@
           "paragraphs": [],
           "steps": [
             "Use the Skill or charged Ultimate and choose an available configured creature.",
-            "Inspect highlighted valid anchor squares; hover a square to preview its full footprint.",
-            "Click one square for each requested copy. Undo removes a pending placement.",
+            "Move the native D&D5e token preview, the same placement used by summon spells. Its size and image come from the linked Actor.",
+            "Left-click to place each requested copy. An invalid position reopens the native preview with a warning. Right-click or Escape cancels the entire pending cast, including earlier selections.",
             "Cancel, Escape or right-click abandons placement without paying the normal Skill costs.",
             "After a successful cast the tokens appear with a brief animation. Generic ability summons do not automatically receive initiative entries."
           ]
@@ -1862,7 +1862,7 @@
         {
           "title": "Temporary live creature overlay",
           "paragraphs": [
-            "Memosprites 1.3.2 uses the newest owned summoned token’s actual HP/max HP while it is alive. External spell or ability summons temporarily replace the circular portrait with their colored Actor artwork. At 0 HP or removal the HP bar hides and the configured default artwork/crop returns. Saved settings are retained."
+            "Memosprites 1.3.3 uses the newest owned summoned token’s actual HP/max HP while it is alive. External spell or ability summons temporarily replace the circular portrait with their colored Actor artwork. At 0 HP or removal the HP bar hides and the configured default artwork/crop returns. Saved settings are retained."
           ]
         }
       ],
@@ -1929,7 +1929,7 @@
         {
           "title": "All Paths and full-sized placement",
           "paragraphs": [
-            "Memosprites 1.3.2 allows a configured memosprite on every Path. Enable Has a memosprite, link an existing world Actor, and place the summoner’s owned token on the current scene. Summon highlights legal adjacent anchors; hover shows the creature’s full size from its Actor token configuration. Escape cancels.",
+            "Memosprites 1.3.3 allows a configured memosprite on every Path. Enable Has a memosprite, link an existing world Actor, and place the summoner’s owned token on the current scene. Summon opens the native D&D5e token preview. Move the full-sized creature next to the summoner and left-click to place it. Invalid positions reopen the preview; right-click or Escape cancels.",
             "The complete token must fit inside the scene, clear other tokens and remain visible from the summoner without crossing any lighting barrier. A lighting-only wall blocks it even if movement is permitted. Open doors permit placement. Large creatures can extend to the left or above their anchor; every occupied square is checked. The GM repeats validation after preparing the final token. Cannot Fit leaves the action available."
           ]
         },
@@ -2943,7 +2943,7 @@
         {
           "title": "Live companion HUD",
           "paragraphs": [
-            "With Memosprites 1.3.2, a creature created by a character, their Skill/Ultimate, or a native spell temporarily supplies its colored artwork and real token HP/max HP to that summoner’s semicircle HUD. The newest owned summon is shown. Each unlinked token has independent HP even when several use the same source Actor.",
+            "With Memosprites 1.3.3, a creature created by a character, their Skill/Ultimate, or a native spell temporarily supplies its colored artwork and real token HP/max HP to that summoner’s semicircle HUD. The newest owned summon is shown. Each unlinked token has independent HP even when several use the same source Actor.",
             "At 0 actual HP, token deletion, scene deletion or a stale reference after reload, the HP arc hides and the saved default portrait/crop returns. Healing that ended creature does not reactivate the old binding. Stored companion configuration is not replaced, and no older creature automatically becomes active again."
           ]
         }

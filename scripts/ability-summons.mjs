@@ -1,9 +1,11 @@
 import {normalizeSummons, parseHpDice, fixedHpCost, rectangle, overlaps, rectCorners, insideRadius, wallOccludesFootprint, segmentsCross} from './summoning-rules.mjs';
 import {isSkillSpellCancelled} from './ability-spells.mjs';
+import {chooseNativeSummonPositions,isNativeSummonPlacementActive,cancelNativeSummonPlacement} from './native-token-placement.mjs';
+export {chooseNativeSummonPositions,isNativeSummonPlacementActive,cancelNativeSummonPlacement};
 const ID = 'telys-star-rail-ultimates', SOCKET = `module.${ID}`;
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pending = new Map(), planning = new Set(), sceneQueues = new Map();
-let picker = null, installed = false;
+let installed = false;
 const configFor = (actor, action) => normalizeSummons(actor.getFlag(ID, 'ultimate')?.[`${action}Summons`]);
 const authority = () => game.user.isGM && game.users.find(user => user.isGM && user.active)?.id === game.user.id;
 const canUse = (actor, user) => Boolean(actor && user && (user.isGM || actor.testUserPermission(user, 'OWNER')));
@@ -144,7 +146,7 @@ async function createSummons(actor, action, plan, user) {
   if (!checked) return null;
   const {source,scene,caster} = checked, operationId = foundry.utils.randomID(), data = [];
   for (const position of plan.positions) {
-    const token = await source.getTokenDocument({...position,elevation:Number(caster.elevation)||0,...(caster.level?{level:caster.level.id??caster.level}:{})});
+    const token = await source.getTokenDocument({x:position.x,y:position.y,...(Number.isFinite(position.rotation)?{rotation:position.rotation}:{}),elevation:Number(caster.elevation)||0,...(caster.level?{level:caster.level.id??caster.level}:{})});
     const entry = token.toObject(); delete entry._id;
     entry.x=position.x;entry.y=position.y;entry.actorId=source.id;entry.actorLink=false;
     entry.flags={...entry.flags,[ID]:{...entry.flags?.[ID],abilitySummon:{operationId,casterId:actor.id,casterUuid:actor.uuid,casterTokenId:caster.id,action,createdAt:Date.now()}}};
@@ -179,7 +181,7 @@ export async function prepareAbilitySummon(actor, action, {description = null, c
   if (!configFor(actor,action).enabled) return null;
   if (!game.user.isGM&&!actor.isOwner) throw new Error('You do not own this character.');
   const key=`${actor.id}:${action}`;
-  if (planning.has(key) || picker) { ui.notifications.warn('Finish or cancel the current summon placement first.'); return false; }
+  if (planning.has(key) || isNativeSummonPlacementActive()) { ui.notifications.warn('Finish or cancel the current summon placement first.'); return false; }
   planning.add(key);
   try {
     const sceneId=globalThis.canvas?.scene?.id;
@@ -203,51 +205,14 @@ export async function prepareAbilitySummon(actor, action, {description = null, c
   } finally { planning.delete(key); }
 }
 
-function chooseSquares(context,choice,description) {
-  return new Promise(resolve=>{
-    const graphics=new PIXI.Graphics(),preview=new PIXI.Graphics(),positions=[],reserved=[];
-    graphics.zIndex=1000000;preview.zIndex=1000001;
-    const bar=document.createElement('div');bar.className='tsru-summon-placement';
-    bar.innerHTML='<strong></strong><span role="status"></span><button type="button" data-undo>Undo</button><button type="button" data-cancel>Cancel</button>';
-    document.body.append(bar);canvas.stage.addChild(graphics);canvas.stage.addChild(preview);
-    graphics.eventMode='static';preview.eventMode='none';graphics.hitArea=new PIXI.Rectangle(context.bounds.x,context.bounds.y,context.bounds.width,context.bounds.height);
-    let done=false,legal=[];
-    let timer;
-    const view=canvas.app?.canvas??canvas.app?.view;
-    const finish=value=>{if(done)return;done=true;clearTimeout(timer);graphics.destroy();preview.destroy();bar.remove();document.removeEventListener('keydown',onKey,true);view?.removeEventListener('contextmenu',onCancel,true);picker=null;resolve(value);};
-    const onCancel=event=>{event?.preventDefault?.();event?.stopPropagation?.();finish(null);};
-    const onKey=event=>{if(event.key==='Escape')onCancel(event);};
-    const paint=()=>{
-      Object.assign(context,placementContext(context.scene,context.caster));
-      legal=legalSummonPositions(context,choice,description.radius,reserved);
-      graphics.clear();
-      for(const p of legal)graphics.rect(p.x+1,p.y+1,context.gx-2,context.gy-2).fill({color:0x51d8e8,alpha:.25}).stroke({color:0x8af1ff,width:1,alpha:.7});
-      for(const p of positions)graphics.rect(p.x,p.y,choice.width*context.gx,choice.height*context.gy).fill({color:0x82ef9c,alpha:.3}).stroke({color:0xafffc2,width:2});
-      bar.querySelector('strong').textContent=`${choice.name}: choose placement ${positions.length+1} of ${choice.quantity}`;
-      bar.querySelector('[role="status"]').textContent=legal.length?`Range ${description.radius} ${description.units} · Esc or right-click cancels`:'Cannot Fit — undo a placement or cancel. Nothing was spent.';
-      bar.querySelector('[data-undo]').disabled=!positions.length;
-    };
-    const pointAt=event=>{const point=canvas.stage.toLocal(event.global),offset=context.offsetFor(point);return context.pointFor(offset.i,offset.j);};
-    graphics.on('pointermove',event=>{
-      const point=pointAt(event),valid=canPlaceSummon(context,choice,point,description.radius,reserved);
-      preview.clear().rect(point.x,point.y,choice.width*context.gx,choice.height*context.gy).fill({color:valid?0x64f0aa:0xff485e,alpha:.3}).stroke({color:valid?0x9affc6:0xff8591,width:2});
-      if(!valid)bar.querySelector('[role="status"]').textContent='Cannot Fit';
-      else bar.querySelector('[role="status"]').textContent=`Range ${description.radius} ${description.units}`;
-    });
-    graphics.on('pointertap',event=>{
-      event.stopPropagation();if(event.button===2)return onCancel(event);
-      const point=pointAt(event);
-      if(!canPlaceSummon(context,choice,point,description.radius,reserved)){bar.querySelector('[role="status"]').textContent='Cannot Fit';return;}
-      positions.push({x:point.x,y:point.y});reserved.push(rectangle(point.x,point.y,choice.width*context.gx,choice.height*context.gy));
-      if(positions.length===choice.quantity)return finish(positions);
-      paint();
-    });
-    graphics.on('rightclick',onCancel);bar.querySelector('[data-cancel]').addEventListener('click',onCancel);
-    bar.querySelector('[data-undo]').addEventListener('click',()=>{positions.pop();reserved.pop();paint();});
-    document.addEventListener('keydown',onKey,true);view?.addEventListener('contextmenu',onCancel,true);
-    timer=setTimeout(()=>finish(null),180000);picker={cancel:()=>finish(null)};
-    try{paint();}catch(error){ui.notifications.error(error.message);finish(null);}
-  });
+async function chooseSquares(context,choice,description) {
+  const source=sourceActor(choice.actorUuid),actor=game.actors.get(context.caster.actorId);
+  return chooseNativeSummonPositions(actor,source,{scene:context.scene,origin:context.caster,count:choice.quantity,
+    validate:(point,positions)=>{
+      const fresh=placementContext(context.scene,context.caster);
+      const reserved=positions.map(p=>rectangle(p.x,p.y,choice.width*fresh.gx,choice.height*fresh.gy));
+      return canPlaceSummon(fresh,choice,point,description.radius,reserved);
+    }});
 }
 
 export async function ensureQueuedSummonPlan(actor, action, plan, requester) {
@@ -282,7 +247,6 @@ export async function handleSummoningSocket(payload) {
 
 export function installSummoningHooks() {
   if(installed)return;installed=true;
-  Hooks.on('canvasTearDown',()=>picker?.cancel());
   Hooks.on('dnd5e.summonToken',stampSpellSummon);
   Hooks.on('preCreateToken',validateSummonCreation);
   Hooks.on('createToken',token=>{if(token.getFlag(ID,'abilitySummon')&&token.parent?.id===canvas.scene?.id)void playSummonAnimation(token);});
@@ -318,15 +282,12 @@ export function validateSummonCreation(token, data = {}) {
   return false;
 }
 export async function playSummonAnimation(token) {
-  let mesh,graphics,alpha;
+  let mesh,alpha;
   try {
     for(let i=0;i<20&&!token.object?.mesh;i++)await new Promise(resolve=>setTimeout(resolve,25));
-    mesh=token.object?.mesh;if(!mesh||!canvas.stage)return;
-    const grid=Number(canvas.scene.grid?.size)||Number(canvas.dimensions?.size)||100;
-    const x=token.x+token.width*grid/2,y=token.y+token.height*grid/2,radius=Math.max(token.width,token.height)*grid*.55;
-    graphics=new PIXI.Graphics();graphics.zIndex=1000002;graphics.eventMode='none';canvas.stage.addChild(graphics);
+    mesh=token.object?.mesh;if(!mesh)return;
     alpha=mesh.alpha;const start=performance.now();mesh.alpha=0;
-    await new Promise((resolve,reject)=>{const tick=now=>{try{if(graphics.destroyed||mesh.destroyed)return resolve();const progress=Math.min(1,(now-start)/650);mesh.alpha=alpha*progress;graphics.clear().circle(x,y,radius*(.35+.65*progress)).stroke({color:0x80efff,width:4*(1-progress)+1,alpha:1-progress});if(progress<1)requestAnimationFrame(tick);else resolve();}catch(error){reject(error);}};requestAnimationFrame(tick);});
+    await new Promise((resolve,reject)=>{const tick=now=>{try{if(mesh.destroyed)return resolve();const progress=Math.min(1,(now-start)/650);mesh.alpha=alpha*progress;if(progress<1)requestAnimationFrame(tick);else resolve();}catch(error){reject(error);}};requestAnimationFrame(tick);});
   } catch(error) {console.warn(`${ID} | Summon animation`,error);}
-  finally {if(mesh&&!mesh.destroyed&&alpha!==undefined)mesh.alpha=alpha;if(graphics&&!graphics.destroyed)graphics.destroy();}
+  finally {if(mesh&&!mesh.destroyed&&alpha!==undefined)mesh.alpha=alpha;}
 }

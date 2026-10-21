@@ -27,8 +27,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Telynor/telys-memosprites
-          ref: c087e46ba1b1d035772b65ae652ee334efefe2e6
+          ref: v1.3.3
           path: .test-memosprites
+          persist-credentials: false
+
+      - name: Check out native D&D5e placement for integration tests
+        uses: actions/checkout@v4
+        with:
+          repository: foundryvtt/dnd5e
+          ref: release-5.3.3
+          path: .test-dnd5e
           persist-credentials: false
 
       - name: Build Star Rail Materials compendium
@@ -37,7 +45,7 @@ jobs:
           npm run build:materials
           node tools/fetch-light-cone-art.mjs
           npm run build:light-cones
-          MEMOSPRITES_SOURCE_ROOT=.test-memosprites npm test
+          DND5E_SOURCE_ROOT=.test-dnd5e MEMOSPRITES_SOURCE_ROOT=.test-memosprites npm test
 
       - name: Check out tested Planar sheet integration
         uses: actions/checkout@v4
@@ -53,11 +61,11 @@ jobs:
           npx playwright install --with-deps chromium --only-shell
           node tests/alternate-orb-ui.cjs
           node tests/ability-score-ui.cjs
-          node tests/summoning-ui.cjs
+          DND5E_SOURCE_ROOT=.test-dnd5e node tests/summoning-ui.cjs
           node tests/help-ui.cjs
           node tests/multitype-ui.cjs
           PLANAR_SOURCE_ROOT=.test-planar node tests/npc-controls-ui.cjs
-          MEMOSPRITES_SOURCE_ROOT=.test-memosprites node tests/memosprite-summoning-ui.cjs
+          DND5E_SOURCE_ROOT=.test-dnd5e MEMOSPRITES_SOURCE_ROOT=.test-memosprites node tests/memosprite-summoning-ui.cjs
 
       - name: Save orb designer screenshot
         if: always()

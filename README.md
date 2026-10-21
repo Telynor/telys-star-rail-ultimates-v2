@@ -1,8 +1,12 @@
 # Tely's Star Rail Ultimates
 
-## Summon placement on Foundry v14 (preview.21)
+## Native spell-style summon placement (preview.22)
 
-Summon collision checks now resolve the caster’s Level document correctly, allowing valid placement in mapped rooms and on open maps. With no lighting-blocking walls or surfaces on that level, only the selected square must be in range and on the map; larger creatures may extend beyond the zone or map edge. Full-size occupancy checks still apply. Maps with lighting barriers retain full-footprint checks. Skills, Ultimates, native spell summons and Memosprites 1.3.2 share these rules; no Memosprites update is needed.
+Skill/Ultimate creature lists and Memosprites 1.3.3 now use D&D5e’s native token placement, the same preview used by summon spells. Move the token preview, left-click to place each copy, and right-click or Escape to cancel the whole pending cast. No custom PIXI square overlay is used. Invalid positions reopen the native preview with a warning. The GM still validates range, occupancy and lighting walls before creation; existing cancellation/refund, initiative and live HP/portrait behavior remains. Update both Ultimates and Memosprites.
+
+## Summon size and lighting
+
+Summon collision checks now resolve the caster’s Level document correctly, allowing valid placement in mapped rooms and on open maps. With no lighting-blocking walls or surfaces on that level, only the selected square must be in range and on the map; larger creatures may extend beyond the zone or map edge. Full-size occupancy checks still apply. Maps with lighting barriers retain full-footprint checks. Skills, Ultimates, native spell summons and Memosprites share these placement rules.
 
 ## Compact Actor controls and NPC allies
 
@@ -33,7 +37,7 @@ The documentation and illustrations are bundled in `docs/` inside the release ZI
 
 In a character’s **HSR Settings → Abilities → Skill**, or **Ultimates → Ultimate Summoning**, enable **Summons creature?**. Drag existing world Actors from the Actors directory into the list, or choose **Add existing Actor**. Drag rows to reorder them; **Count** sets how many copies of the selected creature to place. Skill and Ultimate lists and radii are independent. These settings also apply to the character’s enhanced abilities, with no Path requirement.
 
-Set **Summoning radius** in the scene’s distance units (for example, 30 ft on a 5-ft grid). Using the ability opens the creature menu, then highlights valid anchor squares on the map. Hover to preview the full token footprint, click to place each copy, or use **Undo**, **Cancel**, **Esc** or right-click. Tokens inherit the source Actor’s prototype-token size and settings and appear with a brief summoning animation. Existing Actors are referenced; their base documents are not modified.
+Set **Summoning radius** in the scene’s distance units (for example, 30 ft on a 5-ft grid). Using the ability opens the creature menu, then opens the same native token preview used by D&D5e summon spells. Move the full-sized preview, left-click to place each copy, or use **Esc** or right-click to cancel the entire pending cast. Tokens inherit the source Actor’s prototype-token size and settings and appear with a brief summoning animation. Existing Actors are referenced; their base documents are not modified.
 
 With lighting boundaries present, the entire footprint must be inside the radius and scene. Without those boundaries, only the selected square must fit inside the radius and scene. The full creature must always be clear of other tokens. A lighting-blocking wall prevents summoning across it or straddling it, even if that wall allows movement. Open doors and walls on other levels are respected. The active GM validates ownership, the saved creature choice, quantity, size, range, occupancy and barriers before creating tokens; a connected GM is required for player casts.
 

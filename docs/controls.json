@@ -6217,7 +6217,7 @@
       "scope": "memosprite",
       "selector": "[data-action=\"summon\"]",
       "label": "Summon / unsummon companion",
-      "description": "Use the addon’s live adjacent-square placement, or remove its tracked companion when already summoned. A valid world Actor source, token and normal permissions are required.",
+      "description": "Use the native D&D5e token preview to place the companion adjacent to the summoner, or remove its tracked companion when already summoned. Left-click places; right-click or Escape cancels. A valid world Actor source, token and normal permissions are required.",
       "topic": "memosprites"
     },
     {

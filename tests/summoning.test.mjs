@@ -200,15 +200,14 @@ test('setting search accepts summon, health and cost synonyms with multiple narr
  assert.equal(matchesSetting('pet range','Skill Point cost'),false);
 });
 
-test('animation failure restores mesh alpha instead of leaving an invisible creature',async()=>{
- const w=world();const original={PIXI:globalThis.PIXI,requestAnimationFrame:globalThis.requestAnimationFrame};
- const mesh={alpha:.7},token={x:0,y:0,width:1,height:1,object:{mesh}};let destroyed=false;
- globalThis.PIXI={Graphics:class{clear(){throw new Error('Unavailable renderer')}destroy(){destroyed=true} }};w.context.canvas.stage={addChild(){}};
- globalThis.requestAnimationFrame=fn=>fn(performance.now()+100);
+test('animation restores mesh alpha on renderer failure without creating custom PIXI graphics',async()=>{
+ world();const original={PIXI:globalThis.PIXI,requestAnimationFrame:globalThis.requestAnimationFrame};
+ const mesh={alpha:.7},token={object:{mesh}};
+ globalThis.PIXI={Graphics:class{constructor(){throw Error('Custom graphics are unavailable')}}};
+ globalThis.requestAnimationFrame=()=>{throw Error('Renderer stopped')};
  const warn=console.warn;console.warn=()=>{};
- try{await playSummonAnimation(token);assert.equal(mesh.alpha,.7);assert.equal(destroyed,true);}finally{console.warn=warn;Object.assign(globalThis,original);}
+ try{await playSummonAnimation(token);assert.equal(mesh.alpha,.7);}finally{console.warn=warn;Object.assign(globalThis,original);}
 });
-
 
 test('queued re-placement accepts a response only from the requesting player',async()=>{
  const w=world();w.scene.tokens.push({id:'block',x:500,y:400,width:1,height:1,getFlag(){}});

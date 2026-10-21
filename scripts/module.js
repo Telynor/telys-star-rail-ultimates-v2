@@ -8227,7 +8227,7 @@ function registerApi() {
   skillSpells.installSkillSpellHooks();
   configureAlternateUltimates({isResolving: actor => state.ultimateLocks.has(actor.id)});
   game.modules.get(MODULE_ID).api = {
-    summoning: {placementContext:summoning.placementContext,canPlaceSummon:summoning.canPlaceSummon,legalSummonPositions:summoning.legalSummonPositions,playSummonAnimation:summoning.playSummonAnimation},
+    summoning: {chooseNativeSummonPositions:summoning.chooseNativeSummonPositions,cancelNativeSummonPlacement:summoning.cancelNativeSummonPlacement,isNativeSummonPlacementActive:summoning.isNativeSummonPlacementActive,placementContext:summoning.placementContext,canPlaceSummon:summoning.canPlaceSummon,legalSummonPositions:summoning.legalSummonPositions,playSummonAnimation:summoning.playSummonAnimation},
     openDocumentation,
     openAlternateOrbDesigner,
     getAlternateOrb,
