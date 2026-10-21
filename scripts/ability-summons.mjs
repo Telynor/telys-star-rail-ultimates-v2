@@ -8,7 +8,7 @@ const configFor = (actor, action) => normalizeSummons(actor.getFlag(ID, 'ultimat
 const authority = () => game.user.isGM && game.users.find(user => user.isGM && user.active)?.id === game.user.id;
 const canUse = (actor, user) => Boolean(actor && user && (user.isGM || actor.testUserPermission(user, 'OWNER')));
 const sourceActor = uuid => /^Actor\.[\w-]+$/.test(String(uuid)) ? game.actors.get(uuid.slice(6)) : null;
-const failFit = () => new Error('Cannot Fit: the full token cannot fit inside the summoning zone without overlapping creatures or crossing a lighting barrier.');
+const failFit = () => new Error('Cannot Fit: choose a square in the summoning zone with space clear of creatures and lighting barriers.');
 export {normalizeSummons};
 
 export async function evaluateSkillHpCost(actor, config) {
@@ -33,6 +33,10 @@ export function placementContext(scene, caster) {
   const raw = scene.dimensions?.sceneRect ?? scene.getDimensions?.().sceneRect ?? {x:0,y:0,width:scene.width,height:scene.height};
   const bounds = rectangle(Number(raw.x)||0, Number(raw.y)||0, Number(raw.width)||1, Number(raw.height)||1);
   const level = caster.level?.id ?? caster.level ?? caster.levelId ?? (active ? canvas.level?.id : null);
+  // v14 polygon backends require a Level document; Scene surface queries also
+  // accept its ID. Keep both, including when the GM is viewing another scene.
+  const levelDocument = (typeof caster.level === 'object' ? caster.level : null)
+    ?? scene.levels?.get(level) ?? (active && canvas.level?.id === level ? canvas.level : null);
   const casterRect = rectangle(caster.x, caster.y, Math.max(.1,Number(caster.width)||1)*gx, Math.max(.1,Number(caster.height)||1)*gy);
   const elevation = Number(caster.elevation) || 0;
   const origin = {x:casterRect.x+casterRect.width/2,y:casterRect.y+casterRect.height/2,elevation};
@@ -41,23 +45,26 @@ export function placementContext(scene, caster) {
     if (!Array.isArray(coords) || !Number(wall.light) || item.isOpen || Number(wall.door)>0 && Number(wall.ds)===(globalThis.CONST?.WALL_DOOR_STATES?.OPEN ?? 1)) return [];
     const wallLevel = wall.level?.id ?? wall.level ?? wall.levelId;
     if (level && wallLevel && wallLevel !== level) return [];
+    if (level && wall.levels != null && !(wall.levels.has?.(level) ?? wall.levels.includes?.(level) ?? true)) return [];
     return [[{x:coords[0],y:coords[1]},{x:coords[2],y:coords[3]}]];
   });
   const occupied = [...(scene.tokens ?? [])].filter(token => {
     const tokenLevel = token.level?.id ?? token.level ?? token.levelId;
     return !level || !tokenLevel || tokenLevel === level;
   }).map(token => rectangle(token.x,token.y,Math.max(.1,Number(token.width)||1)*gx,Math.max(.1,Number(token.height)||1)*gy));
+  const surfaces = scene.getSurfaces?.({type:'light',...(level?{level:levelDocument??level}:{})}) ?? [];
+  const hasLightingBoundaries = walls.length > 0 || surfaces.length > 0;
   const pointFor = (i,j) => grid?.getTopLeftPoint({i,j}) ?? {x:bounds.x+j*gx,y:bounds.y+i*gy};
   const offsetFor = point => grid?.getOffset(point) ?? {i:Math.floor((point.y-bounds.y)/gy),j:Math.floor((point.x-bounds.x)/gx)};
   const lightCollision = (a,b) => {
     if (walls.some(([c,d]) => segmentsCross(a,b,c,d))) return true;
-    if (active) {
+    if (active || levelDocument) {
       const backend = globalThis.CONFIG?.Canvas?.polygonBackends?.light;
-      if (backend?.testCollision?.({...a,elevation},{...b,elevation},{type:'light',mode:'any',...(level?{level}:{})})) return true;
+      if (backend?.testCollision?.({...a,elevation},{...b,elevation},{type:'light',mode:'any',...(levelDocument?{level:levelDocument}:{})})) return true;
     }
-    return Boolean(level && scene.testSurfaceCollision?.({...a,elevation},{...b,elevation},{type:'light',mode:'any',level}));
+    return Boolean(level && scene.testSurfaceCollision?.({...a,elevation},{...b,elevation},{type:'light',mode:'any',level:levelDocument??level}));
   };
-  return {scene,caster,gx,gy,distance,bounds,casterRect,origin,walls,occupied,pointFor,offsetFor,lightCollision};
+  return {scene,caster,gx,gy,distance,bounds,casterRect,origin,walls,occupied,hasLightingBoundaries,pointFor,offsetFor,lightCollision};
 }
 
 export function canPlaceSummon(context, choice, position, radius, reserved = []) {
@@ -66,10 +73,13 @@ export function canPlaceSummon(context, choice, position, radius, reserved = [])
   const offset = context.offsetFor(position), snapped = context.pointFor(offset.i,offset.j);
   if (Math.abs(snapped.x-position.x)>.1 || Math.abs(snapped.y-position.y)>.1) return false;
   const footprint = rectangle(position.x,position.y,choice.width*gx,choice.height*gy);
-  if (footprint.x<bounds.x-.01 || footprint.y<bounds.y-.01 || footprint.right>bounds.right+.01 || footprint.bottom>bounds.bottom+.01) return false;
-  if (!insideRadius(footprint,casterRect,radius/context.distance*gx) || [...occupied,...reserved].some(other=>overlaps(footprint,other))) return false;
+  // An open map has no room to fit inside: only the selected square must be in
+  // range/on the map. Always reserve the creature's real size against tokens.
+  const zoneFootprint = context.hasLightingBoundaries ? footprint : rectangle(position.x,position.y,Math.min(1,choice.width)*gx,Math.min(1,choice.height)*gy);
+  if (zoneFootprint.x<bounds.x-.01 || zoneFootprint.y<bounds.y-.01 || zoneFootprint.right>bounds.right+.01 || zoneFootprint.bottom>bounds.bottom+.01) return false;
+  if (!insideRadius(zoneFootprint,casterRect,radius/context.distance*gx) || [...occupied,...reserved].some(other=>overlaps(footprint,other))) return false;
   if (walls.some(([a,b])=>wallOccludesFootprint(origin,footprint,a,b))) return false;
-  const corners = rectCorners(footprint), center = {x:footprint.x+footprint.width/2,y:footprint.y+footprint.height/2};
+  const corners = rectCorners(zoneFootprint), center = {x:zoneFootprint.x+zoneFootprint.width/2,y:zoneFootprint.y+zoneFootprint.height/2};
   return ![...corners,center].some(point=>context.lightCollision(origin,point));
 }
 
@@ -208,7 +218,7 @@ function chooseSquares(context,choice,description) {
     const onCancel=event=>{event?.preventDefault?.();event?.stopPropagation?.();finish(null);};
     const onKey=event=>{if(event.key==='Escape')onCancel(event);};
     const paint=()=>{
-      context.occupied=placementContext(context.scene,context.caster).occupied;
+      Object.assign(context,placementContext(context.scene,context.caster));
       legal=legalSummonPositions(context,choice,description.radius,reserved);
       graphics.clear();
       for(const p of legal)graphics.rect(p.x+1,p.y+1,context.gx-2,context.gy-2).fill({color:0x51d8e8,alpha:.25}).stroke({color:0x8af1ff,width:1,alpha:.7});
@@ -303,7 +313,7 @@ export function validateSummonCreation(token, data = {}) {
     }
   }catch(error){console.warn(`${ID} | Summon validation`,error);}
   if(valid)return;
-  ui.notifications.warn('Cannot Fit: the entire summoned token must clear lighting barriers, other tokens and scene boundaries.');
+  ui.notifications.warn('Cannot Fit: choose an on-map square and keep the summoned creature clear of other tokens and lighting barriers.');
   Hooks.callAll('tsruSummonPlacementBlocked',token,meta);
   return false;
 }

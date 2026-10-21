@@ -5794,7 +5794,7 @@
       "scope": "character",
       "selector": "[data-summons-radius]",
       "label": "Summoning radius",
-      "description": "Maximum placement range in scene distance units. The entire token footprint must fit, remain in the scene and clear lighting barriers/other tokens.",
+      "description": "Maximum placement range in scene distance units. With lighting walls or surfaces present, the entire creature must fit inside the range and scene. On open maps without those boundaries, only the selected square must be in range and on the map. The full creature always needs unoccupied space.",
       "topic": "summons"
     },
     {

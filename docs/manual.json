@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "title": "Tely’s Star Rail Field Manual",
-  "version": "3.14.0-preview.20",
+  "version": "3.14.0-preview.21",
   "articles": [
     {
       "id": "overview",
@@ -82,7 +82,7 @@
           "title": "Run a controlled check",
           "paragraphs": [
             "Set enough charge/SP to cast once. A successful Skill posts its description and pays its configured costs. An Ultimate uses its active form’s charge system, shows its splash and runs its optional code. If an off-turn Ultimate inserts a temporary participant, finish it with the completion flow and confirm the original turn resumes.",
-            "For a summon, test one creature that fits and one that cannot. Confirm the full footprint stays inside the range and respects lighting-blocking walls. A cancelled or impossible placement must leave costs unspent or restore a queued reservation."
+            "For a summon, test one creature that fits and one that cannot. On maps with lighting barriers, confirm the full footprint stays inside the range and respects those barriers. On open maps without lighting walls or surfaces, only the selected square must fit in range and on the map; large creatures may extend beyond it. The full creature still needs unoccupied space. A cancelled or impossible placement must leave costs unspent or restore a queued reservation."
           ]
         },
         {
@@ -756,7 +756,7 @@
         {
           "title": "Range, footprint and barriers",
           "paragraphs": [
-            "Summoning radius uses the scene’s distance units: 30 ft means six 5-ft squares of distance. The entire token footprint must be inside the valid radius and scene bounds, clear of other tokens and lighting-blocking walls. A creature cannot cross or straddle a lighting barrier even if movement is permitted. Open doors and relevant wall levels are respected.",
+            "Summoning radius uses the scene’s distance units: 30 ft means six 5-ft squares of distance. On maps with lighting walls or light-restricting surfaces, the entire token footprint must be inside the valid radius and scene bounds, clear of other tokens and lighting-blocking walls. If the current level has no such boundaries, only the selected square must be in range and on the map, so size alone does not prevent a large summon. Other creatures and previously selected summons still reserve their full size. A creature cannot cross or straddle a lighting barrier even if movement is permitted. Open doors and relevant wall levels are respected.",
             "The chooser marks a creature Cannot Fit when there is no valid footprint. If no choice fits, the cast is cancelled without costs. A GM validates ownership, saved choice, quantity, token dimensions, occupancy, range and barriers before creation."
           ]
         },
@@ -2937,7 +2937,7 @@
           "title": "Cancellation, failure and summoning",
           "paragraphs": [
             "Closing/cancelling the spell dialog, a blocked cast, or a Summon activity that creates no creatures refunds the Skill’s exact SP and HP payments and releases its lock. Temporary HP is never used. Partial native summons from a failed Skill are removed. Other characters can use Skills while the casting dialog is open; cancellation refunds remain correct if another character is spending SP at the same time. A ten-minute abandoned cast times out; close its old dialog before trying again. Repeated/stale completion packets cannot settle a second cast.",
-            "A native Summon activity places creatures during this Skill instead of waiting for the later chat summon button. The whole final token footprint must clear lighting walls, occupied cells and scene bounds. Cannot Fit cancels and refunds the Skill. A Skill’s separate Summons creature? list can also be used; it has its own range/count picker and is separate from the spell’s native Summon configuration."
+            "A native Summon activity places creatures during this Skill instead of waiting for the later chat summon button. The whole final token footprint must clear lighting walls and occupied cells. With lighting boundaries present, its full size must stay in the scene; on an open map without lighting walls or surfaces, only the selected square must be on the map. Cannot Fit cancels and refunds the Skill. A Skill’s separate Summons creature? list can also be used; it has its own range/count picker and is separate from the spell’s native Summon configuration."
           ]
         },
         {

@@ -1,5 +1,9 @@
 # Tely's Star Rail Ultimates
 
+## Summon placement on Foundry v14 (preview.21)
+
+Summon collision checks now resolve the caster’s Level document correctly, allowing valid placement in mapped rooms and on open maps. With no lighting-blocking walls or surfaces on that level, only the selected square must be in range and on the map; larger creatures may extend beyond the zone or map edge. Full-size occupancy checks still apply. Maps with lighting barriers retain full-footprint checks. Skills, Ultimates, native spell summons and Memosprites 1.3.2 share these rules; no Memosprites update is needed.
+
 ## Compact Actor controls and NPC allies
 
 Toughness, Multitype, NPC Enemy/Ally, Planar Relics and Boss Encounter share a compact Actor sheet header area. The Toughness dialog also links directly to Multitype. Ally NPCs use blue initiative frames and hide/disable Toughness; Enemy NPCs use red and enable it. Current/max Toughness, weaknesses and ability settings are retained. Unlinked summons retain independent combat state. The NPC header’s crop icon (also in Toughness → Format Initiative Portrait) opens the visual initiative picture editor: drop/browse an image, drag, zoom and flip. Framing saves on the source NPC and applies to all of its existing and future token copies across scenes, whether Ally or Enemy. Duplicating a configured world NPC retains the same portrait source. Normal and enhanced portraits remain separate designs.
@@ -31,7 +35,7 @@ In a character’s **HSR Settings → Abilities → Skill**, or **Ultimates → 
 
 Set **Summoning radius** in the scene’s distance units (for example, 30 ft on a 5-ft grid). Using the ability opens the creature menu, then highlights valid anchor squares on the map. Hover to preview the full token footprint, click to place each copy, or use **Undo**, **Cancel**, **Esc** or right-click. Tokens inherit the source Actor’s prototype-token size and settings and appear with a brief summoning animation. Existing Actors are referenced; their base documents are not modified.
 
-The entire footprint must be inside the radius, inside the scene and clear of other tokens. A lighting-blocking wall prevents summoning across it or straddling it, even if that wall allows movement. Open doors and walls on other levels are respected. The active GM validates ownership, the saved creature choice, quantity, size, range, occupancy and barriers before creating tokens; a connected GM is required for player casts.
+With lighting boundaries present, the entire footprint must be inside the radius and scene. Without those boundaries, only the selected square must fit inside the radius and scene. The full creature must always be clear of other tokens. A lighting-blocking wall prevents summoning across it or straddling it, even if that wall allows movement. Open doors and walls on other levels are respected. The active GM validates ownership, the saved creature choice, quantity, size, range, occupancy and barriers before creating tokens; a connected GM is required for player casts.
 
 Invalid placements show **Cannot Fit**. If nothing fits or placement is cancelled, no SP, HP or Ultimate charge is spent. Queued Ultimates create their creatures when their Ultimate turn begins; if the chosen space is no longer available, the player can reposition. A blocked or cancelled queued summon restores the original Energy or alternate counters and continues initiative. Partial token-creation failures are cleaned up, and ending combat restores reserved summoning charges.
 

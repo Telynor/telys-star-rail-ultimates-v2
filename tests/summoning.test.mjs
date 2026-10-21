@@ -32,13 +32,14 @@ test('full footprint range and wall geometry handle corners, wall edges and inte
  assert.equal(segmentsCross({x:0,y:0},{x:100,y:0},{x:200,y:0},{x:300,y:0}),false);
 });
 
-test('map placement uses grid distance and prototype token size, rejecting occupied, out-of-bounds and unsnapped footprints',()=>{
+test('open-map placement uses anchor range and full token occupancy, rejecting out-of-bounds and unsnapped selections',()=>{
  const w=world(),c=placementContext(w.scene,w.caster),small={width:1,height:1},large={width:2,height:2};
  assert.equal(canPlaceSummon(c,small,{x:500,y:400},5),true);
- assert.equal(canPlaceSummon(c,large,{x:500,y:400},5),false);
+ assert.equal(canPlaceSummon(c,large,{x:500,y:400},5),true);
  assert.equal(canPlaceSummon(c,small,{x:400,y:400},15),false);
  assert.equal(canPlaceSummon(c,small,{x:501,y:400},15),false);
- assert.equal(canPlaceSummon(c,large,{x:900,y:400},100),false);
+ assert.equal(canPlaceSummon(c,large,{x:900,y:400},100),true);
+ assert.equal(canPlaceSummon(c,large,{x:1000,y:400},100),false);
  assert.equal(canPlaceSummon(c,small,{x:500,y:400},15,[rectangle(500,400,100,100)]),false);
  w.scene.grid.size=200;w.caster.x=400;w.caster.y=400;
  assert.equal(canPlaceSummon(placementContext(w.scene,w.caster),small,{x:600,y:400},5),true);
@@ -79,7 +80,7 @@ test('authority resolves saved choices and sizes instead of trusting a forged cl
  await assert.rejects(validateSummonPlan(w.a,'skill',{...w.plan,choiceId:'Actor.hero'},w.player),/selection changed/);
  await assert.rejects(validateSummonPlan(w.a,'skill',{...w.plan,positions:[...w.plan.positions,{x:600,y:400}]},w.player),/selection changed/);
  await assert.rejects(validateSummonPlan(w.a,'skill',w.plan,w.stranger),/do not own/);
- w.wolf.prototypeToken.width=4;
+ w.scene.tokens.push({x:700,y:400,width:1,height:1});w.wolf.prototypeToken.width=4;
  await assert.rejects(validateSummonPlan(w.a,'skill',w.plan,w.player),/Cannot Fit/);
  assert.deepEqual(w.plan,original);
 });
