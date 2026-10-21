@@ -1,3 +1,4 @@
+import * as skillSpells from '../scripts/ability-spells.mjs';
 import * as npcInitiative from "../scripts/npc-initiative.mjs";
 import * as npcRules from "../scripts/npc-rules.mjs";
 import * as actorControls from "../scripts/actor-sheet-controls.mjs";
@@ -34,7 +35,7 @@ function setup(options={}) {
   const sandbox={console,npcRules,actorControls,npcInitiative,structuredClone,FormApplication:class {},Hooks:{on:(name,fn)=>hooks.set(name,fn),once(){},callAll:(...args)=>events.push(args)},
     foundry:{utils:{deepClone:structuredClone,mergeObject:(base,stored)=>({...base,...stored}),expandObject:updates=>{const out={};for(const [p,v]of Object.entries(updates))set(out,p,v);return out;},getProperty:get,setProperty:set},applications:{api:{ApplicationV2:class {},HandlebarsApplicationMixin:c=>c}}},
     game,ui:globalThis.ui,canvas:{},window:{setTimeout:()=>1,clearTimeout(){}},setTimeout,clearTimeout,
-    energyAfterUpdate,...alternate};
+    skillSpells,energyAfterUpdate,...alternate};
   const context=vm.createContext(sandbox);
   const script=source.replace(/^import .*;\n/gm,'')+ '\nglobalThis.testApi={getConfig,setEnergy,addEnergy,requestUltimate,executeUltimate,ultimateMacroDisplay,state,runUltimateScript,getVisualConfig,saveUltimateConfigFromTab,combatHudDesignerPreview,ultimateArtworkPreview};';
   vm.runInContext(script,context);

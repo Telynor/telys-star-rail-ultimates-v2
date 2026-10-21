@@ -342,6 +342,22 @@ for key,label,type,description,limits in [
  id='initiative-art--'+key
  fields[id]=dict(id=id,kind='field',scope='initiative-art',key=key,label=label,description=description+' Changes save automatically. NPCs share this value through their source Actor, independently for normal and enhanced framing.',topic='initiative',type=type,source='scripts/module.js',**limits)
 
+# Explicit authored meanings for both spell sources and temporary summon health.
+for selector,label,description in [
+ ('[data-spell-enabled]','Casts spell?','After the Skill pays its configured SP/actual HP costs, cast a real owned spell as this character. Cancelled or blocked casting refunds those costs. OFF keeps the normal descriptive Skill.'),
+ ('[data-spell-mode],[data-spell-mode-label]','Spell source: Spell known / Other','Flip OFF for Spell known, which selects an existing character spell. Flip ON for Other, which accepts a compendium spell by drag and drop. Both saved choices are retained when switching; this switch saves immediately.'),
+ ('[data-spell-known]','Spell known','Choose a spell Item already owned by this character. The Skill uses its native spell activity with the character as caster. Removing that spell requires selecting another one.'),
+ ('[data-spell-drop]','Other: compendium spell','Drop a spell Item from a compendium. The first cast imports an owned copy onto this character; subsequent casts reuse it. Actors, features and world Items are rejected. The source compendium is unchanged.'),
+ ('[data-spell-open]','Open spell','Inspect the selected compendium spell without casting it or spending resources. Disabled until a source spell has been dropped.'),
+ ('[data-spell-clear]','Clear spell','Clear the Other source reference. This does not delete the compendium spell or an already imported character-owned copy. Disabled without a source selection.')]:rule('character',selector,label,description,'skill-spells')
+for key,label,description in [
+ ('enabled','Has a memosprite?','Enable the saved companion HUD on any Path. A live spell or ability summon can also temporarily display its own health and portrait; update both Ultimates and Memosprites for that integration.'),
+ ('hp','Current HP','Before summoning, linked source Actor HP is a configuration preview. During a live summon, the exact placed token Actor supplies HP and disables this input. At zero HP or removal its HP arc hides and saved defaults return.'),
+ ('maxHp','Maximum HP','Live HP arc capacity comes from the active summoned token Actor’s maximum HP. Before summoning, a valid linked Actor supplies a preview; otherwise the configured default is used. Editing this field does not edit a live token.'),
+ ('portrait','Circular companion portrait','Saved default HUD portrait and crop. An external spell or ability summon temporarily supplies its own colored artwork without overwriting this setting. At zero HP or removal this default returns.')]:
+ for entry in fields.values():
+  if entry.get('scope')=='memosprite' and entry.get('key')==key:entry.update(label=label,description=description,topic='memosprite-summoning')
+
 current=dict(schema=1,scopes=scopes,fields=list(fields.values()),rules=list(rules.values()))
 for kind in ['scopes','fields','rules']:
  fresh={entry['id']:entry for entry in current[kind]};rows=[]

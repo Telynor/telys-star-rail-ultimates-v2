@@ -4,6 +4,7 @@ import * as npcRules from "./npc-rules.mjs";
 import * as npcInitiative from "./npc-initiative.mjs";
 import {openDocumentation,installDocumentationHelp} from './help-manual.mjs';
 import * as summoning from './ability-summons.mjs';
+import * as skillSpells from './ability-spells.mjs';
 import {bindAbilitySummonSettings} from './ability-summon-settings.mjs';
 import {organizeCharacterSettings} from './character-settings.mjs';
 import {installLightCones,lightConeSkillCapacity,handle as handleLightConeEvent} from './light-cones.mjs';
@@ -84,6 +85,7 @@ const DEFAULT_CONFIG = Object.freeze({
   skillHpCostFlat: 0,
   skillHpCostRoll: "1d6",
   skillSummons: {enabled:false,radius:30,choices:[]},
+  skillSpell: {enabled:false,mode:'known',itemId:'',uuid:'',name:'',img:''},
   ultimateSummons: {enabled:false,radius:30,choices:[]},
   skillButtonImage: "",
   techniqueEnabled: false,
@@ -4505,6 +4507,40 @@ async function removeAbilitySummons(receipt) {
   if (ids.length) await scene.deleteEmbeddedDocuments("Token", ids);
 }
 
+async function refundSkillResources(actor, receipt) {
+  const errors=[];
+  for(const restore of [()=>removeAbilitySummons(receipt.spawned),()=>receipt.paidSp&&setSkillPoints(currentSkillPoints()+receipt.paidSp,{emitEvents:false}),()=>receipt.paidHp&&actor.update({"system.attributes.hp.value":Math.min(Number(actor.system.attributes.hp.max)||Infinity,Number(actor.system.attributes.hp.value)+receipt.paidHp)})])try{await restore();}catch(error){errors.push(error);}
+  if(errors.length)throw new AggregateError(errors,errors.map(error=>error.message).join('; '));
+}
+
+async function runSkillSpell(actor, itemId, castId) {
+  const used=await skillSpells.castSkillSpell(actor,{itemId,castId});
+  if(used)try{await runSkillScript(actor);}catch(error){console.error(`${MODULE_ID} | Spell cast succeeded but Skill chat failed`,error);}
+  return used;
+}
+
+async function finishSpellSkill(actorId, castId, success, message="") {
+  if(!isAuthority())return false;
+  const receipt=state.pendingSkills.get(actorId),actor=game.actors.get(actorId);
+  if(!actor||!receipt?.spellItemId||receipt.castId!==castId||receipt.settled)return false;
+  receipt.settled=true;
+  try{
+    if(success){
+      if(receipt.paidSp){void handleLightConeEvent("skillPointsChanged",{before:receipt.beforeSp,after:receipt.beforeSp-receipt.paidSp},`sp:${castId}`);Hooks.callAll("tsruSkillPointsChanged",currentSkillPoints());}
+      await dispatchTalentEvent("skillUsed",{sourceActor:actor,requestingUserId:receipt.requestingUserId,hpCost:receipt.paidHp},castId);
+    }else{
+      skillSpells.cancelSkillSpell(actor,castId);
+      if(receipt.requestingUserId!==game.user.id)game.socket.emit(SOCKET,{type:"cancelSkillSpell",sourceUserId:game.user.id,targetUserId:receipt.requestingUserId,actorId,castId});
+      await refundSkillResources(actor,receipt);
+      reportAbilityFailure("Skill",actorId,receipt.requestingUserId,message||"Spell cancelled or Cannot Fit. The Skill's SP and HP costs were refunded; you can continue.",true);
+    }
+  }catch(error){
+    console.error(`${MODULE_ID} | Skill settlement failed`,error);
+    reportAbilityFailure("Skill",actorId,receipt.requestingUserId,`Could not finish the Skill's resource settlement: ${error.message}`,true);
+  }finally{await completeSkill(actorId);}
+  return success;
+}
+
 async function executeSkill(actorId, requestingUserId, expectedEnhanced=undefined, summonPlan=null) {
   state.actionErrors.delete(`Skill:${actorId}`);
   if (!isAuthority() || state.skillLocks.has(actorId) || state.skillSpendLock) return false;
@@ -4516,11 +4552,12 @@ async function executeSkill(actorId, requestingUserId, expectedEnhanced=undefine
   if (!config.skillEnabled) { ui.notifications.warn(`${actor.name}'s Skill button is disabled.`); return false; }
   const cost = Math.max(0, Math.floor(Number(config.skillPointCost) || 0));
   if (currentSkillPoints() < cost) { ui.notifications.warn(`This Skill requires ${cost} Skill Points.`); return false; }
-  state.skillSpendLock = true;
+  const spendLock=Symbol(actorId);state.skillSpendLock=spendLock;
   state.skillLocks.add(actorId);
   game.socket.emit(SOCKET, {type: "skillState", actorId, locked: true});
-  let paidSp=0,paidHp=0,spawned=null,committed=false;
+  let paidSp=0,paidHp=0,spawned=null,committed=false,spellItem=null,castId=null;
   try {
+    spellItem=await skillSpells.resolveSkillSpell(actor);
     if (config.skillSummons?.enabled) await summoning.validateSummonPlan(actor,"skill",summonPlan,requester);
     const hp = config.skillHpCostEnabled ? await summoning.evaluateSkillHpCost(actor,config) : {cost:0};
     if (config.skillSummons?.enabled) spawned = await summoning.createAbilitySummons(actor,"skill",summonPlan,requester);
@@ -4534,6 +4571,19 @@ async function executeSkill(actorId, requestingUserId, expectedEnhanced=undefine
       if(Number(actor.system.attributes.hp.value)!==before-hp.cost)throw new Error("The HP payment was blocked. Nothing was spent.");
       paidHp=hp.cost;
     }
+    if(spellItem){
+      castId=foundry.utils.randomID();
+      const receipt={actorId,requestingUserId,castId,spellItemId:spellItem.id,paidSp,paidHp,spawned,beforeSp,settled:false,
+        timer:window.setTimeout(()=>void finishSpellSkill(actorId,castId,false,"The spell cast timed out. The Skill costs were refunded; close the old dialog and try again."),600000)};
+      state.pendingSkills.set(actorId,receipt);
+      if(state.skillSpendLock===spendLock)state.skillSpendLock=false;
+      if(requestingUserId===game.user.id){
+        const success=await runSkillSpell(actor,spellItem.id,castId);
+        return await finishSpellSkill(actorId,castId,success);
+      }
+      game.socket.emit(SOCKET,{type:"useSkill",sourceUserId:game.user.id,actorId,targetUserId:requestingUserId,spellItemId:spellItem.id,castId});
+      return true;
+    }
     committed=true;
     if(cost){void handleLightConeEvent("skillPointsChanged",{before:beforeSp,after:beforeSp-cost},`sp:${Date.now()}`);Hooks.callAll("tsruSkillPointsChanged",currentSkillPoints());}
     await dispatchTalentEvent("skillUsed", {sourceActor: actor, requestingUserId, hpCost:paidHp}, `${actor.id}:${Date.now()}`);
@@ -4542,18 +4592,16 @@ async function executeSkill(actorId, requestingUserId, expectedEnhanced=undefine
     if (requestingUserId === game.user.id) {
       await runSkillScript(actor);
       await completeSkill(actorId);
-    } else game.socket.emit(SOCKET, {type: "useSkill", actorId, targetUserId: requestingUserId});
+    } else game.socket.emit(SOCKET, {type: "useSkill",sourceUserId:game.user.id,actorId,targetUserId:requestingUserId});
     return true;
   } catch (error) {
     console.error(`${MODULE_ID} | Skill failed`, error);
-    if(!committed){
-      const restores=[()=>removeAbilitySummons(spawned),()=>paidSp&&setSkillPoints(currentSkillPoints()+paidSp,{emitEvents:false}),()=>paidHp&&actor.update({"system.attributes.hp.value":Math.min(Number(actor.system.attributes.hp.max)||Infinity,Number(actor.system.attributes.hp.value)+paidHp)})];
-      for(const restore of restores)try{await restore();}catch(refundError){console.error(`${MODULE_ID} | Skill refund failed`,refundError);reportAbilityFailure("Skill",actorId,requestingUserId,`Could not restore the Skill's resources: ${refundError.message}`);}
-    }
+    if(castId&&state.pendingSkills.get(actorId)?.castId===castId)return finishSpellSkill(actorId,castId,false,`Spell failed: ${error.message}. The Skill costs were refunded; you can continue.`);
+    if(!committed)try{await refundSkillResources(actor,{spawned,paidSp,paidHp});}catch(refundError){console.error(`${MODULE_ID} | Skill refund failed`,refundError);reportAbilityFailure("Skill",actorId,requestingUserId,`Could not restore the Skill's resources: ${refundError.message}`);}
     reportAbilityFailure("Skill",actorId,requestingUserId,`Skill failed: ${error.message}${!committed?" The Skill was cancelled; you can continue.":""}`);
     await completeSkill(actorId);
     return false;
-  } finally { state.skillSpendLock = false; }
+  } finally { if(state.skillSpendLock===spendLock)state.skillSpendLock=false; }
 }
 
 function ultimateSummonReceipt(actor, config, requestingUserId) {
@@ -4939,25 +4987,33 @@ async function onSocket(payload) {
   if (payload.type === "skillPointsChanged") { refreshSkillUI(); return; }
   if (payload.type === "activateSkill" && isAuthority()) {
     const accepted = await executeSkill(payload.actorId, payload.requestingUserId,payload.enhanced,payload.summonPlan) === true;
-    game.socket.emit(SOCKET, {type: "playerActionResult", targetUserId: payload.requestingUserId, requestId: payload.requestId, accepted, action: "Skill", message: accepted ? "Skill activated successfully." : state.actionErrors.get(`Skill:${payload.actorId}`) || "The GM could not activate that Skill. Check ownership, stance, the Skill toggle, and available SP and HP."});
+    game.socket.emit(SOCKET, {type: "playerActionResult", targetUserId: payload.requestingUserId, requestId: payload.requestId, accepted, action: "Skill", message: accepted ? (state.pendingSkills.get(payload.actorId)?.spellItemId ? "Skill costs paid. Complete or cancel the spell casting dialog." : "Skill activated successfully.") : state.actionErrors.get(`Skill:${payload.actorId}`) || "The GM could not activate that Skill. Check ownership, stance, the Skill toggle, and available SP and HP."});
+    return;
+  }
+  if(payload.type==="cancelSkillSpell"&&payload.targetUserId===game.user.id&&game.users.get(payload.sourceUserId)?.isGM){
+    const actor=game.actors.get(payload.actorId);
+    if(actor?.isOwner)skillSpells.cancelSkillSpell(actor,payload.castId);
     return;
   }
   if (payload.type === "useSkill" && payload.targetUserId === game.user.id) {
     const actor = game.actors.get(payload.actorId);
+    if(!game.users.get(payload.sourceUserId)?.isGM)return;
     try {
       if (!actor?.isOwner) throw new Error("You no longer own this character.");
-      await runSkillScript(actor);
-      game.socket.emit(SOCKET, {type: "skillComplete", actorId: payload.actorId, userId: game.user.id});
+      const success=payload.spellItemId?await runSkillSpell(actor,payload.spellItemId,payload.castId):(await runSkillScript(actor),true);
+      game.socket.emit(SOCKET, {type: "skillComplete", actorId: payload.actorId, userId: game.user.id,castId:payload.castId,failed:!success});
     } catch (error) {
       console.error(`${MODULE_ID} | Player Skill failed`, error);
       ui.notifications.error(`Skill failed: ${error.message}`);
-      game.socket.emit(SOCKET, {type: "skillComplete", actorId: payload.actorId, userId: game.user.id, failed: true});
+      game.socket.emit(SOCKET, {type: "skillComplete", actorId: payload.actorId, userId: game.user.id,castId:payload.castId, failed: true});
     }
     return;
   }
   if (payload.type === "skillComplete" && isAuthority()) {
     const pending = state.pendingSkills.get(payload.actorId);
-    if (pending?.requestingUserId === payload.userId) await completeSkill(payload.actorId);
+    if(pending?.requestingUserId!==payload.userId)return;
+    if(pending.spellItemId){if(pending.castId===payload.castId)await finishSpellSkill(payload.actorId,payload.castId,!payload.failed);}
+    else await completeSkill(payload.actorId);
     return;
   }
   if (payload.type === "skillState") {
@@ -7216,6 +7272,7 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
   delete configUpdate.alternateUltimateEnabled;
   delete configUpdate.enhancedAlternateUltimateEnabled;
   delete configUpdate.skillSummons;
+  delete configUpdate.skillSpell;
   delete configUpdate.ultimateSummons;
   // Element controls save independent dotted flags; pending drafts must not restore an old mode or live Element.
   delete configUpdate.multitypeEnabled;
@@ -7245,6 +7302,7 @@ function activateConfigListeners(actor, tab, app) {
   });
   arrangeUltimateSettings(tab);
   bindAbilitySummonSettings(actor, tab[0]);
+  skillSpells.bindSkillSpellSettings(actor, tab[0]);
   initializeCollapsibleUltimateSections(actor, tab);
   const updateEnhancedFields=()=>{const enabled=tab.find('[name="enhancedUltimateEnabled"]').prop("checked");tab.find(".tsru-enhanced-ultimate-fields").prop("hidden",!enabled).find("input,textarea,button").prop("disabled",!enabled);};
   tab.find('[name="enhancedUltimateEnabled"]').on("change",updateEnhancedFields);updateEnhancedFields();
@@ -8152,8 +8210,10 @@ function registerApi() {
   multitype.installMultitype({getConfig,getElements});
   actorControls.installActorControls();
   summoning.installSummoningHooks();
+  skillSpells.installSkillSpellHooks();
   configureAlternateUltimates({isResolving: actor => state.ultimateLocks.has(actor.id)});
   game.modules.get(MODULE_ID).api = {
+    summoning: {placementContext:summoning.placementContext,canPlaceSummon:summoning.canPlaceSummon,legalSummonPositions:summoning.legalSummonPositions,playSummonAnimation:summoning.playSummonAnimation},
     openDocumentation,
     openAlternateOrbDesigner,
     getAlternateOrb,

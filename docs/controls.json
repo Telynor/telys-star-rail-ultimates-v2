@@ -3632,8 +3632,8 @@
       "scope": "memosprite",
       "key": "enabled",
       "label": "Has a memosprite?",
-      "description": "Enable this character’s companion configuration and HUD integration under the installed addon’s normal eligibility rules.",
-      "topic": "memosprites"
+      "description": "Enable the saved companion HUD on any Path. A live spell or ability summon can also temporarily display its own health and portrait; update both Ultimates and Memosprites for that integration.",
+      "topic": "memosprite-summoning"
     },
     {
       "id": "memosprite--tmsMemospriteName",
@@ -3668,8 +3668,8 @@
       "scope": "memosprite",
       "key": "portrait",
       "label": "Circular companion portrait",
-      "description": "Foundry-accessible image for the circular companion HUD. Open portrait editor for its crop and zoom.",
-      "topic": "memosprites"
+      "description": "Saved default HUD portrait and crop. An external spell or ability summon temporarily supplies its own colored artwork without overwriting this setting. At zero HP or removal this default returns.",
+      "topic": "memosprite-summoning"
     },
     {
       "id": "memosprite--hp",
@@ -3677,8 +3677,8 @@
       "scope": "memosprite",
       "key": "hp",
       "label": "Current HP",
-      "description": "Current companion HP. A valid linked Actor supplies it live and disables manual editing; edit that Actor’s HP on its sheet.",
-      "topic": "memosprites"
+      "description": "Before summoning, linked source Actor HP is a configuration preview. During a live summon, the exact placed token Actor supplies HP and disables this input. At zero HP or removal its HP arc hides and saved defaults return.",
+      "topic": "memosprite-summoning"
     },
     {
       "id": "memosprite--maxHp",
@@ -3686,8 +3686,8 @@
       "scope": "memosprite",
       "key": "maxHp",
       "label": "Maximum HP",
-      "description": "Companion HP capacity used by its bar. A linked Actor supplies this value; without linked Actor HP the addon uses manual configuration.",
-      "topic": "memosprites"
+      "description": "Live HP arc capacity comes from the active summoned token Actor’s maximum HP. Before summoning, a valid linked Actor supplies a preview; otherwise the configured default is used. Editing this field does not edit a live token.",
+      "topic": "memosprite-summoning"
     },
     {
       "id": "memosprite--resourceType",
@@ -8496,6 +8496,60 @@
       "label": "Portrait save status",
       "description": "Unsaved changes waits briefly before saving; Saving means a write is in progress. Saved confirms the artwork was stored. Save failed means the previous stored framing is still active; check permissions or retry an edit. Closing flushes pending changes.",
       "topic": "initiative"
+    },
+    {
+      "id": "character--data-spell-open",
+      "kind": "control",
+      "scope": "character",
+      "selector": "[data-spell-open]",
+      "label": "Open spell",
+      "description": "Inspect the selected compendium spell without casting it or spending resources. Disabled until a source spell has been dropped.",
+      "topic": "skill-spells"
+    },
+    {
+      "id": "character--data-spell-clear",
+      "kind": "control",
+      "scope": "character",
+      "selector": "[data-spell-clear]",
+      "label": "Clear spell",
+      "description": "Clear the Other source reference. This does not delete the compendium spell or an already imported character-owned copy. Disabled without a source selection.",
+      "topic": "skill-spells"
+    },
+    {
+      "id": "character--data-spell-enabled",
+      "kind": "control",
+      "scope": "character",
+      "selector": "[data-spell-enabled]",
+      "label": "Casts spell?",
+      "description": "After the Skill pays its configured SP/actual HP costs, cast a real owned spell as this character. Cancelled or blocked casting refunds those costs. OFF keeps the normal descriptive Skill.",
+      "topic": "skill-spells"
+    },
+    {
+      "id": "character--data-spell-mode-data-spell-mode-label",
+      "kind": "control",
+      "scope": "character",
+      "selector": "[data-spell-mode],[data-spell-mode-label]",
+      "label": "Spell source: Spell known / Other",
+      "description": "Flip OFF for Spell known, which selects an existing character spell. Flip ON for Other, which accepts a compendium spell by drag and drop. Both saved choices are retained when switching; this switch saves immediately.",
+      "topic": "skill-spells"
+    },
+    {
+      "id": "character--data-spell-known",
+      "kind": "control",
+      "scope": "character",
+      "selector": "[data-spell-known]",
+      "label": "Spell known",
+      "description": "Choose a spell Item already owned by this character. The Skill uses its native spell activity with the character as caster. Removing that spell requires selecting another one.",
+      "topic": "skill-spells"
+    },
+    {
+      "id": "character--data-spell-drop",
+      "kind": "control",
+      "scope": "character",
+      "selector": "[data-spell-drop]",
+      "label": "Other: compendium spell",
+      "description": "Drop a spell Item from a compendium. The first cast imports an owned copy onto this character; subsequent casts reuse it. Actors, features and world Items are rejected. The source compendium is unchanged.",
+      "topic": "skill-spells"
     }
   ]
 }

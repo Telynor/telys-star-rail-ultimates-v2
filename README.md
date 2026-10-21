@@ -221,3 +221,9 @@ The editable Item sources live in `packs/_source/star-rail-materials`; the norma
 - Title-card squares and underline automatically inherit the assigned Element's charging color
 - Editable Energy Regen ability card beside the six standard character abilities; all automatic Energy gains use its D&amp;D-style modifier
 - GM-only Aha Instant floating button with configurable artwork, color, and synchronized WebM playback beneath the Foundry interface
+
+## Skill spell casting and live summon HUD (preview.19)
+
+In HSR Settings → Abilities → Skill, enable **Casts spell?**, then flip **Spell source** between **Spell known** (an existing owned spell) and **Other** (drop a spell from a compendium). Other imports/reuses an owned copy for correct caster and effect attribution. The Skill pays its SP/HP price before normal spell use; cancellation, failed summoning or Cannot Fit refunds those payments. Native slot and Item resource consumption are replaced by the configured Skill price for this cast.
+
+Update Memosprites to **1.3.2** as well. Full token footprints must clear lighting barriers at selection and creation. Character, ability and native spell summons temporarily use their exact token HP and colored artwork on the summoner’s companion HUD. At zero HP or token/scene removal, the HP arc hides and saved portrait/default settings return. Companion summoning supports all Paths. Search the illustrated field manual for **Spell known**, **Other**, **compendium**, **Cannot Fit** or **live summon HP** for detailed setup and tooltips.

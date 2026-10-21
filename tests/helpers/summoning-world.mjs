@@ -1,3 +1,4 @@
+import * as skillSpells from '../../scripts/ability-spells.mjs';
 import * as npcInitiative from "../../scripts/npc-initiative.mjs";
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
@@ -13,7 +14,7 @@ export function collection(items=[]){items.get=id=>items.find(x=>x.id===id);retu
 export function world({mode='energy',quantity=1,config={},size=1}={}){
   const hooks=new Map(),timers=new Map(),events={messages:[],socket:[],errors:[],warnings:[],talent:[],lightCone:[],splashes:[],rolls:0,creates:0};let seq=0;
   const gm={id:'gm',isGM:true,active:true,viewedScene:'map'},player={id:'player',isGM:false,active:true,viewedScene:'map'},stranger={id:'stranger',isGM:false,active:true,viewedScene:'map'};
-  const a={id:'hero',uuid:'Actor.hero',name:'Hero',type:'character',isOwner:true,executions:[],system:{attributes:{hp:{value:39,max:50,temp:12}}},
+  const a={id:'hero',uuid:'Actor.hero',name:'Hero',documentName:'Actor',items:collection(),type:'character',isOwner:true,executions:[],system:{attributes:{hp:{value:39,max:50,temp:12}}},
     flags:{ultimate:{enabled:true,skillEnabled:true,current:100,max:100,skillText:'Skill description',ultimateText:'Ultimate description',ultimateScript:'actor.executions.push(combatantId);',skillPointCost:2,energyLockCombatId:"",energyLockRound:null,alternateUltimateEnabled:mode!=='energy',skillSummons:{enabled:true,radius:15,choices:[{id:'wolf',actorUuid:'Actor.wolf',quantity}]},ultimateSummons:{enabled:true,radius:15,choices:[{id:'wolf',actorUuid:'Actor.wolf',quantity}]},...config},
       alternateOrb:{mode:mode==='circular'?'circular':'free',components:['a','b','c','d'].map(id=>({id,image:id+'.png'}))},alternateOrbStates:{a:true,b:true,c:true,d:true},alternateOrbCounter:4},
     getFlag(_,key){return this.flags[key]},async setFlag(_,key,value){this.flags[key]=structuredClone(value)},
@@ -29,16 +30,16 @@ export function world({mode='energy',quantity=1,config={},size=1}={}){
   const ui={notifications:{warn:message=>events.warnings.push(message),error:message=>events.errors.push(message),info:message=>events.warnings.push(message)}};
   const foundry={utils:{deepClone:structuredClone,randomID:()=>`request-${++seq}`,mergeObject:(a,b)=>({...a,...b}),getProperty:get,setProperty:set,expandObject:patch=>{const result={};for(const [p,v]of Object.entries(patch))set(result,p,v);return result;}},applications:{api:{ApplicationV2:class{},HandlebarsApplicationMixin:C=>C},ux:{TextEditor:{implementation:{enrichHTML:async text=>text}}}}};
   const canvas={scene,tokens:{controlled:[{id:caster.id,actor:a,document:caster}]}};
-  const hookApi={on(name,fn){const list=hooks.get(name)??[];list.push(fn);hooks.set(name,list)},once(){},callAll(){}};
+  const hookApi={on(name,fn){const list=hooks.get(name)??[];list.push(fn);hooks.set(name,list)},once(){},callAll(name,...args){for(const fn of hooks.get(name)??[])fn(...args)},call(name,...args){let ok=true;for(const fn of hooks.get(name)??[])if(fn(...args)===false)ok=false;return ok;}};
   const dice={total:7};class Roll{constructor(formula){this.formula=formula}async evaluate(){events.rolls++;this.total=dice.total;return this;}}
-  Object.assign(globalThis,{game,ui,foundry,canvas,fromUuid:async uuid=>actors.find(actor=>actor.uuid===uuid),Roll});
-  const context=vm.createContext({game,ui,foundry,canvas,Roll,summoning,npcInitiative,structuredClone,energyAfterUpdate,...alternate,Hooks:hookApi,FormApplication:class{},
+  Object.assign(globalThis,{game,ui,foundry,canvas,Hooks:hookApi,fromUuid:async uuid=>actors.find(actor=>actor.uuid===uuid),Roll});
+  const context=vm.createContext({skillSpells,game,ui,foundry,canvas,Roll,summoning,npcInitiative,structuredClone,energyAfterUpdate,...alternate,Hooks:hookApi,FormApplication:class{},
     lightConeSkillCapacity:()=>0,handleLightConeEvent:async(type,detail)=>events.lightCone.push({type,detail}),
     console:{...console,error:(...args)=>events.errors.push(args.map(String).join(' '))},TextEditor:{enrichHTML:async text=>text},
     ChatMessage:{getSpeaker:({actor})=>({actor:actor.id}),create:async data=>{events.messages.push(data);return data}},
     document:{createElement:()=>({textContent:'',get innerHTML(){return html(this.textContent)}}),querySelectorAll:()=>[]},
     window:{setTimeout:(fn,delay)=>{const id=++seq;timers.set(id,{fn,delay});return id},clearTimeout:id=>timers.delete(id)},setTimeout,clearTimeout});
-  vm.runInContext(source.replace(/^import .*;\n/gm,'')+'\nglobalThis.api={requestUltimate,executeUltimate,requestSkill,executeSkill,onSocket,processUltimateQueue,completeUltimate,refundSummoningUltimate,reconcileUltimateLock,state,getConfig};',context);
+  vm.runInContext(source.replace(/^import .*;\n/gm,'')+'\nglobalThis.api={requestUltimate,executeUltimate,requestSkill,executeSkill,onSocket,processUltimateQueue,completeUltimate,refundSummoningUltimate,reconcileUltimateLock,finishSpellSkill,runSkillSpell,state,getConfig};',context);
   context.events=events;
   vm.runInContext('refreshOrb=()=>{};broadcastUltimateSplash=actor=>events.splashes.push(actor.id);dispatchTalentEvent=async(type)=>events.talent.push(type);refreshToughnessBars=()=>{};refreshResourceHuds=()=>{};refreshCombatPartyHud=()=>{};refreshPunchlineHUD=()=>{};refreshSkillUI=()=>{};refreshBossHud=()=>{};refreshInitiativeCarousel=()=>{};refreshTalentCounter=()=>{};',context);
   alternate.configureAlternateUltimates({isResolving:actor=>context.api.state.ultimateLocks.has(actor.id)});

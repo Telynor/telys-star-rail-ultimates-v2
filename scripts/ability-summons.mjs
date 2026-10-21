@@ -1,4 +1,5 @@
 import {normalizeSummons, parseHpDice, fixedHpCost, rectangle, overlaps, rectCorners, insideRadius, wallOccludesFootprint, segmentsCross} from './summoning-rules.mjs';
+import {isSkillSpellCancelled} from './ability-spells.mjs';
 const ID = 'telys-star-rail-ultimates', SOCKET = `module.${ID}`;
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pending = new Map(), planning = new Set(), sceneQueues = new Map();
@@ -135,8 +136,8 @@ async function createSummons(actor, action, plan, user) {
   for (const position of plan.positions) {
     const token = await source.getTokenDocument({...position,elevation:Number(caster.elevation)||0,...(caster.level?{level:caster.level.id??caster.level}:{})});
     const entry = token.toObject(); delete entry._id;
-    entry.x=position.x;entry.y=position.y;entry.actorId=source.id;
-    entry.flags={...entry.flags,[ID]:{...entry.flags?.[ID],abilitySummon:{operationId,casterId:actor.id,action,createdAt:Date.now()}}};
+    entry.x=position.x;entry.y=position.y;entry.actorId=source.id;entry.actorLink=false;
+    entry.flags={...entry.flags,[ID]:{...entry.flags?.[ID],abilitySummon:{operationId,casterId:actor.id,casterUuid:actor.uuid,casterTokenId:caster.id,action,createdAt:Date.now()}}};
     data.push(entry);
   }
   try {
@@ -272,7 +273,39 @@ export async function handleSummoningSocket(payload) {
 export function installSummoningHooks() {
   if(installed)return;installed=true;
   Hooks.on('canvasTearDown',()=>picker?.cancel());
+  Hooks.on('dnd5e.summonToken',stampSpellSummon);
+  Hooks.on('preCreateToken',validateSummonCreation);
   Hooks.on('createToken',token=>{if(token.getFlag(ID,'abilitySummon')&&token.parent?.id===canvas.scene?.id)void playSummonAnimation(token);});
+}
+
+// Stamp the exact caster before native D&D5e creates the token. This also covers
+// ordinary spell casts made outside an HSR Skill.
+export function stampSpellSummon(activity, _profile, data, options = {}) {
+  const actor=activity.actor??activity.item?.actor;
+  if(!actor)return;
+  const usage=activity.getUsageToken?.(),candidate=usage?.document??usage;
+  const caster=candidate??globalThis.canvas?.tokens?.controlled?.find(token=>token.actor?.uuid===actor.uuid)?.document??actor.getActiveTokens?.(true,true)?.[0];
+  const token=caster?.document??caster;
+  data.actorLink=false;
+  data.flags={...data.flags,[ID]:{...data.flags?.[ID],summonOwner:{casterId:actor.id,casterUuid:actor.uuid,casterTokenId:token?.id,itemUuid:activity.item?.uuid,castId:options.tsruSkillCastId??'',createdAt:Date.now()}}};
+}
+
+export function validateSummonCreation(token, data = {}) {
+  const meta=data.flags?.[ID]?.summonOwner??token.getFlag?.(ID,'summonOwner');
+  if(!meta)return;
+  const scene=token.parent,actor=game.actors.get(meta.casterId);
+  const caster=scene?.tokens.get(meta.casterTokenId)??scene?.tokens.find(entry=>entry.actor?.uuid===meta.casterUuid||entry.actorId===meta.casterId);
+  let valid=false;
+  try{
+    if(scene&&caster&&!isSkillSpellCancelled(actor,meta.castId)){
+      const context=placementContext(scene,caster),radius=Math.hypot(context.bounds.width,context.bounds.height)/context.gx*context.distance+context.distance;
+      valid=canPlaceSummon(context,{width:Math.max(.1,Number(data.width??token.width)||1),height:Math.max(.1,Number(data.height??token.height)||1)},{x:Number(data.x??token.x),y:Number(data.y??token.y)},radius);
+    }
+  }catch(error){console.warn(`${ID} | Summon validation`,error);}
+  if(valid)return;
+  ui.notifications.warn('Cannot Fit: the entire summoned token must clear lighting barriers, other tokens and scene boundaries.');
+  Hooks.callAll('tsruSummonPlacementBlocked',token,meta);
+  return false;
 }
 export async function playSummonAnimation(token) {
   let mesh,graphics,alpha;

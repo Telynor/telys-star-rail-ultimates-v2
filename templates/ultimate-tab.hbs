@@ -83,6 +83,18 @@
           <p class="tsru-ability-cost-help">You must have enough HP to pay the cost. Temporary HP is not spent. A cancelled or blocked summon spends neither HP nor SP.</p>
         </div>
       </div>
+      <div data-skill-spell data-settings-group data-setting-keywords="casts spell known other compendium magic item spellbook cast invoke summon">
+        <div class="tsru-field tsru-field-toggle"><span class="tsru-field-label"><strong>Casts spell?</strong><small>After paying the Skill’s SP and HP costs, cast a spell as this character. Cancelling or blocked summoning refunds the costs.</small></span><input type="checkbox" data-spell-enabled aria-label="Casts spell?"></div>
+        <div data-spell-fields data-settings-group hidden>
+          <div class="tsru-field"><span class="tsru-field-label"><strong>Spell source</strong><small>Spell known uses this character’s spell list. Other accepts a spell from a compendium.</small></span><label class="tsru-spell-source"><span data-spell-mode-label="known">Spell known</span><input type="checkbox" role="switch" data-spell-mode aria-label="Spell source: off is Spell known, on is Other"><span data-spell-mode-label="other">Other</span></label></div>
+          <div class="tsru-field" data-spell-known-field><label><strong>Spell known</strong><small>Select an existing spell on this character’s sheet.</small></label><select data-spell-known aria-label="Known Skill spell"></select></div>
+          <div data-spell-other-field data-settings-group hidden>
+            <div class="tsru-field tsru-field-wide"><label><strong>Other spell</strong><small>Drag a spell Item from a compendium. A reusable owned copy is added to this character on its first cast.</small></label><div class="tsru-spell-drop" data-spell-drop tabindex="0" aria-label="Compendium spell drop area"></div></div>
+            <div class="tsru-spell-actions"><button type="button" data-spell-open>Open spell</button><button type="button" data-spell-clear>Clear spell</button></div>
+          </div>
+          <p class="tsru-ability-cost-help">This spell uses the Skill’s configured SP/HP costs instead of spell slots or Item resource consumption. Native spell activities and supported automation still run. A summoned creature supplies its live HP and portrait to the Memosprites addon until it reaches 0 HP or leaves the scene.</p>
+        </div>
+      </div>
       <div data-ability-summons="skill" data-settings-group data-setting-keywords="summon summons summoning creature actor pet minion familiar spawn radius range zone size placement">
         <div class="tsru-field tsru-field-toggle"><span class="tsru-field-label"><strong>Summons creature?</strong><small>Choose a linked Actor and its placement when this Skill is used. Also applies in Enhanced Form.</small></span><input type="checkbox" data-summons-enabled aria-label="Skill summons creature"></div>
         <div data-summons-fields data-settings-group hidden>

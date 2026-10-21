@@ -112,7 +112,7 @@ for(const [type,cost]of [['half',19],['ten',3],['flat',8],['roll',7]])test(`actu
  const w=world({config:{skillHpCostEnabled:true,skillHpCostType:type,skillHpCostFlat:8,skillHpCostRoll:'2d6'}});
  assert.equal(await w.api.executeSkill(w.a.id,w.gm.id,false,w.plan),true);
  assert.equal(w.settings.get('skillPoints'),3);assert.equal(w.a.system.attributes.hp.value,39-cost);assert.equal(w.a.system.attributes.hp.temp,12);
- assert.equal(w.events.messages.length,1);assert.equal(w.scene.tokens.length,2);assert.deepEqual(w.events.talent,['skillUsed']);assert.equal(w.api.state.skillLocks.size,0);
+ assert.equal(w.events.messages.length,1);assert.equal(w.scene.tokens.length,2);assert.deepEqual(w.events.talent.filter(type=>type==='skillUsed'),['skillUsed']);assert.equal(w.api.state.skillLocks.size,0);
  assert.equal(w.events.rolls,type==='roll'?1:0);
 });
 
