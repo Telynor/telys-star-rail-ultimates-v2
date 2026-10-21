@@ -82,6 +82,18 @@ test('repeat packets reuse one cast and a cancelled nonce cannot create a late s
   spells.cancelSkillSpell(w.a,'old');const data={x:500,y:400,width:1,height:1};stampSpellSummon({actor:w.a,item:w.item,getUsageToken:()=>w.caster},{},data,{tsruSkillCastId:'old'});
   assert.equal(validateSummonCreation({parent:w.scene,...data},data),false);assert.equal(await spells.castSkillSpell(w.a,{itemId:'spell',castId:'old'}),false);
 });
+test('cancelling a remote spell during another character’s pending SP write preserves both changes',async()=>{
+  const w=setup();assert.equal(await w.api.executeSkill(w.a.id,w.player.id),true);
+  const request=w.events.socket.find(entry=>entry.type==='useSkill');
+  const ally={...w.a,id:'ally',uuid:'Actor.ally',flags:{ultimate:{...w.a.flags.ultimate,skillHpCostEnabled:false,skillSpell:{enabled:false}}},items:collection()};w.game.actors.push(ally);
+  const original=w.game.settings.set;let release;
+  w.game.settings.set=async(scope,key,value)=>{if(key==='skillPoints'&&value===1)await new Promise(resolve=>release=resolve);return original(scope,key,value);};
+  const spending=w.api.executeSkill(ally.id,w.gm.id);await new Promise(setImmediate);assert.equal(typeof release,'function');
+  const refund=w.api.onSocket({type:'skillComplete',actorId:w.a.id,userId:w.player.id,castId:request.castId,failed:true});
+  await new Promise(setImmediate);assert.equal(w.settings.get('skillPoints'),3,'refund waits for the pending payment');
+  release();assert.equal(await spending,true);await refund;
+  assert.equal(w.settings.get('skillPoints'),3,'only the second Skill remains paid');assert.equal(w.a.system.attributes.hp.value,39);
+});
 test('ordinary native spell summons receive exact ownership and final lighting-wall validation',()=>{
   const w=setup(),data={x:500,y:300,width:4,height:4};
   stampSpellSummon({actor:w.a,item:w.item,getUsageToken:()=>w.caster},{},data,{});

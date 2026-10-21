@@ -13,7 +13,7 @@ const root=path.resolve(__dirname,'..'),addon=path.resolve(process.env.MEMOSPRIT
  vm.runInNewContext(source.slice(0,source.indexOf('(async()=>{'))+'\nthis.baseBootstrap=bootstrap;',box);
  let bootstrap=box.baseBootstrap.replace('once(){},callAll(){}',`once(){},callAll(name,...args){for(const fn of hooks.get(name)??[])fn(...args)},call(name,...args){let valid=true;for(const fn of hooks.get(name)??[])if(fn(...args)===false)valid=false;return valid;}`)
  .replace("this.root.append(this.shape);return this;}\n circle","this.shape.setAttribute('fill','none');this.root.append(this.shape);return this;}\n circle")
- .replace('window.game={',`window.moduleRecords=new Map([['telys-star-rail-ultimates',{active:true,version:'3.14.0-preview.19',api:{}}],['telys-memosprites',{active:true,version:'1.3.2',api:{}}]]);window.game={`)
+ .replace('window.game={',`window.moduleRecords=new Map([['telys-star-rail-ultimates',{active:true,version:'3.14.0-preview.20',api:{}}],['telys-memosprites',{active:true,version:'1.3.2',api:{}}]]);window.game={`)
  .replace('modules:{get:()=>({api:{}})}','modules:{get:id=>moduleRecords.get(id)}')
  .replace('getFlag(_,key){return this.flags[ID][key]}','getFlag(scope,key){return this.flags[scope]?.[key]}');
  bootstrap=bootstrap.replace('window.ready=true;',`

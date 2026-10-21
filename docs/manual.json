@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "title": "Tely’s Star Rail Field Manual",
-  "version": "3.14.0-preview.19",
+  "version": "3.14.0-preview.20",
   "articles": [
     {
       "id": "overview",
@@ -2936,7 +2936,7 @@
         {
           "title": "Cancellation, failure and summoning",
           "paragraphs": [
-            "Closing/cancelling the spell dialog, a blocked cast, or a Summon activity that creates no creatures refunds the Skill’s exact SP and HP payments and releases its lock. Temporary HP is never used. Partial native summons from a failed Skill are removed. A ten-minute abandoned cast times out; close its old dialog before trying again. Repeated/stale completion packets cannot settle a second cast.",
+            "Closing/cancelling the spell dialog, a blocked cast, or a Summon activity that creates no creatures refunds the Skill’s exact SP and HP payments and releases its lock. Temporary HP is never used. Partial native summons from a failed Skill are removed. Other characters can use Skills while the casting dialog is open; cancellation refunds remain correct if another character is spending SP at the same time. A ten-minute abandoned cast times out; close its old dialog before trying again. Repeated/stale completion packets cannot settle a second cast.",
             "A native Summon activity places creatures during this Skill instead of waiting for the later chat summon button. The whole final token footprint must clear lighting walls, occupied cells and scene bounds. Cannot Fit cancels and refunds the Skill. A Skill’s separate Summons creature? list can also be used; it has its own range/count picker and is separate from the spell’s native Summon configuration."
           ]
         },

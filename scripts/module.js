@@ -4507,9 +4507,23 @@ async function removeAbilitySummons(receipt) {
   if (ids.length) await scene.deleteEmbeddedDocuments("Token", ids);
 }
 
+// Serialize cast payments and refunds around the authoritative shared balance.
+// A refund may arrive while another character's settings write is in flight.
+async function changeSkillPointBalance(delta) {
+  const previous=state.skillPointTransaction??Promise.resolve();
+  const transaction=previous.catch(()=>{}).then(async()=>{
+    const before=currentSkillPoints();
+    if(delta<0&&before < -delta)throw new Error("The shared Skill Points changed before payment. Nothing was spent.");
+    await setSkillPoints(before+delta,{emitEvents:false});
+    return {before,after:currentSkillPoints()};
+  });
+  state.skillPointTransaction=transaction;
+  try{return await transaction;}finally{if(state.skillPointTransaction===transaction)state.skillPointTransaction=null;}
+}
+
 async function refundSkillResources(actor, receipt) {
   const errors=[];
-  for(const restore of [()=>removeAbilitySummons(receipt.spawned),()=>receipt.paidSp&&setSkillPoints(currentSkillPoints()+receipt.paidSp,{emitEvents:false}),()=>receipt.paidHp&&actor.update({"system.attributes.hp.value":Math.min(Number(actor.system.attributes.hp.max)||Infinity,Number(actor.system.attributes.hp.value)+receipt.paidHp)})])try{await restore();}catch(error){errors.push(error);}
+  for(const restore of [()=>removeAbilitySummons(receipt.spawned),()=>receipt.paidSp&&changeSkillPointBalance(receipt.paidSp),()=>receipt.paidHp&&actor.update({"system.attributes.hp.value":Math.min(Number(actor.system.attributes.hp.max)||Infinity,Number(actor.system.attributes.hp.value)+receipt.paidHp)})])try{await restore();}catch(error){errors.push(error);}
   if(errors.length)throw new AggregateError(errors,errors.map(error=>error.message).join('; '));
 }
 
@@ -4563,8 +4577,8 @@ async function executeSkill(actorId, requestingUserId, expectedEnhanced=undefine
     if (config.skillSummons?.enabled) spawned = await summoning.createAbilitySummons(actor,"skill",summonPlan,requester);
     if (expectedEnhanced!==undefined&&Boolean(expectedEnhanced)!==enhancedFormActive(actor)) throw new Error("The character changed stance. Use the current form instead. Nothing was spent.");
     if (currentSkillPoints()<cost || Number(actor.system?.attributes?.hp?.value??0)<hp.cost) throw new Error("The character no longer has enough SP or HP. Nothing was spent.");
-    const beforeSp=currentSkillPoints();
-    if(cost){await setSkillPoints(beforeSp-cost,{emitEvents:false});paidSp=cost;}
+    let beforeSp=currentSkillPoints();
+    if(cost){const payment=await changeSkillPointBalance(-cost);beforeSp=payment.before;paidSp=cost;}
     if(hp.cost){
       const before=Number(actor.system.attributes.hp.value);
       await actor.update({"system.attributes.hp.value":before-hp.cost});
