@@ -170,7 +170,8 @@ test("temporary initiative is removed without overwriting a subsequent GM adjust
       if (`flags.${ID}.-=lightConeInitiative` in d) f = null;
     },
   };
-  const combat = { round: 1, combatants: [c] };
+  const combat = { id:'initiative-combat', round: 1, combatants: [c] };
+  const oldCombats=game.combats;game.combats=new Map([[combat.id,combat]]);
   await initiatives(combat);
   assert.equal(c.initiative, 10);
   combat.round = 2;
@@ -185,6 +186,7 @@ test("temporary initiative is removed without overwriting a subsequent GM adjust
   await restoreInitiative(combat);
   assert.equal(c.initiative, 18);
   assert.equal(f, null);
+  game.combats=oldCombats;
 });
 
 test("Joyseeker uses distinct living Elation elements, sheet threshold and a successful GM prompt", async () => {

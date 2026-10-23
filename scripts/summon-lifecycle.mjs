@@ -11,6 +11,7 @@ export const ownsSummon=(actor,token)=>{
 export const summonReference=token=>token?{sceneId:token.parent?.id,tokenId:token.id}:null;
 const same=(a,b)=>a?.sceneId===b?.sceneId&&a?.tokenId===b?.tokenId;
 const resolve=ref=>ref&&game.scenes.get(ref.sceneId)?.tokens.get(ref.tokenId);
+const liveCombat=combat=>combat&&(game.combats?.get?game.combats.get(combat.id)===combat:game.combat===combat);
 export function activeSummon(actor) {
   const saved=flag(actor,MEMO,'activeSummon');
   const mapped=saved?.status==='active'?resolve(saved):null;
@@ -44,7 +45,9 @@ export async function removeSummonedTokens(tokens) {
   // Delete every initiative entry for these exact scene tokens, including inactive combats.
   for(const combat of game.combats??[]) {
     const ids=[...combat.combatants].filter(entry=>tokens.some(token=>entry.tokenId===token.id&&(entry.sceneId??combat.scene?.id)===token.parent?.id)).map(entry=>entry.id);
-    if(ids.length)await combat.deleteEmbeddedDocuments('Combatant',ids);
+    if(ids.length&&liveCombat(combat)){
+      try{await combat.deleteEmbeddedDocuments('Combatant',ids);}catch(error){if(liveCombat(combat))throw error;}
+    }
   }
   const scenes=new Map();for(const token of tokens){const ids=scenes.get(token.parent)??[];ids.push(token.id);scenes.set(token.parent,ids);}
   for(const [scene,ids]of scenes)await scene.deleteEmbeddedDocuments('Token',ids.filter(id=>scene.tokens.get(id)));
@@ -59,17 +62,23 @@ export async function dismissForReplacement(actor,reference,user=game.user) {
 const initiativeJobs=new WeakMap();
 export async function setupSummonInitiative(actor,token,options={}) {
   const mode=normalizeSummonOptions(options).initiativeMode,combat=game.combat,previous=initiativeJobs.get(token);
-  if(previous?.mode===mode&&previous.combat===combat)return previous.job;
+  if(previous?.mode===mode&&previous.combat===combat&&(previous.pending||mode==='owner'||previous.entry&&combat?.combatants.get(previous.entry.id)===previous.entry))return previous.job;
   const job=(previous?.job??Promise.resolve()).catch(()=>{}).then(async()=>{
-    if(!combat||!token.parent?.tokens.get(token.id)||(combat.scene?.id??combat.sceneId)!==token.parent.id)return;
+    if(!liveCombat(combat)||!token.parent?.tokens.get(token.id)||(combat.scene?.id??combat.sceneId)!==token.parent.id)return;
     const entries=[...combat.combatants].filter(entry=>entry.tokenId===token.id&&(entry.sceneId??combat.scene?.id)===token.parent.id);
     if(mode==='owner') {
       if(entries.length)await combat.deleteEmbeddedDocuments('Combatant',entries.map(entry=>entry.id));
       return;
     }
     let entry=entries[0];
-    if(!entry)[entry]=await combat.createEmbeddedDocuments('Combatant',[{tokenId:token.id,sceneId:token.parent.id,actorId:token.actorId}]);
+    if(!entry){
+      try{[entry]=await combat.createEmbeddedDocuments('Combatant',[{tokenId:token.id,sceneId:token.parent.id,actorId:token.actorId}]);}
+      catch(error){if(!liveCombat(combat))return;throw error;}
+    }
+    if(!liveCombat(combat)||!token.parent?.tokens.get(token.id))return;
+    record.entry=entry;
     if(entry&&entry.initiative==null)await combat.rollInitiative([entry.id]);
-  });const entry={mode,combat,job};initiativeJobs.set(token,entry);
-  try{return await job;}catch(error){if(initiativeJobs.get(token)===entry)initiativeJobs.delete(token);throw error;}
+  });const record={mode,combat,job,pending:true};initiativeJobs.set(token,record);
+  try{return await job;}catch(error){if(initiativeJobs.get(token)===record)initiativeJobs.delete(token);if(liveCombat(combat))throw error;}
+  finally{record.pending=false;}
 }

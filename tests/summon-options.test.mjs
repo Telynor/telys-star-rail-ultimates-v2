@@ -83,3 +83,13 @@ test('native spell placement confirms replacement and retains the old summon whe
   answer=false;placements=[{x:500,y:400}];assert.deepEqual(await native.getPlacement(),[]);assert.equal(calls,1);
   answer=true;assert.equal((await native.getPlacement()).length,1);assert.equal(w.scene.tokens.get(old.id),undefined);
 });
+test('a removed own-initiative entry can be recreated without reusing a completed setup job',async()=>{
+  const w=world(),token=oldSummon(w),{turns,rolled}=combat(w);
+  await setupSummonInitiative(w.a,token);turns.length=0;
+  await setupSummonInitiative(w.a,token);assert.equal(turns.length,1);assert.equal(rolled.length,2);
+});
+test('a queued initiative setup never creates or rolls an entry on a deleted combat',async()=>{
+  const w=world(),token=oldSummon(w),{c,turns,rolled}=combat(w);
+  const work=setupSummonInitiative(w.a,token);w.game.combats.splice(w.game.combats.indexOf(c),1);w.game.combat=null;await work;
+  assert.equal(turns.length,0);assert.equal(rolled.length,0);
+});

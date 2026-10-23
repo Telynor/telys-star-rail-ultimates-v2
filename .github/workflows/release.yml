@@ -2,7 +2,7 @@ name: Build Foundry Release
 
 on:
   push:
-    branches: [main, light-cones-preview]
+    branches: [main, light-cones-preview, 'codex/audit-*']
   workflow_dispatch:
 
 permissions:
@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Telynor/telys-memosprites
-          ref: 029823a6c9defecb89bf2860dd65639b5533c6a5
+          ref: c3c9db0442df245aecfd3b3d25dcbeb18de37bc3
           path: .test-memosprites
           persist-credentials: false
 
@@ -118,6 +118,7 @@ jobs:
             module.json README.md LICENSE assets data docs packs lang scripts styles templates
 
       - name: Create or update GitHub release
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/light-cones-preview'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
