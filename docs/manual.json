@@ -228,8 +228,8 @@
     {
       "id": "party",
       "group": "Character setup",
-      "title": "Party membership, selection and rewards",
-      "summary": "Main Party, GM overrides, trial labels and reward eligibility are separate switches.",
+      "title": "Party Setup, position artwork and required characters",
+      "summary": "Share a four-position lineup, configure each character’s four artworks, protect player selections and enforce the GM’s required characters.",
       "keywords": [
         "main party",
         "team",
@@ -237,9 +237,38 @@
         "gmpc",
         "rewards",
         "ownership",
-        "membership"
+        "membership",
+        "party setup",
+        "lineup",
+        "slots",
+        "swap slots",
+        "required characters",
+        "Party Requires",
+        "position artwork",
+        "HUD order"
       ],
       "sections": [
+        {
+          "title": "Shared four-position lineup",
+          "paragraphs": [
+            "Open Party Setup from the HSR toolbar, the phone hub, the main-character selector or the combat party HUD. Every connected player edits the same saved lineup. The four dropdowns choose positions 1–4; choosing a character already in another position swaps both positions. Empty positions are allowed when the team has fewer than four characters.",
+            "Swap slots moves your active character to the chosen position while preserving both party members. Players cannot remove active player characters or GM-locked party members. Lock in changes saves the lineup and makes the combat HUD use this exact order on every client. A changed party revision preserves your local draft and requires Reload current party before saving."
+          ]
+        },
+        {
+          "title": "Party Requires — GM only",
+          "paragraphs": [
+            "Expand Party Requires and drag up to four different world character sheets into the requirement slots. Save Party Requires applies the list and its on/off toggle without changing the current lineup. Switching requirements off retains the configured list.",
+            "When enabled, every required character must be included before any player or GM can lock in changes. Missing or deleted required Actors block the lock; remove an obsolete requirement or replace its sheet. The main-character selector follows the same rule, so it cannot remove a required party member."
+          ]
+        },
+        {
+          "title": "Four artworks per character",
+          "paragraphs": [
+            "The GM opens Configure slot artwork or the image button on a party member. Each character has four independent image paths, one for each position. Browse images, paste uploaded image paths, or drop an Actor or Item image. Configure image X/Y, scale and horizontal flip for each variant, then save the character’s artwork.",
+            "Moving a character to another position automatically selects that position’s artwork. Unconfigured positions fall back to the character portrait. Artwork choices are independent for every character and do not affect the token image or its HP."
+          ]
+        },
         {
           "title": "Main Party and selection",
           "paragraphs": [

@@ -15,7 +15,7 @@ function descriptors(actor,getConfig){
   const a=actor.system.attributes??{}, rows=[];
   const add=(id,name,value,path,formula=false)=>rows.push({id,name,value:numeric(value),path,formula,raw:value});
   add('hp','HP',a.hp?.value,null);add('maxHp','Maximum HP',a.hp?.max,'system.attributes.hp.bonuses.overall');
-  add('ac','AC',a.ac?.value,'system.attributes.ac.bonus');add('speed','Speed (ft)',a.movement?.walk,'system.attributes.movement.walk');
+  add('ac','AC',a.ac?.value,'system.attributes.ac.bonus');add('speed','Speed (ft)',(a.movement?.speeds??a.movement)?.walk,a.movement?.speeds?'system.attributes.movement.speeds.walk':'system.attributes.movement.walk');
   add('initiative','Initiative',a.init?.total??a.init?.mod??a.init?.bonus,'system.attributes.init.bonus');add('proficiency','Proficiency',a.prof,'system.attributes.prof');
   for(const [key,v] of Object.entries(actor.system.abilities??{})){add(`ability.${key}`,key.toUpperCase(),v.value,`system.abilities.${key}.value`);add(`save.${key}`,`${key.toUpperCase()} save`,v.save?.total??v.save??v.mod,`system.abilities.${key}.bonuses.save`);}
   for(const [key,v] of Object.entries(actor.system.skills??{}))add(`skill.${key}`,game.i18n.localize(CONFIG.DND5E?.skills?.[key]?.label??key),v.total??v.mod,`system.skills.${key}.bonuses.check`);

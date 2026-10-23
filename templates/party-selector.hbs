@@ -1,5 +1,6 @@
 <form class="tsru-party-selector-form">
   <header><h2><i class="fas fa-user-check"></i> Select Main Character</h2><p>Your selection becomes your active party character. Your other owned characters leave the party unless the GM has overridden their status.</p></header>
+  <button type="button" data-open-party-setup><i class="fas fa-users"></i> Party Setup — order and shared lineup</button>
   {{#if gm}}<p class="tsru-party-note">This selector is for non-GM players. Configure GM-controlled characters from the Star Rail GM Panel.</p>{{else}}
   <div class="tsru-party-character-list">
     {{#each characters}}<button type="button" data-select-party-character="{{this.id}}" class="{{#if this.selected}}selected{{/if}} {{#if this.locked}}gm-locked{{/if}}" {{#if this.locked}}disabled{{/if}}>

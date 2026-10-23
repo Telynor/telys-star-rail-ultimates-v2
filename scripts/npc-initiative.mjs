@@ -9,6 +9,8 @@ export function npcInitiativeSource(actor, actors = globalThis.game?.actors) {
   if (actor?.type !== "npc") return actor;
   const token = actor.token ?? (actor.parent?.documentName === "Token" ? actor.parent : null);
   let source = actor.isToken || token ? actors?.get?.(token?.actorId ?? actor.id) ?? actor : actor;
+  const phaseId=/^Actor\.([^.]+)$/.exec(String(actor.getFlag?.(ID,"bossPhaseSourceUuid")??""))?.[1];
+  if(phaseId)source=actors?.get?.(phaseId)?.type==="npc"?actors.get(phaseId):actor;
   const seen = new Set();
   while (source?.type === "npc" && !seen.has(source)) {
     seen.add(source);

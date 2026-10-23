@@ -18,10 +18,10 @@ const DEFAULT_RARITIES = [
 const DEFAULT_HUB_BUTTONS = [
   ["party","Main Character","fas fa-user-check",68,18],["quests","Missions","fas fa-clipboard-list",80,18],["abilities","Abilities","fas fa-circle-nodes",68,38],
   ["crafting","Synthesize","fas fa-flask",80,38],["eidolon-effects","Eidolons","fas fa-gem",68,58],["characters","Characters","fas fa-users",80,58],
-  ["gm","GM Panel","fas fa-sliders",68,78],["dm-combat","DM Combat","fas fa-crosshairs",56,78],["quest-manager","Mission Manager","fas fa-list-check",80,78],["configure-hub","Configure Phone","fas fa-mobile-screen",92,78],["contacts-config","Configure Contacts","fas fa-address-book",92,58]
+  ["gm","GM Panel","fas fa-sliders",68,78],["dm-combat","DM Combat","fas fa-crosshairs",56,78],["quest-manager","Mission Manager","fas fa-list-check",80,78],["configure-hub","Configure Phone","fas fa-mobile-screen",92,78],["contacts-config","Configure Contacts","fas fa-address-book",92,58],["party-setup","Party Setup","fas fa-people-group",92,18]
 ].map(([action,label,icon,x,y])=>({action,label,icon,x,y,width:10,height:16}));
 const HUB_BUTTON_ACTIONS = [
-  ["quests","Mission Log"],["party","Main Character Selector"],["abilities","Ability Bubbles"],["crafting","Party Crafting"],["eidolon-effects","Eidolon Effects"],
+  ["quests","Mission Log"],["party","Main Character Selector"],["party-setup","Party Setup"],["abilities","Ability Bubbles"],["crafting","Party Crafting"],["eidolon-effects","Eidolon Effects"],
   ["check-kit","Check Kit"],["inventory","Main Character Inventory"],["messenger","HSR Messenger"],["sheet","Character Sheet Tab or Element"],
   ["orbs","Combat Party HUD"],["hud-designer","Combat HUD Designer"],["aha-config","Aha Instant Configuration"],["aha-toggle","Aha Instant Orb"],["skill-config","Skill Point Configuration"],
   ["elements","Element Manager"],["paths","Path Manager"],["eidolons","Eidolon Configuration"],["light-cone-generator","Light Cone Generator"],["quest-settings","Mission Settings"],
@@ -44,6 +44,11 @@ function hubConfig(actor=null,profileKey=""){
   }
   if(profileKey==="__gm__"&&!merged.buttons.some(button=>button.action==="dm-combat"))merged.buttons.push({...DEFAULT_HUB_BUTTONS.find(button=>button.action==="dm-combat")});
   if(profileKey==="__gm__"&&!merged.buttons.some(button=>button.action==="contacts-config"))merged.buttons.push({...DEFAULT_HUB_BUTTONS.find(button=>button.action==="contacts-config")});
+  if(!merged.buttons.some(button=>button.action==="party-setup")){
+    const button={...DEFAULT_HUB_BUTTONS.find(button=>button.action==="party-setup")};
+    while(merged.buttons.some(other=>Math.abs(Number(other.x)-button.x)<Math.max(Number(other.width)||10,button.width)&&Math.abs(Number(other.y)-button.y)<Math.max(Number(other.height)||16,button.height)))button.y+=20;
+    merged.buttons.push(button);
+  }
   return merged;
 }
 
@@ -165,10 +170,14 @@ function questActors() {
 const actorUltimate = actor => actor?.getFlag(MODULE_ID, "ultimate") ?? {};
 const nonGmOwners = actor => game.users.filter(user => !user.isGM && actor?.testUserPermission(user, "OWNER"));
 const selectedPartyCharacters = () => game.settings.get(MODULE_ID, "partySelections") ?? {};
-const partyAuthority = () => game.users.activeGM ?? game.users.find(user => user.active && user.isGM);
+const partyAuthority = () => game.users.find(user => user.active && user.isGM) ?? game.users.activeGM;
 
 async function applyPartySelection(userId, actorId) {
   if (!game.user.isGM || partyAuthority()?.id !== game.user.id) return false;
+  if(api()?.partySetup?.commitMainCharacterSelection){
+    try{await api().partySetup.commitMainCharacterSelection(userId,actorId);return true;}
+    catch(error){game.socket.emit(SOCKET,{type:"partySelectionRejected",userId,sourceUserId:game.user.id,message:error.message});return false;}
+  }
   const user=game.users.get(userId), selected=game.actors.get(actorId);
   if (!user || user.isGM || !selected || selected.type !== "character" || !selected.testUserPermission(user, "OWNER")) return false;
   const selections=foundry.utils.deepClone(selectedPartyCharacters());
@@ -194,6 +203,7 @@ class PartyCharacterSelector extends FormApplication {
   activateListeners(html) {
     super.activateListeners(html);
     html.find("[data-select-party-character]").on("click",event=>this.select(event.currentTarget.dataset.selectPartyCharacter));
+    html.find("[data-open-party-setup]").on("click",()=>api()?.openPartySetup?.());
   }
   async select(actorId) {
     if (game.user.isGM) return ui.notifications.warn("This selector is for non-GM players. Use the GM Panel for GM-controlled characters.");
@@ -202,7 +212,6 @@ class PartyCharacterSelector extends FormApplication {
     if (actorUltimate(actor).partyGMOverride) return ui.notifications.warn("The GM has locked this character's party status.");
     const gm=partyAuthority();
     if (!gm) return ui.notifications.error("An active GM is required to change your main character.");
-    await api()?.setLocalMainCharacter?.(actorId);
     game.socket.emit(SOCKET,{type:"selectPartyCharacter",userId:game.user.id,actorId,sourceUserId:game.user.id});
     ui.notifications.info(`Requested ${actor.name} as your main character.`);
   }
@@ -313,6 +322,7 @@ class HSRHub extends FormApplication {
         sheet: ["Character Sheet", () => openHubActorSheet(mainActor,buttonConfig.target)],
         "eidolon-effects": ["Eidolon Effects", () => api()?.openEidolonEffectsBrowser?.()],
         characters: ["Main Character", () => new PartyCharacterSelector().render(true)],
+        "party-setup": ["Party Setup", () => api()?.openPartySetup?.()],
         gm: ["Star Rail GM Panel", () => api()?.openGMPanel?.()],
         "dm-combat": ["HSR DM Combat menu", () => api()?.openDMCombatMenu?.()],
         "aha-config": ["Aha Instant Configuration", () => api()?.openAhaConfig?.()],
@@ -729,7 +739,8 @@ function hubToolbarActions() {
     "tsru-elements": ["Element Manager", () => api()?.openElementManager?.()],
     "tsru-paths": ["Path Manager", () => api()?.openPathManager?.()],
     "tsru-eidolons": ["Eidolon Configuration", () => api()?.openEidolonConfig?.()],
-    "tsru-help": ["Help Documentation", () => api()?.openDocumentation?.()]
+    "tsru-help": ["Help Documentation", () => api()?.openDocumentation?.()],
+    "tsru-party-setup": ["Party Setup", () => api()?.openPartySetup?.()]
   };
 }
 
@@ -754,6 +765,7 @@ function consolidateToolbar(controls) {
   let hubTools=[
     ["tsru-quest-log","Mission Log","fas fa-clipboard-list",true,toolbarAction("Mission Log",openQuestLog)],
     ["tsru-party-selector","Select Main Character","fas fa-user-check",!game.user.isGM,toolbarAction("Main Character",()=>new PartyCharacterSelector().render(true))],
+    ["tsru-party-setup","Party Setup","fas fa-people-group",true,toolbarAction("Party Setup",()=>api()?.openPartySetup?.())],
     ["tsru-orbs","Show Combat Party HUD","fas fa-users",game.user.isGM,toolbarAction("Combat Party HUD",()=>api()?.showUltimateUI?.())],
     ["tsru-abilities","Show All Ability Bubbles","fas fa-circle-nodes",true,toolbarAction("Ability Bubbles",()=>requireApiMethod("showAllAbilityBubbles")())],
     ["tsru-hub-window","Open HSR Hub","fas fa-grid-2",true,toolbarAction("HSR Hub",openHub)],
@@ -770,7 +782,7 @@ function consolidateToolbar(controls) {
     ["tsru-eidolons","Configure Eidolon Layers","fas fa-gem",game.user.isGM,toolbarAction("Eidolon Configuration",()=>api()?.openEidolonConfig?.())],
     ["tsru-help","Help Documentation","fas fa-book-open",true,toolbarAction("Help Documentation",()=>api()?.openDocumentation?.())]
   ].map(([name,title,icon,visible,handler])=>({name,title,icon,button:true,visible,onClick:handler,onChange:handler}));
-  if(game.user.isGM) hubTools=hubTools.filter(tool=>["tsru-hub-window","tsru-battle-pass","tsru-dm-combat","tsru-help"].includes(tool.name));
+  if(game.user.isGM) hubTools=hubTools.filter(tool=>["tsru-hub-window","tsru-battle-pass","tsru-dm-combat","tsru-party-setup","tsru-help"].includes(tool.name));
   const hub={name:"tsru-hsr-hub",title:"HSR Hub",icon:"fas fa-rocket",order:89,layer:"controls",tools:hubTools};
   if(Array.isArray(controls)){const existing=controls.findIndex(c=>c.name===hub.name);if(existing>=0)controls.splice(existing,1);controls.push(hub);}
   else controls[hub.name]=hub;
@@ -793,6 +805,7 @@ Hooks.once("init",()=>{
 Hooks.once("ready",()=>{
   removeBattlePassFromPhones().catch(error=>console.error(`${MODULE_ID} | Could not remove Battle Pass phone button`,error));
   game.socket.on(SOCKET,async payload=>{
+    if(payload?.type==="partySelectionRejected"&&payload.userId===game.user.id){ui.notifications.error(payload.message||"The party change was rejected.");return;}
     if(payload?.type==="selectPartyCharacter" && game.user.isGM && partyAuthority()?.id===game.user.id) { await applyPartySelection(payload.userId,payload.actorId); return; }
     if(payload?.type==="partySelectionChanged") { if(payload.userId===game.user.id) await api()?.setLocalMainCharacter?.(payload.actorId); for(const app of Object.values(ui.windows??{})) if(["tsru-party-selector","tsru-quest-manager","tsru-gm-panel","tsru-hub"].includes(app.options?.id)) app.render(false); if(payload.userId===game.user.id) ui.notifications.info("Your main character and party status were updated."); return; }
     if(payload?.type==="messengerCreateGroup" && game.user.isGM && partyAuthority()?.id===game.user.id){
@@ -819,7 +832,8 @@ Hooks.once("ready",()=>{
     if(payload?.type!=="questsChanged")return;refreshQuestWindows();
     if(payload.notify&&payload.sourceUserId!==game.user.id){const q=quests().find(x=>x.id===payload.questId);if(q&&visibleQuest(q))ui.notifications.info(q.status==="complete"?`Mission Complete: ${q.title}`:`New Mission: ${q.title}`);}
   });
-  Object.assign(game.modules.get(MODULE_ID).api??{}, {openHub,openMessenger:()=>new HSRMessenger().render(true),openContactConfig:()=>new HSRContactConfig().render(true),openQuestLog,openQuestManager:()=>new QuestManager().render(true),openQuestSettings:()=>new QuestSettings().render(true),openPartySelector:()=>new PartyCharacterSelector().render(true),openPhoneDesigner:()=>{const app=new HSRHubConfig();app.actorId="__gm__";app.render(true);},openCheckKit:()=>showHubKit(api()?.getSelectedMainCharacter?.()),openSelectedSheet:()=>openHubActorSheet(api()?.getSelectedMainCharacter?.()),openSelectedInventory:()=>openHubActorSheet(api()?.getSelectedMainCharacter?.(),"inventory")});
+  const module=game.modules.get(MODULE_ID);module.api??={};
+  Object.assign(module.api, {openHub,openMessenger:()=>new HSRMessenger().render(true),openContactConfig:()=>new HSRContactConfig().render(true),openQuestLog,openQuestManager:()=>new QuestManager().render(true),openQuestSettings:()=>new QuestSettings().render(true),openPartySelector:()=>new PartyCharacterSelector().render(true),openPhoneDesigner:()=>{const app=new HSRHubConfig();app.actorId="__gm__";app.render(true);},openCheckKit:()=>showHubKit(api()?.getSelectedMainCharacter?.()),openSelectedSheet:()=>openHubActorSheet(api()?.getSelectedMainCharacter?.()),openSelectedInventory:()=>openHubActorSheet(api()?.getSelectedMainCharacter?.(),"inventory")});
   registerHubToolbarFallback();
 });
 

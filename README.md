@@ -1,5 +1,13 @@
 # Tely's Star Rail Ultimates
 
+## Shared Party Setup and encounter fixes (preview.24)
+
+Update Memosprites to **1.4.1** as well. Open **Party Setup** from the combat HUD, HSR toolbar, phone hub or main-character selector. Four position dropdowns and **Swap slots** arrange the shared party while protecting active player characters. **Lock in changes** saves the order used by every client's combat HUD. Concurrent edits preserve stale drafts and require reloading the current party before saving.
+
+The GM configures four independent artworks per character under **Configure slot artwork**, with image selection, alignment, scale and flip for each position. Moving a character between positions selects the matching artwork automatically. Under **Party Requires**, drag up to four world character sheets into the requirement slots and save the list. Its on/off toggle retains the assigned characters; when enabled, every required character must be present before anyone can lock in a lineup or change their main character.
+
+Boss phase changes now isolate each token's Actor, serialize transitions, preserve embedded item/effect references, recover failed transitions, and follow the active phase's initiative artwork. This release also fixes deleted-Combat and D&D5e movement access errors, avoids stale prepared bonuses, and reduces repeated stat and HUD work. Memosprites 1.4.1 supplies matching HUD refresh and damage attribution fixes.
+
 ## Summon resources and replacement (preview.23)
 
 Update Memosprites to **1.4.0** as well. Every live summon supplies its own HP semicircle, including when an older saved design hid the arc. In each Skill or Ultimate summon row, choose **Show resource? → None / Dots (3) / Percentage / HP**, its initial value and maximum, and **Uses own initiative / Takes its turn with you**. Dots float without an enclosing shape. Direct Skill companions default to dots; spell summons, including spells cast by Skills, default to no extra resource. **Abilities → Skill → Spell summons** lists each summon profile from the character's spells with independent settings.

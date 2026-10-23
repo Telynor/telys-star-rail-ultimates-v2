@@ -1,0 +1,100 @@
+import {PARTY_ID as ID,normalizePartySetup,effectivePartySetup,partyIssues,planCharacterSelection,orderCombatPartyActors,normalizePartyArtwork,actorList,actorById,characterConfig} from './party-setup-rules.mjs';
+import {openPartySetupWindow,openPartyArtworkWindow,refreshPartySetupWindows} from './party-setup-ui.mjs';
+const SOCKET=`module.${ID}`,pending=new Map();
+let installed=false,settingsRegistered=false,mutationQueue=Promise.resolve(),services={};
+const gm=()=>game.users.find(user=>user.isGM&&user.active);
+const authority=()=>game.user?.isGM&&gm()?.id===game.user.id;
+const context=()=>({actors:game.actors,users:game.users,selections:game.settings.get(ID,'partySelections')??{}});
+export function getPartySetup(){return effectivePartySetup(game.settings.get(ID,'partySetup')??{},context());}
+export function registerPartySetupSettings(){
+  if(settingsRegistered)return;settingsRegistered=true;
+  game.settings.register(ID,'partySetup',{scope:'world',config:false,type:Object,default:normalizePartySetup()});
+}
+function serialize(work){const job=mutationQueue.catch(()=>{}).then(work);mutationQueue=job;return job;}
+async function persistPartyState(next,{selections}={}){
+  const previous=structuredClone(game.settings.get(ID,'partySetup')??normalizePartySetup()),oldSelections=structuredClone(context().selections),changed=[];
+  let wroteSelections=false;
+  try{
+    const included=new Set(next.slots);
+    for(const actor of actorList(game.actors).filter(actor=>actor.type==='character')){
+      const before=Boolean(characterConfig(actor).mainParty),after=included.has(actor.id);if(before===after)continue;
+      changed.push({actor,before});await actor.update({[`flags.${ID}.ultimate.mainParty`]:after},{render:false,tsruPartySetup:true});
+    }
+    if(selections){wroteSelections=true;await game.settings.set(ID,'partySelections',selections);}
+    await game.settings.set(ID,'partySetup',next);
+  }catch(error){
+    for(const {actor,before}of changed.reverse())try{await actor.update({[`flags.${ID}.ultimate.mainParty`]:before},{render:false,tsruPartySetup:true});}catch(cause){console.error(`${ID} | Could not restore party membership`,cause);}
+    if(wroteSelections)await game.settings.set(ID,'partySelections',oldSelections);
+    // Some backends can reject after the update reached the local collection.
+    if((game.settings.get(ID,'partySetup')?.revision??0)!==(previous.revision??0))await game.settings.set(ID,'partySetup',previous);
+    throw error;
+  }
+  services.refreshCombatPartyHud?.();
+  Hooks.callAll('tsruPartySetupChanged',next);
+  return next;
+}
+export async function applyPartySetupRequest(action,payload={},user=game.user){
+  if(!authority())throw Error('The active GM must apply party changes.');
+  return serialize(async()=>{
+    if(!authority())throw Error('GM authority changed before the party request was applied. Try again.');
+    if(!user||(!user.isGM&&user.active===false))throw Error('An active player or GM is required.');
+    const current=getPartySetup(),ctx=context();
+    if(action!=='selectCharacter'&&Number(payload.revision)!==current.revision)throw Error('The party changed while you were editing. Reload the current party before locking in.');
+    if(action==='requirements'){
+      if(!user.isGM)throw Error('Only the GM can assign Party Requires.');
+      const ids=payload.requiredActorIds;
+      if(!Array.isArray(ids)||ids.length>4||ids.some(id=>typeof id!=='string'||actorById(ctx.actors,id)?.type!=='character'&&(payload.requirementsEnabled===true||!current.requiredActorIds.includes(id)))||new Set(ids).size!==ids.length)throw Error('Party Requires accepts up to four different world character sheets.');
+      const next={...current,revision:current.revision+1,requirementsEnabled:payload.requirementsEnabled===true,requiredActorIds:[...ids]};
+      await game.settings.set(ID,'partySetup',next);Hooks.callAll('tsruPartySetupChanged',next);return next;
+    }
+    let slots=payload.slots,selections;
+    if(action==='selectCharacter')({slots,selections}=planCharacterSelection(current,ctx,user,payload.actorId));
+    else if(action!=='lineup')throw Error('Unknown party setup action.');
+    const errors=partyIssues(slots,current,selections?{...ctx,selections}:ctx,user);if(errors.length)throw Error(errors[0]);
+    const next={...current,configured:true,revision:current.revision+1,slots:[...slots]};
+    await persistPartyState(next,{selections});
+    if(selections){game.socket.emit(SOCKET,{type:'partySelectionChanged',userId:user.id,actorId:payload.actorId,sourceUserId:game.user.id});}
+    return next;
+  });
+}
+export async function requestPartySetup(action,payload){
+  if(authority())return applyPartySetupRequest(action,payload,game.user);
+  const responder=gm();if(!responder)throw Error('A GM must be online to lock in party changes.');
+  const requestId=foundry.utils.randomID();
+  return new Promise((resolve,reject)=>{
+    const timer=setTimeout(()=>{pending.delete(requestId);reject(Error('The GM did not respond. Reload the party before retrying.'));},20000);
+    pending.set(requestId,{resolve,reject,timer,responder:responder.id});
+    game.socket.emit(SOCKET,{type:'partySetupRequest',requestId,sourceUserId:game.user.id,action,payload});
+  });
+}
+export async function handlePartySetupSocket(message){
+  if(message?.type==='partySetupResult'&&message.targetUserId===game.user.id){
+    const request=pending.get(message.requestId);if(!request||message.sourceUserId!==request.responder)return;
+    clearTimeout(request.timer);pending.delete(message.requestId);message.error?request.reject(Error(message.error)):request.resolve(message.state);return;
+  }
+  if(message?.type!=='partySetupRequest'||!authority())return;
+  let state,error;
+  try{state=await applyPartySetupRequest(message.action,message.payload,game.users.get(message.sourceUserId));}catch(cause){error=cause.message;}
+  game.socket.emit(SOCKET,{type:'partySetupResult',requestId:message.requestId,sourceUserId:game.user.id,targetUserId:message.sourceUserId,state,error});
+}
+export async function savePartyArtwork(actor,artwork){
+  if(!game.user.isGM)throw Error('Only the GM can configure party artwork.');
+  if(actor?.type!=='character'||actorById(game.actors,actor.id)!==actor)throw Error('Choose a world character sheet.');
+  await actor.setFlag(ID,'partySetupArtwork',normalizePartyArtwork(artwork));
+}
+export function partySetupViewServices(){return {getState:getPartySetup,getContext:context,request:requestPartySetup,saveArtwork:savePartyArtwork,getSelectedCharacter:()=>services.getSelectedMainCharacter?.()};}
+export function installPartySetup(moduleApi){
+  services=moduleApi;
+  Object.assign(moduleApi,{openPartySetup:()=>openPartySetupWindow(partySetupViewServices()),openPartyArtwork:actor=>openPartyArtworkWindow(actor,partySetupViewServices()),partySetup:{getState:getPartySetup,request:requestPartySetup,commitMainCharacterSelection:(userId,actorId)=>applyPartySetupRequest('selectCharacter',{actorId},game.users.get(userId)),orderCombatActors:actors=>orderCombatPartyActors(actors,getPartySetup())}});
+  if(installed)return;installed=true;
+  game.socket.on?.(SOCKET,message=>void handlePartySetupSocket(message).catch(error=>console.error(`${ID} | Party setup`,error)));
+  Hooks.on('updateSetting',setting=>{
+    if(setting?.key===`${ID}.partySetup`){services.refreshCombatPartyHud?.();refreshPartySetupWindows();}
+    if(setting?.key===`${ID}.partySelections`)refreshPartySetupWindows();
+  });
+  const changed=(changes,path)=>Object.keys(changes??{}).some(key=>key===path||key.startsWith(path+'.'))||path.split('.').reduce((value,key)=>value?.[key],changes)!==undefined;
+  Hooks.on('updateActor',(actor,changes={})=>{if(actor.type==='character'&&['name','img',`flags.${ID}.partySetupArtwork`,`flags.${ID}.ultimate.mainParty`,`flags.${ID}.ultimate.partyGMOverride`].some(path=>changed(changes,path)))refreshPartySetupWindows({artworkOnly:true});});
+  Hooks.on('deleteActor',()=>refreshPartySetupWindows());
+  Hooks.on('createActor',()=>refreshPartySetupWindows({artworkOnly:true}));
+  Hooks.on('updateUser',()=>refreshPartySetupWindows({artworkOnly:true}));
+}

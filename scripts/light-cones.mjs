@@ -12,11 +12,21 @@ const ID = "telys-star-rail-ultimates",
 let api,
   catalog = [],
   queue = Promise.resolve();
-const cfg = (a) => api?.getConfig(a) ?? a?.getFlag(ID, "ultimate") ?? {};
+// Only a synchronous stat evaluation is cached. Damage, turn and equipment
+// updates must be visible to the very next evaluation, without invalidation.
+let snapshotCache=null;
+const memo=(group,key,read)=>{
+  if(!snapshotCache)return read();
+  const cache=snapshotCache[group];if(!cache.has(key))cache.set(key,read());
+  return cache.get(key);
+};
+const cfg = (a) => memo('configs',a,()=>api?.getConfig(a) ?? a?.getFlag(ID, "ultimate") ?? {});
 // Use the same first-active-GM authority as the combat module. Sorting user
 // IDs here can elect a different GM and discard its forwarded combat events.
 const auth = () =>
   Boolean(game.user?.isGM && game.users.find((u) => u.active && u.isGM)?.id === game.user.id);
+const liveCombat = combat => Boolean(combat && (game.combats?.get ? game.combats.get(combat.id) === combat : game.combat === combat));
+const movementSpeeds = actor => actor.system?.attributes?.movement?.speeds ?? actor.system?.attributes?.movement;
 const enqueue = (f) => {
   queue = queue.then(f).catch((e) => {
     console.error(ID + " | Light Cones", e);
@@ -26,8 +36,8 @@ const enqueue = (f) => {
 };
 const esc = (x) => foundry.utils.escapeHTML(String(x ?? "")),
   clone = (x) => foundry.utils.deepClone(x);
-const cone = (a) => eligibleCone(a, cfg(a), game.combat);
-const combatActors = () => [
+const cone = (a) => memo('cones',a,()=>eligibleCone(a, cfg(a), game.combat));
+const combatActors = () => memo('actors','all',()=>[
   ...new Map(
     (game.combat?.combatants ?? [])
       .filter(
@@ -38,8 +48,8 @@ const combatActors = () => [
       .map((c) => [c.actor?.uuid, c.actor])
       .filter((x) => x[1]),
   ).values(),
-];
-const friends = (a) => {
+]);
+const friends = (a) => memo('friends',a,()=>{
   const c = game.combat?.combatants.find((c) => c.actor?.uuid === a.uuid),
     side = c?.token?.disposition;
   return combatActors().filter(
@@ -50,7 +60,7 @@ const friends = (a) => {
         : game.combat.combatants.find((c) => c.actor?.uuid === b.uuid)?.token
             ?.disposition === side),
   );
-};
+});
 const party = (a) => friends(a).filter((b) => cfg(b).mainParty);
 const runtime = (a) => {
   const s = clone(a?.getFlag(ID, FLAG) ?? {});
@@ -101,7 +111,7 @@ function context(a, target = null, event = {}) {
     energy: c.current,
     maxEnergy: c.max,
     ac: number(a.system?.attributes?.ac?.value),
-    speed: number(a.system?.attributes?.movement?.walk),
+    speed: number(movementSpeeds(a)?.walk),
     turns: s.turns,
     stacks: s.stacks,
     buffs: s.buffs,
@@ -155,8 +165,13 @@ function liveBuffs(a) {
   );
 }
 export function snapshot(a, target = null, event = {}) {
+  const previous=snapshotCache;
+  snapshotCache={configs:new Map(),cones:new Map(),actors:new Map(),friends:new Map()};
+  try{return snapshotFor(a,target,event);}finally{snapshotCache=previous;}
+}
+function snapshotFor(a, target = null, event = {}) {
   const c = cone(a);
-  if (!game.combat?.started) return {};
+  if (!game.combat?.started || !liveCombat(game.combat)) return {};
   const x = context(a, target, event);
   x.buffs = liveBuffs(a);
   if (number(a.system?.attributes?.hp?.temp) <= 0) delete x.buffs.journeyShield;
@@ -412,6 +427,7 @@ async function advance(a, n) {
 }
 export async function initiatives(combat) {
   for (const c of combat.combatants) {
+    if (!liveCombat(combat)) return;
     const f = c.getFlag(ID, "lightConeInitiative");
     if (!f) continue;
     if (combat.round === f.round && !f.active) {
@@ -435,6 +451,9 @@ export async function initiatives(combat) {
 }
 export async function restoreInitiative(combat) {
   for (const c of combat.combatants) {
+    // deleteCombat is a post-delete hook. Its combatants can still be read,
+    // but no embedded document on that deleted parent can be updated.
+    if (!liveCombat(combat)) return;
     const f = c.getFlag(ID, "lightConeInitiative");
     if (f)
       await c.update(
@@ -445,6 +464,24 @@ export async function restoreInitiative(combat) {
         { lightConeInitiative: true },
       );
   }
+}
+const combatCleanup = new WeakMap();
+function cleanupCombat(combat) {
+  if (combatCleanup.has(combat)) return combatCleanup.get(combat);
+  const work = (async () => {
+    try { await restoreInitiative(combat); }
+    catch (error) { if (liveCombat(combat)) throw error; }
+    finally {
+      for (const actor of new Set(combat.combatants.map(c => c.actor).filter(Boolean))) {
+        // A delayed cleanup must not erase a new encounter's runtime.
+        if (actor.getFlag(ID, FLAG)?.combatId === combat.id) await actor.unsetFlag(ID, FLAG);
+        actor.reset();
+      }
+      refreshActors();
+    }
+  })();
+  combatCleanup.set(combat, work);
+  return work;
 }
 export async function applyDot(
   target,
@@ -901,7 +938,7 @@ async function event(a, e) {
       if (atk)
         await saveMarks(
           "reducedAC",
-          { ac: -(a.system.attributes.movement.walk >= 50 ? 2 : 1) },
+          { ac: -(number(movementSpeeds(a)?.walk) >= 50 ? 2 : 1) },
           2,
         );
       break;
@@ -1508,6 +1545,7 @@ function joyseekerActive(combat = game.combat) {
   return Boolean(state?.critical && current && (current.getFlag(ID, "elationActionCombatant") ? current.getFlag(ID, "sequenceKey") === state.sequenceKey : current.getFlag(ID, "ahaInstantCombatant") && current.id === state.ahaId && combat.round === state.round));
 }
 export async function joyseekerAha(combat, detail) {
+  if (!liveCombat(combat) || game.combat !== combat) return;
   await combat.setFlag(ID, "joyseekerAha", {sequenceKey: detail.sequenceKey, ahaId: detail.combatant.id, round: combat.round, critical: false});
   for (const actor of combatActors()) {
     const item = actor.items?.get(actor.getFlag(ID, "selectedLightConeItemId"));
@@ -1537,7 +1575,7 @@ export async function joyseekerAha(combat, detail) {
       : await Dialog.confirm({title, content, yes: () => true, no: () => false, defaultYes: false});
     // The sequence must still be active when the GM answers.
     const current = combat.combatant;
-    if (!combat.started || current?.id !== detail.combatant.id || combat.round !== detail.round) continue;
+    if (!liveCombat(combat) || game.combat !== combat || !combat.started || current?.id !== detail.combatant.id || combat.round !== detail.round) continue;
     await combat.setFlag(ID, "joyseekerAha", {sequenceKey: detail.sequenceKey, ahaId: current.id, round: combat.round, critical: true});
     if (yes) for (const ally of friends(actor).filter(isElationActor)) await energy(ally, Math.max(0, 5 + Math.floor((number(cfg(ally).regenScore) - 10) / 2)));
     await ChatMessage.create({speaker: ChatMessage.getSpeaker({actor}), content: `<article class="tsru-ability-chat"><h3>${esc(c.item.name)}</h3><img src="${esc(c.image)}" style="max-height:180px"><p>${esc(c.description)}</p><strong>${yes ? "SECOND AHA CRITICAL INSTANCE: Elation teammates gain Energy." : "AHA INSTANT CAN NOW CRIT"}</strong><p>All Elation Action damage is doubled for this Aha sequence.</p></article>`});
@@ -1545,15 +1583,23 @@ export async function joyseekerAha(combat, detail) {
 }
 export function handle(type, detail = {}, eventKey = "") {
   if (!auth()) return;
+  const combat = detail.combat ?? game.combat;
+  if (!combat) return;
   return enqueue(async () => {
-    const combat = detail.combat ?? game.combat;
-    if (!combat) return;
+    if (type === "combatEnd") return cleanupCombat(combat);
+    if (!liveCombat(combat) || game.combat !== combat || !combat.started) return;
+    if(type==='combatStart'&&combatCleanup.has(combat)){
+      combatCleanup.delete(combat);
+      await combat.unsetFlag(ID,'lightConeProcessed');
+    }
     const stored = clone(combat.getFlag(ID, "lightConeProcessed") ?? []),
       key = type + ":" + eventKey;
     if (eventKey && stored.includes(key)) return;
     if (eventKey) {
       stored.push(key);
-      await combat.setFlag(ID, "lightConeProcessed", stored.slice(-300));
+      try { await combat.setFlag(ID, "lightConeProcessed", stored.slice(-300)); }
+      catch (error) { if (!liveCombat(combat)) return; throw error; }
+      if (!liveCombat(combat) || game.combat !== combat) return;
     }
     const a = detail.sourceActor;
     if (type === "ahaInstant") { await joyseekerAha(combat, detail); return; }
@@ -1570,15 +1616,6 @@ export function handle(type, detail = {}, eventKey = "") {
       const current = combat.combatant;
       if (current?.actor && !synthetic(current))
         await beginTurn(current.actor, turnKey());
-      return;
-    }
-    if (type === "combatEnd") {
-      await restoreInitiative(combat);
-      for (const actor of new Set(
-        combat.combatants.map((c) => c.actor).filter(Boolean),
-      ))
-        await actor.unsetFlag(ID, FLAG);
-      refreshActors();
       return;
     }
     if (type === "turnStart") {
@@ -1734,14 +1771,16 @@ async function endTurn(a) {
   await save(a, s);
 }
 function prepared(a) {
-  if (!api || !game.combat?.started) return;
+  delete a._lightConeStats;
+  if (!api || !game.combat?.started || !liveCombat(game.combat)) return;
   const o = snapshot(a);
   a._lightConeStats = o;
   const attr = a.system?.attributes;
   if (!attr) return;
-  attr.ac.value += number(o.ac);
-  attr.hp.max += number(o.maxHP);
-  attr.movement.walk += number(o.speed);
+  if (attr.ac) attr.ac.value += number(o.ac);
+  if (attr.hp) attr.hp.max += number(o.maxHP);
+  const movement = movementSpeeds(a);
+  let speed = number(o.speed);
   for (const b of Object.values(a.system.bonuses ?? {}))
     if (b && "attack" in b && o.attack)
       b.attack = `(${b.attack || 0}) + ${o.attack}`;
@@ -1758,10 +1797,11 @@ function prepared(a) {
       const source = combatActors().find((x) => x.uuid === m.source);
       if (!source || cone(source)?.catalogId !== m.cone) continue;
     }
-    attr.ac.value += number(m.stats?.ac);
-    attr.movement.walk += number(m.stats?.speed);
+    if (attr.ac) attr.ac.value += number(m.stats?.ac);
+    speed += number(m.stats?.speed);
   }
-  attr.movement.walk = Math.max(0, attr.movement.walk);
+  if (movement) movement.walk = Math.max(0, number(movement.walk) + speed);
+  return true;
 }
 function sourceFromOptions(options) {
   return (
@@ -2046,14 +2086,17 @@ export function installLightCones(moduleApi) {
   api = moduleApi;
   const proto = CONFIG.Actor.documentClass.prototype;
   if (!proto._tsruConePrepare) {
-    const original = proto.prepareData;
     Object.defineProperty(proto, "_tsruConePrepare", { value: true });
-    proto.prepareData = function (...args) {
-      const result = original.apply(this, args);
-      prepared(this);
-      for (const item of this.items ?? []) item.prepareFinalAttributes?.();
+    const wrapper = function (original, ...args) {
+      const result = original(...args);
+      if (prepared(this)) for (const item of this.items ?? []) item.prepareFinalAttributes?.();
       return result;
     };
+    if (globalThis.libWrapper?.register) libWrapper.register(ID, "CONFIG.Actor.documentClass.prototype.prepareData", wrapper, "WRAPPER");
+    else {
+      const original = proto.prepareData;
+      proto.prepareData = function (...args) { return wrapper.call(this, original.bind(this), ...args); };
+    }
   }
   const registerCrit = () => Hooks.on("dnd5e.preRollAttackV2", rollCrit);
   if (game.modules.get("telys-planar-ornaments")?.active) {
@@ -2110,14 +2153,7 @@ export function installLightCones(moduleApi) {
   });
   Hooks.on("deleteItem", refreshActors);
   Hooks.on("deleteCombat", (combat) => {
-    if (auth())
-      enqueue(async () => {
-        await restoreInitiative(combat);
-        for (const actor of combat.combatants
-          .map((c) => c.actor)
-          .filter(Boolean))
-          await actor.unsetFlag(ID, FLAG);
-      });
+    if (auth()) enqueue(() => cleanupCombat(combat));
   });
   Hooks.on("midi-qol.preItemRoll", async (w) => {
     const a = w.actor,
