@@ -51,7 +51,7 @@ export function partyActorDetails(actor,context={}){
 export function selectedCharacterId(user,selections={}){return text(selections[user?.id])||user?.character?.id||'';}
 export function defaultPartySlots(actors,users,selections={}){
   const selected=new Set(actorList(users).filter(user=>!user.isGM).map(user=>selectedCharacterId(user,selections)).filter(Boolean));
-  const characters=actorList(actors).filter(actor=>actor.type==='character'&&(characterConfig(actor).mainParty||selected.has(actor.id)));
+  const characters=actorList(actors).filter(actor=>actor.type==='character'&&!characterConfig(actor).trialCharacter&&(characterConfig(actor).mainParty||selected.has(actor.id)));
   const playerOwned=actor=>actorList(users).some(user=>!user.isGM&&actor.testUserPermission?.(user,'OWNER'));
   characters.sort((a,b)=>Number(!selected.has(a.id))-Number(!selected.has(b.id))||Number(!playerOwned(a))-Number(!playerOwned(b))||String(a.name).localeCompare(String(b.name),undefined,{sensitivity:'base'}));
   return slotsOf(characters.map(actor=>actor.id));
@@ -73,7 +73,7 @@ export function protectedPartyIds(state,{actors,users,selections={}}){
 }
 export function availablePartyActors(state,context,user){
   const {actors,selections={}}=context,known=new Set([...partyMemberIds(state),...state.requiredActorIds,...Object.values(selections)]),ctx={...context,inventoryKeys:context.inventoryKeys??partyInventoryKeys(state,context)};
-  return actorList(actors).filter(actor=>actor.type==='character'&&(user?.isGM||known.has(actor.id)||characterConfig(actor).mainParty||actor.testUserPermission?.(user,'OBSERVER')||actor.testUserPermission?.(user,'OWNER'))&&characterAvailability(actor,state,ctx).selectable)
+  return actorList(actors).filter(actor=>{if(actor.type!=='character')return false;const access=characterAvailability(actor,state,ctx);return !access.trial&&access.selectable&&(access.unlocked||user?.isGM||known.has(actor.id)||characterConfig(actor).mainParty||actor.testUserPermission?.(user,'OBSERVER')||actor.testUserPermission?.(user,'OWNER'));})
     .sort((a,b)=>String(a.name).localeCompare(String(b.name),undefined,{sensitivity:'base'}));
 }
 export function partyIssues(slots,state,context,user,{optionalActorId=state.optionalActorId||''}={}){
@@ -83,6 +83,8 @@ export function partyIssues(slots,state,context,user,{optionalActorId=state.opti
   const ids=partyMemberIds(state,slots,optionalActorId),projected={...state,configured:true,slots,optionalActorId},ctx={...context,inventoryKeys:partyInventoryKeys(projected,context)};
   if(ids.some(id=>typeof id!=='string'||actorById(context.actors,id)?.type!=='character'))errors.push('Every occupied slot must contain an available world character.');
   if(new Set(ids).size!==ids.length)errors.push('A character can occupy only one slot. Use Swap slots to move them.');
+  const misplacedTrials=slots.filter(id=>characterConfig(actorById(context.actors,id)).trialCharacter);
+  if(misplacedTrials.length)errors.push(`Trial Characters must use position 5 (Optional Character): ${names(misplacedTrials)}.`);
   for(const id of ids){const actor=actorById(context.actors,id);if(actor){const access=characterAvailability(actor,projected,ctx);if(!access.selectable)errors.push(`${actor.name} requires ${access.item.name} in a main-party character’s inventory.`);}}
   if(optionalActorId){const actor=actorById(context.actors,optionalActorId);if(actor&&!characterAvailability(actor,projected,ctx).optional)errors.push('Optional Character must be a Trial Character or have its unlocking item held by the main party.');}
   if(!user?.isGM){
@@ -107,9 +109,21 @@ export function choosePartySlot(slots,index,actorId){
   if(other>=0&&other!==index)return swapPartySlots(next,index,other);
   next[index]=id;return next;
 }
+export function swapPartyPositions(slots,optionalActorId,from,to){
+  if(![from,to].every(index=>Number.isInteger(index)&&index>=0&&index<=PARTY_SIZE))throw Error('Choose two valid party positions.');
+  const next=[...slotsOf(slots),text(optionalActorId)];[next[from],next[to]]=[next[to],next[from]];
+  return {slots:next.slice(0,PARTY_SIZE),optionalActorId:next[PARTY_SIZE]};
+}
+export function choosePartyPosition(slots,optionalActorId,index,actorId){
+  if(!Number.isInteger(index)||index<0||index>PARTY_SIZE)throw Error('Choose a valid party position.');
+  const next=[...slotsOf(slots),text(optionalActorId)],id=text(actorId),other=id?next.indexOf(id):-1;
+  if(other>=0&&other!==index)return swapPartyPositions(slots,optionalActorId,index,other);
+  next[index]=id;return {slots:next.slice(0,PARTY_SIZE),optionalActorId:next[PARTY_SIZE]};
+}
 export function planCharacterSelection(state,context,user,actorId){
   const actor=actorById(context.actors,actorId);
   if(!user||user.isGM||actor?.type!=='character'||!actor.testUserPermission?.(user,'OWNER'))throw Error('Choose a character you own.');
+  if(characterConfig(actor).trialCharacter)throw Error('Trial Characters must use position 5 (Optional Character).');
   if(characterConfig(actor).partyGMOverride)throw Error('The GM has locked this character’s party status.');
   const selections={...context.selections,[user.id]:actor.id},slots=slotsOf(state.slots);
   const ownedMembers=slots.filter(id=>actorById(context.actors,id)?.testUserPermission?.(user,'OWNER'));

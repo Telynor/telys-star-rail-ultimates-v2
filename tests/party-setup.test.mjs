@@ -185,10 +185,49 @@ test('a removed inventory key is rechecked during an asynchronous party apply an
  const w=unlockFixture(),actor=w.actors.get('e'),update=actor.update.bind(actor);actor.update=async patch=>{await update(patch);if(patch[`flags.${ID}.ultimate.mainParty`])w.actors.get('a').items=[];};
  await assert.rejects(applyPartySetupRequest('lineup',{revision:7,slots:w.state.slots,optionalActorId:'e'},w.gm),/requires Companion invitation/);assert.equal(actor.flags[ID].ultimate.mainParty,false);assert.equal(w.settings.partySetup.revision,7);
 });
-test('nameplates use sheet level and configured catalog images/names rather than raw Path IDs',()=>{
+test('nameplates layer the configured Element behind the sheet level and resolve configured Path names',()=>{
  const w=fixture(),actor=w.actors.get('a');actor.system={details:{level:12}};Object.assign(actor.flags[ID].ultimate,{pathId:'custom-path-id',elementId:'custom-element-id',trialCharacter:true});
  const ctx={...w.context,paths:[{id:'custom-path-id',name:'Remembrance',icon:'path.webp'}],elements:[{id:'custom-element-id',name:'Ice',icon:'ice.webp'}]};
  const details=partyActorDetails(actor,ctx);assert.equal(details.level,12);assert.equal(details.pathName,'Remembrance');assert.equal(details.pathIcon,'path.webp');assert.equal(details.elementIcon,'ice.webp');
- const html=renderPartySetup(partySetupModel({state:w.state,context:ctx,user:w.gm}));assert.match(html,/tsru-party-level/);assert.match(html,/>TRIAL</);assert.match(html,/src="ice.webp"/);assert.match(html,/src="path.webp"/);assert.ok(!html.includes('custom-path-id'));
+ const html=renderPartySetup(partySetupModel({state:w.state,context:ctx,user:w.gm}));assert.match(html,/tsru-party-level/);assert.match(html,/>TRIAL</);assert.match(html,/class="tsru-party-level"[^>]*><img class="tsru-party-element" src="ice.webp"[^>]*><span>12<\/span>/);assert.match(html,/src="path.webp"/);assert.ok(!html.includes('custom-path-id'));
  assert.equal((html.match(/data-party-preset=/g)||[]).length,6);assert.match(html,/Optional Character/);assert.match(html,/tsru-party-floor-shadow/);
+});
+
+test('an item-unlocked character is available in every main position without sheet ownership',async()=>{
+ for(let index=0;index<4;index++){
+  const w=unlockFixture();w.actors.get('e').testUserPermission=()=>false;
+  const model=partySetupModel({state:w.state,slots:['a','b','c','e'],context:w.context,user:w.alice});assert.ok(model.cards[index].options.some(option=>option.id==='e'&&!option.disabled));
+  const slots=choosePartySlot(['a','b','c','e'],index,'e');assert.deepEqual(partyIssues(slots,w.state,w.context,w.alice),[]);
+  await applyPartySetupRequest('lineup',{revision:7,slots},w.alice);assert.equal(getPartySetup().slots[index],'e');
+ }
+ const w=unlockFixture();w.actors.get('e').testUserPermission=()=>false;w.actors.get('a').items=[];
+ assert.equal(partySetupModel({state:w.state,context:w.context,user:w.alice}).candidates.some(actor=>actor.id==='e'),false);
+});
+test('Trial Characters are restricted to position five even when their item is held',async()=>{
+ for(const action of ['lineup','savePreset'])for(let index=0;index<4;index++){
+  const w=unlockFixture();w.actors.get('e').flags[ID].ultimate.trialCharacter=true;
+  for(const user of [w.alice,w.gm]){
+   const slots=choosePartySlot(['a','b','c','e'],index,'e');await assert.rejects(applyPartySetupRequest(action,{revision:7,slots,presetIndex:1},user),/Trial Characters must use position 5/);
+   const model=partySetupModel({state:w.state,context:w.context,user});assert.ok(model.cards.every(card=>!card.options.some(option=>option.id==='e'&&!option.disabled)));assert.ok(model.optional.options.some(option=>option.id==='e'&&!option.disabled));
+  }
+  assert.equal(w.settings.partySetup.revision,7);
+ }
+ const w=unlockFixture();w.actors.get('e').flags[ID].ultimate.trialCharacter=true;
+ assert.throws(()=>planCharacterSelection(w.state,w.context,w.alice,'e'),/Trial Characters must use position 5/);
+ await applyPartySetupRequest('lineup',{revision:7,slots:w.state.slots,optionalActorId:'e'},w.alice);assert.equal(getPartySetup().optionalActorId,'e');
+});
+test('legacy trial placements remain visible but cannot be saved until moved to position five',()=>{
+ const w=fixture();w.actors.get('c').flags[ID].ultimate.trialCharacter=true;
+ const model=partySetupModel({state:w.state,context:w.context,user:w.gm});assert.equal(model.canLock,false);assert.match(model.errors.join(' '),/position 5/);assert.equal(model.cards[2].options.find(option=>option.id==='c').disabled,true);
+ assert.ok(model.optional.options.some(option=>option.id==='c'&&!option.disabled),'the trial can be moved directly from a legacy main slot into the empty fifth slot');
+ assert.ok(!effectivePartySetup({},w.context).slots.includes('c'),'new legacy drafts do not place trials in main slots');
+});
+test('five-position dropdowns and swaps preserve both members and enforce trial placement',async()=>{
+ const {choosePartyPosition,swapPartyPositions}=await import('../scripts/party-setup-rules.mjs');
+ const w=unlockFixture();w.actors.get('c').flags[ID].ultimate.unlockingItem=unlockingItemDescriptor(w.item);
+ const moved=choosePartyPosition(w.state.slots,'e',2,'e');assert.deepEqual(moved,{slots:['a','b','e','d'],optionalActorId:'c'});assert.deepEqual(partyIssues(moved.slots,w.state,w.context,w.alice,{optionalActorId:moved.optionalActorId}),[]);
+ assert.deepEqual(swapPartyPositions(moved.slots,moved.optionalActorId,2,4),{slots:w.state.slots,optionalActorId:'e'});
+ const model=partySetupModel({state:w.state,slots:w.state.slots,optionalActorId:'e',context:w.context,user:w.alice});assert.equal(model.canSwap(2,4),true);assert.equal(model.canSwap(0,4),false,'a normal main character cannot be swapped into an ineligible optional slot');
+ w.actors.get('e').flags[ID].ultimate.trialCharacter=true;assert.equal(partySetupModel({state:w.state,optionalActorId:'e',context:w.context,user:w.gm}).canSwap(4,2),false);
+ assert.throws(()=>swapPartyPositions(w.state.slots,'e',0,5),/valid party positions/);assert.throws(()=>choosePartyPosition(w.state.slots,'e',5,'c'),/valid party position/);
 });

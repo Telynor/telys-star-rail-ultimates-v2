@@ -257,7 +257,7 @@
         {
           "title": "Shared four-position lineup",
           "paragraphs": [
-            "Open Party Setup from the HSR toolbar, phone hub, main-character selector or combat HUD. Four position dropdowns arrange the main lineup; an Optional Character panel adds one eligible companion. Choosing a member already in another main position swaps both positions.",
+            "Open Party Setup from the HSR toolbar, phone hub, main-character selector or combat HUD. Four position dropdowns arrange the main lineup; an Optional Character panel adds one eligible companion. Choosing a member already in another position swaps both positions when each character is eligible for the resulting slot. Swap slots also supports position five.",
             "Swap slots moves your active character while preserving party members. Players cannot remove active player characters or GM-locked members. Lock in changes validates the complete formation, saves its selected preset and applies the shared combat HUD order. A concurrent change preserves local drafts and requires Reload current party before saving."
           ]
         },
@@ -273,14 +273,14 @@
           "paragraphs": [
             "The GM opens Configure slot artwork or the image button on a party member. Each character has four independent image paths, one for each position. Browse images, paste uploaded image paths, or drop an Actor or Item image. Configure image X/Y, scale and horizontal flip for each variant, then save the character’s artwork.",
             "Moving a character to another position automatically selects that position’s artwork. Unconfigured positions fall back to the character portrait. Artwork choices are independent for every character and do not affect the token image or its HP.",
-            "Each standing pose also supplies its own flattened floor shadow. Nameplates show the character’s sheet level and sheet name, its configured Element image to the right, and the configured Path image and name below. Trial Characters display a bold red TRIAL label."
+            "Each standing pose also supplies its own flattened floor shadow. Nameplates show the character’s sheet level and sheet name, its configured Element image behind the level badge on the left, and the configured Path image and name below. Trial Characters display a bold red TRIAL label."
           ]
         },
         {
           "title": "Main Party and selection",
           "paragraphs": [
             "Main Party influences allied-turn waiting for queued Ultimates. A player selecting an owned main character requests synchronized membership; GM Party Override prevents that selector from changing a locked Actor’s status. A GM-controlled character can be managed directly in the GM Panel.",
-            "Trial Character adds a red Trial label to its combat HUD orb. This is presentation and does not grant ownership, charge or extra turns."
+            "Trial Character adds a red Trial label to its combat HUD orb. Trial Characters must use position 5 in Party Setup. The label does not grant ownership, charge or extra turns."
           ]
         },
         {
@@ -300,7 +300,7 @@
         {
           "title": "Optional Character and unlocking items",
           "paragraphs": [
-            "The right-hand Optional Character slot accepts a character marked Trial Character or one whose linked unlocking Item is held by a character in the main party. A character can occupy only one position. The optional member is marked in the main party when applied and follows the four main positions on the combat HUD.",
+            "Position 5, the right-hand Optional Character slot, accepts a character marked Trial Character or one whose linked unlocking Item is held by a character in the main party. Item-unlocked characters can use any of the five positions, regardless of source-sheet ownership. Trial Characters must use position 5, even if their unlocking Item is held. A character can occupy only one position. The optional member is marked in the main party when applied and follows the four main positions on the combat HUD.",
             "The GM sets Unlocking item under Character → Party membership on each character’s HSR settings. Drag an Item from a character inventory, the Items directory or a compendium. The Item’s exact identity or preserved source is matched; an unrelated Item with the same name does not count. Quantities of zero and Items held only by inactive characters do not unlock it.",
             "Inventory changes update availability while Party Setup is open. Removing the last eligible unlocking Item prevents the character from being saved or applied, including through an old preset. It does not silently remove a character from a running party. Trial Character remains an independent eligibility option."
           ]

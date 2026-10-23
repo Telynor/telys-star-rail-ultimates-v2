@@ -1136,7 +1136,7 @@
       "scope": "character",
       "key": "trialCharacter",
       "label": "Trial Character?",
-      "description": "Displays a red Trial label above this character's Ultimate orb in the combat party HUD.",
+      "description": "Restricts this character to position 5 in Party Setup and displays a red Trial label in Party Setup and the combat HUD.",
       "topic": "settings-search",
       "type": "checkbox",
       "source": "templates/ultimate-tab.hbs"
@@ -8578,7 +8578,7 @@
       "scope": "party-setup",
       "selector": "[data-party-slot]",
       "label": "Position character",
-      "description": "Choose this position’s world character. Choosing a member already in another position swaps the two slots. Active player characters and GM-locked members cannot be removed by players.",
+      "description": "Choose this position’s world character. Item-unlocked characters can use any position, even if the GM owns the source sheet. Trial Characters must use position 5. Choosing an existing member swaps eligible positions. Active player characters and GM-locked members cannot be removed by players.",
       "topic": "party"
     },
     {
@@ -8596,7 +8596,7 @@
       "scope": "party-setup",
       "selector": "[data-party-swap]",
       "label": "Swap slots",
-      "description": "Swap your active character with the chosen position, preserving both party members. The GM can choose any two positions. Lock in changes applies the draft to everyone.",
+      "description": "Swap your active character with the chosen position, preserving both party members. Position 5 is available when both members are eligible for the resulting slots. Trial Characters cannot move into positions 1–4. Lock in changes applies the draft to everyone.",
       "topic": "party"
     },
     {
@@ -8794,7 +8794,7 @@
       "scope": "party-setup",
       "selector": "[data-party-optional]",
       "label": "Optional Character",
-      "description": "Choose one extra Trial Character or a character whose exact unlocking Item is held by the main party. A character cannot occupy a main position and the optional slot together. This member follows position four on the combat HUD.",
+      "description": "Choose position 5: one Trial Character or a character whose exact unlocking Item is held by the main party. Trial Characters are restricted to this position; Item-unlocked characters can use any position. A character cannot occupy a main position and the optional slot together. This member follows position four on the combat HUD.",
       "topic": "party"
     },
     {
@@ -8803,7 +8803,7 @@
       "scope": "character",
       "selector": "[data-party-unlock-item]",
       "label": "Unlocking item",
-      "description": "The GM drops an Item here to link it to this character. A main-party character must hold that Item or an owned copy with the same source. Matching names alone do not unlock a character. Trial Characters are independently available in the optional slot.",
+      "description": "The GM drops an Item here to link it to this character. A main-party character must hold that Item or an owned copy with the same source. Matching names alone do not unlock a character. Item-unlocked characters can use any of the five positions, regardless of sheet ownership. Trial Characters are restricted to position 5.",
       "topic": "party"
     },
     {

@@ -1,5 +1,9 @@
 # Tely's Star Rail Ultimates
 
+## Party position rules and Element badges (preview.26)
+
+An Item-unlocked character can use any of the five positions, including when the source sheet belongs to the GM. Trial Characters must use **position 5 (Optional Character)**, even when the party also holds their unlocking Item. Dropdowns and Swap slots now support valid moves between the main four and position five without duplicating or removing either member. Preset saves and lineup locks enforce the same rules for players and GMs. The Element image now sits behind the level badge, to the left of the character name and Path.
+
 ## Party presets, optional companions and floor shadows (preview.25)
 
 Party Setup now uses a shared starfield and floor, perspective-sized poses and shadows projected from each character’s selected artwork. Nameplates show sheet level, sheet name and Element image, with the configured Path image and name below. Trial Characters display a bold red **TRIAL** label.
