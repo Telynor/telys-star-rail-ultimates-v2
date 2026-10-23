@@ -93,7 +93,8 @@ window.ready=true;
   await gm.locator('.tsru-party-artwork-window').screenshot({path:path.join(root,'party-setup-artwork.png')});await gm.locator('.tsru-party-artwork-window [data-fixture-close]').click();
   await player.locator('[data-party-swap-to]').selectOption('0');await player.locator('[data-party-swap]').click();await player.waitForFunction(()=>document.querySelector('[data-party-position="1"] img')?.getAttribute('src')==='/art/renard-new-1.svg');
   await player.locator('.tsru-party-setup-window').evaluate(node=>node.style.width='680px');
-  assert.equal(await player.locator('.window-content').evaluate(node=>node.scrollWidth<=node.clientWidth+1),true);await player.locator('.tsru-party-setup-window').screenshot({path:path.join(root,'party-setup-compact.png')});
+  await player.waitForFunction(()=>{const node=document.querySelector('.tsru-party-setup-window .window-content');return node.scrollWidth<=node.clientWidth+1});
+  const compactTabs=await player.locator('[data-party-preset]').evaluateAll(nodes=>nodes.map(node=>({left:node.getBoundingClientRect().left,right:node.getBoundingClientRect().right}))),compactContent=await player.locator('.window-content').boundingBox();assert.ok(compactTabs.every(tab=>tab.left>=compactContent.x&&tab.right<=compactContent.x+compactContent.width),'all six preset tabs remain visible in the narrow window');await player.locator('.tsru-party-setup-window').screenshot({path:path.join(root,'party-setup-compact.png')});
 
   await player.locator('.tsru-party-setup-window [data-fixture-close]').click();await player.locator('[data-tsru-party-setup]').click();
   const beforePreset=await gm.evaluate(()=>fixture.state().slots);

@@ -102,7 +102,7 @@ export async function savePartyUnlockingItem(actor,item){
 }
 const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function bindPartyUnlockingItem(actor,root){
-  if(actor.type!=='character')return;
+  if(actor.type!=='character'){for(const field of root?.querySelectorAll?.('.tsru-party-unlock-control')??[])field.remove();return;}
   for(const zone of root?.querySelectorAll?.('[data-party-unlock-item]')??[]){
     if(zone.dataset.partyUnlockBound)continue;zone.dataset.partyUnlockBound='true';
     const paint=()=>{const item=normalizeUnlockingItem(characterConfig(actor).unlockingItem);zone.innerHTML=item?`<img src="${escape(item.img||'icons/svg/item-bag.svg')}" alt=""><button type="button" data-party-unlock-open>${escape(item.name)}</button><button type="button" data-party-unlock-clear aria-label="Clear unlocking item">×</button>`:'<i class="fas fa-link" aria-hidden="true"></i><span>Drop an Item here</span>';};paint();
@@ -122,6 +122,7 @@ export function installPartySetup(moduleApi){
   Hooks.on('updateSetting',setting=>{
     if(setting?.key===`${ID}.partySetup`){services.refreshCombatPartyHud?.();refreshPartySetupWindows();}
     if(setting?.key===`${ID}.partySelections`)refreshPartySetupWindows();
+    if([`${ID}.paths`,`${ID}.elements`].includes(setting?.key))refreshPartySetupWindows({artworkOnly:true});
   });
   const changed=(changes,path)=>Object.keys(changes??{}).some(key=>key===path||key.startsWith(path+'.'))||path.split('.').reduce((value,key)=>value?.[key],changes)!==undefined;
   Hooks.on('updateActor',(actor,changes={})=>{if(actor.type==='character'&&['name','img','system.details.level',`flags.${ID}.partySetupArtwork`,...['mainParty','partyGMOverride','trialCharacter','pathId','elementId','unlockingItem'].map(key=>`flags.${ID}.ultimate.${key}`)].some(path=>changed(changes,path)))refreshPartySetupWindows({artworkOnly:true});});
