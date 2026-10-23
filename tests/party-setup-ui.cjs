@@ -6,12 +6,14 @@ const root=path.resolve(__dirname,'..');
  const prefix=box.bootstrap.slice(0,box.bootstrap.indexOf("const alt=await"));
  const bootstrap=prefix+`
 window.hooks=new Map();window.Hooks={on(name,fn){const list=hooks.get(name)||[];list.push(fn);hooks.set(name,list)},once(){},callAll(name,...args){for(const fn of hooks.get(name)||[])fn(...args)}};
+ui.notifications.error=message=>{notices.push(message);failures.push(message);console.error('Party Setup notice:',message)};
 window.foundry.applications.api.ApplicationV2=class extends AppV2{
  constructor(options){super(options);const d=this.constructor.DEFAULT_OPTIONS;this.element.style.width=Math.min(innerWidth-40,d.position.width)+'px';this.element.style.height=Math.min(innerHeight-40,d.position.height)+'px';this.element.querySelector('.window-header').innerHTML='<span>'+d.window.title+'</span><button data-fixture-close>×</button>';this.element.querySelector('[data-fixture-close]').onclick=()=>this.close();}
  bringToFront(){this.element.style.zIndex=10005;}
 };
 const alice={id:'alice',isGM:false,active:true},ben={id:'ben',isGM:false,active:true};users.push(alice,ben);
 game.user=new URLSearchParams(location.search).get('role')==='alice'?alice:gm;
+game.scenes=[];game.scenes.get=()=>null;
 const definitions=[['renard','Renard','alice'],['lark','Mira Larkstep','ben'],['tatsuo','Tatsuo','gm'],['drakarius','Drakarius','gm'],['story','Story Companion','gm']];
 actors.splice(0,actors.length,...definitions.map(([id,name,owner])=>({id,uuid:'Actor.'+id,documentName:'Actor',type:'character',name,img:'/art/'+id+'.svg',apps:{},items:[],effects:[],prototypeToken:{},system:{attributes:{hp:{value:40,max:50,temp:0}}},flags:{[ID]:{ultimate:{mainParty:id!=='story',pathId:id==='renard'?'hunt':'remembrance'},partySetupArtwork:[1,2,3,4].map(position=>({image:'/art/'+id+'-'+position+'.svg'}))}},
  get isOwner(){return game.user.isGM||game.user.id===owner},getFlag(scope,key){return this.flags[scope]?.[key]},testUserPermission(user,permission){return user?.isGM||permission==='OBSERVER'||user?.id===owner},reset(){},
@@ -74,7 +76,8 @@ window.ready=true;
   const free=await player.evaluate(()=>fixture.state().slots.indexOf('drakarius'));await player.locator('[data-party-slot="'+free+'"]').selectOption('story');
   await player.waitForFunction(()=>!document.querySelector('[data-party-lock]').disabled);await player.locator('[data-party-lock]').click();await gm.waitForFunction(()=>fixture.state().slots.includes('story'));
   assert.deepEqual(await gm.evaluate(()=>fixture.order()),await player.evaluate(()=>fixture.order()));
-  await gm.locator('.tsru-party-setup-window').screenshot({path:path.join(root,'party-setup-shared.png')});
+  if(await gm.locator('.tsru-party-requires-editor').evaluate(node=>node.open))await gm.locator('.tsru-party-requires-editor summary').click();
+  await gm.locator('.tsru-party-setup-window .window-content').evaluate(node=>node.scrollTop=0);await gm.locator('.tsru-party-setup-window').screenshot({path:path.join(root,'party-setup-shared.png')});
   // The GM can turn constraints off without losing the four configured Actors.
   if(!await gm.locator('[data-party-requires-enabled]').isVisible())await gm.locator('.tsru-party-requires-editor summary').click();
   await gm.locator('[data-party-requires-enabled]').uncheck();await gm.locator('[data-party-save-requirements]').click();await player.waitForFunction(()=>!fixture.state().requirementsEnabled);assert.equal((await player.evaluate(()=>fixture.state().requiredActorIds)).length,4);
@@ -86,6 +89,6 @@ window.ready=true;
   await player.locator('[data-party-swap-to]').selectOption('0');await player.locator('[data-party-swap]').click();await player.waitForFunction(()=>document.querySelector('[data-party-position="1"] img')?.getAttribute('src')==='/art/renard-new-1.svg');
   await player.locator('.tsru-party-setup-window').evaluate(node=>node.style.width='680px');
   assert.equal(await player.locator('.window-content').evaluate(node=>node.scrollWidth<=node.clientWidth+1),true);await player.locator('.tsru-party-setup-window').screenshot({path:path.join(root,'party-setup-compact.png')});
-  assert.deepEqual(errors,[]);console.log('PASS: two clients share four-slot lineup and HUD order; active-character protection; swaps select the correct artwork; stale drafts cannot overwrite changes; four GM Actor drops and toggleable requirements gate locks; four independent saved artwork fields; compact layout.');
- }catch(error){for(const [role,page]of [['gm',gm],['player',player]])if(page&&!page.isClosed()){console.error(role,await page.evaluate(()=>({state:window.fixture?.state(),body:document.body.innerText})).catch(()=>null));await page.screenshot({path:path.join(root,'party-setup-'+role+'-failure.png'),fullPage:true}).catch(()=>{});}throw error;}finally{await browser?.close();await new Promise(resolve=>server.close(resolve));}
+  assert.deepEqual(errors,[]);for(const page of [gm,player])assert.deepEqual(await page.evaluate(()=>failures),[]);console.log('PASS: two clients share four-slot lineup and HUD order; active-character protection; swaps select the correct artwork; stale drafts cannot overwrite changes; four GM Actor drops and toggleable requirements gate locks; four independent saved artwork fields; compact layout.');
+ }catch(error){for(const [role,page]of [['gm',gm],['player',player]])if(page&&!page.isClosed()){console.error(role,await page.evaluate(()=>({state:window.fixture?.state(),notices:window.notices,failures:window.failures,body:document.body.innerText})).catch(()=>null));await page.screenshot({path:path.join(root,'party-setup-'+role+'-failure.png'),fullPage:true}).catch(()=>{});}throw error;}finally{await browser?.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(error=>{console.error(error);process.exitCode=1});
