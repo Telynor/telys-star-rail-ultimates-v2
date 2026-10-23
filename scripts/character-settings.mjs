@@ -83,7 +83,7 @@ export function organizeCharacterSettings(root, {key = "character"} = {}) {
   if (party) {
     const portraits = make("Combat HUD & initiative portraits", "artwork"), messenger = make("Messenger portrait", "artwork");
     for (const child of [...party.children]) {
-      if (child.tagName === "H3" || child.querySelector('[name="mainParty"], [name="trialCharacter"]')) continue;
+      if (child.tagName === "H3" || child.querySelector('[name="mainParty"], [name="trialCharacter"], [data-party-unlock-item]')) continue;
       const names = [...child.querySelectorAll("[name]")].map(el => el.name).join(" ");
       (names.includes("messaging") || child.hasAttribute("data-messaging-portrait-preview") ? messenger : portraits).append(child);
     }

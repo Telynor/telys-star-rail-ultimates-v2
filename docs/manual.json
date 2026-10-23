@@ -229,7 +229,7 @@
       "id": "party",
       "group": "Character setup",
       "title": "Party Setup, position artwork and required characters",
-      "summary": "Share a four-position lineup, configure each character’s four artworks, protect player selections and enforce the GM’s required characters.",
+      "summary": "Use six shared party presets, four perspective poses, an optional trial or item-unlocked character, and the GM’s required-member rules.",
       "keywords": [
         "main party",
         "team",
@@ -245,14 +245,20 @@
         "required characters",
         "Party Requires",
         "position artwork",
-        "HUD order"
+        "HUD order",
+        "preset",
+        "optional character",
+        "unlocking item",
+        "trial",
+        "level",
+        "shadow"
       ],
       "sections": [
         {
           "title": "Shared four-position lineup",
           "paragraphs": [
-            "Open Party Setup from the HSR toolbar, the phone hub, the main-character selector or the combat party HUD. Every connected player edits the same saved lineup. The four dropdowns choose positions 1–4; choosing a character already in another position swaps both positions. Empty positions are allowed when the team has fewer than four characters.",
-            "Swap slots moves your active character to the chosen position while preserving both party members. Players cannot remove active player characters or GM-locked party members. Lock in changes saves the lineup and makes the combat HUD use this exact order on every client. A changed party revision preserves your local draft and requires Reload current party before saving."
+            "Open Party Setup from the HSR toolbar, phone hub, main-character selector or combat HUD. Four position dropdowns arrange the main lineup; an Optional Character panel adds one eligible companion. Choosing a member already in another main position swaps both positions.",
+            "Swap slots moves your active character while preserving party members. Players cannot remove active player characters or GM-locked members. Lock in changes validates the complete formation, saves its selected preset and applies the shared combat HUD order. A concurrent change preserves local drafts and requires Reload current party before saving."
           ]
         },
         {
@@ -266,7 +272,8 @@
           "title": "Four artworks per character",
           "paragraphs": [
             "The GM opens Configure slot artwork or the image button on a party member. Each character has four independent image paths, one for each position. Browse images, paste uploaded image paths, or drop an Actor or Item image. Configure image X/Y, scale and horizontal flip for each variant, then save the character’s artwork.",
-            "Moving a character to another position automatically selects that position’s artwork. Unconfigured positions fall back to the character portrait. Artwork choices are independent for every character and do not affect the token image or its HP."
+            "Moving a character to another position automatically selects that position’s artwork. Unconfigured positions fall back to the character portrait. Artwork choices are independent for every character and do not affect the token image or its HP.",
+            "Each standing pose also supplies its own flattened floor shadow. Nameplates show the character’s sheet level and sheet name, its configured Element image to the right, and the configured Path image and name below. Trial Characters display a bold red TRIAL label."
           ]
         },
         {
@@ -281,6 +288,21 @@
           "paragraphs": [
             "Mission assignment identifies the intended recipients. Characters with non-GM owners and GM-controlled characters explicitly marked Receives Rewards can be eligible. Owning, selecting, assigning and receiving rewards are different concepts. Inspect the assignment list before distributing a mission’s Items.",
             "Receives Rewards does not itself grant an Item. Main Party membership does not turn a hidden mission public. Use each campaign app’s own visibility and reward controls."
+          ]
+        },
+        {
+          "title": "Six numbered party presets",
+          "paragraphs": [
+            "Click 01–06 at the top to load a shared preset as a draft. Enter its name in the team-name field. Switching between numbers preserves unsaved local drafts while the window is open. Empty presets start from the current party.",
+            "Save preset stores the selected configuration without changing active membership. Lock in changes saves the preset and makes it active for everyone. Both actions enforce protected player characters, Party Requires and current unlocking items; loading a saved preset never bypasses those rules."
+          ]
+        },
+        {
+          "title": "Optional Character and unlocking items",
+          "paragraphs": [
+            "The right-hand Optional Character slot accepts a character marked Trial Character or one whose linked unlocking Item is held by a character in the main party. A character can occupy only one position. The optional member is marked in the main party when applied and follows the four main positions on the combat HUD.",
+            "The GM sets Unlocking item under Character → Party membership on each character’s HSR settings. Drag an Item from a character inventory, the Items directory or a compendium. The Item’s exact identity or preserved source is matched; an unrelated Item with the same name does not count. Quantities of zero and Items held only by inactive characters do not unlock it.",
+            "Inventory changes update availability while Party Setup is open. Removing the last eligible unlocking Item prevents the character from being saved or applied, including through an old preset. It does not silently remove a character from a running party. Trial Character remains an independent eligibility option."
           ]
         }
       ],

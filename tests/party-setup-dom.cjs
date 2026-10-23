@@ -10,14 +10,14 @@ const assert=require('node:assert/strict'),{JSDOM}=require(process.env.JSDOM_MOD
  }
  const gm={id:'gm',isGM:true,active:true},alice={id:'alice',isGM:false,active:true},ben={id:'ben',isGM:false,active:true};
  const collection=rows=>{rows.get=id=>rows.find(row=>row.id===id);return rows};
- const actors=collection(['a','b','c','d','e'].map(id=>({id,uuid:'Actor.'+id,documentName:'Actor',type:'character',name:id.toUpperCase(),img:id+'.png',flags:{[ID]:{ultimate:{mainParty:id!=='e'}}},getFlag(scope,key){return this.flags[scope]?.[key]},async setFlag(scope,key,value){(this.flags[scope]??={})[key]=structuredClone(value);Hooks.callAll('updateActor',this,{flags:{[scope]:{[key]:value}}});},testUserPermission(user,level){return user?.isGM||level==='OBSERVER'||user?.id===(id==='a'?'alice':'ben')},async update(changes){if(Object.hasOwn(changes,`flags.${ID}.ultimate.mainParty`))this.flags[ID].ultimate.mainParty=changes[`flags.${ID}.ultimate.mainParty`];}})));
+ const actors=collection(['a','b','c','d','e'].map(id=>({id,uuid:'Actor.'+id,documentName:'Actor',type:'character',name:id.toUpperCase(),img:id+'.png',flags:{[ID]:{ultimate:{mainParty:id!=='e'}}},getFlag(scope,key){return this.flags[scope]?.[key]},async setFlag(scope,key,value){(this.flags[scope]??={})[key]=structuredClone(value);Hooks.callAll('updateActor',this,{flags:{[scope]:{[key]:value}}});},testUserPermission(user,level){return user?.isGM||level==='OBSERVER'||user?.id===(id==='a'?'alice':'ben')},async update(changes){for(const key of ['mainParty','unlockingItem'])if(Object.hasOwn(changes,`flags.${ID}.ultimate.${key}`))this.flags[ID].ultimate[key]=changes[`flags.${ID}.ultimate.${key}`];Hooks.callAll('updateActor',this,changes);}})));
  const settings={partySetup:{configured:true,revision:1,slots:['a','b','c','d'],requiredActorIds:[],requirementsEnabled:false},partySelections:{alice:'a',ben:'b'}};
  globalThis.game={user:gm,users:collection([gm,alice,ben]),actors,settings:{get:(_,key)=>settings[key],async set(_,key,value){settings[key]=structuredClone(value);Hooks.callAll('updateSetting',{key:ID+'.'+key});}},socket:{on(){},emit(){}}};
  globalThis.foundry={utils:{randomID:()=>String(Math.random())},applications:{api:{ApplicationV2:App},apps:{FilePicker:class{constructor(options){this.options=options}browse(){this.options.callback('picked.png')}}}}};
  const notices=[];globalThis.ui={notifications:{error:m=>notices.push(m),warn:m=>notices.push(m),info:m=>notices.push(m)}};
  globalThis.fromUuid=async uuid=>actors.find(actor=>actor.uuid===uuid)||null;
  const root=path.resolve(__dirname,'..'),module=await import(pathToFileURL(path.join(root,'scripts/party-setup.mjs')));
- const api={refreshCombatPartyHud:()=>{document.querySelector('#hud').textContent=settings.partySetup.slots.join(',')}};module.installPartySetup(api);
+ const api={refreshCombatPartyHud:()=>{document.querySelector('#hud').textContent=[...settings.partySetup.slots,settings.partySetup.optionalActorId].filter(Boolean).join(',')}};module.installPartySetup(api);
  const settle=async()=>{for(let i=0;i<12;i++)await new Promise(setImmediate)};
  const change=async(selector,value)=>{const input=document.querySelector(selector);assert.ok(input,selector);if(input.type==='checkbox')input.checked=value;else input.value=value;input.dispatchEvent(new Event('change',{bubbles:true}));await settle()};
  const app=api.openPartySetup();await settle();assert.equal(document.querySelectorAll('[data-party-slot]').length,4);
@@ -38,6 +38,24 @@ const assert=require('node:assert/strict'),{JSDOM}=require(process.env.JSDOM_MOD
  document.querySelector('[data-party-art-browse="2"]').click();assert.equal(document.querySelector('[data-party-art-index="2"][data-party-art-field="image"]').value,'picked.png');
  const {validateHelp}=await import(pathToFileURL(path.join(root,'scripts/help-data.mjs'))),{describeHelp}=await import(pathToFileURL(path.join(root,'scripts/help-tooltips.mjs'))),help=validateHelp(JSON.parse(await fs.readFile(path.join(root,'docs/manual.json'))),JSON.parse(await fs.readFile(path.join(root,'docs/controls.json'))));
  for(const node of document.querySelectorAll('.tsru-party-artwork-editor button,.tsru-party-artwork-editor input,.tsru-party-artwork-editor select')){const entry=describeHelp(node,help);assert.ok(entry&&!entry.fallback,node.outerHTML);}
- assert.deepEqual(notices.filter(message=>/failed|rejected|error/i.test(message)),[]);await artwork.close();dom.window.close();
+
+ await artwork.close();
+ const companion={...actors.get('a'),id:'f',uuid:'Actor.f',name:'Unlocked Companion',items:[],flags:{[ID]:{ultimate:{mainParty:false}}}};actors.push(companion);
+ const item={uuid:'Item.invitation',documentName:'Item',name:'Companion Invitation',img:'key.webp',flags:{},system:{quantity:1},async setFlag(scope,key,value){(this.flags[scope]??={})[key]=value;}};
+ actors.get('a').items=[{uuid:'Actor.a.Item.copy',_stats:{duplicateSource:item.uuid},system:{quantity:1},parent:actors.get('a')}];
+ fromUuid=async uuid=>uuid===item.uuid?item:actors.find(actor=>actor.uuid===uuid)||null;
+ const template=await fs.readFile(path.join(root,'templates/ultimate-tab.hbs'),'utf8'),field=template.match(/<div class="tsru-field tsru-field-wide tsru-party-unlock-control">[\s\S]*?<\/div><\/div>/)[0],sheet=document.createElement('section');sheet.className='tsru-sheet-tab';sheet.innerHTML=field;document.body.append(sheet);module.bindPartyUnlockingItem(companion,sheet);
+ const zone=sheet.querySelector('[data-party-unlock-item]'),dropItem=new Event('drop',{bubbles:true,cancelable:true});Object.defineProperty(dropItem,'dataTransfer',{value:{getData:()=>JSON.stringify({type:'Item',uuid:item.uuid})}});zone.dispatchEvent(dropItem);await settle();
+ assert.equal(companion.getFlag(ID,'ultimate').unlockingItem.uuid,item.uuid);assert.equal(zone.querySelector('[data-party-unlock-open]').textContent,item.name);
+ const refined=api.openPartySetup();await settle();assert.equal(document.querySelectorAll('[data-party-preset]').length,6);assert.ok(document.querySelector('[data-party-optional] option[value="f"]'));
+ document.querySelector('[data-party-preset="1"]').click();await settle();await change('[data-party-slot="0"]','c');await change('[data-party-optional]','f');
+ const name=document.querySelector('[data-party-preset-name]');name.value='Companion team';name.dispatchEvent(new Event('input',{bubbles:true}));
+ const original=[...settings.partySetup.slots];document.querySelector('[data-party-save-preset]').click();await settle();assert.deepEqual(settings.partySetup.slots,original);assert.equal(settings.partySetup.presets[1].name,'Companion team');assert.equal(settings.partySetup.presets[1].optionalActorId,'f');
+ document.querySelector('[data-party-preset="2"]').click();await settle();document.querySelector('[data-party-preset="1"]').click();await settle();assert.equal(refined.optionalActorId,'f');assert.equal(refined.presetName,'Companion team');
+ document.querySelector('[data-party-lock]').click();await settle();assert.equal(settings.partySetup.activePreset,1);assert.equal(settings.partySetup.optionalActorId,'f');assert.equal(companion.getFlag(ID,'ultimate').mainParty,true);assert.match(document.querySelector('#hud').textContent,/,f$/);
+ const copy=actors.get('a').items[0];copy.system.quantity=0;Hooks.callAll('updateItem',copy);await settle();assert.equal(document.querySelector('[data-party-lock]').disabled,true);copy.system.quantity=1;Hooks.callAll('updateItem',copy);await settle();assert.equal(document.querySelector('[data-party-lock]').disabled,false);
+ for(const node of document.querySelectorAll('.tsru-party-setup button,.tsru-party-setup input,.tsru-party-setup select,.tsru-party-unlock-control button,[data-party-unlock-item]')){const entry=describeHelp(node,help);assert.ok(entry&&!entry.fallback,node.outerHTML);}
+ zone.querySelector('[data-party-unlock-clear]').click();await settle();assert.equal(companion.getFlag(ID,'ultimate').unlockingItem,null);assert.equal(document.querySelector('[data-party-lock]').disabled,true);
+ assert.deepEqual(notices.filter(message=>/failed|rejected|error/i.test(message)),[]);await refined.close();dom.window.close();
  console.log('PASS: actual Party Setup Application controls, occupied-slot swaps, four Actor requirements, preserved lineup drafts, lock gating, shared HUD refresh, stale reload, player controls, four artwork fields, file picker and authored help.');
 })().catch(error=>{console.error(error);process.exitCode=1});

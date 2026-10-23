@@ -100,6 +100,7 @@ const DEFAULT_CONFIG = Object.freeze({
   talentText: "",
   talentIcon: "",
   trialCharacter: false,
+  unlockingItem: null,
   combatHudPortrait: "",
   combatHudPortraitX: 50,
   combatHudPortraitY: 50,
@@ -7372,6 +7373,7 @@ async function saveUltimateConfigFromTab(actor, tab, {notify = false, renderApp 
   delete configUpdate.skillSummons;
   delete configUpdate.skillSpell;
   delete configUpdate.ultimateSummons;
+  delete configUpdate.unlockingItem;
   // Element controls save independent dotted flags; pending drafts must not restore an old mode or live Element.
   delete configUpdate.multitypeEnabled;
   delete configUpdate.multitypeMode;
@@ -7400,6 +7402,7 @@ function activateConfigListeners(actor, tab, app) {
   });
   arrangeUltimateSettings(tab);
   bindAbilitySummonSettings(actor, tab[0]);
+  partySetup.bindPartyUnlockingItem(actor,tab[0]);
   skillSpells.bindSkillSpellSettings(actor, tab[0]);
   initializeCollapsibleUltimateSections(actor, tab);
   const updateEnhancedFields=()=>{const enabled=tab.find('[name="enhancedUltimateEnabled"]').prop("checked");tab.find(".tsru-enhanced-ultimate-fields").prop("hidden",!enabled).find("input,textarea,button").prop("disabled",!enabled);};

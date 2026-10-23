@@ -8760,6 +8760,69 @@
       "label": "Shared Party Setup",
       "description": "Open the communal four-position party lineup. Saved positions determine the combat HUD order for everyone; players keep their active characters and the GM can require specific members.",
       "topic": "party"
+    },
+    {
+      "id": "party-refinement--preset",
+      "kind": "action",
+      "scope": "party-setup",
+      "selector": "[data-party-preset]",
+      "label": "Load party preset",
+      "description": "Load this numbered party configuration as a draft. Saved members, positions and the optional character are restored; Lock in changes validates player protection, Party Requires and unlocking items before applying it.",
+      "topic": "party"
+    },
+    {
+      "id": "party-refinement--preset-name",
+      "kind": "action",
+      "scope": "party-setup",
+      "selector": "[data-party-preset-name]",
+      "label": "Party preset name",
+      "description": "Name the selected shared party configuration. Save preset stores its draft without changing the active lineup; Lock in changes saves and applies it.",
+      "topic": "party"
+    },
+    {
+      "id": "party-refinement--save-preset",
+      "kind": "action",
+      "scope": "party-setup",
+      "selector": "[data-party-save-preset]",
+      "label": "Save party preset",
+      "description": "Save this formation into the selected numbered preset without changing the active party. The GM validates required members, active player characters and item unlocks before saving.",
+      "topic": "party"
+    },
+    {
+      "id": "party-refinement--optional",
+      "kind": "action",
+      "scope": "party-setup",
+      "selector": "[data-party-optional]",
+      "label": "Optional Character",
+      "description": "Choose one extra Trial Character or a character whose exact unlocking Item is held by the main party. A character cannot occupy a main position and the optional slot together. This member follows position four on the combat HUD.",
+      "topic": "party"
+    },
+    {
+      "id": "party-refinement--unlock-item",
+      "kind": "action",
+      "scope": "character",
+      "selector": "[data-party-unlock-item]",
+      "label": "Unlocking item",
+      "description": "The GM drops an Item here to link it to this character. A main-party character must hold that Item or an owned copy with the same source. Matching names alone do not unlock a character. Trial Characters are independently available in the optional slot.",
+      "topic": "party"
+    },
+    {
+      "id": "party-refinement--unlock-open",
+      "kind": "action",
+      "scope": "character",
+      "selector": "[data-party-unlock-open]",
+      "label": "Open unlocking Item",
+      "description": "Open the linked Item sheet. The character becomes selectable while an eligible main-party inventory holds this Item or a copy preserving its source.",
+      "topic": "party"
+    },
+    {
+      "id": "party-refinement--unlock-clear",
+      "kind": "action",
+      "scope": "character",
+      "selector": "[data-party-unlock-clear]",
+      "label": "Clear unlocking Item",
+      "description": "Remove this character’s Item requirement without deleting the Item. A character without a linked unlocking Item is not eligible for the optional slot unless marked Trial Character.",
+      "topic": "party"
     }
   ]
 }
