@@ -254,8 +254,6 @@ const state = {
 state.craftingApp = null;
 state.craftingLocks = new Set();
 state.initiativeCarousel = null;
-state.bossTransitionVisuals = 0;
-state.bossTransitionVisualsUntil = 0;
 
 let ahaToolbarOpening = false;
 let gmToolbarOpening = false;
@@ -3322,6 +3320,7 @@ function bossEncounter(combatant) {
 }
 
 const bossEncounterJobs=new Map();
+const bossTransitionTokenVisuals=new Map();
 const bossKey=combatant=>combatant?.uuid??`${combatant?.parent?.id}:${combatant?.id}`;
 function liveBossCombatant(combatant){
   const combat=combatant?.parent,token=combatant?.token;
@@ -3385,6 +3384,8 @@ async function overwriteBossActor(target, sourceData, encounter, {restore=false}
   const replaceFlag=(key,value)=>({...value,...Object.fromEntries(Object.keys(target.getFlag(MODULE_ID,key)??{}).filter(key=>!Object.hasOwn(value,key)).map(key=>[`-=${key}`,null]))});
   const update={name:data.name,img:data.img,system:data.system,[`flags.${MODULE_ID}.ultimate`]:replaceFlag("ultimate",restore ? phaseConfig : rootConfig),[`flags.${MODULE_ID}.toughness`]:replaceFlag("toughness",rootToughness)};
   const sourceUuid=data._id?`Actor.${data._id}`:null;
+  const portraitSource=restore?foundry.utils.getProperty(data,`flags.${MODULE_ID}.bossPhaseSourceUuid`):sourceUuid;
+  update[`flags.${MODULE_ID}.${portraitSource?"bossPhaseSourceUuid":"-=bossPhaseSourceUuid"}`]=portraitSource||null;
   if(!restore)for(const effect of [...(data.effects??[]),...(data.items??[]).flatMap(item=>item.effects??[])])if(sourceUuid&&effect.origin?.startsWith(sourceUuid+"."))effect.origin=target.uuid+effect.origin.slice(sourceUuid.length);
   await target.update(update,{render:false,animate:false,tsruBossTransition:true});
   const itemIds=target.items?.map(item=>item.id) ?? [];
@@ -3405,8 +3406,6 @@ async function replaceBossPhase(combatant,nextActor,encounter) {
   if(!token || !nextActor || !actor)return false;
   const nextData=nextActor.toObject();
   const texture=nextActor.prototypeToken?.texture?.src || nextActor.img || token.texture?.src;
-  state.bossTransitionVisuals++;
-  try{
     await overwriteBossActor(actor,nextData,encounter);
     if(!liveBossCombatant(combatant))return false;
     const hp=actor.system?.attributes?.hp;
@@ -3420,7 +3419,6 @@ async function replaceBossPhase(combatant,nextActor,encounter) {
     await token.update({name:nextActor.name,"texture.src":texture,width,height},{animate:false,render:false,tsruBossTransition:true});
     if(!liveBossCombatant(combatant))return false;
     await combatant.update({name:nextActor.name,img:texture,defeated:false,[`flags.${MODULE_ID}.bossEncounter`]:encounter},{render:false,animate:false,tsruBossTransition:true});
-  }finally{state.bossTransitionVisuals=Math.max(0,state.bossTransitionVisuals-1);state.bossTransitionVisualsUntil=Date.now()+1500;}
   refreshBossHud();
   refreshInitiativeCarousel();
   ui.notifications.info(`${nextActor.name} entered boss phase ${encounter.currentPhase}.`);
@@ -3458,15 +3456,12 @@ async function switchBossPhase(combatant,phase) {
   if(phase>1 && !nextActor)return ui.notifications.warn(`No actor is configured for boss phase ${phase}.`);
   encounter.currentPhase=phase;
   if(phase===1){
-    state.bossTransitionVisuals++;
-    try{
       await overwriteBossActor(combatant.actor,encounter.originalActorData,encounter,{restore:true});
       await combatant.token?.update({name:encounter.originalActorData.name,"texture.src":encounter.originalTokenTexture,width:encounter.originalTokenWidth||1,height:encounter.originalTokenHeight||1},{animate:false,render:false,tsruBossTransition:true});
       if(!liveBossCombatant(combatant))return;
       await combatant.actor.toggleStatusEffect?.("dead",{active:false});
       await combatant.actor.toggleStatusEffect?.("unconscious",{active:false});
       await combatant.update({name:encounter.originalActorData.name,img:encounter.originalTokenTexture,defeated:false,[`flags.${MODULE_ID}.bossEncounter`]:encounter},{render:false,animate:false,tsruBossTransition:true});
-    }finally{state.bossTransitionVisuals=Math.max(0,state.bossTransitionVisuals-1);state.bossTransitionVisualsUntil=Date.now()+1500;}
   }else await replaceBossPhase(combatant,nextActor,encounter);
   state.bossPhaseControl?.render();
   refreshBossHud();refreshInitiativeCarousel();
@@ -3477,6 +3472,8 @@ async function withBossTransition(combatant,work){
   const key=bossKey(combatant);if(state.bossTransitionLocks.has(key)||!liveBossCombatant(combatant))return;
   state.bossTransitionLocks.add(key);
   const actorData=combatant.actor?.toObject(),token=combatant.token;
+  for(const [key,entry]of bossTransitionTokenVisuals)if(entry.expires<Date.now())bossTransitionTokenVisuals.delete(key);
+  const visual={token,x:token.x,y:token.y,width:token.width,height:token.height,expires:Infinity};bossTransitionTokenVisuals.set(key,visual);
   const tokenData={name:token.name,"texture.src":token.texture?.src,width:token.width,height:token.height};
   const saved=foundry.utils.deepClone(combatant.getFlag(MODULE_ID,"bossEncounter"));
   const defeated=combatant.defeated;
@@ -3491,7 +3488,19 @@ async function withBossTransition(combatant,work){
       }catch(rollbackError){console.error(`${MODULE_ID} | Could not restore the previous boss phase`,rollbackError);}
     }
     console.error(`${MODULE_ID} | Boss phase transition failed`,error);ui.notifications.error(`Boss phase transition failed: ${error.message}`);
-  }finally{state.bossTransitionLocks.delete(key);refreshBossHud();refreshInitiativeCarousel();}
+  }finally{visual.expires=Date.now()+1500;state.bossTransitionLocks.delete(key);refreshBossHud();refreshInitiativeCarousel();}
+}
+
+function suppressBossTransitionText(origin,options){
+  if(options?.tsruBossTransition)return true;
+  for(const [key,entry]of bossTransitionTokenVisuals){
+    if(entry.expires<Date.now()){bossTransitionTokenVisuals.delete(key);continue;}
+    const token=entry.token,size=Number(token.parent?.grid?.size)||100;
+    const left=Math.min(entry.x,token.x)-8,top=Math.min(entry.y,token.y)-8;
+    const right=Math.max(entry.x+entry.width*size,token.x+token.width*size)+8,bottom=Math.max(entry.y+entry.height*size,token.y+token.height*size)+8;
+    if(origin?.x>=left&&origin.x<=right&&origin.y>=top&&origin.y<=bottom)return true;
+  }
+  return false;
 }
 
 async function handleBossPhaseDefeat(actor) {
@@ -5604,7 +5613,7 @@ function installDamageScrollingTextOverride() {
     const original = layer.createScrollingText;
     Object.defineProperty(layer, "__tsruDamageTextOriginal", {value:original, configurable:true});
     layer.createScrollingText = function(origin, content, options = {}) {
-      if(state.bossTransitionVisuals>0 || state.bossTransitionVisualsUntil>Date.now() || options?.tsruBossTransition)return Promise.resolve();
+      if(suppressBossTransitionText(origin,options))return Promise.resolve();
       const numeric = /^[+\-−]?\s*\d+(?:\.\d+)?$/.test(String(content ?? "").trim());
       if (!numeric || state.customDamageScrollingText) return original.call(this, origin, content, options);
       const recent = state.lastDamageDisplay?.expires > Date.now() ? state.lastDamageDisplay : null;
@@ -8751,7 +8760,7 @@ Hooks.on("deleteCombat", async combat => {
   state.bossHud?.destroy();
   state.bossPhaseControl?.destroy();
   state.initiativeCarousel?.destroy();
-  state.bossTransitionLocks.clear();
+  for(const combatant of combat.combatants??[]){state.bossTransitionLocks.delete(bossKey(combatant));bossTransitionTokenVisuals.delete(bossKey(combatant));}
   state.punchlineMeter?.destroy();
   state.skillMeter?.destroy();
   await dispatchTalentEvent("combatEnd", {combat}, combat.id);

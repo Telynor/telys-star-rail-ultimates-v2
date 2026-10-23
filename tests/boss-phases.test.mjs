@@ -17,7 +17,7 @@ function merge(target,patch){
 function bossWorld({linked=false,twins=false}={}){
   const w=world();
   w.context.fromUuid=globalThis.fromUuid;
-  vm.runInContext('globalThis.bossApi={bossEncounter,ensureBossEncounter,handleBossPhaseDefeat,switchBossPhase,BossPhaseControl,state};',w.context);
+  vm.runInContext('globalThis.bossApi={bossEncounter,ensureBossEncounter,handleBossPhaseDefeat,switchBossPhase,BossPhaseControl,installDamageScrollingTextOverride,state};',w.context);
   const api=w.context.bossApi;
   function actor(id,{hp=100,phase=1,uuid=`Actor.${id}`,isToken=false}={}){
     const data={_id:id,type:'npc',name:`Boss ${phase}`,img:`phase${phase}.png`,prototypeToken:{texture:{src:`token${phase}.png`},width:phase,height:phase},
@@ -43,7 +43,7 @@ function bossWorld({linked=false,twins=false}={}){
   w.game.combats.push(combat);w.game.combat=combat;
   function participant(id){
     let own=actor('boss',{uuid:`Scene.map.Token.${id}.Actor.boss`,isToken:true});
-    const token={id,uuid:`Scene.map.Token.${id}`,parent:w.scene,actorId:root.id,actorLink:linked,name:root.name,texture:{src:'original-token.png'},width:2,height:1,
+    const token={id,uuid:`Scene.map.Token.${id}`,parent:w.scene,actorId:root.id,actorLink:linked,name:root.name,texture:{src:'original-token.png'},x:100,y:100,width:2,height:1,
       get actor(){return this.actorLink?root:own},async update(patch){merge(this,patch);return this;}};
     own.token=token;
     const c={id:`turn-${id}`,uuid:`Combat.boss-fight.Combatant.turn-${id}`,parent:combat,token,initiative:17,defeated:false,flags:{},get actor(){return token.actor},
@@ -145,4 +145,20 @@ test('rendering a stored boss encounter does not clone its Actor inventory again
   const w=bossWorld();await w.api.ensureBossEncounter(w.first);
   w.first.actor.toObject=()=>{throw Error('HUD must not resnapshot inventory');};
   for(let i=0;i<50;i++)assert.equal(w.api.bossEncounter(w.first).currentPhase,1);
+});
+test('initiative artwork follows the active phase source and returns to the root portrait on phase 1',async()=>{
+  const w=bossWorld();w.root.flags[ID].ultimate.carouselImage='root-initiative.png';w.phase2.flags[ID].ultimate.carouselImage='phase2-initiative.png';
+  await w.api.ensureBossEncounter(w.first);await w.api.switchBossPhase(w.first,2);
+  assert.equal(w.context.api.getConfig(w.first.actor).carouselImage,'phase2-initiative.png');
+  await w.api.switchBossPhase(w.first,1);assert.equal(w.context.api.getConfig(w.first.actor).carouselImage,'root-initiative.png');
+});
+test('boss transition text suppression leaves unrelated tokens damage text visible',async()=>{
+  const w=bossWorld();await w.api.ensureBossEncounter(w.first);const forwarded=[];
+  w.context.canvas.interface={createScrollingText:(...args)=>{forwarded.push(args);return Promise.resolve();}};
+  w.api.state.customDamageScrollingText=true;w.api.installDamageScrollingTextOverride();
+  w.first.actor.onUpdate=async()=>{
+    await w.context.canvas.interface.createScrollingText({x:200,y:150},'-20');
+    await w.context.canvas.interface.createScrollingText({x:900,y:900},'-10');
+  };
+  await w.api.switchBossPhase(w.first,2);assert.equal(forwarded.length,1);assert.equal(forwarded[0][1],'-10');
 });

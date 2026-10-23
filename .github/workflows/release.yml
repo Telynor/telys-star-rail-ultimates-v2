@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Telynor/telys-memosprites
-          ref: c3c9db0442df245aecfd3b3d25dcbeb18de37bc3
+          ref: effdebd448e35e4c4d3440e14d47bd65d325bfc0
           path: .test-memosprites
           persist-credentials: false
 

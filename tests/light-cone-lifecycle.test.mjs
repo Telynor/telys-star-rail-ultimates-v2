@@ -71,3 +71,7 @@ test('stat evaluation reads each combatant config once and sees changed resource
   assert.equal(configReads.size,21);assert.ok([...configReads.values()].every(count=>count===1));
   actor.flags[FLAG].stacks.erodeSpeed=4;assert.equal(snapshot(actor).speed,20);
 });
+test('a deleted combat still referenced by a client cannot reapply prepared bonuses',()=>{
+  const {actor,combat}=encounter('stale-pointer');actor.reset();assert.equal(actor.system.attributes.movement.walk,45);
+  game.combats.delete(combat.id);actor.reset();assert.equal(actor._lightConeStats,undefined);assert.equal(actor.system.attributes.movement.walk,30);
+});

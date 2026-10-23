@@ -171,7 +171,7 @@ export function snapshot(a, target = null, event = {}) {
 }
 function snapshotFor(a, target = null, event = {}) {
   const c = cone(a);
-  if (!game.combat?.started) return {};
+  if (!game.combat?.started || !liveCombat(game.combat)) return {};
   const x = context(a, target, event);
   x.buffs = liveBuffs(a);
   if (number(a.system?.attributes?.hp?.temp) <= 0) delete x.buffs.journeyShield;
@@ -1772,7 +1772,7 @@ async function endTurn(a) {
 }
 function prepared(a) {
   delete a._lightConeStats;
-  if (!api || !game.combat?.started) return;
+  if (!api || !game.combat?.started || !liveCombat(game.combat)) return;
   const o = snapshot(a);
   a._lightConeStats = o;
   const attr = a.system?.attributes;
