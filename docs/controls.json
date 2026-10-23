@@ -258,6 +258,18 @@
       "selector": ".tsru-actor-config-controls",
       "topic": "npc-controls",
       "label": "Compact Actor sheet controls"
+    },
+    {
+      "id": "party-setup",
+      "selector": ".tsru-party-setup",
+      "topic": "party",
+      "label": "Shared Party Setup"
+    },
+    {
+      "id": "party-artwork",
+      "selector": ".tsru-party-artwork-editor",
+      "topic": "party",
+      "label": "Party Slot Artwork"
     }
   ],
   "fields": [
@@ -8550,6 +8562,195 @@
       "label": "Other: compendium spell",
       "description": "Drop a spell Item from a compendium. The first cast imports an owned copy onto this character; subsequent casts reuse it. Actors, features and world Items are rejected. The source compendium is unchanged.",
       "topic": "skill-spells"
+    },
+    {
+      "id": "party-position--0",
+      "kind": "action",
+      "scope": "party-setup",
+      "selector": "[data-party-slot]",
+      "label": "Position character",
+      "description": "Choose this position’s world character. Choosing a member already in another position swaps the two slots. Active player characters and GM-locked members cannot be removed by players.",
+      "topic": "party"
+    },
+    {
+      "id": "party-position--1",
+      "kind": "action",
+      "scope": "party-setup",
+      "selector": "[data-party-lock]",
+      "label": "Lock in shared lineup",
+      "description": "Save the four positions for all clients and apply their order to the combat party HUD. Missing required characters, protected members or a stale draft prevent the save.",
+      "topic": "party"
+    },
+    {
+      "id": "party-position--2",
+      "kind": "action",
+      "scope": "party-setup",
+      "selector": "[data-party-swap]",
+      "label": "Swap slots",
+      "description": "Swap your active character with the chosen position, preserving both party members. The GM can choose any two positions. Lock in changes applies the draft to everyone.",
+      "topic": "party"
+    },
+    {
+      "id": "party-position--3",
+      "kind": "action",
+      "scope": "party-setup",
+      "selector": "[data-party-swap-from]",
+      "label": "Swap from position",
+      "description": "GM only: choose the first of two positions to exchange. Swapping changes the draft until Lock in changes is pressed.",
+      "topic": "party"
+    },
+    {
+      "id": "party-position--4",
+      "kind": "action",
+      "scope": "party-setup",
+      "selector": "[data-party-swap-to]",
+      "label": "Swap with position",
+      "description": "Choose the position to exchange with your active character, or with the GM’s selected source position. Both characters stay in the lineup.",
+      "topic": "party"
+    },
+    {
+      "id": "party-position--5",
+      "kind": "action",
+      "scope": "party-setup",
+      "selector": "[data-party-reload]",
+      "label": "Reload current party",
+      "description": "Replace the local draft with the latest shared lineup and requirements. Use this after another client has saved a change.",
+      "topic": "party"
+    },
+    {
+      "id": "party-position--6",
+      "kind": "action",
+      "scope": "party-setup",
+      "selector": "[data-party-requires-enabled]",
+      "label": "Enforce Party Requires",
+      "description": "GM only: enable or disable the stored required-character list. Save Party Requires applies the toggle; turning it off keeps the list for later.",
+      "topic": "party"
+    },
+    {
+      "id": "party-position--7",
+      "kind": "action",
+      "scope": "party-setup",
+      "selector": "[data-party-required-slot]",
+      "label": "Required character sheet",
+      "description": "GM only: drag a world character Actor into this position. Up to four different exact characters can be required; NPCs, Items and compendium entries are rejected.",
+      "topic": "party"
+    },
+    {
+      "id": "party-position--8",
+      "kind": "action",
+      "scope": "party-setup",
+      "selector": "[data-party-clear-requirement]",
+      "label": "Remove required character",
+      "description": "GM only: remove this character from the draft requirement list. Save Party Requires applies the change.",
+      "topic": "party"
+    },
+    {
+      "id": "party-position--9",
+      "kind": "action",
+      "scope": "party-setup",
+      "selector": "[data-party-save-requirements]",
+      "label": "Save Party Requires",
+      "description": "Apply the GM’s required-character list and on/off toggle without locking a new lineup. A separately edited lineup draft is preserved.",
+      "topic": "party"
+    },
+    {
+      "id": "party-position--10",
+      "kind": "action",
+      "scope": "party-setup",
+      "selector": "[data-party-open-artwork], [data-party-artwork]",
+      "label": "Configure four-position artwork",
+      "description": "GM only: open four independent image settings for a character. Position 1–4 each selects its own artwork whenever that character occupies the matching slot.",
+      "topic": "party"
+    },
+    {
+      "id": "party-position--11",
+      "kind": "action",
+      "scope": "party-artwork",
+      "selector": "[data-party-art-actor]",
+      "label": "Artwork character",
+      "description": "Choose the world character whose four position images you want to edit. Each character has independent image paths and framing.",
+      "topic": "party"
+    },
+    {
+      "id": "party-position--12",
+      "kind": "action",
+      "scope": "party-artwork",
+      "selector": "[data-party-art-field=\"image\"]",
+      "label": "Position artwork path",
+      "description": "Choose the image for this character in this specific party position. An empty path uses the character portrait. The other three positions retain their own artwork.",
+      "topic": "party"
+    },
+    {
+      "id": "party-position--13",
+      "kind": "action",
+      "scope": "party-artwork",
+      "selector": "[data-party-art-field=\"x\"], [data-party-art-field=\"y\"]",
+      "label": "Position artwork alignment",
+      "description": "Align the image inside this position’s preview, from 0 to 100 percent on each axis. This changes party artwork framing only.",
+      "topic": "party"
+    },
+    {
+      "id": "party-position--14",
+      "kind": "action",
+      "scope": "party-artwork",
+      "selector": "[data-party-art-field=\"scale\"]",
+      "label": "Position artwork scale",
+      "description": "Scale this position’s image from 25 to 250 percent. Save the character’s artwork to share the new framing with the party.",
+      "topic": "party"
+    },
+    {
+      "id": "party-position--15",
+      "kind": "action",
+      "scope": "party-artwork",
+      "selector": "[data-party-art-field=\"flip\"]",
+      "label": "Flip position artwork",
+      "description": "Mirror this position’s character image horizontally. Each of the four variants has its own flip setting.",
+      "topic": "party"
+    },
+    {
+      "id": "party-position--16",
+      "kind": "action",
+      "scope": "party-artwork",
+      "selector": "[data-party-art-browse]",
+      "label": "Browse position artwork",
+      "description": "Choose or upload an image through Foundry storage for this character’s selected position. The other position images are unchanged.",
+      "topic": "party"
+    },
+    {
+      "id": "party-position--17",
+      "kind": "action",
+      "scope": "party-artwork",
+      "selector": "[data-party-art-drop]",
+      "label": "Drop position artwork",
+      "description": "Drop an uploaded image path or an Actor or Item to use its image in this specific position. Save artwork applies the four character variants.",
+      "topic": "party"
+    },
+    {
+      "id": "party-position--18",
+      "kind": "action",
+      "scope": "party-artwork",
+      "selector": "[data-party-art-save]",
+      "label": "Save character position artwork",
+      "description": "Save all four image paths, alignments, scales and flip settings for this character. Clients use the matching artwork when the character moves between party positions.",
+      "topic": "party"
+    },
+    {
+      "id": "party-position--19",
+      "kind": "action",
+      "scope": "party",
+      "selector": "[data-open-party-setup]",
+      "label": "Open shared Party Setup",
+      "description": "Open the communal four-position lineup, slot swapping and GM-required character list. Saved positions determine combat HUD order for all clients.",
+      "topic": "party"
+    },
+    {
+      "id": "party-position--hud-launcher",
+      "kind": "action",
+      "scope": "hud",
+      "selector": "[data-tsru-party-setup]",
+      "label": "Shared Party Setup",
+      "description": "Open the communal four-position party lineup. Saved positions determine the combat HUD order for everyone; players keep their active characters and the GM can require specific members.",
+      "topic": "party"
     }
   ]
 }

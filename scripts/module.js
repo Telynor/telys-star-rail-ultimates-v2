@@ -2,6 +2,7 @@ import * as multitype from "./multitype.mjs";
 import * as actorControls from "./actor-sheet-controls.mjs";
 import * as npcRules from "./npc-rules.mjs";
 import * as npcInitiative from "./npc-initiative.mjs";
+import * as partySetup from "./party-setup.mjs";
 import {openDocumentation,installDocumentationHelp} from './help-manual.mjs';
 import * as summoning from './ability-summons.mjs';
 import * as skillSpells from './ability-spells.mjs';
@@ -2194,7 +2195,7 @@ function plainAbilityText(value) {
 function selectedMainCharacter() {
   const localId = game.settings.get(MODULE_ID, "selectedMainCharacterId");
   const worldId = (game.settings.get(MODULE_ID, "partySelections") ?? {})[game.user.id];
-  const candidates=[localId,worldId,game.user.character?.id,canvas?.tokens?.controlled?.find(token=>token.actor?.type==="character" && token.actor.isOwner)?.actor?.id];
+  const candidates=[worldId,localId,game.user.character?.id,canvas?.tokens?.controlled?.find(token=>token.actor?.type==="character" && token.actor.isOwner)?.actor?.id];
   for(const actorId of candidates){const actor=game.actors.get(actorId);if(actor?.type==="character" && (game.user.isGM || actor.isOwner))return actor;}
   const owned=game.actors.filter(actor=>actor.type==="character" && actor.isOwner);
   return owned.length===1 ? owned[0] : null;
@@ -3927,6 +3928,8 @@ function combatPartyActors() {
     seen.add(actor.id);
     return true;
   }).map(combatant => combatant.actor);
+  const sharedSetup=game.modules.get(MODULE_ID)?.api?.partySetup;
+  if(sharedSetup?.getState().configured)return sharedSetup.orderCombatActors(actors);
   const partyActors=actors.filter(actor=>getConfig(actor).mainParty);
   const lineup=partyActors.length?partyActors:actors;
   const playerOwned = actor => game.users.some(user => !user.isGM && actor.testUserPermission(user, "OWNER"));
@@ -3989,6 +3992,7 @@ class CombatPartyHud {
       });
       this.element.addEventListener("click", async event => {
         const control = event.target.closest("[data-tsru-hud-control]");
+        if(event.target.closest("[data-tsru-party-setup]")){game.modules.get(MODULE_ID)?.api?.openPartySetup?.();return;}
         if (control) {
           const layout = combatPartyHudLayout();
           const action = control.dataset.tsruHudControl;
@@ -4025,7 +4029,7 @@ class CombatPartyHud {
       return this;
     }
     this.element.classList.remove("is-minimized");
-    this.element.innerHTML = `<header class="tsru-combat-party-controls"><span class="tsru-combat-party-drag" data-tsru-hud-drag title="Drag combat party HUD"><i class="fas fa-grip-lines"></i></span><button type="button" data-tsru-hud-control="smaller" title="Make HUD smaller"><i class="fas fa-minus"></i></button><span>${Math.round(layout.scale * 100)}%</span><button type="button" data-tsru-hud-control="larger" title="Make HUD larger"><i class="fas fa-plus"></i></button><button type="button" data-tsru-hud-control="minimize" title="Minimize party HUD"><i class="fas fa-window-minimize"></i></button></header><div class="tsru-combat-party-line">${actors.map(actor => {
+    this.element.innerHTML = `<header class="tsru-combat-party-controls"><span class="tsru-combat-party-drag" data-tsru-hud-drag title="Drag combat party HUD"><i class="fas fa-grip-lines"></i></span><button type="button" data-tsru-party-setup title="Open shared Party Setup" aria-label="Party Setup"><i class="fas fa-users"></i> Party Setup</button><button type="button" data-tsru-hud-control="smaller" title="Make HUD smaller"><i class="fas fa-minus"></i></button><span>${Math.round(layout.scale * 100)}%</span><button type="button" data-tsru-hud-control="larger" title="Make HUD larger"><i class="fas fa-plus"></i></button><button type="button" data-tsru-hud-control="minimize" title="Minimize party HUD"><i class="fas fa-window-minimize"></i></button></header><div class="tsru-combat-party-line">${actors.map(actor => {
       const config = getVisualConfig(actor);
       const hp = actor.system?.attributes?.hp ?? {};
       const hpValue = Math.max(0, Number(hp.value) || 0);
@@ -8307,6 +8311,7 @@ function registerApi() {
   skillSpells.installSkillSpellHooks();
   configureAlternateUltimates({isResolving: actor => state.ultimateLocks.has(actor.id)});
   game.modules.get(MODULE_ID).api = {
+    ...(game.modules.get(MODULE_ID).api??{}),
     summoning: {...summoning},
     openDocumentation,
     openAlternateOrbDesigner,
@@ -8366,6 +8371,7 @@ function registerApi() {
     setLocalMainCharacter,
     getSelectedMainCharacter: selectedMainCharacter,
     refreshResourceHuds,
+    refreshCombatPartyHud,
     getPunchline: currentPunchline,
     setPunchline,
     addPunchline,
@@ -8386,10 +8392,12 @@ function registerApi() {
     },
     showUltimateUI: () => showCombatPartyHud({notify: false})
   };
+  partySetup.installPartySetup(game.modules.get(MODULE_ID).api);
 }
 
 Hooks.once("init", () => {
   registerSettings();
+  partySetup.registerPartySetupSettings();
   Handlebars.registerHelper("add", (a, b) => Number(a) + Number(b));
   console.log(`${MODULE_ID} | Initialized`);
 });

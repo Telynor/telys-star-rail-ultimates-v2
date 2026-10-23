@@ -35,7 +35,8 @@
     "styles/character-settings.css",
     "styles/help.css",
     "styles/multitype.css",
-    "styles/actor-sheet-controls.css"
+    "styles/actor-sheet-controls.css",
+    "styles/party-setup.css"
   ],
   "languages": [
     {

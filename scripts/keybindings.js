@@ -7,6 +7,7 @@ const MENUS = [
   ["crafting", "Party Crafting", "openCrafting"],
   ["messenger", "HSR Messenger", "openMessenger"],
   ["character", "Main Character Selection", "openPartySelector"],
+  ["partySetup", "Party Setup", "openPartySetup"],
   ["sheet", "Selected Character Sheet", "openSelectedSheet"],
   ["inventory", "Selected Character Inventory", "openSelectedInventory"],
   ["kit", "Selected Character Kit", "openCheckKit"],

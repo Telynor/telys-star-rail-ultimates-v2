@@ -68,6 +68,7 @@ jobs:
           npm install --no-save --package-lock=false --no-audit --no-fund playwright jsdom
           npx playwright install --with-deps chromium --only-shell
           MEMOSPRITES_SOURCE_ROOT=.test-memosprites node tests/summon-settings-dom.cjs
+          node tests/party-setup-dom.cjs
           node tests/alternate-orb-ui.cjs
           node tests/ability-score-ui.cjs
           DND5E_SOURCE_ROOT=.test-dnd5e node tests/summoning-ui.cjs
@@ -75,6 +76,7 @@ jobs:
           node tests/multitype-ui.cjs
           PLANAR_SOURCE_ROOT=.test-planar node tests/npc-controls-ui.cjs
           DND5E_SOURCE_ROOT=.test-dnd5e MEMOSPRITES_SOURCE_ROOT=.test-memosprites node tests/memosprite-summoning-ui.cjs
+          node tests/party-setup-ui.cjs
 
       - name: Save orb designer screenshot
         if: always()
@@ -109,6 +111,9 @@ jobs:
             npc-initiative-smoke.png
             npc-controls-failure.png
             memosprite-summoning-failure.png
+            party-setup-shared.png
+            party-setup-artwork.png
+            party-setup-compact.png
           if-no-files-found: ignore
 
       - name: Create Foundry module ZIP
