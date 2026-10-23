@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {PARTY_ID as ID,normalizePartySetup,effectivePartySetup,partyIssues,swapPartySlots,choosePartySlot,planCharacterSelection,normalizePartyArtwork,partyArtworkFor,orderCombatPartyActors} from '../scripts/party-setup-rules.mjs';
+import {PARTY_ID as ID,normalizePartySetup,effectivePartySetup,partyIssues,swapPartySlots,choosePartySlot,planCharacterSelection,normalizePartyArtwork,partyArtworkFor,orderCombatPartyActors,optionalPartyActors,characterAvailability,unlockingItemDescriptor,partyActorDetails} from '../scripts/party-setup-rules.mjs';
 import {getPartySetup,applyPartySetupRequest,requestPartySetup,handlePartySetupSocket,savePartyArtwork} from '../scripts/party-setup.mjs';
 import {partySetupModel,renderPartySetup,renderPartyArtwork} from '../scripts/party-setup-ui.mjs';
 const collection=rows=>{rows.get=id=>rows.find(row=>row.id===id);return rows;};
@@ -17,7 +17,8 @@ function fixture({requires=true}={}){
   return {gm,alice,ben,actors,users,state,settings,messages,context:{actors,users,selections:settings.partySelections}};
 }
 test('the world stores four distinct positions and preserves the required list when disabled',()=>{
-  assert.deepEqual(normalizePartySetup({slots:['a','b'],requiredActorIds:['c','c','d'],requirementsEnabled:false}),{configured:false,revision:0,slots:['a','b','',''],requirementsEnabled:false,requiredActorIds:['c','d']});
+  const value=normalizePartySetup({slots:['a','b'],requiredActorIds:['c','c','d'],requirementsEnabled:false});
+  assert.deepEqual(value.slots,['a','b','','']);assert.equal(value.configured,false);assert.equal(value.revision,0);assert.equal(value.requirementsEnabled,false);assert.deepEqual(value.requiredActorIds,['c','d']);assert.equal(value.presets.length,6);assert.equal(value.optionalActorId,'');
 });
 test('legacy parties open as a four-slot draft without writing or changing membership',()=>{
   const w=fixture();const before=structuredClone(w.settings);const value=effectivePartySetup({},w.context);
@@ -135,4 +136,59 @@ test('a backend failure after applying a partial write still rolls back party me
   actor.update=async function(patch){await update.call(this,patch);if(fail){fail=false;throw Error('Post-update failure');}};
   await assert.rejects(applyPartySetupRequest('selectCharacter',{actorId:'e'},w.alice),/Post-update failure/);
   assert.equal(actor.getFlag(ID,'ultimate').mainParty,true);assert.equal(w.settings.partySelections.alice,'a');assert.equal(w.settings.partySetup.revision,7);
+});
+
+test('legacy saved lineups migrate into preset 01 without changing the applied party',()=>{
+ const w=fixture(),state=normalizePartySetup(w.state);assert.equal(state.activePreset,0);assert.equal(state.presets.length,6);assert.deepEqual(state.presets[0].slots,w.state.slots);assert.equal(state.presets[0].saved,true);assert.equal(state.presets[1].saved,false);
+ state.presets[0].slots[0]='changed';assert.equal(state.slots[0],'a');assert.equal(w.state.slots[0],'a');
+});
+test('saving and applying a named preset are distinct shared operations',async()=>{
+ const w=fixture(),slots=['d','b','c','a'];await applyPartySetupRequest('savePreset',{revision:7,presetIndex:2,presetName:'Boss team',slots},w.alice);
+ assert.deepEqual(getPartySetup().slots,['a','b','c','d']);assert.equal(getPartySetup().presets[2].name,'Boss team');assert.deepEqual(getPartySetup().presets[2].slots,slots);assert.equal(getPartySetup().activePreset,0);
+ await applyPartySetupRequest('lineup',{revision:8,presetIndex:2,presetName:'Boss team',slots},w.alice);assert.equal(getPartySetup().activePreset,2);assert.deepEqual(getPartySetup().slots,slots);
+});
+test('preset saves reject stale revisions, invalid numbers and protected-character removal',async()=>{
+ const w=fixture();await assert.rejects(applyPartySetupRequest('savePreset',{revision:7,presetIndex:6,slots:w.state.slots},w.alice),/valid party preset/);
+ await assert.rejects(applyPartySetupRequest('savePreset',{revision:6,presetIndex:0,slots:w.state.slots},w.alice),/Reload/);
+ await assert.rejects(applyPartySetupRequest('savePreset',{revision:7,presetIndex:1,slots:['e','b','c','d']},w.alice),/Active player/);
+});
+const keyItem=(uuid='Item.key')=>({uuid,documentName:'Item',name:'Companion invitation',img:'invitation.webp',system:{quantity:1},flags:{}});
+function unlockFixture(){const w=fixture(),item=keyItem();w.actors.get('a').items=[item];w.actors.get('e').flags[ID].ultimate.unlockingItem=unlockingItemDescriptor(item);return {...w,item};}
+test('only trials and characters with their exact unlocking item can occupy the optional slot',()=>{
+ const w=fixture();assert.equal(optionalPartyActors(w.state,w.context).length,0);w.actors.get('e').flags[ID].ultimate.trialCharacter=true;
+ assert.deepEqual(optionalPartyActors(w.state,w.context).map(actor=>actor.id),['e']);assert.deepEqual(partyIssues(w.state.slots,w.state,w.context,w.alice,{optionalActorId:'e'}),[]);
+ assert.match(partyIssues(w.state.slots,w.state,w.context,w.gm,{optionalActorId:'d'}).join(' '),/only one slot|Trial Character/);
+});
+test('an unlocking item in any main-party inventory grants access to its linked character',()=>{
+ const w=unlockFixture();assert.equal(characterAvailability(w.actors.get('e'),w.state,w.context).unlocked,true);assert.equal(optionalPartyActors(w.state,w.context).some(actor=>actor.id==='e'),true);
+ w.actors.get('a').items=[];w.actors.get('c').items=[w.item];assert.equal(characterAvailability(w.actors.get('e'),w.state,w.context).unlocked,true);
+ w.actors.get('c').items=[];w.actors.get('e').items=[w.item];assert.equal(characterAvailability(w.actors.get('e'),w.state,w.context).unlocked,false,'an inactive character cannot unlock itself');
+});
+test('owned copies match compendium/world provenance; matching names and zero quantity do not grant access',()=>{
+ const w=unlockFixture(),source=keyItem('Compendium.demo.items.Item.key');w.actors.get('e').flags[ID].ultimate.unlockingItem=unlockingItemDescriptor(source);
+ w.actors.get('a').items=[{...keyItem('Actor.a.Item.copy'),_stats:{compendiumSource:source.uuid}}];assert.equal(characterAvailability(w.actors.get('e'),w.state,w.context).unlocked,true);
+ w.actors.get('a').items=[{...keyItem('Actor.a.Item.copy'),flags:{core:{sourceId:source.uuid}}}];assert.equal(characterAvailability(w.actors.get('e'),w.state,w.context).unlocked,true);
+ w.actors.get('a').items=[keyItem('Item.same-name')];assert.equal(characterAvailability(w.actors.get('e'),w.state,w.context).unlocked,false);
+ w.actors.get('a').items=[{...source,system:{quantity:0}}];assert.equal(characterAvailability(w.actors.get('e'),w.state,w.context).unlocked,false);
+});
+test('the GM cannot bypass an item lock and losing the final eligible holder blocks an apply',async()=>{
+ const w=unlockFixture();w.actors.get('a').items=[];
+ await assert.rejects(applyPartySetupRequest('lineup',{revision:7,slots:w.state.slots,optionalActorId:'e'},w.gm),/requires Companion invitation/);
+ w.actors.get('c').items=[w.item];await assert.rejects(applyPartySetupRequest('lineup',{revision:7,slots:['a','b','','d'],optionalActorId:'e'},w.gm),/requires Companion invitation/);
+ assert.deepEqual(w.settings.partySetup.slots,w.state.slots);
+});
+test('optional characters are included in membership, requirements, presets and the final HUD position',async()=>{
+ const w=unlockFixture();w.settings.partySetup.requiredActorIds=['c','e'];await applyPartySetupRequest('lineup',{revision:7,slots:w.state.slots,optionalActorId:'e',presetIndex:1},w.alice);
+ const state=getPartySetup();assert.equal(w.actors.get('e').flags[ID].ultimate.mainParty,true);assert.equal(state.presets[1].optionalActorId,'e');assert.deepEqual(orderCombatPartyActors(w.actors,state).map(a=>a.id),['a','b','c','d','e']);
+});
+test('a removed inventory key is rechecked during an asynchronous party apply and membership rolls back',async()=>{
+ const w=unlockFixture(),actor=w.actors.get('e'),update=actor.update.bind(actor);actor.update=async patch=>{await update(patch);if(patch[`flags.${ID}.ultimate.mainParty`])w.actors.get('a').items=[];};
+ await assert.rejects(applyPartySetupRequest('lineup',{revision:7,slots:w.state.slots,optionalActorId:'e'},w.gm),/requires Companion invitation/);assert.equal(actor.flags[ID].ultimate.mainParty,false);assert.equal(w.settings.partySetup.revision,7);
+});
+test('nameplates use sheet level and configured catalog images/names rather than raw Path IDs',()=>{
+ const w=fixture(),actor=w.actors.get('a');actor.system={details:{level:12}};Object.assign(actor.flags[ID].ultimate,{pathId:'custom-path-id',elementId:'custom-element-id',trialCharacter:true});
+ const ctx={...w.context,paths:[{id:'custom-path-id',name:'Remembrance',icon:'path.webp'}],elements:[{id:'custom-element-id',name:'Ice',icon:'ice.webp'}]};
+ const details=partyActorDetails(actor,ctx);assert.equal(details.level,12);assert.equal(details.pathName,'Remembrance');assert.equal(details.pathIcon,'path.webp');assert.equal(details.elementIcon,'ice.webp');
+ const html=renderPartySetup(partySetupModel({state:w.state,context:ctx,user:w.gm}));assert.match(html,/tsru-party-level/);assert.match(html,/>TRIAL</);assert.match(html,/src="ice.webp"/);assert.match(html,/src="path.webp"/);assert.ok(!html.includes('custom-path-id'));
+ assert.equal((html.match(/data-party-preset=/g)||[]).length,6);assert.match(html,/Optional Character/);assert.match(html,/tsru-party-floor-shadow/);
 });

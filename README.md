@@ -1,5 +1,13 @@
 # Tely's Star Rail Ultimates
 
+## Party presets, optional companions and floor shadows (preview.25)
+
+Party Setup now uses a shared starfield and floor, perspective-sized poses and shadows projected from each character’s selected artwork. Nameplates show sheet level, sheet name and Element image, with the configured Path image and name below. Trial Characters display a bold red **TRIAL** label.
+
+Use **01–06** to load shared party configurations. Name a preset and use **Save preset** to store it without changing active membership, or **Lock in changes** to save and apply it. Unsaved local drafts survive switching between presets while the window is open. Existing player protection, GM requirements and revision checks apply to every preset.
+
+The right-hand **Optional Character** slot accepts one Trial Character or an item-unlocked character. The GM links **Unlocking item** under **HSR Settings → Character → Party membership** by dropping an Item. That character becomes selectable when the main party holds the Item or a source-matched copy. Same-name Items, zero quantities and inactive holders do not unlock it. Inventory changes update the open party menu; the GM checks eligibility again when saving or applying a formation. The optional character follows the main four on the combat HUD.
+
 ## Shared Party Setup and encounter fixes (preview.24)
 
 Update Memosprites to **1.4.1** as well. Open **Party Setup** from the combat HUD, HSR toolbar, phone hub or main-character selector. Four position dropdowns and **Swap slots** arrange the shared party while protecting active player characters. **Lock in changes** saves the order used by every client's combat HUD. Concurrent edits preserve stale drafts and require reloading the current party before saving.
