@@ -63,12 +63,25 @@ jobs:
           path: .test-planar
           persist-credentials: false
 
-      - name: Test alternate orb designer in Chromium
+      - name: Install Chromium verification dependencies
+        timeout-minutes: 10
         run: |
           npm install --no-save --package-lock=false --no-audit --no-fund playwright jsdom
           npx playwright install --with-deps chromium --only-shell
+
+      - name: Test summon and Party Setup application controls
+        timeout-minutes: 3
+        run: |
           MEMOSPRITES_SOURCE_ROOT=.test-memosprites node tests/summon-settings-dom.cjs
           node tests/party-setup-dom.cjs
+
+      - name: Test shared Party Setup with two Chromium clients
+        timeout-minutes: 5
+        run: node tests/party-setup-ui.cjs
+
+      - name: Test existing module features in Chromium
+        timeout-minutes: 10
+        run: |
           node tests/alternate-orb-ui.cjs
           node tests/ability-score-ui.cjs
           DND5E_SOURCE_ROOT=.test-dnd5e node tests/summoning-ui.cjs
@@ -76,7 +89,6 @@ jobs:
           node tests/multitype-ui.cjs
           PLANAR_SOURCE_ROOT=.test-planar node tests/npc-controls-ui.cjs
           DND5E_SOURCE_ROOT=.test-dnd5e MEMOSPRITES_SOURCE_ROOT=.test-memosprites node tests/memosprite-summoning-ui.cjs
-          node tests/party-setup-ui.cjs
 
       - name: Save orb designer screenshot
         if: always()

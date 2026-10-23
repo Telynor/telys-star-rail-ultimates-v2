@@ -70,7 +70,9 @@ export function planCharacterSelection(state,context,user,actorId){
   const actor=actorById(context.actors,actorId);
   if(!user||user.isGM||actor?.type!=='character'||!actor.testUserPermission?.(user,'OWNER'))throw Error('Choose a character you own.');
   if(characterConfig(actor).partyGMOverride)throw Error('The GM has locked this character’s party status.');
-  const selections={...context.selections,[user.id]:actor.id},previous=selectedCharacterId(user,context.selections),slots=slotsOf(state.slots);
+  const selections={...context.selections,[user.id]:actor.id},slots=slotsOf(state.slots);
+  const ownedMembers=slots.filter(id=>actorById(context.actors,id)?.testUserPermission?.(user,'OWNER'));
+  const previous=selectedCharacterId(user,context.selections)||(ownedMembers.length===1?ownedMembers[0]:'');
   const stillSelected=actorList(context.users).some(other=>!other.isGM&&other.id!==user.id&&selectedCharacterId(other,selections)===previous);
   const previousLocked=characterConfig(actorById(context.actors,previous)).partyGMOverride;
   const oldIndex=slots.indexOf(previous),newIndex=slots.indexOf(actor.id);

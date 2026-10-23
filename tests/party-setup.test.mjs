@@ -119,6 +119,11 @@ test('legacy player-owned party members remain protected before a shared main se
   assert.match(partyIssues(['e','b','c','d'],w.state,ctx,w.alice).join(' '),/Active player characters/);
   const model=partySetupModel({state:w.state,context:ctx,user:w.alice,activeCharacterId:'a'});assert.equal(model.activeIndex,0);
 });
+test('a legacy player can change their sole party character before recording a shared selection',async()=>{
+  const w=fixture();w.settings.partySelections={ben:'b'};
+  await applyPartySetupRequest('selectCharacter',{actorId:'e'},w.alice);
+  assert.deepEqual(w.settings.partySetup.slots,['e','b','c','d']);assert.equal(w.settings.partySelections.alice,'e');
+});
 test('the GM can disable requirements while retaining a deleted character reference for later repair',async()=>{
   const w=fixture();w.actors.splice(w.actors.indexOf(w.actors.get('c')),1);
   await applyPartySetupRequest('requirements',{revision:7,requiredActorIds:['c'],requirementsEnabled:false},w.gm);
