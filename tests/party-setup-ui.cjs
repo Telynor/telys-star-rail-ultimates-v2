@@ -33,7 +33,7 @@ window.fixture={state:()=>structuredClone(settings.partySetup),order:()=>[...doc
 window.ready=true;
 `;
  const server=http.createServer(async(req,res)=>{try{
-  const pathname=new URL(req.url,'http://local').pathname;
+  const pathname=new URL(req.url,'http://local').pathname.replace('/modules/telys-star-rail-ultimates/','/');
   if(pathname==='/'){
    res.setHeader('Content-Type','text/html');res.end('<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="/styles/ultimates.css"><link rel="stylesheet" href="/styles/party-setup.css"><style>body{margin:0;background:#0d1420;color:#edf3ff;font:14px Arial}.application{position:fixed;left:18px;top:18px;display:flex;flex-direction:column;border:1px solid #586a85;border-radius:8px;overflow:hidden;z-index:10000;box-shadow:0 20px 70px #0008}.window-header{height:34px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 14px;background:#1b273d;font-size:12px}.window-header button{width:24px;border:0;background:none;color:#b8c6da}.window-content{flex:1;min-height:0;overflow:auto}#actors{position:absolute;right:12px;top:35px;width:190px;display:grid;gap:8px}#actors a{padding:12px;border:1px solid #49607a;border-radius:4px;background:#1c2b41;cursor:grab}.tsru-combat-party-hud{z-index:100;left:30px!important;top:auto!important;bottom:10px!important}</style></head><body><aside id="actors"><h3>Actor sheets</h3></aside><script type="module">'+bootstrap+'</script></body></html>');return;
   }
@@ -44,10 +44,10 @@ window.ready=true;
   const file=path.resolve(root,'.'+pathname);if(!file.startsWith(root+path.sep))throw Error('Invalid path');let body=await fs.readFile(file);if(pathname==='/scripts/module.js')body=body.toString()+'\nexport {registerApi,CombatPartyHud,state};';
   res.setHeader('Content-Type',pathname.endsWith('.css')?'text/css':/\.m?js$/.test(pathname)?'text/javascript':'text/plain');res.end(body);
  }catch(error){res.writeHead(404);res.end(error.message)}});
- await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));let browser;
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));let browser,gm,player;
  try{
   browser=await chromium.launch({headless:true,executablePath:process.env.BROWSER_EXECUTABLE||undefined,args:['--no-sandbox','--disable-dev-shm-usage']});
-  const context=await browser.newContext({viewport:{width:1440,height:1100}}),gm=await context.newPage(),player=await context.newPage(),errors=[];
+  const context=await browser.newContext({viewport:{width:1440,height:1100}}),errors=[];gm=await context.newPage();player=await context.newPage();
   for(const page of [gm,player])page.on('pageerror',error=>{errors.push(error.message);console.error(error.stack)});
   const url='http://127.0.0.1:'+server.address().port;
   await gm.goto(url+'/?role=gm');await player.goto(url+'/?role=alice');
@@ -85,5 +85,5 @@ window.ready=true;
   await player.locator('.tsru-party-setup-window').evaluate(node=>node.style.width='680px');
   assert.equal(await player.locator('.window-content').evaluate(node=>node.scrollWidth<=node.clientWidth+1),true);await player.locator('.tsru-party-setup-window').screenshot({path:path.join(root,'party-setup-compact.png')});
   assert.deepEqual(errors,[]);console.log('PASS: two clients share four-slot lineup and HUD order; active-character protection; swaps select the correct artwork; stale drafts cannot overwrite changes; four GM Actor drops and toggleable requirements gate locks; four independent saved artwork fields; compact layout.');
- }catch(error){console.error(error);throw error;}finally{await browser?.close();await new Promise(resolve=>server.close(resolve));}
+ }catch(error){for(const [role,page]of [['gm',gm],['player',player]])if(page&&!page.isClosed()){console.error(role,await page.evaluate(()=>({state:window.fixture?.state(),body:document.body.innerText})).catch(()=>null));await page.screenshot({path:path.join(root,'party-setup-'+role+'-failure.png'),fullPage:true}).catch(()=>{});}throw error;}finally{await browser?.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(error=>{console.error(error);process.exitCode=1});

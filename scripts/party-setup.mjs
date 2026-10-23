@@ -18,9 +18,9 @@ async function persistPartyState(next,{selections}={}){
     const included=new Set(next.slots);
     for(const actor of actorList(game.actors).filter(actor=>actor.type==='character')){
       const before=Boolean(characterConfig(actor).mainParty),after=included.has(actor.id);if(before===after)continue;
-      await actor.update({[`flags.${ID}.ultimate.mainParty`]:after},{render:false,tsruPartySetup:true});changed.push({actor,before});
+      changed.push({actor,before});await actor.update({[`flags.${ID}.ultimate.mainParty`]:after},{render:false,tsruPartySetup:true});
     }
-    if(selections){await game.settings.set(ID,'partySelections',selections);wroteSelections=true;}
+    if(selections){wroteSelections=true;await game.settings.set(ID,'partySelections',selections);}
     await game.settings.set(ID,'partySetup',next);
   }catch(error){
     for(const {actor,before}of changed.reverse())try{await actor.update({[`flags.${ID}.ultimate.mainParty`]:before},{render:false,tsruPartySetup:true});}catch(cause){console.error(`${ID} | Could not restore party membership`,cause);}
@@ -43,7 +43,7 @@ export async function applyPartySetupRequest(action,payload={},user=game.user){
     if(action==='requirements'){
       if(!user.isGM)throw Error('Only the GM can assign Party Requires.');
       const ids=payload.requiredActorIds;
-      if(!Array.isArray(ids)||ids.length>4||ids.some(id=>typeof id!=='string'||actorById(ctx.actors,id)?.type!=='character')||new Set(ids).size!==ids.length)throw Error('Party Requires accepts up to four different world character sheets.');
+      if(!Array.isArray(ids)||ids.length>4||ids.some(id=>typeof id!=='string'||actorById(ctx.actors,id)?.type!=='character'&&(payload.requirementsEnabled===true||!current.requiredActorIds.includes(id)))||new Set(ids).size!==ids.length)throw Error('Party Requires accepts up to four different world character sheets.');
       const next={...current,revision:current.revision+1,requirementsEnabled:payload.requirementsEnabled===true,requiredActorIds:[...ids]};
       await game.settings.set(ID,'partySetup',next);Hooks.callAll('tsruPartySetupChanged',next);return next;
     }

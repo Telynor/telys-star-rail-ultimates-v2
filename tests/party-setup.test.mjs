@@ -119,3 +119,15 @@ test('legacy player-owned party members remain protected before a shared main se
   assert.match(partyIssues(['e','b','c','d'],w.state,ctx,w.alice).join(' '),/Active player characters/);
   const model=partySetupModel({state:w.state,context:ctx,user:w.alice,activeCharacterId:'a'});assert.equal(model.activeIndex,0);
 });
+test('the GM can disable requirements while retaining a deleted character reference for later repair',async()=>{
+  const w=fixture();w.actors.splice(w.actors.indexOf(w.actors.get('c')),1);
+  await applyPartySetupRequest('requirements',{revision:7,requiredActorIds:['c'],requirementsEnabled:false},w.gm);
+  assert.equal(w.settings.partySetup.requirementsEnabled,false);assert.deepEqual(w.settings.partySetup.requiredActorIds,['c']);
+  await assert.rejects(applyPartySetupRequest('requirements',{revision:8,requiredActorIds:['c'],requirementsEnabled:true},w.gm),/world character sheets/);
+});
+test('a backend failure after applying a partial write still rolls back party membership',async()=>{
+  const w=fixture(),actor=w.actors.get('a'),update=actor.update;let fail=true;
+  actor.update=async function(patch){await update.call(this,patch);if(fail){fail=false;throw Error('Post-update failure');}};
+  await assert.rejects(applyPartySetupRequest('selectCharacter',{actorId:'e'},w.alice),/Post-update failure/);
+  assert.equal(actor.getFlag(ID,'ultimate').mainParty,true);assert.equal(w.settings.partySelections.alice,'a');assert.equal(w.settings.partySetup.revision,7);
+});

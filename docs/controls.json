@@ -6836,6 +6836,15 @@
       "topic": "party"
     },
     {
+      "id": "menu--data-tool-tsru-party-setup-data-control-tsru-party-setup-data-action-tsru-party-setup",
+      "kind": "control",
+      "scope": "menu",
+      "selector": "[data-tool=\"tsru-party-setup\"],[data-control=\"tsru-party-setup\"],[data-action=\"tsru-party-setup\"]",
+      "label": "Shared Party Setup",
+      "description": "Open the communal four-position lineup. Swap characters, choose their slot artwork and lock in the shared combat HUD order. The GM can require specific characters before saving.",
+      "topic": "party"
+    },
+    {
       "id": "menu--data-tool-tsru-orbs-data-control-tsru-orbs-data-action-tsru-orbs",
       "kind": "control",
       "scope": "menu",

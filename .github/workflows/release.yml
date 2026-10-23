@@ -114,6 +114,8 @@ jobs:
             party-setup-shared.png
             party-setup-artwork.png
             party-setup-compact.png
+            party-setup-gm-failure.png
+            party-setup-player-failure.png
           if-no-files-found: ignore
 
       - name: Create Foundry module ZIP
