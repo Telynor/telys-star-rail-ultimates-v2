@@ -7,6 +7,8 @@ import {
   dieStep,
   DICE,
 } from "./light-cone-rules.mjs";
+import {midiWorkflow} from "./midi-compat.mjs";
+import {addAttackBonus} from "./system-compat.mjs";
 const ID = "telys-star-rail-ultimates",
   FLAG = "lightConeRuntime";
 let api,
@@ -1781,17 +1783,12 @@ function prepared(a) {
   if (attr.hp) attr.hp.max += number(o.maxHP);
   const movement = movementSpeeds(a);
   let speed = number(o.speed);
-  for (const b of Object.values(a.system.bonuses ?? {}))
-    if (b && "attack" in b && o.attack)
-      b.attack = `(${b.attack || 0}) + ${o.attack}`;
+  addAttackBonus(a.system,o.attack);
   for (const v of Object.values(a.system.abilities ?? {}))
-    if (v.save && typeof v.save === "object") v.save.total += number(o.save);
+    if (v.save && typeof v.save === "object") {const field="value" in v.save?"value":"total";v.save[field]=number(v.save[field])+number(o.save);}
     else if (typeof v.save === "number") v.save += number(o.save);
   if (attr.spell) attr.spell.dc += number(o.effectHit);
-  for (const k of ["msak", "rsak"]) {
-    const b = a.system.bonuses?.[k];
-    if (b && o.effectHit) b.attack = `(${b.attack || 0}) + ${o.effectHit}`;
-  }
+  addAttackBonus(a.system,o.effectHit,{spellOnly:true});
   for (const m of marks(a)) {
     if (m.source) {
       const source = combatActors().find((x) => x.uuid === m.source);
@@ -1811,6 +1808,8 @@ function sourceFromOptions(options) {
       ? fromUuidSync(options.midi?.sourceActorUuid ?? options.sourceActorUuid)
       : null) ??
     options.item?.actor ??
+    (options.originatingMessage??options.origin)?.getAssociatedActor?.() ??
+    (options.originatingMessage??options.origin)?.getAssociatedItem?.()?.actor ??
     options.originatingMessage?.system?.activity?.actor
   );
 }
@@ -1819,7 +1818,7 @@ function calculateBonus(target, damages, options) {
     return;
   const workflow =
       options.workflow ??
-      globalThis.MidiQOL?.Workflow?.getWorkflow(options.midi?.workflowId),
+      midiWorkflow(options.originatingMessage??options.origin??{flags:{"midi-qol":{workflowId:options.midi?.workflowId??options.midi?.itemCardUuid}}}),
     source = sourceFromOptions(options) ?? workflow?.actor,
     item = workflow?.item ?? options.item,
     cat = category(item, workflow?.activity);
@@ -2155,7 +2154,8 @@ export function installLightCones(moduleApi) {
   Hooks.on("deleteCombat", (combat) => {
     if (auth()) enqueue(() => cleanupCombat(combat));
   });
-  Hooks.on("midi-qol.preItemRoll", async (w) => {
+  Hooks.on("midi-qol.preItemRoll", async (source) => {
+    const w=midiWorkflow(source);if(!w||w.aborted)return;
     const a = w.actor,
       cat = category(w.item, w.activity);
     if (
@@ -2175,8 +2175,9 @@ export function installLightCones(moduleApi) {
     next.buttonAction = { category: cat, time: Date.now() };
     await save(a, next);
   });
-  Hooks.on("midi-qol.RollComplete", (w) =>
-    handle(
+  Hooks.on("midi-qol.RollComplete", (source) => {
+    const w=midiWorkflow(source);if(!w||w.aborted||w.cancelled)return;
+    return handle(
       "lightConeWorkflowResolved",
       {
         sourceActor: w.actor,
@@ -2187,8 +2188,8 @@ export function installLightCones(moduleApi) {
         hitTargets: [...(w.hitTargets ?? [])],
       },
       w.uuid ?? w.id,
-    ),
-  );
+    );
+  });
   const spriteEvent = (cb, type) => {
     const a = cb?.actor,
       ownerId = a?.getFlag(ID, "lightConeOwner");

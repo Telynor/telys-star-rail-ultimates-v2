@@ -1,5 +1,15 @@
 # Tely's Star Rail Ultimates
 
+## Midi-QOL compatibility (preview.27)
+
+For a D&D5e **6.0.6** world, use **Midi-QOL 14.6.0** and **DAE 14.6.0** on Foundry **14.368 or newer**. The authors publish these through the [Midi-QOL 14.6 manifest](https://gitlab.com/tposney/midi-qol/-/releases/v14.6.0/downloads/module.json) and [DAE 14.6 manifest](https://gitlab.com/tposney/dae/-/releases/v14.6.0/downloads/module.json). The catalog's Midi 14.0 line targets D&D5e 5.x; changing an HSR module cannot make that upstream version support D&D5e 6. D&D5e 5.3.3 worlds retain their Midi/DAE 14.0 integration.
+
+Update **Ultimates to preview.27**, **Memosprites to 1.4.2**, and **Planar Ornaments to 1.0.17** together. Install or update this preview using its existing [preview manifest](https://raw.githubusercontent.com/Telynor/telys-star-rail-ultimates-v2/light-cones-preview/module.json).
+
+Midi 14.6 pre-roll payloads and chat-message UUID workflow lookup now preserve per-attack Elements. Resource and summon attribution waits for a completed, non-aborted workflow and ignores repeated completion notifications. Light Cone attacks/saves and manual combat buffs use the D&D5e 6 roll fields and v14 Active Effect data, while retaining D&D5e 5 paths. Existing party, artwork, summon and actor configuration is retained.
+
+Validation: 314 Node tests, including the official D&D5e 5.3.3/6.0.6 native placement/summoning source tests, plus headless browser and DOM regressions. Compatibility-specific cases cover modern pre-roll payloads, target Energy/Toughness deduplication, multi-part damage attribution, modern roll bonuses and continued legacy behavior. Browser fixtures substitute Foundry persistence; this is not a live-world or full Midi combat certification.
+
 ## Party position rules and Element badges (preview.26)
 
 An Item-unlocked character can use any of the five positions, including when the source sheet belongs to the GM. Trial Characters must use **position 5 (Optional Character)**, even when the party also holds their unlocking Item. Dropdowns and Swap slots now support valid moves between the main four and position five without duplicating or removing either member. Preset saves and lineup locks enforce the same rules for players and GMs. The Element image now sits behind the level badge, to the left of the character name and Path.

@@ -174,6 +174,32 @@ test("MidiQOL uses per-attack Element, confirmed hits and a stable roll identity
   assert.equal(w.target.getFlag(ID,"toughness").current,93);
   assert.equal(w.second.getFlag(ID,"toughness").current,100);
 });
+test('Midi 14.6 preItemRoll payload captures the Element before the actor changes it',async()=>{
+  const w=await setup(),workflow={id:'modern',actor:w.attacker,item:w.item,activity:w.item.system.activities.get('first'),targets:new Set()};
+  await w.hook('midi-qol.preItemRoll',{activity:workflow.activity,config:{workflow}});
+  w.item.flags[ID].attackElementId='wind';
+  assert.equal(w.multitype.attackContext(w.attacker,workflow).elementId,'ice');
+});
+test('completed Midi workflows award target energy and Toughness once, including concurrent notifications',async()=>{
+  const w=await setup();w.context.energyCalls=[];vm.runInContext('addEnergy=async(...args)=>energyCalls.push(args);',w.context);
+  const workflow={id:'complete-once',actor:w.attacker,item:w.item,activity:w.item.system.activities.get('first'),targets:new Set([{id:'hit',actor:w.target}]),hitTargets:new Set([{id:'hit',actor:w.target}]),attackRoll:{},damageRolls:[w.roll()]};
+  await Promise.all([w.api.processMidiWorkflow(workflow),w.api.processMidiWorkflow(workflow)]);
+  assert.equal(w.target.getFlag(ID,'toughness').current,93);assert.equal(w.context.energyCalls.length,1);
+});
+test('aborted Midi workflows do not award energy or reduce Toughness',async()=>{
+  const w=await setup();w.context.energyCalls=[];vm.runInContext('addEnergy=async(...args)=>energyCalls.push(args);',w.context);
+  await w.api.processMidiWorkflow({id:'aborted',aborted:true,actor:w.attacker,item:w.item,targets:new Set([{actor:w.target}]),hitTargets:new Set([{actor:w.target}]),damageRolls:[w.roll()]});
+  assert.equal(w.target.getFlag(ID,'toughness').current,100);assert.equal(w.context.energyCalls.length,0);
+});
+test('Midi 14.6 chat UUIDs defer Toughness to the completed workflow even without workflow flags',async()=>{
+  const w=await setup();w.game.midiActive=true;
+  const workflow={id:'card-cast',actor:w.attacker,item:w.item,activity:w.item.system.activities.get('first'),targets:new Set([{actor:w.target}]),hitTargets:new Set([{actor:w.target}]),attackRoll:{},damageRolls:[w.roll()]};
+  globalThis.MidiQOL={Workflow:{getWorkflow:id=>id==='ChatMessage.card'?workflow:null}};
+  await w.api.processCoreAttackMessage({id:'card',uuid:'ChatMessage.card',type:'damage',speaker:{actor:w.attacker.id},user:w.gm,rolls:workflow.damageRolls,system:{item:{uuid:w.item.uuid},activity:{id:'first'}},getFlag:()=>false});
+  assert.equal(w.target.getFlag(ID,'toughness').current,100);
+  await w.api.processMidiWorkflow(workflow);assert.equal(w.target.getFlag(ID,'toughness').current,93);
+  delete globalThis.MidiQOL;
+});
 test("MidiQOL misses and damage cards cannot bypass hit confirmation",async()=>{
   const w=await setup();w.game.midiActive=true;
   const message={id:"miss-card",type:"damage",speaker:{actor:w.attacker.id},user:w.gm,rolls:[w.roll()],flags:{"midi-qol":{workflowId:"missed"},dnd5e:{item:{id:w.item.id}}},getFlag:()=>false};

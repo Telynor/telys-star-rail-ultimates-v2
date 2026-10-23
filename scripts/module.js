@@ -5796,6 +5796,7 @@ async function applyWeaknessBreakDamage(attacker, target, {superBreak = false, a
 }
 
 function midiDamageRolls(workflow) {
+  if(multitype.midiDamageRolls)return multitype.midiDamageRolls(workflow);
   const rolls = [];
   for (const candidate of [workflow?.damageRolls, workflow?.damageRoll, workflow?.damageRollArray, workflow?.otherDamageRolls, workflow?.otherDamageRoll]) {
     if (Array.isArray(candidate)) rolls.push(...candidate);
@@ -6029,7 +6030,7 @@ async function processCoreAttackMessage(message) {
   state.processedMessages.add(message.id);
   window.setTimeout(() => state.processedMessages.delete(message.id), 60000);
   const midiWorkflowId = message.flags?.["midi-qol"]?.workflowId ?? message.flags?.["midi-qol"]?.workflowUuid ?? message.flags?.["midi-qol"]?.itemUuid;
-  const midiWorkflow = midiActive && midiWorkflowId ? globalThis.MidiQOL?.Workflow?.getWorkflow?.(midiWorkflowId) : null;
+  const midiWorkflow = midiActive ? (multitype.midiWorkflow?.(message)??(midiWorkflowId?globalThis.MidiQOL?.Workflow?.getWorkflow?.(midiWorkflowId):null)) : null;
   const attacker = midiWorkflow?.actor ?? multitype.actorFromMessage(message);
   const attackElement = attacker ? multitype.attackContext(attacker, midiWorkflow ?? message) : null;
   if (attacker?.type === "character" && (damageMessage || macroDamageMessage)) {
@@ -6056,7 +6057,7 @@ async function processCoreAttackMessage(message) {
   if (!targetIds.size && attacker) targetIds = new Set(state.lastTargetsByActor.get(attacker.uuid) ?? []);
   if (!toughnessTargets.length) toughnessTargets = [...targetIds].map(id => game.actors.get(id)).filter(Boolean);
   // Midi owns hit confirmation. Its chat cards must not reduce Toughness for misses.
-  if (midiActive && midiWorkflowId) return;
+  if (midiActive && (midiWorkflowId||midiWorkflow)) return;
   if (!isAuthority()) {
     if (!taggedBreakDamage && attacker?.isOwner && (damageMessage || macroDamageMessage)) {
       const ownedTargets = toughnessTargets.length ? toughnessTargets : [...(game.user.targets ?? [])];
@@ -6083,6 +6084,8 @@ async function processCoreAttackMessage(message) {
 }
 
 async function processMidiWorkflow(workflow) {
+  workflow=multitype.midiWorkflow?.(workflow)??workflow;
+  if(!workflow||workflow.aborted||workflow.cancelled)return;
   const attacker = workflow?.actor;
   const targets = workflow?.targets ?? new Set();
   const hitTargets = workflow?.hitTargets ?? new Set();
@@ -6091,6 +6094,10 @@ async function processMidiWorkflow(workflow) {
   const damageRolls = midiDamageRolls(workflow);
   const attackElement = attacker ? multitype.attackContext(attacker, workflow) : null;
   const key = attackElement?.eventId || workflow?.itemCardId || workflow?.uuid || workflow?.id || foundry.utils.randomID();
+  const resolvedKey=`midi-resolved:${key}`;
+  if(state.processedMessages.has(resolvedKey))return;
+  state.processedMessages.add(resolvedKey);
+  window.setTimeout(()=>state.processedMessages.delete(resolvedKey),120000);
   const diceDamage = getConfig(attacker).breakCharacter ? fullDamageTotal(damageRolls) : rawDiceTotal(damageRolls);
   if (attacker?.type === "character" && diceDamage > 0) {
     state.lastDamageDisplay = {
@@ -8431,7 +8438,7 @@ Hooks.once("ready", async () => {
   preloadAhaVideo();
   registerAhaToolbarFallback();
   if (game.modules.get("midi-qol")?.active) Hooks.on("midi-qol.RollComplete", processMidiWorkflow);
-  if (game.modules.get("midi-qol")?.active) Hooks.on("midi-qol.damageRollComplete", processMidiWorkflow);
+  // Resource changes wait for one completed workflow, after save/hit resolution.
   Hooks.on("dnd5e.rollDamageV2", processDnd5eDamageRolls);
   Hooks.on("dnd5e.applyDamage", (...args) => processDnd5eAppliedDamage(...args));
   installDamageScrollingTextOverride();

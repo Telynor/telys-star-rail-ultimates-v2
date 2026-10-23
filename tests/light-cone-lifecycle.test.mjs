@@ -15,7 +15,8 @@ class Actor {
   prepareData(){
     const movement=this.modern?{speeds:{walk:30}}:{walk:30};
     if(this.modern)Object.defineProperty(movement,'walk',{get(){throw Error('Deprecated walk getter');},set(){throw Error('Deprecated walk setter');}});
-    this.system={attributes:{hp:{value:20,max:20,temp:0},ac:{value:10},movement},abilities:{},bonuses:{}};
+    this.system={attributes:{hp:{value:20,max:20,temp:0},ac:{value:10},movement},abilities:this.modern?{con:{save:{value:5}}}:{},bonuses:{}};
+    if(this.modern)this.system.rolls={attack:Object.fromEntries(['mwak','rwak','msak','rsak'].map(key=>[key,{bonus:''}]))};
   }
   getFlag(_,key){return this.flags[key]}
   async setFlag(_,key,value){this.flags[key]=structuredClone(value)}
@@ -74,4 +75,23 @@ test('stat evaluation reads each combatant config once and sees changed resource
 test('a deleted combat still referenced by a client cannot reapply prepared bonuses',()=>{
   const {actor,combat}=encounter('stale-pointer');actor.reset();assert.equal(actor.system.attributes.movement.walk,45);
   game.combats.delete(combat.id);actor.reset();assert.equal(actor._lightConeStats,undefined);assert.equal(actor.system.attributes.movement.walk,30);
+});
+test('v6 Light Cone prepared attack and save bonuses use current fields and reset without accumulating',()=>{
+  const {actor}=encounter('modern-bonuses',new Actor('modern-hero',true));
+  actor.flags[FLAG].buffs.compat={source:actor.uuid,cone:'21001',stats:{attack:2,save:1,effectHit:1},remaining:1};
+  for(let i=0;i<3;i++){
+    actor.reset();assert.equal(actor.system.abilities.con.save.value,6);assert.equal(actor.system.abilities.con.save.total,undefined);
+    assert.equal(actor.system.rolls.attack.mwak.bonus,'(0) + 2');assert.equal(actor.system.rolls.attack.msak.bonus,'((0) + 2) + 1');
+  }
+});
+test('the real Light Cone preItemRoll handler accepts Midi 14.6 payloads and charges HP only once',async()=>{
+  const {actor}=encounter('modern-pre-action');actor.isOwner=true;
+  actor.items[0].getFlag=()=>({enabled:true,catalogId:'21001',draftId:46,pathId:'nihility'});
+  actor.flags.lightConeSettings={hpCost:2};const updates=[];actor.update=async patch=>updates.push(patch);
+  const workflow={id:'skill-cast',actor,item:{getFlag:()=> 'skill'},activity:{}};
+  const payload={activity:workflow.activity,config:{workflow}};
+  for(const hook of hooks.get('midi-qol.preItemRoll'))await hook(payload);
+  for(const hook of hooks.get('midi-qol.preItemRoll'))await hook(payload);
+  assert.equal(updates.length,1);assert.equal(updates[0]['system.attributes.hp.value'],18);
+  assert.equal(actor.flags[FLAG].buttonAction.category,'skill');
 });

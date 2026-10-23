@@ -1,5 +1,7 @@
 import {MODULE_ID as ID, multitypeMode, isTypeChanger, isMultitypeAttacks, resolveAttackElement, storedAttackContext, attackSource, attackElementPatch, collectionValues} from "./multitype-rules.mjs";
 import {actorSheetControls, actorHeaderButton} from "./actor-sheet-controls.mjs";
+import {midiWorkflow,midiDamageRolls} from "./midi-compat.mjs";
+export {midiWorkflow,midiDamageRolls} from "./midi-compat.mjs";
 export {multitypeMode, isTypeChanger, isMultitypeAttacks, resolveAttackElement} from "./multitype-rules.mjs";
 const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 let services = {
@@ -45,18 +47,7 @@ function elementChoices(selected) {
 }
 
 function workflowFor(source, actor) {
-  if (source?.actor && (source?.item || source?.activity) && (source.targets || source.hitTargets || source.damageRolls || source.workflowOptions || source.constructor?.name?.includes("Workflow"))) return source;
-  if (source?.workflow) return source.workflow;
-  const origin = source?.origin ?? source?.message ?? source;
-  const midi = origin?.flags?.["midi-qol"] ?? {};
-  const {item} = attackSource(actor, source);
-  const get = globalThis.MidiQOL?.Workflow?.getWorkflow;
-  if (!get) return null;
-  for (const id of [midi.workflowId, midi.workflowUuid, item?.uuid]) {
-    if (!id) continue;
-    try { const workflow = get.call(globalThis.MidiQOL.Workflow, id); if (workflow?.actor?.uuid === actor?.uuid) return workflow; } catch (_) {}
-  }
-  return null;
+  return midiWorkflow(source,actor);
 }
 
 export function attackContext(actor, source = {}) {
@@ -343,7 +334,7 @@ export function installMultitype(api = {}) {
   Hooks.on("dnd5e.preRollDamageV2", beforeDamageRoll);
   Hooks.on("dnd5e.postDamageRollConfiguration", afterDamageConfiguration);
   Hooks.on("preCreateChatMessage", captureMessage);
-  for (const hook of ["midi-qol.preItemRoll","midi-qol.preAttackRoll","midi-qol.preDamageRoll"]) Hooks.on(hook, workflow => { if (workflow?.actor) attackContext(workflow.actor, workflow); });
+  for (const hook of ["midi-qol.preItemRoll","midi-qol.preAttackRoll","midi-qol.preDamageRoll"]) Hooks.on(hook, source => { const workflow=midiWorkflow(source);if(workflow?.actor)attackContext(workflow.actor,workflow); });
   for (const hook of ["renderActorSheet","renderCharacterActorSheet","renderItemSheet","renderApplicationV2"]) Hooks.on(hook, renderSheetControls);
   Hooks.on("updateActor", actor => {
     syncActorControls(actor);

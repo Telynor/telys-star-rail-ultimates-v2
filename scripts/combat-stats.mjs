@@ -1,3 +1,4 @@
+import {systemPath,effectSystem} from './system-compat.mjs';
 const ID='telys-star-rail-ultimates', FLAG='combatStatBuffs';
 const numeric=x=>Number.isFinite(Number(x))?Number(x):0;
 const esc=x=>foundry.utils.escapeHTML(String(x??''));
@@ -13,13 +14,13 @@ function standardActor(actor){
 }
 function descriptors(actor,getConfig){
   const a=actor.system.attributes??{}, rows=[];
-  const add=(id,name,value,path,formula=false)=>rows.push({id,name,value:numeric(value),path,formula,raw:value});
+  const add=(id,name,value,path,formula=false)=>rows.push({id,name,value:numeric(value),path:path?systemPath(path):path,formula,raw:value});
   add('hp','HP',a.hp?.value,null);add('maxHp','Maximum HP',a.hp?.max,'system.attributes.hp.bonuses.overall');
   add('ac','AC',a.ac?.value,'system.attributes.ac.bonus');add('speed','Speed (ft)',(a.movement?.speeds??a.movement)?.walk,a.movement?.speeds?'system.attributes.movement.speeds.walk':'system.attributes.movement.walk');
   add('initiative','Initiative',a.init?.total??a.init?.mod??a.init?.bonus,'system.attributes.init.bonus');add('proficiency','Proficiency',a.prof,'system.attributes.prof');
-  for(const [key,v] of Object.entries(actor.system.abilities??{})){add(`ability.${key}`,key.toUpperCase(),v.value,`system.abilities.${key}.value`);add(`save.${key}`,`${key.toUpperCase()} save`,v.save?.total??v.save??v.mod,`system.abilities.${key}.bonuses.save`);}
+  for(const [key,v] of Object.entries(actor.system.abilities??{})){add(`ability.${key}`,key.toUpperCase(),v.value,`system.abilities.${key}.value`);add(`save.${key}`,`${key.toUpperCase()} save`,v.save?.value??v.save?.total??v.save??v.mod,`system.abilities.${key}.bonuses.save`);}
   for(const [key,v] of Object.entries(actor.system.skills??{}))add(`skill.${key}`,game.i18n.localize(CONFIG.DND5E?.skills?.[key]?.label??key),v.total??v.mod,`system.skills.${key}.bonuses.check`);
-  for(const key of ['mwak','rwak','msak','rsak','spell'])if(actor.system.bonuses?.[key])add(`attack.${key}`,`${key.toUpperCase()} attack bonus`,actor.system.bonuses[key].attack||'0',`system.bonuses.${key}.attack`,true);
+  for(const key of ['mwak','rwak','msak','rsak']){const modern=actor.system.rolls?.attack?.[key],legacy=actor.system.bonuses?.[key];if(modern||legacy)add(`attack.${key}`,`${key.toUpperCase()} attack bonus`,modern?.bonus??legacy?.attack??'0',`system.bonuses.${key}.attack`,true);}
   const hsr=getConfig(actor);add('breakEffect','Break Effect',hsr.breakEffectScore,`flags.${ID}.ultimate.breakEffectScore`);add('regen','Energy Regen',hsr.regenScore,`flags.${ID}.ultimate.regenScore`);
   return rows;
 }
@@ -27,7 +28,7 @@ async function persist(actor,b){
   await actor.setFlag(ID,FLAG,b);
   const changes=Object.values(b.values??{}).map(v=>({key:v.path,mode:v.formula?CONST.ACTIVE_EFFECT_MODES.OVERRIDE:CONST.ACTIVE_EFFECT_MODES.ADD,value:String(v.formula?v.value:v.delta),priority:90}));
   const old=effect(actor);
-  if(changes.length){if(old)await old.update({changes});else await actor.createEmbeddedDocuments('ActiveEffect',[{name:'Temporary combat buffs',changes,flags:{[ID]:{combatStatBuff:true,combatId:b.combatId}}}]);}
+  if(changes.length){if(old)await old.update({'system.changes':effectSystem(changes).changes});else await actor.createEmbeddedDocuments('ActiveEffect',[{name:'Temporary combat buffs',system:effectSystem(changes),flags:{[ID]:{combatStatBuff:true,combatId:b.combatId}}}]);}
   else if(old)await old.delete();
   await window.TelysPlanar?.syncCombatStats?.(actor);actor.reset();
 }

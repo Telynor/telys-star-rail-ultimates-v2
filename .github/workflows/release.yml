@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Telynor/telys-memosprites
-          ref: 4da9bcfbe8580f013d6902bd3759b229bdcf6f79
+          ref: 1fd9b59264a2e75d24038a330792d06f8cb62db1
           path: .test-memosprites
           persist-credentials: false
 
@@ -59,7 +59,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Telynor/telys-planar-ornaments
-          ref: 48f761348107bb8a9fd4c981acabddd56b6e0c0d
+          ref: 1e88edd7366d1ea4427bf2563e067b230ba6bf19
           path: .test-planar
           persist-credentials: false
 
