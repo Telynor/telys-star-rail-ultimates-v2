@@ -58,7 +58,9 @@ window.ready=true;
   assert.deepEqual(await gm.evaluate(()=>fixture.order()),['renard','lark','tatsuo','drakarius']);
   await player.locator('[data-party-lock]').click();await gm.waitForFunction(()=>fixture.state().slots[2]==='renard');await player.waitForFunction(()=>fixture.order()[2]==='renard');
   assert.deepEqual(await gm.evaluate(()=>fixture.order()),await player.evaluate(()=>fixture.order()));
-  assert.equal(await player.locator('[data-party-slot="2"] option[value=""]').isDisabled(),true,'a player cannot remove their active character');
+  assert.equal(await player.locator('[data-party-slot="2"] option[value=""]').evaluate(option=>option.disabled),true,'a player cannot remove their active character');
+  const removal=await player.evaluate(async()=>{try{const state=fixture.state();await game.modules.get(ID).api.partySetup.request('lineup',{revision:state.revision,slots:state.slots.map(id=>id==='renard'?'story':id)});return 'accepted';}catch(error){return error.message}});
+  assert.match(removal,/Active player characters/,'the GM rejects removal even when a client bypasses the disabled option');
   // A second client saving must preserve and invalidate the first client's draft.
   await gm.locator('[data-party-swap-to]').selectOption('1');await gm.locator('[data-party-swap]').click();
   await player.locator('[data-party-swap-to]').selectOption('3');await player.locator('[data-party-swap]').click();await player.locator('[data-party-lock]').click();
