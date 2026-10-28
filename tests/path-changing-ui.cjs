@@ -1,7 +1,7 @@
 // Two real clients exercise the production module, importer, socket coordinator
 // and live HSR widgets. Only Foundry document persistence is substituted.
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs/promises'),path=require('node:path'),http=require('node:http'),vm=require('node:vm');
-const root=path.resolve(__dirname,'..');
+const root=path.resolve(__dirname,'..'),planarRoot=path.resolve(process.env.PLANAR_SOURCE_ROOT||path.join(root,'../planar-path-equipment'));
 (async()=>{
   const common=await fs.readFile(path.join(__dirname,'alternate-orb-ui.cjs'),'utf8'),box={require,__dirname};vm.createContext(box);vm.runInContext(common.slice(0,common.indexOf('(async()=>{'))+'\nthis.bootstrap=bootstrap;',box);
   const prefix=box.bootstrap.slice(0,box.bootstrap.indexOf('const alt=await'));
@@ -9,6 +9,11 @@ const root=path.resolve(__dirname,'..');
 const foundation=foundry,baseUI=ui;
 const helper=await import('/tests/helpers/path-world.mjs');const w=helper.pathWorld({install:false});window.w=w;
 window.foundry={...foundation,utils:{...foundation.utils,...foundry.utils}};window.ui=baseUI;Hooks.once=()=>{};
+await w.hero.createEmbeddedDocuments('Item',[{_id:'cone-hunt',name:'Hunt Light Cone',img:'/test-art/red.svg',type:'loot',system:{quantity:1},flags:{[ID]:{lightCone:{enabled:true,catalogId:'A',pathId:'hunt',description:'Hunt equipment'}}}}]);
+await w.source.createEmbeddedDocuments('Item',[{_id:'cone-ice',name:'Ice Light Cone',img:'/test-art/preview.svg',type:'loot',system:{quantity:1},flags:{[ID]:{lightCone:{enabled:true,catalogId:'B',pathId:'remembrance',description:'Ice equipment'}}}}]);
+await w.hero.update({['flags.'+ID+'.selectedLightConeItemId']:'cone-hunt'});await w.source.update({['flags.'+ID+'.selectedLightConeItemId']:'cone-ice'});
+const planarInventory=await import('/planar/scripts/inventory.mjs'),planarCore=await import('/planar/scripts/core.mjs');
+
 window.foundry.applications.api.ApplicationV2=class extends AppV2 {
  constructor(opts){super(opts);const d=this.constructor.DEFAULT_OPTIONS;this.element.style.width=Math.min(innerWidth-40,d.position.width)+'px';this.element.style.height=Math.min(innerHeight-40,d.position.height)+'px';this.element.querySelector('.window-header').innerHTML='<span>'+d.window.title+'</span><button data-fixture-close>×</button>';this.element.querySelector('[data-fixture-close]').onclick=()=>this.close();}
  bringToFront(){this.element.style.zIndex=10005;}
@@ -33,6 +38,7 @@ for(const actor of w.actors){
 const updateToken=token.update.bind(token);token.update=async(patch,opts={})=>{await updateToken(patch,opts);if(!opts.noRelay)bus.postMessage({kind:'token',patch});};
 bus.onmessage=async event=>{
  const data=event.data;
+ if(data.kind==='planar-loadouts'){settingsExtra.relics=data.entries;return;}
  if(data.kind==='socket'){for(const fn of listeners)fn(data.message);return;}
  if(data.kind==='token'){await token.update(data.patch,{noRelay:true});return;}
  if(data.kind==='actor'){
@@ -46,11 +52,15 @@ const pc={document:w.hero,actor:w.hero,element:document.querySelector('#hero-she
 const changer=await import('/scripts/path-changing.mjs');changer.bindPathChangerHeader(pc,pc.element);
 const actorLink=document.querySelector('#source-actor');actorLink.draggable=true;actorLink.ondragstart=event=>event.dataTransfer.setData('text/plain',JSON.stringify({type:'Actor',uuid:w.source.uuid}));
 window.fixture={open:()=>pathModuleData.api.openPathChanger(w.hero),manage:()=>pathModuleData.api.openPathImporter(w.hero),view:()=>pathModuleData.api.pathChanging.getCatalog(w.hero),active:()=>w.hero.getFlag(ID,'pathChanging')?.activeId,
+ selectedCone:()=>w.hero.items.get(w.hero.getFlag(ID,'selectedLightConeItemId'))?.name,
+ planar:()=>planarCore.bonuses(planarInventory.allItems(w.hero),{...planarCore.DEFAULT_CONFIG,sets:[]}),
+ assignPlanars(original,alternate){settingsExtra.relics=[original,alternate].flatMap((id,index)=>['sphere','rope'].map(slot=>({id:id+slot,name:'Planar '+index,relic:{setId:'set'+index,slot,main:'speed',level:0,sub:[{key:index?'dex':'str',value:1}]},equippedActorId:'hero',equippedPathIds:[id]})));bus.postMessage({kind:'planar-loadouts',entries:settingsExtra.relics});},
  inventory:()=>w.inventory(),async spend(){await w.hero.items.get('arrows').update({'system.quantity':7});relayActor(w.hero)},setHP:async()=>w.hero.update({'system.attributes.hp.value':9,[\"flags.\"+ID+\".ultimate.current\"]:5}),close:async()=>{const app=pathModuleData.api.openPathChanger(w.hero);await app.close()},token:()=>({src:token.texture.src,x:token.x,y:token.y,width:token.width,height:token.height}),turn:()=>({id:turn.id,initiative:turn.initiative}),identity:()=>({id:w.hero.id,name:w.hero.name,owner:w.hero._source.ownership.owner}),savedClass:()=>w.hero.items.find(i=>i.type==='class')?.name};
 window.ready=true;
 `;
   const server=http.createServer(async(req,res)=>{try{
     const pathname=new URL(req.url,'http://local').pathname.replace('/modules/telys-star-rail-ultimates/','/');
+    if(pathname.startsWith('/planar/')){const file=path.resolve(planarRoot,pathname.slice(8));if(!file.startsWith(planarRoot+path.sep))throw Error('Invalid Planar fixture path');res.setHeader('Content-Type','text/javascript');res.end(await fs.readFile(file));return;}
     if(pathname==='/'){
       res.setHeader('Content-Type','text/html');res.end('<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="/styles/ultimates.css"><link rel="stylesheet" href="/styles/actor-sheet-controls.css"><link rel="stylesheet" href="/styles/path-changing.css"><style>body{margin:0;background:#0c1422;color:#eff3f8;font:14px Arial}.application{position:fixed;left:20px;top:20px;display:flex;flex-direction:column;border:1px solid #61758d;border-radius:8px;overflow:hidden;z-index:10000;box-shadow:0 20px 70px #0008}.window-header{height:34px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 13px;background:#23324a;font-size:12px}.window-header button{width:25px;border:0;background:none;color:#d6deec}.window-content{flex:1;min-height:0;overflow:auto}#hero-sheet{position:absolute;right:20px;top:25px;width:350px;border:1px solid #5d6c7d;border-radius:6px;overflow:hidden}#hero-sheet>p{padding:14px}#source-actor{position:absolute;right:20px;top:170px;width:350px;display:block;padding:20px;background:#26364b;border:1px solid #8c9db7;cursor:grab}.tsru-combat-party-hud{left:30px!important;top:auto!important;bottom:12px!important;z-index:20}</style></head><body><section id="hero-sheet"><header class="window-header"><span>Hero character sheet</span><div class="window-controls"></div></header><p>Same character · shared inventory</p></section><a id="source-actor">Imported template — drag character sheet</a><script type="module">'+bootstrap+'</script></body></html>');return;
     }
@@ -68,17 +78,25 @@ window.ready=true;
     assert.equal(await owner.locator('[data-actor-control="path-changer"]').count(),0);await gm.locator('[data-actor-control="path-changer"]').click();await gm.locator('[data-path-manage]').click();assert.equal(await gm.locator('[data-path-import-to]').inputValue(),'hero');assert.equal(await gm.locator('[data-path-import-from]').inputValue(),'source');assert.match(await gm.locator('.tsru-path-import-preview').innerText(),/Remembrance/);assert.match(await gm.locator('.tsru-path-import-preview').innerText(),/Ice/);
     await gm.locator('#source-actor').dragTo(gm.locator('[data-path-import-drop]'));await gm.locator('[data-path-import]').click();await gm.waitForFunction(()=>fixture.view().profiles.length===2);await owner.waitForSelector('[data-actor-control="path-changer"]');
     const profiles=await gm.evaluate(()=>fixture.view().profiles),original=profiles.find(p=>p.original).id,alternate=profiles.find(p=>!p.original).id;
+    await gm.evaluate(([a,b])=>fixture.assignPlanars(a,b),[original,alternate]);await owner.waitForFunction(()=>fixture.planar().str===2);assert.equal(await owner.evaluate(()=>fixture.planar().dex),undefined);
     await gm.locator('[data-path-in-combat]').check();await gm.locator('[data-path-save-settings]').click();await owner.waitForFunction(()=>fixture.view().allowInCombat);
     const row=gm.locator('[data-path-config-row="'+alternate+'"]');await row.locator('[data-path-field="name"]').fill('Ice Remembrance');await row.locator('[data-path-field="previewImage"]').fill('/test-art/preview.svg');await row.locator('[data-path-save]').click();await owner.waitForFunction(()=>fixture.view().profiles.some(p=>p.name==='Ice Remembrance'));
     await gm.locator('[data-path-import-from]').scrollIntoViewIfNeeded();await gm.locator('.tsru-path-changing-window').screenshot({path:path.join(root,'path-changing-importer.png')});
     await owner.locator('[data-actor-control="path-changer"]').click();assert.equal(await owner.locator('[data-path-manage]').count(),0);assert.equal(await owner.locator('[data-path-import-from]').count(),0);
     await owner.locator('[data-path-choice="'+alternate+'"]').click();assert.equal(await owner.locator('.tsru-path-art>img').getAttribute('src'),'/test-art/preview.svg');await owner.locator('.tsru-path-changing-window').screenshot({path:path.join(root,'path-changing-selector.png')});
-    await owner.locator('[data-path-switch]').click();await gm.waitForFunction(id=>fixture.active()===id,alternate);await owner.waitForFunction(()=>fixture.savedClass()==='Wizard');await owner.waitForFunction(()=>document.querySelector('.tsru-combat-party-portrait img')?.getAttribute('src')==='alt-portrait.png');assert.equal((await gm.evaluate(()=>fixture.token())).src,'alt-token.png');assert.equal((await owner.evaluate(()=>fixture.token())).src,'alt-token.png');
+    await owner.locator('[data-path-switch]').click();await gm.waitForFunction(id=>fixture.active()===id,alternate);await owner.waitForFunction(()=>fixture.savedClass()==='Wizard');assert.equal(await owner.evaluate(()=>fixture.selectedCone()),'Ice Light Cone');assert.equal(await owner.evaluate(()=>fixture.planar().dex),2);assert.equal(await owner.evaluate(()=>fixture.planar().str),undefined);await owner.waitForFunction(()=>document.querySelector('.tsru-combat-party-portrait img')?.getAttribute('src')==='alt-portrait.png');assert.equal((await gm.evaluate(()=>fixture.token())).src,'alt-token.png');assert.equal((await owner.evaluate(()=>fixture.token())).src,'alt-token.png');
     await owner.evaluate(()=>fixture.spend());await owner.evaluate(()=>fixture.setHP());await gm.waitForFunction(()=>fixture.inventory().find(i=>i._id==='arrows').system.quantity===7);
-    await owner.locator('[data-path-choice="'+original+'"]').click();await owner.locator('[data-path-switch]').click();await gm.waitForFunction(id=>fixture.active()===id,original);await owner.waitForFunction(()=>fixture.savedClass()==='Fighter');assert.equal((await owner.evaluate(()=>fixture.inventory())).find(i=>i._id==='arrows').system.quantity,7);assert.equal(await owner.evaluate(()=>w.hero.system.attributes.hp.value),34);
+    await owner.locator('[data-path-choice="'+original+'"]').click();await owner.locator('[data-path-switch]').click();await gm.waitForFunction(id=>fixture.active()===id,original);await owner.waitForFunction(()=>fixture.savedClass()==='Fighter');assert.equal(await owner.evaluate(()=>fixture.selectedCone()),'Hunt Light Cone');assert.equal(await owner.evaluate(()=>fixture.planar().str),2);assert.equal(await owner.evaluate(()=>fixture.planar().dex),undefined);assert.equal((await owner.evaluate(()=>fixture.inventory())).find(i=>i._id==='arrows').system.quantity,7);assert.equal(await owner.evaluate(()=>w.hero.system.attributes.hp.value),34);
     await owner.locator('[data-path-choice="'+alternate+'"]').click();await owner.locator('[data-path-switch]').click();await gm.waitForFunction(id=>fixture.active()===id,alternate);await owner.waitForFunction(()=>w.hero.system.attributes.hp.value===9);assert.equal(await owner.evaluate(()=>w.hero.getFlag(ID,'ultimate').current),5);assert.deepEqual(await owner.evaluate(()=>fixture.turn()),{id:'hero-turn',initiative:17});assert.deepEqual(await owner.evaluate(()=>fixture.identity()),{id:'hero',name:'Hero',owner:3});
     await owner.locator('.tsru-path-changing-window').evaluate(node=>node.style.width='560px');await owner.waitForFunction(()=>{const c=document.querySelector('.tsru-path-changing-window .window-content');return c.scrollWidth<=c.clientWidth+1});await owner.locator('.tsru-path-changing-window').screenshot({path:path.join(root,'path-changing-compact.png')});
     const reject=await owner.evaluate(async()=>{try{await game.modules.get(ID).api.pathChanging.request('import',w.hero,{revision:fixture.view().revision,sourceActorId:'source'});return 'accepted'}catch(error){return error.message}});assert.match(reject,/Only the GM/);
+    // Existing pre-.30 imports gain only equipment metadata, retaining progress.
+    await owner.locator('[data-path-choice="'+original+'"]').click();await owner.locator('[data-path-switch]').click();await owner.waitForFunction(()=>fixture.selectedCone()==='Hunt Light Cone');
+    await gm.waitForFunction(()=>!game.modules.get(ID).api.pathChanging.isChanging(w.hero));
+    await gm.evaluate(async()=>{const catalog=structuredClone(w.hero.getFlag(ID,'pathChanging'));for(const p of catalog.profiles)delete p.snapshot.lightCone;const alt=catalog.profiles.find(p=>!p.original);alt.snapshot.system.abilities.dex.value=25;await w.hero.update({['flags.'+ID+'.pathChanging']:catalog});});
+    await owner.locator('[data-path-choice="'+alternate+'"]').click();await owner.locator('[data-path-switch]').click();await owner.waitForFunction(()=>fixture.selectedCone()==='Ice Light Cone'&&w.hero.system.abilities.dex.value===25);
+    assert.equal(await owner.evaluate(()=>w.hero.system.attributes.hp.value),9);assert.equal(await owner.evaluate(()=>w.hero.items.filter(i=>i.name==='Ice Light Cone').length),1);
+    await gm.waitForFunction(()=>!game.modules.get(ID).api.pathChanging.isChanging(w.hero));
     // Reopen a durable transaction left by preview.28 after its Item deletion.
     await gm.evaluate(async()=>{
       const rules=await import('/scripts/path-change-rules.mjs'),catalog=structuredClone(w.hero.getFlag(ID,'pathChanging')),before=rules.capturePathBuild(w.hero);

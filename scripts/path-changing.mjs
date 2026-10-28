@@ -1,6 +1,7 @@
 import {PATH_MODULE as ID,pathCatalog,pathCatalogView,capturePathBuild,importPathBuild,materializePathBuild,buildActorPatch,buildEffect,isSharedInventory,documentData,profileFromBuild,safePathImage} from './path-change-rules.mjs';
 import {actorSheetControls,actorHeaderButton,sheetActor} from './actor-sheet-controls.mjs';
 import {openPathChangeWindow,refreshPathChangeWindows} from './path-changing-ui.mjs';
+import {importPathLightCone,applyPathLightCone} from './path-equipment.mjs';
 const queues=new Map(),pendingRequests=new Map(),changing=new Set();
 const observed=new WeakMap();
 let installed=false,registered=false,services={};
@@ -72,6 +73,7 @@ async function applyBuild(actor,snapshot) {
   // D&D5e class creation/deletion may assign originalClass or spellcasting.
   // Reapply source values after those callbacks without touching inventory.
   await actor.update(buildActorPatch(actor,snapshot),options());
+  await applyPathLightCone(actor,snapshot.lightCone);
   for(const item of inventory)if(!actor.items.get(item.id))throw Error('A shared inventory document was replaced during the Path change.');
 }
 function refresh(actor) {
@@ -81,7 +83,28 @@ function refresh(actor) {
   refreshPathChangeWindows(actor);
 }
 
-async function switchPath(actor,catalog,profile) {
+async function preparePathCones(actor,catalog,profile){
+  const createdIds=[],active=catalog.profiles.find(p=>p.id===catalog.activeId);let outgoingCone=active?.preserveImportedCone?active.snapshot.lightCone:undefined;
+  try{
+    // Populate equipment metadata only. Reimporting a whole old template here
+    // would reset level-ups, spent resources and saved Eidolon progression.
+    const missing=[...new Set([active,profile])].filter(p=>p?.snapshot&&!p.snapshot.lightCone);
+    for(const entry of missing){
+      const source=resolveActor(entry.sourceActorUuid);
+      const selection=!entry.original&&worldCharacter(source)&&source!==actor
+        ?{itemId:await importPathLightCone(source,actor,createdIds)}:capturePathBuild(actor).lightCone;
+      entry.snapshot={...entry.snapshot,lightCone:selection};
+      if(entry===active){outgoingCone=selection;entry.preserveImportedCone=true;}
+    }
+    if(missing.length){catalog.revision++;await writeCatalog(actor,catalog);}
+    return outgoingCone;
+  }catch(error){
+    const added=createdIds.filter(id=>actor.items.get(id));if(added.length)await actor.deleteEmbeddedDocuments('Item',added,options());
+    throw error;
+  }
+}
+
+async function switchPath(actor,catalog,profile,{outgoingCone}={}) {
   assertSwitchAllowed(actor,catalog);
   const before=capturePathBuild(actor),incoming=materializePathBuild(profile.snapshot,actor,{randomID:()=>foundry.utils.randomID()});
   incoming.flags[ID]??={};incoming.flags[ID].ultimate??={};
@@ -90,6 +113,8 @@ async function switchPath(actor,catalog,profile) {
   const outgoing=catalog.profiles.find(entry=>entry.id===catalog.activeId);
   if(!outgoing)throw Error('The current Path is missing. Ask the GM to repair its configuration.');
   outgoing.snapshot=before;
+  if(outgoingCone)outgoing.snapshot={...before,lightCone:outgoingCone};
+  delete outgoing.preserveImportedCone;
   outgoing.pathId=before.flags[ID]?.ultimate?.pathId??'';
   outgoing.elementId=before.flags[ID]?.ultimate?.elementId??'';
   const transaction={...catalog,pending:{fromId:catalog.activeId,toId:profile.id,before,tokens:records,error:''}};
@@ -123,7 +148,12 @@ export async function applyPathRequest(action,payload={},user=game.user) {
     if(action==='switch') {
       const profile=catalog.profiles.find(p=>p.id===payload.profileId);
       if(!profile||!profile.enabled||!user.isGM&&!catalog.ownerEnabled)throw Error('This Path is not available for owner selection.');
-      if(profile.id!==catalog.activeId)await switchPath(actor,catalog,profile);
+      if(profile.id!==catalog.activeId){
+        assertSwitchAllowed(actor,catalog);
+        materializePathBuild(profile.snapshot,actor,{randomID:()=>foundry.utils.randomID()});
+        const outgoingCone=await preparePathCones(actor,catalog,profile);
+        await switchPath(actor,catalog,profile,{outgoingCone});
+      }
       return pathCatalogView(actor,context());
     }
     if(action==='recover') {
@@ -133,7 +163,8 @@ export async function applyPathRequest(action,payload={},user=game.user) {
       finally {changing.delete(actor.uuid);refresh(actor);}
       return pathCatalogView(actor,context());
     }
-    let next=structuredClone(catalog);
+    let next=structuredClone(catalog);const createdIds=[];
+    try{
     if(action==='import') {
       const source=resolveActor(payload.sourceActorId);
       if(!worldCharacter(source)||source===actor)throw Error('Import from a different world character sheet.');
@@ -144,6 +175,7 @@ export async function applyPathRequest(action,payload={},user=game.user) {
         const original=profileFromBuild(capturePathBuild(actor),{...catalogs,id:foundry.utils.randomID(),name:undefined});
         original.original=true;original.sourceActorUuid=actor.uuid;next.activeId=original.id;next.profiles.push(original);
       }
+      await importPathLightCone(source,actor,createdIds);
       const snapshot=importPathBuild(source,actor,{randomID:()=>foundry.utils.randomID()}),profile=profileFromBuild(snapshot,{...catalogs,id:foundry.utils.randomID(),name:payload.name,previewImage:payload.previewImage});
       profile.sourceActorUuid=source.uuid;next.profiles.push(profile);
     }else if(action==='settings') {
@@ -158,6 +190,7 @@ export async function applyPathRequest(action,payload={},user=game.user) {
         if(profile.original||profile.id===next.activeId)throw Error('Switch to another Path before replacing an imported build. The original Path is saved from this character.');
         const source=resolveActor(profile.sourceActorUuid);
         if(!worldCharacter(source)||source===actor||isChangingPath(source))throw Error('The original source sheet is missing or currently changing Paths.');
+        await importPathLightCone(source,actor,createdIds);
         const snapshot=importPathBuild(source,actor,{randomID:()=>foundry.utils.randomID()});
         const imported=profileFromBuild(snapshot,{...context(),id:profile.id,name:profile.name,previewImage:profile.previewImage});
         Object.assign(profile,imported);
@@ -175,6 +208,11 @@ export async function applyPathRequest(action,payload={},user=game.user) {
     }else throw Error('Unknown Path changer action.');
     next.revision++;await writeCatalog(actor,next);refreshPathChangeWindows(actor);
     return pathCatalogView(actor,context());
+    }catch(error){
+      const added=createdIds.filter(id=>actor.items.get(id));
+      if(added.length)await actor.deleteEmbeddedDocuments('Item',added,options());
+      throw error;
+    }
   });
 }
 

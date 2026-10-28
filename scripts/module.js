@@ -1,3 +1,4 @@
+import {lightConeAttunementUpdate} from "./light-cone-equipment.mjs";
 import * as multitype from "./multitype.mjs";
 import * as actorControls from "./actor-sheet-controls.mjs";
 import * as npcRules from "./npc-rules.mjs";
@@ -2864,39 +2865,6 @@ async function openLightConeGenerator() {
   dialog.render(true);
 }
 
-function lightConeAttunementUpdate(item, equipped) {
-  const changes = {};
-  const statePath = `flags.${MODULE_ID}.lightConeAttunementState`;
-  const properties = new Set(Array.from(item?.system?.properties ?? []));
-  const saved = item?.getFlag?.(MODULE_ID, "lightConeAttunementState");
-  const supportsAttunement = foundry.utils.hasProperty(item, "system.attunement")
-    && foundry.utils.hasProperty(item, "system.attuned");
-  if (equipped) {
-    // Loot items have no attunement fields in D&D5e. Their selected Light Cone
-    // consumes a virtual slot in the prepared sheet context instead.
-    if (!supportsAttunement) return changes;
-    if (!saved) {
-      changes[statePath] = {
-        attunement: item?.system?.attunement,
-        attuned: Boolean(item?.system?.attuned),
-        hadMagic: properties.has("mgc")
-      };
-    }
-    // D&D5e 5.3 clears attunement during data preparation unless the item has
-    // the magical property, so Light Cones need it for as long as they are selected.
-    properties.add("mgc");
-    changes["system.properties"] = Array.from(properties);
-    if (foundry.utils.hasProperty(item, "system.attunement")) changes["system.attunement"] = "optional";
-    if (foundry.utils.hasProperty(item, "system.attuned")) changes["system.attuned"] = true;
-  } else {
-    if (saved && !saved.hadMagic) properties.delete("mgc");
-    changes["system.properties"] = Array.from(properties);
-    if (foundry.utils.hasProperty(item, "system.attunement")) changes["system.attunement"] = saved?.attunement ?? "";
-    if (foundry.utils.hasProperty(item, "system.attuned")) changes["system.attuned"] = saved?.attuned ?? false;
-    if (saved) changes[`flags.${MODULE_ID}.-=lightConeAttunementState`] = null;
-  }
-  return changes;
-}
 
 function itemIsAttuned(item) {
   const attunement = item?.system?.attunement;

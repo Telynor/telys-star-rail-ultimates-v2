@@ -21,7 +21,7 @@ test('switching replaces raw stats, class/subclass, spells, HSR abilities, Eidol
   assert.equal(w.hero.items.find(i=>i.type==='class').name,'Wizard');assert.equal(w.hero.items.find(i=>i.type==='subclass').name,'Ice School');assert.equal(w.hero.items.find(i=>i.type==='spell').name,'Ice spell');assert.ok(!w.hero.items.get('class'));
   assert.equal(w.hero.getFlag(ID,'ultimate').skillText,'Ice Skill');assert.equal(w.hero.getFlag(ID,'eidolons').slots[0].active,true);assert.equal(w.hero.getFlag(MEMO_MODULE,'config').name,'Ice Spirit');assert.equal(w.hero.getFlag(MEMO_MODULE,'config').summoned,false);
   assert.equal(w.hero.img,'alt-portrait.png');assert.equal(w.hero.prototypeToken.texture.src,'alt-token.png');assert.equal(w.hero.getFlag(ID,'partySetupArtwork')[0].image,'alt-standing.png');
-  assert.deepEqual(w.inventory(),inventory);assert.equal(w.hero.system.currency.gp,14);assert.equal(w.hero.getFlag(ID,'selectedLightConeItemId'),'sword');assert.deepEqual(w.source.toObject(),source);
+  assert.deepEqual(w.inventory(),inventory);assert.equal(w.hero.system.currency.gp,14);assert.equal(w.hero.getFlag(ID,'selectedLightConeItemId'),'');assert.deepEqual(w.source.toObject(),source);
   assert.equal(w.hero.getFlag(ID,'ultimate').mainParty,true);assert.equal(w.hero.getFlag(ID,'ultimate').trialCharacter,false);assert.equal(w.hero.getFlag(ID,'ultimate').partyGMOverride,true);assert.equal(w.hero.getFlag(ID,'ultimate').unlockingItem,null);assert.deepEqual(w.hero.flags.otherAddon,{sharedCharacterNote:'Do not overwrite'});
 });
 test('gear quantities, charges, equipped state, containers and currency stay shared across repeated path changes',async()=>{

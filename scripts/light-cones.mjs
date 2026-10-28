@@ -2117,11 +2117,9 @@ export function installLightCones(moduleApi) {
   Hooks.on("renderDMCombatMenu", (app, html) => {
     html.find("[data-dm-dot-panel]").on("click", openPanel);
   });
-  Hooks.on("updateActor", (a, change) => {
-    if (
-      change.flags?.[ID]?.selectedLightConeItemId !== undefined ||
-      Object.keys(change).some((k) => k.includes("selectedLightConeItemId"))
-    ) {
+  const pathConeBefore=new WeakMap();
+  const selectionMentioned=change=>change.flags?.[ID]?.selectedLightConeItemId!==undefined||Object.keys(change).some(k=>k.includes('selectedLightConeItemId'));
+  const selectionChanged=a=>{
       refreshActors();
       if (auth())
         enqueue(async () => {
@@ -2148,7 +2146,16 @@ export function installLightCones(moduleApi) {
           );
           await save(a, state);
         });
-    }
+  };
+  Hooks.on('preUpdateActor',(a,change,opts={})=>{
+    if(opts.tsruPathChange&&selectionMentioned(change)&&!pathConeBefore.has(a))pathConeBefore.set(a,a.getFlag(ID,'selectedLightConeItemId')??'');
+  });
+  Hooks.on('updateActor',(a,change,opts={})=>{if(!opts.tsruPathChange&&selectionMentioned(change))selectionChanged(a);});
+  Hooks.on('tsruPathChanged',a=>{
+    if(a.getFlag(ID,'pathChanging')?.pending)return;
+    const before=pathConeBefore.get(a);pathConeBefore.delete(a);
+    if(before!==undefined&&before!==(a.getFlag(ID,'selectedLightConeItemId')??''))selectionChanged(a);
+    else refreshActors();
   });
   Hooks.on("deleteItem", refreshActors);
   Hooks.on("deleteCombat", (combat) => {

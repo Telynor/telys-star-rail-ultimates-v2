@@ -3037,14 +3037,14 @@
           "title": "GM: Import from and Import to",
           "paragraphs": [
             "Open a character sheet’s Change Path / Import Paths header button, then Import / Configure. You can also use Module Settings → Character Path Changer. Import from chooses an existing world character sheet; Import to selects the destination character and defaults to the selected character. Dropping an Actor into the preview selects its source sheet.",
-            "The importer reads the source sheet’s assigned HSR Path and Element. Its raw stats, class/subclass, features, spells, HSR Skill/Ultimate/Talent/Technique configuration, Eidolons, alternate orbs, Memosprite configuration, portraits and token art become a selectable build. Source gear is excluded and the source sheet is untouched. The original destination build is saved automatically."
+            "The importer reads the source sheet’s assigned HSR Path and Element. Its raw stats, class/subclass, features, spells, HSR Skill/Ultimate/Talent/Technique configuration, Eidolons, alternate orbs, Memosprite configuration, portraits and token art become a selectable build. The selected source Light Cone is included once in the shared inventory; other source gear is excluded and the source sheet is untouched. The original destination build is saved automatically."
           ]
         },
         {
           "title": "Owners: Preview and change",
           "paragraphs": [
             "Once the GM imports an alternate build, the character’s owner can open Change Path from the sheet header. Select a card to preview its art, class, Path and Element, then press Change Path. Only this Actor’s owner or a GM can apply a build. The character keeps its Actor ID, ownership, name and party position.",
-            "Weapons, armor, tools, consumables, containers, other physical inventory, equipment state, item charges, selected Light Cone and currency remain one live shared set. Buying, spending or deleting inventory affects every Path. Classes, subclasses, races/backgrounds, feats, spells, ability scores, proficiencies, spell slots, HP, Energy, feature charges and Eidolon progression are saved per Path when leaving it and restored when returning. Switching does not refill a saved build."
+            "Weapons, armor, tools, consumables, containers, other physical inventory, general equipment state, item charges and currency remain one live shared set. Light Cone selection and native attunement follow each Path; older imported builds acquire their source cone assignment on the next Path change without resetting saved stats or progress. Buying, spending or deleting inventory affects every Path. Classes, subclasses, races/backgrounds, feats, spells, ability scores, proficiencies, spell slots, HP, Energy, feature charges and Eidolon progression are saved per Path when leaving it and restored when returning. Switching does not refill a saved build."
           ]
         },
         {
@@ -3059,6 +3059,13 @@
           "paragraphs": [
             "Class IDs, feature grants, consumption targets, effect origins and owned-spell UUIDs are remapped to the destination. References to source inventory are matched to unique copies in the shared inventory using their recorded provenance. Unavailable source inventory links are cleared and listed for GM configuration instead of silently importing or spending source gear.",
             "A GM must be online to apply owner changes. Requests check ownership, allowed builds and the configuration revision; concurrent stale requests are rejected. A failed change restores the previous build and token art. An interrupted change keeps a recovery record; the GM can choose Restore previous Path in the importer. If preview.28 stopped with Actor is not a valid embedded Document, update to preview.29 or newer, reload and use that recovery button on the affected character; the saved original build does not need reimporting. Inventory edits and HSR ability use are paused during a multi-document change."
+          ]
+        },
+        {
+          "title": "Light Cones and Planar loadouts",
+          "paragraphs": [
+            "Each build saves its own equipped Light Cone while its item charges, upgrades and owned inventory remain shared. A deleted cone is not recreated by switching Paths. Only the selected cone grants its automation and art.",
+            "With Planar Ornaments 1.0.19 or newer, use the Planar Relics Path loadout selector to equip a Sphere and Link Rope for each build. Badges show each assigned Path icon and name. Saved sets coexist, but only the active Path contributes main stats, substats, set bonuses, damage and party effects. Existing unassigned relics belong to the original build until configured."
           ]
         }
       ]

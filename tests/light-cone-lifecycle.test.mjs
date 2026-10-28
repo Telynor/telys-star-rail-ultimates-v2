@@ -42,6 +42,17 @@ test('post-delete cleanup skips combat writes, clears runtime once, and removes 
   await handle('combatEnd',{combat},combat.id);
   assert.equal(actor.getFlag(ID,FLAG),undefined);assert.equal(actor.clears,1);assert.equal(actor._lightConeStats,undefined);assert.deepEqual(errors,[]);
 });
+test('Path equipment waits for commit before clearing old cone stacks and preserves foreign buffs and once limits',async()=>{
+  const {actor}=encounter('path-equipment');actor.flags[FLAG].once={used:true};actor.flags[FLAG].buffs={self:{source:actor.uuid},ally:{source:'Actor.ally'}};
+  const patch={[`flags.${ID}.selectedLightConeItemId`]:'other'},opts={tsruPathChange:true};
+  for(const hook of hooks.get('preUpdateActor')??[])hook(actor,patch,opts);
+  actor.flags.selectedLightConeItemId='other';actor.flags.pathChanging={pending:{}};
+  for(const hook of hooks.get('updateActor')??[])hook(actor,patch,opts);
+  for(const hook of hooks.get('tsruPathChanged')??[])hook(actor);
+  await new Promise(resolve=>setImmediate(resolve));assert.equal(actor.flags[FLAG].stacks.erodeSpeed,3);
+  actor.flags.pathChanging.pending=null;for(const hook of hooks.get('tsruPathChanged')??[])hook(actor);
+  await new Promise(resolve=>setImmediate(resolve));assert.deepEqual(actor.flags[FLAG].stacks,{});assert.deepEqual(actor.flags[FLAG].buffs,{ally:{source:'Actor.ally'}});assert.equal(actor.flags[FLAG].once.used,true);
+});
 test('live combat end restores temporary initiative and does not write event flags',async()=>{
   const {combat,actor,c}=encounter('stopped');combat.started=false;
   await handle('combatEnd',{combat},combat.id);

@@ -59,7 +59,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Telynor/telys-planar-ornaments
-          ref: 1e88edd7366d1ea4427bf2563e067b230ba6bf19
+          ref: 7c6e65a997dd31255c9b6b172fc4f0e4c6853b63
           path: .test-planar
           persist-credentials: false
 
@@ -83,7 +83,7 @@ jobs:
 
       - name: Test shared inventory Path changes with two Chromium clients
         timeout-minutes: 5
-        run: node tests/path-changing-ui.cjs
+        run: PLANAR_SOURCE_ROOT=.test-planar node tests/path-changing-ui.cjs
 
       - name: Test existing module features in Chromium
         timeout-minutes: 10

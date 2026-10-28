@@ -30,7 +30,7 @@ function inventoryOrigin(effect,actorUuid,ids) {
   const origin=String(effect?.origin??'');
   return [...ids].some(id=>origin===`${actorUuid}.Item.${id}`||origin.startsWith(`${actorUuid}.Item.${id}.`));
 }
-export function buildEffect(effect,actorUuid,inventoryIds) {return !inventoryOrigin(effect,actorUuid,inventoryIds);}
+export function buildEffect(effect,actorUuid,inventoryIds) {const planar=effect?.flags?.['telys-planar-ornaments'];return !planar?.statBonus&&!planar?.hsrBonus&&!inventoryOrigin(effect,actorUuid,inventoryIds);}
 
 export function capturePathBuild(actor) {
   const data=documentData(actor),items=data.items??[],inventoryIds=new Set(items.filter(isSharedInventory).map(item=>item._id));
@@ -49,12 +49,13 @@ export function capturePathBuild(actor) {
   const system=copy(data.system??{});delete system.currency;
   // Favorites pointing at physical items remain part of the shared inventory.
   if(Array.isArray(system.favorites))system.favorites=system.favorites.filter(f=>![...inventoryIds].some(id=>String(f.id??'').includes(`.Item.${id}`)));
-  return {schema:1,sourceUuid:actor.uuid??`Actor.${data._id}`,system,flags,img:safePathImage(data.img),
+  const selected=items.find(item=>item._id===data.flags?.[PATH_MODULE]?.selectedLightConeItemId&&isSharedInventory(item));
+  return {schema:1,sourceUuid:actor.uuid??`Actor.${data._id}`,system,flags,img:safePathImage(data.img),lightCone:{itemId:selected?selected._id:''},
     token:Object.fromEntries(TOKEN_BUILD_FIELDS.filter(key=>Object.hasOwn(data.prototypeToken??{},key)).map(key=>[key,copy(data.prototypeToken[key])])),
     items:items.filter(item=>!isSharedInventory(item)).map(copy),effects:(data.effects??[]).filter(effect=>buildEffect(effect,actor.uuid??`Actor.${data._id}`,inventoryIds)).map(copy),warnings:[]};
 }
 
-const identityKeys = item => [item.uuid,item._stats?.compendiumSource,item._stats?.duplicateSource,item.flags?.core?.sourceId,item.flags?.[PATH_MODULE]?.partyUnlockKey].filter(Boolean);
+export const identityKeys = item => [item.uuid,item._stats?.compendiumSource,item._stats?.duplicateSource,item.flags?.core?.sourceId,item.flags?.[PATH_MODULE]?.partyUnlockKey,item.flags?.[PATH_MODULE]?.pathLightConeSource].filter(Boolean);
 
 // Rewrite both object keys (advancement grants) and values (consumption targets,
 // originalClass, effect origins, favorites, macros and owned-spell UUIDs).
@@ -116,6 +117,9 @@ export function materializePathBuild(snapshot,actor,{randomID}) {
     let id=item._id;while(reserved.has(id))id=randomID();reserved.add(id);ids.set(item._id,id);
   }
   const result=rewriteBuildReferences(copy(snapshot),{sourceUuid:snapshot.sourceUuid,targetUuid:actor.uuid,itemIds:ids});
+  // Older imports may contain generated Planar effects. The Planar module
+  // rebuilds these from the active loadout; importing them would stack bonuses.
+  result.effects=result.effects.filter(effect=>!effect.flags?.['telys-planar-ornaments']?.statBonus&&!effect.flags?.['telys-planar-ornaments']?.hsrBonus);
   result.items=result.items.map((item,index)=>({...item,_id:ids.get(snapshot.items[index]._id)}));
   const keptEffects=new Set(Array.from(actor.effects??[]).filter(effect=>!buildEffect(documentData(effect),actor.uuid,new Set(inventory.map(item=>item.id??item._id)))).map(effect=>effect.id??effect._id));
   const effectIds=new Set(keptEffects);
@@ -168,7 +172,9 @@ export function pathCatalogView(actor,context={}) {
     profiles:catalog.profiles.map(({snapshot,...profile})=>{
       const active=profile.id===catalog.activeId,config=actor?.getFlag?.(PATH_MODULE,'ultimate')??{};
       const detail=active?{...profile,pathId:config.pathId??'',elementId:config.elementId??''}:profile,items=active?Array.from(actor.items??[]):snapshot?.items??[];
+      const coneId=active?actor?.getFlag?.(PATH_MODULE,'selectedLightConeItemId'):snapshot?.lightCone?.itemId,cone=actor?.items?.get?.(coneId);
       return {...detail,...pathLabels(detail,context),classes:items.filter(item=>['class','subclass'].includes(item.type)).map(item=>item.name).join(' / '),
+        lightConeName:cone?.name??'None',lightConeImage:cone?.img??'',lightConeNeedsImport:!active&&!snapshot?.lightCone,
         level:items.filter(item=>item.type==='class').reduce((n,item)=>n+(Number(item.system?.levels)||0),0),features:items.filter(item=>item.type==='feat').length,spells:items.filter(item=>item.type==='spell').length,warnings:snapshot?.warnings??[]};
     })};
 }
