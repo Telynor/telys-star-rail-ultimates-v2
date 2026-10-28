@@ -3008,6 +3008,60 @@
       "image": "skill-spells.png",
       "imageAlt": "Illustrated guide to Skills that cast spells: Spell known or Other.",
       "imageCaption": "Bundled illustration. Artwork, names and sample values can differ in your world; click to expand."
+    },
+    {
+      "id": "path-changing",
+      "group": "Characters",
+      "title": "Change character Path",
+      "summary": "Import complete alternate builds from existing sheets while sharing one inventory and currency.",
+      "keywords": [
+        "path changer",
+        "change paths",
+        "switch class",
+        "subclass",
+        "shared inventory",
+        "import from",
+        "import to",
+        "element",
+        "eidolons",
+        "art preview"
+      ],
+      "related": [
+        "party",
+        "settings-search",
+        "eidolons",
+        "summons"
+      ],
+      "sections": [
+        {
+          "title": "GM: Import from and Import to",
+          "paragraphs": [
+            "Open a character sheet’s Change Path / Import Paths header button, then Import / Configure. You can also use Module Settings → Character Path Changer. Import from chooses an existing world character sheet; Import to selects the destination character and defaults to the selected character. Dropping an Actor into the preview selects its source sheet.",
+            "The importer reads the source sheet’s assigned HSR Path and Element. Its raw stats, class/subclass, features, spells, HSR Skill/Ultimate/Talent/Technique configuration, Eidolons, alternate orbs, Memosprite configuration, portraits and token art become a selectable build. Source gear is excluded and the source sheet is untouched. The original destination build is saved automatically."
+          ]
+        },
+        {
+          "title": "Owners: Preview and change",
+          "paragraphs": [
+            "Once the GM imports an alternate build, the character’s owner can open Change Path from the sheet header. Select a card to preview its art, class, Path and Element, then press Change Path. Only this Actor’s owner or a GM can apply a build. The character keeps its Actor ID, ownership, name and party position.",
+            "Weapons, armor, tools, consumables, containers, other physical inventory, equipment state, item charges, selected Light Cone and currency remain one live shared set. Buying, spending or deleting inventory affects every Path. Classes, subclasses, races/backgrounds, feats, spells, ability scores, proficiencies, spell slots, HP, Energy, feature charges and Eidolon progression are saved per Path when leaving it and restored when returning. Switching does not refill a saved build."
+          ]
+        },
+        {
+          "title": "GM: Name, artwork and availability",
+          "paragraphs": [
+            "For each imported Path, configure its name, preview art, assigned Path/Element and whether owners may select it. Save Path commits these choices. The active Path cannot be hidden or removed. Reimport source refreshes an inactive build from its original sheet, including its assigned Path and Element; switch away before reimporting an active build.",
+            "Owners can change Paths is enabled after importing. Changes during combat are disabled initially; the GM may enable them for that character. A resolving or queued ability and a live summon must finish or be dismissed before changing Paths. Initiative entries and token positions are retained. Linked map tokens use the incoming token artwork and dimensions; independent unlinked token Actors are not rewritten."
+          ]
+        },
+        {
+          "title": "References, failures and recovery",
+          "paragraphs": [
+            "Class IDs, feature grants, consumption targets, effect origins and owned-spell UUIDs are remapped to the destination. References to source inventory are matched to unique copies in the shared inventory using their recorded provenance. Unavailable source inventory links are cleared and listed for GM configuration instead of silently importing or spending source gear.",
+            "A GM must be online to apply owner changes. Requests check ownership, allowed builds and the configuration revision; concurrent stale requests are rejected. A failed change restores the previous build and token art. An interrupted change keeps a recovery record; the GM can choose Restore previous Path in the importer. Inventory edits and HSR ability use are paused during a multi-document change."
+          ]
+        }
+      ]
     }
   ]
 }

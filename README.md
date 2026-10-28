@@ -1,5 +1,17 @@
 # Tely's Star Rail Ultimates
 
+## Character Path Changer with shared inventory (preview.28)
+
+The GM can open **Change Path / Import Paths** in a character sheet header or **Module Settings → Character Path Changer**. **Import from** chooses an existing character sheet; **Import to** selects the destination, defaulting to the selected character. The source sheet’s assigned HSR **Path and Element are detected automatically**. Import saves an alternate build and preserves the destination’s original build without immediately switching it. Configure each build’s name, art preview, Path/Element and owner availability.
+
+Owners use the sheet’s **Change Path** button, preview a card and apply it. Builds include raw ability scores, proficiencies, class/subclass, background/race, features, spells, HSR abilities, alternate orbs, Eidolons, Memosprite settings, portraits and token art. Each build saves its own current HP, Energy, spell slots, feature charges and Eidolon progress when leaving it; returning does not refill it. The destination keeps its Actor ID, name, ownership, Main Party status and party position.
+
+**Inventory is one live shared collection**, including weapons, equipment, consumables, tools, containers, other inventory types, item quantities/charges, equipment/attunement state, selected Light Cone and currency. Source inventory is never imported. Item provenance maps feature references to unique matching destination gear; unavailable source inventory links are cleared and listed for GM configuration. No name-only inventory matching or source-sheet spending is used. Class grants, feature references, effect origins and owned-spell links are remapped to the destination.
+
+A GM must be online to apply owner changes. Combat changes are off by default and configurable per character. Finish queued/resolving abilities and dismiss an active summon before switching. Linked map tokens receive the build’s artwork and dimensions while retaining placement and initiative; independent unlinked token Actors are retained. Concurrent stale requests are rejected. Failures restore the previous build; an interrupted change exposes **Restore previous Path** to the GM. Reimport source refreshes an inactive build from its source sheet.
+
+Validation includes round-trip inventory/resources, ownership, reference collisions, partial failure/recovery, GM controls and two-client browser checks. Browser fixtures substitute Foundry persistence; validate additional third-party automation against your world’s configured builds.
+
 ## Midi-QOL compatibility (preview.27)
 
 For a D&D5e **6.0.6** world, use **Midi-QOL 14.6.0** and **DAE 14.6.0** on Foundry **14.368 or newer**. The authors publish these through the [Midi-QOL 14.6 manifest](https://gitlab.com/tposney/midi-qol/-/releases/v14.6.0/downloads/module.json) and [DAE 14.6 manifest](https://gitlab.com/tposney/dae/-/releases/v14.6.0/downloads/module.json). The catalog's Midi 14.0 line targets D&D5e 5.x; changing an HSR module cannot make that upstream version support D&D5e 6. D&D5e 5.3.3 worlds retain their Midi/DAE 14.0 integration.
