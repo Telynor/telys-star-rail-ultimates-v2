@@ -3,6 +3,8 @@ import * as actorControls from "./actor-sheet-controls.mjs";
 import * as npcRules from "./npc-rules.mjs";
 import * as npcInitiative from "./npc-initiative.mjs";
 import * as partySetup from "./party-setup.mjs";
+import * as pathChanging from "./path-changing.mjs";
+import {activeSummon as activePathSummon} from "./summon-lifecycle.mjs";
 import {openDocumentation,installDocumentationHelp} from './help-manual.mjs';
 import * as summoning from './ability-summons.mjs';
 import * as skillSpells from './ability-spells.mjs';
@@ -1922,6 +1924,7 @@ class TalentPointHud {
 }
 
 async function requestTechnique(actor) {
+  if(actor?.getFlag?.(MODULE_ID,"pathChanging")?.pending){ui.notifications.warn("Finish the Path change before using an ability.");return false;}
   if (combatHasInitiative()) return ui.notifications.warn("Techniques cannot be used while initiative is active.");
   if (!actor || (!game.user.isGM && !actor.isOwner)) return ui.notifications.error("You do not own this character.");
   if (!getConfig(actor).techniqueEnabled) return ui.notifications.warn("This character's Technique is disabled.");
@@ -1932,6 +1935,7 @@ async function requestTechnique(actor) {
 }
 
 async function executeTechnique(actorId, requestingUserId) {
+  if(game.actors.get(actorId)?.getFlag?.(MODULE_ID,"pathChanging")?.pending)return false;
   if (!isAuthority() || state.techniqueSpendLock || combatHasInitiative()) return;
   const actor = game.actors.get(actorId);
   const requester = game.users.get(requestingUserId);
@@ -4356,6 +4360,7 @@ function ultimateReadinessMessage(actor, config, charge = alternateUltimateCharg
 }
 
 async function requestUltimate(actor) {
+  if(actor?.getFlag?.(MODULE_ID,"pathChanging")?.pending){ui.notifications.warn("Finish the Path change before using an ability.");return false;}
   if (!actor) { ui.notifications.error("The character for this Ultimate no longer exists."); return false; }
   const config = getConfig(actor);
   if (!game.user.isGM && !actor.isOwner) { ui.notifications.error("You do not own this character."); return false; }
@@ -4540,6 +4545,7 @@ async function executeElationAction(combatant) {
 }
 
 async function requestSkill(actor) {
+  if(actor?.getFlag?.(MODULE_ID,"pathChanging")?.pending){ui.notifications.warn("Finish the Path change before using an ability.");return false;}
   const config = getConfig(actor);
   if (!game.user.isGM && !actor?.isOwner) return ui.notifications.error("You do not own this character.");
   if (!stanceActionAllowed(actor,"skill"))return;
@@ -4637,6 +4643,7 @@ async function finishSpellSkill(actorId, castId, success, message="") {
 }
 
 async function executeSkill(actorId, requestingUserId, expectedEnhanced=undefined, summonPlan=null) {
+  if(game.actors.get(actorId)?.getFlag?.(MODULE_ID,"pathChanging")?.pending)return false;
   state.actionErrors.delete(`Skill:${actorId}`);
   if (!isAuthority() || state.skillLocks.has(actorId) || state.skillSpendLock) return false;
   const actor = game.actors.get(actorId), requester = game.users.get(requestingUserId);
@@ -4921,6 +4928,7 @@ async function processUltimateQueue(combatId) {
 }
 
 async function executeUltimate(actorId, requestingUserId, expectedEnhanced=undefined, summonPlan=null) {
+  if(game.actors.get(actorId)?.getFlag?.(MODULE_ID,"pathChanging")?.pending)return false;
   state.actionErrors.delete(`Ultimate:${actorId}`);
   if (!isAuthority() || state.ultimateLocks.has(actorId)) return false;
   const actor = game.actors.get(actorId);
@@ -8403,11 +8411,18 @@ function registerApi() {
     showUltimateUI: () => showCombatPartyHud({notify: false})
   };
   partySetup.installPartySetup(game.modules.get(MODULE_ID).api);
+  pathChanging.installPathChanging(game.modules.get(MODULE_ID).api, {
+    getSelectedCharacter:selectedMainCharacter,
+    isResolving:actor=>state.ultimateLocks.has(actor.id)||state.runningUltimates.has(actor.id)||state.skillLocks.has(actor.id)||state.abilityPlanning.has(actor.id)||hasQueuedUltimateRequest(actor.id),
+    activeSummon:activePathSummon,
+    refresh:actor=>{refreshAllOrbs();refreshSkillUI();refreshResourceHuds();refreshCombatPartyHud();refreshInitiativeCarousel();refreshToughnessBars();refreshUltimateHotbarMacros();}
+  });
 }
 
 Hooks.once("init", () => {
   registerSettings();
   partySetup.registerPartySetupSettings();
+  pathChanging.registerPathChangeSettings();
   Handlebars.registerHelper("add", (a, b) => Number(a) + Number(b));
   console.log(`${MODULE_ID} | Initialized`);
 });
@@ -8654,6 +8669,7 @@ Hooks.on("updateCombatant", () => state.dmCombatMenu?.refresh());
 Hooks.on("tsruSkillPointsChanged", value => { state.gmPanel?.refreshLiveValues(); dispatchTalentEvent("skillPointsChanged", {value}); });
 Hooks.on("tsruTalentPointsChanged", (actor, before, after) => { refreshTalentCounter(actor); dispatchTalentEvent("talentPointsChanged", {sourceActor: actor, before, after, amount: after - before}); });
 Hooks.on("preUpdateActor", (actor, changes, options={}) => {
+  if(options.tsruPathChange)return;
   const expanded = foundry.utils.expandObject(changes);
   const incoming = foundry.utils.getProperty(expanded, `flags.${MODULE_ID}.ultimate`);
   if (!incoming || !Object.hasOwn(incoming, "current")) return;
@@ -8667,6 +8683,7 @@ Hooks.on("preUpdateActor", (actor, changes, options={}) => {
   else foundry.utils.setProperty(changes, path, config.current);
 });
 Hooks.on("updateActor", (actor, changes, options) => {
+  if(options?.tsruPathChange)return;
   if(isAuthority()&&state.splashArtworkByActor){
     const images=[getConfig(actor).splashImage,getConfig(actor).enhancedSplashImage].join("\n");
     if(images!==state.splashArtworkByActor.get(actor.id)){state.splashArtworkByActor.set(actor.id,images);queueSplashPreloadBroadcast();}

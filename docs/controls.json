@@ -270,6 +270,12 @@
       "selector": ".tsru-party-artwork-editor",
       "topic": "party",
       "label": "Party Slot Artwork"
+    },
+    {
+      "id": "path-changing",
+      "selector": ".tsru-path-changer,[data-actor-control=\"path-changer\"]",
+      "topic": "path-changing",
+      "label": "Character Path Changer"
     }
   ],
   "fields": [
@@ -8823,6 +8829,204 @@
       "label": "Clear unlocking Item",
       "description": "Remove this character’s Item requirement without deleting the Item. A character without a linked unlocking Item is not eligible for the optional slot unless marked Trial Character.",
       "topic": "party"
+    },
+    {
+      "id": "path-changing--0",
+      "kind": "action",
+      "scope": "path-changing",
+      "selector": "[data-actor-control=\"path-changer\"]",
+      "label": "Change Path",
+      "description": "Open the owner’s artwork selector for this character. GMs can also import and configure alternate builds. Inventory remains shared.",
+      "topic": "path-changing"
+    },
+    {
+      "id": "path-changing--1",
+      "kind": "action",
+      "scope": "path-changing",
+      "selector": "[data-path-choice]",
+      "label": "Preview Path",
+      "description": "Select this build for its artwork preview, class, assigned HSR Path and Element. Previewing does not change the character.",
+      "topic": "path-changing"
+    },
+    {
+      "id": "path-changing--2",
+      "kind": "action",
+      "scope": "path-changing",
+      "selector": "[data-path-switch]",
+      "label": "Change Path",
+      "description": "Apply the selected enabled build on the same Actor through the active GM. Class, features, spells, HSR abilities, Eidolons and artwork change; carried inventory and currency stay shared. Saved resources do not refill.",
+      "topic": "path-changing"
+    },
+    {
+      "id": "path-changing--3",
+      "kind": "action",
+      "scope": "path-changing",
+      "selector": "[data-path-manage]",
+      "label": "Import / Configure",
+      "description": "GM only: open Import from and Import to, preview artwork controls, Path visibility and combat permissions.",
+      "topic": "path-changing"
+    },
+    {
+      "id": "path-changing--4",
+      "kind": "action",
+      "scope": "path-changing",
+      "selector": "[data-path-import-from]",
+      "label": "Import from",
+      "description": "GM only: choose the source world character sheet. Its assigned HSR Path and Element are read automatically; its inventory and currency are excluded.",
+      "topic": "path-changing"
+    },
+    {
+      "id": "path-changing--5",
+      "kind": "action",
+      "scope": "path-changing",
+      "selector": "[data-path-import-to]",
+      "label": "Import to",
+      "description": "GM only: choose the destination character, initially the selected character. Imported builds are added to its selector without replacing its inventory or immediately switching its active build.",
+      "topic": "path-changing"
+    },
+    {
+      "id": "path-changing--6",
+      "kind": "action",
+      "scope": "path-changing",
+      "selector": "[data-path-import-drop]",
+      "label": "Source sheet preview and drop",
+      "description": "GM only: drop a different world character sheet here to select Import from. The preview shows the source Path, Element and excluded inventory count.",
+      "topic": "path-changing"
+    },
+    {
+      "id": "path-changing--7",
+      "kind": "action",
+      "scope": "path-changing",
+      "selector": "[data-path-import]",
+      "label": "Import Path",
+      "description": "Save the source sheet’s current build as a selectable Path on Import to. The first import also saves the destination’s original build. The source sheet is unchanged.",
+      "topic": "path-changing"
+    },
+    {
+      "id": "path-changing--8",
+      "kind": "action",
+      "scope": "path-changing",
+      "selector": "[data-path-owner-enabled]",
+      "label": "Owners can change Paths",
+      "description": "Allow the owner to select GM-imported builds. Disabling this retains saved Paths and leaves switching available to the GM.",
+      "topic": "path-changing"
+    },
+    {
+      "id": "path-changing--9",
+      "kind": "action",
+      "scope": "path-changing",
+      "selector": "[data-path-in-combat]",
+      "label": "Allow changes during combat",
+      "description": "Permit switching while this character is in initiative. Off by default. Resolving or queued abilities and live summons still prevent a switch.",
+      "topic": "path-changing"
+    },
+    {
+      "id": "path-changing--10",
+      "kind": "action",
+      "scope": "path-changing",
+      "selector": "[data-path-save-settings]",
+      "label": "Save permissions",
+      "description": "GM only: save the owner-selection and combat-change permissions for the selected Import to character.",
+      "topic": "path-changing"
+    },
+    {
+      "id": "path-changing--11",
+      "kind": "action",
+      "scope": "path-changing",
+      "selector": "[data-path-field=\"name\"]",
+      "label": "Path option name",
+      "description": "GM only: set this selectable build’s display name, up to 80 characters. It does not rename the character Actor.",
+      "topic": "path-changing"
+    },
+    {
+      "id": "path-changing--12",
+      "kind": "action",
+      "scope": "path-changing",
+      "selector": "[data-path-field=\"previewImage\"]",
+      "label": "Path preview art",
+      "description": "GM only: choose the image used by the selector preview. Actual character and token artwork are stored in the imported build and saved from the live Path when leaving it.",
+      "topic": "path-changing"
+    },
+    {
+      "id": "path-changing--13",
+      "kind": "action",
+      "scope": "path-changing",
+      "selector": "[data-path-browse]",
+      "label": "Browse Path preview artwork",
+      "description": "Choose or upload a Foundry image for this build’s selector preview. Save Path commits the image path.",
+      "topic": "path-changing"
+    },
+    {
+      "id": "path-changing--14",
+      "kind": "action",
+      "scope": "path-changing",
+      "selector": "[data-path-field=\"pathId\"]",
+      "label": "Assigned build Path",
+      "description": "The HSR Path read from the imported sheet. The GM may override it using the world’s configured Paths; switching applies the chosen Path ID.",
+      "topic": "path-changing"
+    },
+    {
+      "id": "path-changing--15",
+      "kind": "action",
+      "scope": "path-changing",
+      "selector": "[data-path-field=\"elementId\"]",
+      "label": "Assigned build Element",
+      "description": "The Element read from the imported sheet. The GM may override it using the world’s configured Elements; switching applies the chosen Element ID.",
+      "topic": "path-changing"
+    },
+    {
+      "id": "path-changing--16",
+      "kind": "action",
+      "scope": "path-changing",
+      "selector": "[data-path-field=\"enabled\"]",
+      "label": "Selectable build",
+      "description": "Show and enable this build for owner selection. The active Path must remain selectable until the character switches away.",
+      "topic": "path-changing"
+    },
+    {
+      "id": "path-changing--17",
+      "kind": "action",
+      "scope": "path-changing",
+      "selector": "[data-path-save]",
+      "label": "Save Path",
+      "description": "GM only: save this build’s name, preview artwork, assigned Path/Element and availability without replacing its imported class and feature data.",
+      "topic": "path-changing"
+    },
+    {
+      "id": "path-changing--18",
+      "kind": "action",
+      "scope": "path-changing",
+      "selector": "[data-path-reimport]",
+      "label": "Reimport source",
+      "description": "GM only: replace an inactive imported build from its saved source sheet. The source’s current Path and Element are read again. The original destination build cannot be reimported from itself.",
+      "topic": "path-changing"
+    },
+    {
+      "id": "path-changing--19",
+      "kind": "action",
+      "scope": "path-changing",
+      "selector": "[data-path-remove]",
+      "label": "Remove saved Path",
+      "description": "GM only: remove this inactive build from the selector. Source sheets and shared inventory are not deleted. The active Path cannot be removed.",
+      "topic": "path-changing"
+    },
+    {
+      "id": "path-changing--20",
+      "kind": "action",
+      "scope": "path-changing",
+      "selector": "[data-path-reload]",
+      "label": "Reload Paths",
+      "description": "Load the latest saved configuration after another client changes it. Unsaved local preview and metadata choices are discarded.",
+      "topic": "path-changing"
+    },
+    {
+      "id": "path-changing--21",
+      "kind": "action",
+      "scope": "path-changing",
+      "selector": "[data-path-recover]",
+      "label": "Restore previous Path",
+      "description": "GM only: restore the durable previous build and map-token artwork after an interrupted change. Shared inventory is retained; successful recovery unlocks editing.",
+      "topic": "path-changing"
     }
   ]
 }

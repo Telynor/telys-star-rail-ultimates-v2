@@ -74,10 +74,15 @@ jobs:
         run: |
           MEMOSPRITES_SOURCE_ROOT=.test-memosprites node tests/summon-settings-dom.cjs
           node tests/party-setup-dom.cjs
+          node tests/path-changing-dom.cjs
 
       - name: Test shared Party Setup with two Chromium clients
         timeout-minutes: 5
         run: node tests/party-setup-ui.cjs
+
+      - name: Test shared inventory Path changes with two Chromium clients
+        timeout-minutes: 5
+        run: node tests/path-changing-ui.cjs
 
       - name: Test existing module features in Chromium
         timeout-minutes: 10
@@ -129,6 +134,11 @@ jobs:
             party-setup-trial.png
             party-setup-gm-failure.png
             party-setup-player-failure.png
+            path-changing-importer.png
+            path-changing-selector.png
+            path-changing-compact.png
+            path-changing-gm-failure.png
+            path-changing-owner-failure.png
           if-no-files-found: ignore
 
       - name: Create Foundry module ZIP
