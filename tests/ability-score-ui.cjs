@@ -17,7 +17,7 @@ window.updates=[];window.nativeChanges=0;
 window.a={documentName:'Actor',id:'hero',name:'Hero',type:'character',isOwner:true,flags:{regenScore:10,breakEffectScore:10},getFlag(){return this.flags},async update(patch){updates.push(patch);for(const [key,value]of Object.entries(patch))this.flags[key.split('.').at(-1)]=value}};
 window.sheet=document.querySelector('#ability-sheet');window.nativeRow=sheet.querySelector('.bottom').innerHTML;
 sheet.addEventListener('change',()=>nativeChanges++);
-const {injectEnergyAbility}=await import('/scripts/module.js');window.injectEnergyAbility=injectEnergyAbility;
+const {injectEnergyAbility,injectLightConeSheetPanel}=await import('/scripts/module.js');window.injectEnergyAbility=injectEnergyAbility;window.injectLightConeSheetPanel=injectLightConeSheetPanel;
 window.app={actor:a,element:sheet};await injectEnergyAbility(app,sheet);window.ready=true;
 `;
 (async()=>{
@@ -32,7 +32,7 @@ window.app={actor:a,element:sheet};await injectEnergyAbility(app,sheet);window.r
    const file=path.resolve(root,pathname.startsWith('/fixtures/')?'tests'+pathname:'.'+pathname);
    if(!file.startsWith(root+path.sep)){res.writeHead(403);res.end();return;}
    let data=await fs.readFile(file);
-   if(pathname==='/scripts/module.js')data=data.toString()+'\nexport {injectEnergyAbility};';
+   if(pathname==='/scripts/module.js')data=data.toString()+'\nexport {injectEnergyAbility,injectLightConeSheetPanel};';
    res.setHeader('Content-Type',pathname.endsWith('.css')?'text/css':pathname.endsWith('.svg')?'image/svg+xml':'text/javascript');res.end(data);
   }catch(error){res.writeHead(404);res.end(error.message);}
  });
@@ -106,8 +106,27 @@ window.app={actor:a,element:sheet};await injectEnergyAbility(app,sheet);window.r
   assert.equal(await page.locator('.tsru-energy-ability input[name]').count(),0);
   const editableSizes=await page.locator('#ability-sheet .score input').evaluateAll(inputs=>inputs.map(input=>({width:input.getBoundingClientRect().width,height:input.getBoundingClientRect().height})));
   assert.ok(editableSizes.every(size=>Math.abs(size.width-editableSizes[0].width)<.5&&Math.abs(size.height-editableSizes[0].height)<.5),'edit-mode score fields match the native fields');
+  await page.evaluate(async()=>{
+    foundry.utils.randomID=()=>crypto.randomUUID();
+    foundry.applications.ux={TextEditor:{implementation:{enrichHTML:async text=>text}}};
+    Object.defineProperty(window,'TextEditor',{configurable:true,get(){throw Error('Deprecated TextEditor global used');}});
+    const root=document.createElement('section');root.id='light-cone-sheet';root.style.cssText='width:900px;position:relative';
+    root.innerHTML='<section class="tab" data-tab="details"><div class="left"></div><div class="right"><div class="top flexrow"><div class="saves"></div><div class="pills-lg" id="light-cone-identity" style="width:600px"><div data-item-id="race">Species</div><div data-item-id="background">Background</div></div></div></div></section><section class="tab" data-tab="inventory"><div data-item-id="race"></div><div data-item-id="background"></div></section>';
+    document.body.append(root);
+    const cone={id:'cone',uuid:'Actor.lc.Item.cone',name:'Test Light Cone',img:'/assets/paths/Path_Abundance.png',getFlag:()=>({enabled:true,pathId:'',description:'Shared Light Cone description'})};
+    const items=[{id:'race',type:'race'},{id:'background',type:'background'},cone];items.get=id=>items.find(item=>item.id===id);
+    const actor={documentName:'Actor',type:'character',name:'Light Cone Hero',items,isOwner:true,getFlag:(_scope,key)=>key==='selectedLightConeItemId'?'cone':key==='ultimate'?{enabled:true}:undefined};
+    window.lcApp={document:actor,element:root};
+    await Promise.all([injectLightConeSheetPanel(lcApp,root),injectLightConeSheetPanel(lcApp,root)]);
+  });
+  assert.equal(await page.locator('#light-cone-identity [data-tsru-light-cone]').count(),1,'duplicate inventory identities and render hooks do not hide or duplicate the card');
+  assert.equal(await page.locator('#light-cone-sheet [data-tab="inventory"] [data-tsru-light-cone]').count(),0);
+  await page.locator('#light-cone-sheet').screenshot({path:path.join(root,'light-cone-frame-smoke.png')});
+  await page.evaluate(async()=>{lcApp.document.items=[];lcApp.document.getFlag=()=>undefined;document.querySelector('#light-cone-identity').innerHTML='<div data-action="findItem" data-item-type="race">Añadir especie</div>';await injectLightConeSheetPanel(lcApp,lcApp.element)});
+  assert.equal(await page.locator('#light-cone-identity .unequipped').count(),1,'an empty localized sheet retains its Light Cone frame');
+  await page.evaluate(async()=>{lcApp.document={documentName:'Item'};await injectLightConeSheetPanel(lcApp,lcApp.element);document.querySelector('#light-cone-sheet').remove()});
   assert.deepEqual(errors,[]);
-  console.log('Ability score browser checks passed: native styling, 12 sheet/sidebar resize cases, matching card dimensions, contained labels/score inputs, duplicate render hooks, score updates/clamping, and owner permissions.');
+  console.log('Ability score browser checks passed: native styling, 12 sheet/sidebar resize cases, matching card dimensions, contained labels/score inputs, duplicate render hooks, score updates/clamping, owner permissions; equipped and empty Light Cone frames on native/localized sheets with duplicate inventory rows and modern TextEditor.');
  }catch(error){console.error('Browser errors:',errors);await page.screenshot({path:path.join(root,'ability-scores-failure.png')}).catch(()=>{});throw error;}
  finally{await browser.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(error=>{console.error(error);process.exit(1)});

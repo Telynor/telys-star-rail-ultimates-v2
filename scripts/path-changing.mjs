@@ -7,7 +7,10 @@ let installed=false,registered=false,services={};
 const gm=()=>game.users.find(user=>user.isGM&&user.active);
 const authority=()=>game.user?.isGM&&gm()?.id===game.user.id;
 const context=()=>({paths:game.settings.get(ID,'paths')??[],elements:game.settings.get(ID,'elements')??[]});
-const options={render:false,animate:false,keepId:true,tsruPathChange:true};
+// Foundry mutates database operations (parent, documentName, action, etc.).
+// Every call needs a fresh operation: an embedded Item's parent must never
+// leak into a later world Actor update, another character or recovery.
+const options=()=>({render:false,animate:false,keepId:true,tsruPathChange:true});
 const notify=error=>globalThis.ui?.notifications?.error?.(error.message??String(error));
 const owned=(actor,user)=>Boolean(user&&(user.isGM||actor.testUserPermission?.(user,'OWNER')));
 const worldCharacter=actor=>actor?.documentName==='Actor'&&actor.type==='character'&&!actor.isToken&&game.actors.get(actor.id)===actor;
@@ -33,7 +36,7 @@ function serialize(actor,work) {
 }
 async function writeCatalog(actor,catalog) {
   if(!worldCharacter(actor))throw Error('The destination character was removed.');
-  await actor.update({[`flags.${ID}.pathChanging`]:catalog},options);
+  await actor.update({[`flags.${ID}.pathChanging`]:catalog},options());
   if(pathCatalog(actor).revision!==catalog.revision)throw Error('The character’s Path configuration could not be saved.');
 }
 function tokenRecords(actor) {
@@ -46,29 +49,29 @@ async function updateTokens(actor,snapshot,records,{restore=false}={}) {
     if(!token||token.actorId!==actor.id||!token.actorLink)continue;
     const patch=restore?record.before:{...snapshot.token};
     if(!restore)patch.texture={...(patch.texture??{}),src:patch.texture?.src||snapshot.img};
-    await token.update(patch,options);
+    await token.update(patch,options());
   }
 }
 async function applyBuild(actor,snapshot) {
   if(!worldCharacter(actor))throw Error('The destination character was removed.');
   const inventory=Array.from(actor.items).filter(isSharedInventory),inventoryIds=new Set(inventory.map(item=>item.id));
   const itemIds=Array.from(actor.items).filter(item=>!isSharedInventory(item)).map(item=>item.id);
-  if(itemIds.length)await actor.deleteEmbeddedDocuments('Item',itemIds,options);
+  if(itemIds.length)await actor.deleteEmbeddedDocuments('Item',itemIds,options());
   const effectIds=Array.from(actor.effects??[]).filter(effect=>buildEffect(documentData(effect),actor.uuid,inventoryIds)).map(effect=>effect.id);
-  if(effectIds.length)await actor.deleteEmbeddedDocuments('ActiveEffect',effectIds,options);
-  await actor.update(buildActorPatch(actor,snapshot),options);
+  if(effectIds.length)await actor.deleteEmbeddedDocuments('ActiveEffect',effectIds,options());
+  await actor.update(buildActorPatch(actor,snapshot),options());
   if(snapshot.items.length) {
-    const created=await actor.createEmbeddedDocuments('Item',structuredClone(snapshot.items),options);
+    const created=await actor.createEmbeddedDocuments('Item',structuredClone(snapshot.items),options());
     if(created.length!==snapshot.items.length)throw Error('Some class, feature or spell documents were rejected. The previous Path will be restored.');
   }
   const effects=snapshot.effects.filter(effect=>!actor.effects?.get?.(effect._id));
   if(effects.length) {
-    const created=await actor.createEmbeddedDocuments('ActiveEffect',structuredClone(effects),options);
+    const created=await actor.createEmbeddedDocuments('ActiveEffect',structuredClone(effects),options());
     if(created.length!==effects.length)throw Error('Some Path effects were rejected. The previous Path will be restored.');
   }
   // D&D5e class creation/deletion may assign originalClass or spellcasting.
   // Reapply source values after those callbacks without touching inventory.
-  await actor.update(buildActorPatch(actor,snapshot),options);
+  await actor.update(buildActorPatch(actor,snapshot),options());
   for(const item of inventory)if(!actor.items.get(item.id))throw Error('A shared inventory document was replaced during the Path change.');
 }
 function refresh(actor) {
@@ -222,7 +225,13 @@ export function installPathChanging(api,callbacks={}) {
   game.socket.on?.(`module.${ID}`,message=>void handlePathSocket(message).catch(notify));
   for(const hook of ['renderActorSheet','renderCharacterActorSheet','renderApplicationV2'])Hooks.on(hook,bindPathChangerHeader);
   Hooks.on('updateActor',(actor,_changes,opts={})=>{
-    const previous=observed.get(actor),catalog=pathCatalog(actor);observed.set(actor,{activeId:catalog.activeId,pending:Boolean(catalog.pending)});
+    const previous=observed.get(actor),catalog=pathCatalog(actor);observed.set(actor,{activeId:catalog.activeId,pending:Boolean(catalog.pending),error:catalog.pending?.error});
+    if(opts.tsruPathChange&&isChangingPath(actor)) {
+      // Show the durable recovery state on every open client without rebuilding
+      // HUDs or sheets for each intermediate Item/Actor operation.
+      if(catalog.pending&&(!previous?.pending||previous.error!==catalog.pending.error))refreshPathChangeWindows(actor);
+      return;
+    }
     if(!opts.tsruPathChange||!isChangingPath(actor)){
       // Only the requesting GM runs switchPath's finally block. Other clients
       // must refresh their live HSR widgets after the durable commit arrives.

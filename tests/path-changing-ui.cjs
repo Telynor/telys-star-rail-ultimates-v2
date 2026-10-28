@@ -23,14 +23,14 @@ const turn={id:'hero-turn',actorId:'hero',actor:w.hero,initiative:17,hidden:fals
 const token=w.token('hero-token');
 const bus=new BroadcastChannel('path-changing-browser-test'),listeners=[];
 game.socket={on(_channel,fn){listeners.push(fn)},emit(_channel,message){bus.postMessage({kind:'socket',message})}};
-function relayActor(actor,opts={}){bus.postMessage({kind:'actor',id:actor.id,data:actor.toObject(),opts})}
+function relayActor(actor,opts={}){bus.postMessage({kind:'actor',id:actor.id,data:actor.toObject(),opts:{tsruPathChange:opts.tsruPathChange===true}})}
 for(const actor of w.actors){
  const update=actor.update.bind(actor);actor.update=async(patch,opts={})=>{const result=await update(patch,opts);if(result)relayActor(actor,opts);return result;};
  const create=actor.createEmbeddedDocuments.bind(actor);actor.createEmbeddedDocuments=async(type,entries,opts={})=>{const result=await create(type,entries,opts);relayActor(actor,opts);return result;};
  const remove=actor.deleteEmbeddedDocuments.bind(actor);actor.deleteEmbeddedDocuments=async(type,ids,opts={})=>{const result=await remove(type,ids,opts);relayActor(actor,opts);return result;};
  for(const item of actor.items){const change=item.update.bind(item);item.update=async(patch,opts={})=>{const result=await change(patch,opts);if(result)relayActor(actor,opts);return result;};}
 }
-const updateToken=token.update.bind(token);token.update=async(patch,opts={})=>{await updateToken(patch);if(!opts.noRelay)bus.postMessage({kind:'token',patch});};
+const updateToken=token.update.bind(token);token.update=async(patch,opts={})=>{await updateToken(patch,opts);if(!opts.noRelay)bus.postMessage({kind:'token',patch});};
 bus.onmessage=async event=>{
  const data=event.data;
  if(data.kind==='socket'){for(const fn of listeners)fn(data.message);return;}
@@ -79,8 +79,18 @@ window.ready=true;
     await owner.locator('[data-path-choice="'+alternate+'"]').click();await owner.locator('[data-path-switch]').click();await gm.waitForFunction(id=>fixture.active()===id,alternate);await owner.waitForFunction(()=>w.hero.system.attributes.hp.value===9);assert.equal(await owner.evaluate(()=>w.hero.getFlag(ID,'ultimate').current),5);assert.deepEqual(await owner.evaluate(()=>fixture.turn()),{id:'hero-turn',initiative:17});assert.deepEqual(await owner.evaluate(()=>fixture.identity()),{id:'hero',name:'Hero',owner:3});
     await owner.locator('.tsru-path-changing-window').evaluate(node=>node.style.width='560px');await owner.waitForFunction(()=>{const c=document.querySelector('.tsru-path-changing-window .window-content');return c.scrollWidth<=c.clientWidth+1});await owner.locator('.tsru-path-changing-window').screenshot({path:path.join(root,'path-changing-compact.png')});
     const reject=await owner.evaluate(async()=>{try{await game.modules.get(ID).api.pathChanging.request('import',w.hero,{revision:fixture.view().revision,sourceActorId:'source'});return 'accepted'}catch(error){return error.message}});assert.match(reject,/Only the GM/);
+    // Reopen a durable transaction left by preview.28 after its Item deletion.
+    await gm.evaluate(async()=>{
+      const rules=await import('/scripts/path-change-rules.mjs'),catalog=structuredClone(w.hero.getFlag(ID,'pathChanging')),before=rules.capturePathBuild(w.hero);
+      catalog.pending={fromId:catalog.activeId,toId:catalog.profiles.find(p=>p.original).id,before,tokens:[],error:''};
+      await w.hero.update({['flags.'+ID+'.pathChanging']:catalog},{tsruPathChange:true});
+      await w.hero.deleteEmbeddedDocuments('Item',w.hero.items.filter(item=>!rules.isSharedInventory(item)).map(item=>item.id),{tsruPathChange:true});
+    });
+    await owner.waitForSelector('[data-path-switch]:disabled');await gm.locator('[data-path-recover]').click();
+    await owner.waitForFunction(()=>!fixture.view().pending&&fixture.savedClass()==='Wizard');
+    assert.equal(await owner.evaluate(()=>w.hero.system.attributes.hp.value),9);assert.equal((await owner.evaluate(()=>fixture.inventory())).find(i=>i._id==='arrows').system.quantity,7);
     assert.deepEqual(errors,[]);for(const page of [gm,owner])assert.deepEqual(await page.evaluate(()=>failures),[]);
-    console.log('PASS: two clients use production HSR importer and owner selector; source sheet drop and Path/Element detection; GM preview art; owner-only controls; same Actor/class and linked token artwork changes; remote HUD refresh; shared spent inventory; per-Path HP/Energy restoration; stable initiative and ownership; compact layout; GM-only import enforcement.');
+    console.log('PASS: two clients use production HSR importer and owner selector; source sheet drop and Path/Element detection; GM preview art; owner-only controls; same Actor/class and linked token artwork changes; remote HUD refresh; shared spent inventory; per-Path HP/Energy restoration; stable initiative and ownership; compact layout; GM-only import enforcement; GM restores an already-interrupted preview.28 build with mutable Foundry operations.');
   }catch(error){for(const [role,page]of [['gm',gm],['owner',owner]])if(page&&!page.isClosed()){console.error(role,await page.evaluate(()=>({view:window.fixture?.view(),notices:window.notices,failures:window.failures,body:document.body.innerText})).catch(()=>null));await page.screenshot({path:path.join(root,'path-changing-'+role+'-failure.png'),fullPage:true}).catch(()=>{});}throw error;}
   finally{await browser?.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(error=>{console.error(error);process.exitCode=1});

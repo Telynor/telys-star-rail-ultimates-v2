@@ -30,7 +30,11 @@ function makeWindowClass() {
     async _renderHTML() {return renderPathChanger({actor:this.actor,view:this.view,selectedId:this.selectedId,sourceActorId:this.sourceActorId,actors:this.service.actors(),context:this.service.context(),isGM:game.user.isGM,manage:this.manage,busy:this.busy,stale:this.stale,drafts:this.drafts});}
     _replaceHTML(html,content){content.innerHTML=html;}
     async commit(action,payload={}) {
-      if(this.busy)return;this.busy=true;await this.render({force:false});
+      if(this.busy)return;
+      // Recovery uses the live transaction even if an old configuration draft
+      // was left open before another client changed the character's Path.
+      if(action==='recover')this.reload();
+      this.busy=true;await this.render({force:false});
       try {
         const result=await this.service.request(action,this.actor,{...payload,revision:this.view.revision});this.reload(result);
         ui.notifications.info(action==='switch'?'Path changed. Inventory is shared.':action==='import'?'Path imported. Its Path and Element were read from the source sheet.':action==='recover'?'The previous Path was restored.':'Path configuration saved.');
@@ -40,8 +44,12 @@ function makeWindowClass() {
     refresh({deleted=false}={}) {
       if(deleted){void this.close();return;}if(this.busy)return;
       const view=this.service.view(this.actor);
-      if(view.revision!==this.view.revision&&(this.drafts.size||this.selectedId!==this.view.activeId))this.stale=true;
-      else {const selected=this.selectedId;this.view=view;if(!view.profiles.some(p=>p.id===selected))this.selectedId=view.activeId;}
+      if(view.revision!==this.view.revision&&(this.drafts.size||this.selectedId!==this.view.activeId)) {
+        this.stale=true;this.view={...this.view,pending:view.pending};
+      }else {
+        const selected=this.selectedId,followActive=selected===this.view.activeId;this.view=view;
+        if(followActive||!view.profiles.some(p=>p.id===selected))this.selectedId=view.activeId;
+      }
       if(this.rendered)void this.render({force:false});
     }
     _onRender(context,opts) {

@@ -7,6 +7,7 @@ import * as alternate from '../../scripts/alternate-ultimates.mjs';
 import * as summoning from '../../scripts/ability-summons.mjs';
 export const ID='telys-star-rail-ultimates';
 const source=await readFile(new URL('../../scripts/module.js',import.meta.url),'utf8');
+const sheetCompat=await readFile(new URL('../../scripts/sheet-compat.mjs',import.meta.url),'utf8');
 const get=(o,p)=>p.split('.').reduce((v,k)=>v?.[k],o);
 const set=(o,p,v)=>{const keys=p.split('.');let target=o;for(const k of keys.slice(0,-1))target=target[k]??={};target[keys.at(-1)]=structuredClone(v);};
 const html=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -39,7 +40,7 @@ export function world({mode='energy',quantity=1,config={},size=1}={}){
     ChatMessage:{getSpeaker:({actor})=>({actor:actor.id}),create:async data=>{events.messages.push(data);return data}},
     document:{createElement:()=>({textContent:'',get innerHTML(){return html(this.textContent)}}),querySelectorAll:()=>[]},
     window:{setTimeout:(fn,delay)=>{const id=++seq;timers.set(id,{fn,delay});return id},clearTimeout:id=>timers.delete(id)},setTimeout,clearTimeout});
-  vm.runInContext(source.replace(/^import .*;\n/gm,'')+'\nglobalThis.api={requestUltimate,executeUltimate,requestSkill,executeSkill,onSocket,processUltimateQueue,completeUltimate,refundSummoningUltimate,reconcileUltimateLock,finishSpellSkill,runSkillSpell,state,getConfig};',context);
+  vm.runInContext(sheetCompat.replace(/^export /gm,'')+'\nconst renderTemplate=renderSheetTemplate;\n'+source.replace(/^import .*;\n/gm,'')+'\nglobalThis.api={requestUltimate,executeUltimate,requestSkill,executeSkill,onSocket,processUltimateQueue,completeUltimate,refundSummoningUltimate,reconcileUltimateLock,finishSpellSkill,runSkillSpell,state,getConfig};',context);
   context.events=events;
   vm.runInContext('refreshOrb=()=>{};broadcastUltimateSplash=actor=>events.splashes.push(actor.id);dispatchTalentEvent=async(type)=>events.talent.push(type);refreshToughnessBars=()=>{};refreshResourceHuds=()=>{};refreshCombatPartyHud=()=>{};refreshPunchlineHUD=()=>{};refreshSkillUI=()=>{};refreshBossHud=()=>{};refreshInitiativeCarousel=()=>{};refreshTalentCounter=()=>{};',context);
   alternate.configureAlternateUltimates({isResolving:actor=>context.api.state.ultimateLocks.has(actor.id)});

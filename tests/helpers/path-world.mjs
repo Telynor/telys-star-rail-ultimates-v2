@@ -32,6 +32,10 @@ export class PathActor {
   getFlag(scope,key){return this.flags?.[scope]?.[key];}testUserPermission(user){return Boolean(user&&(user.isGM||user.id===this.owner));}
   toObject(){return {...clone(this._source),items:this.items.map(item=>item.toObject()),effects:this.effects.map(effect=>effect.toObject())};}
   async update(patch,opts={}) {
+    // Foundry enriches operation objects in place. A leaked embedded parent
+    // makes a later world Actor update target an invalid embedded Actor.
+    if(opts.parent)throw Error('Actor is not a valid embedded Document within the Actor Document');
+    Object.assign(opts,{action:'update',documentName:'Actor',parent:null});
     if(!HookApi.call('preUpdateActor',this,patch,opts))return;
     this.calls.push({type:'update',patch:clone(patch),opts});
     if(this.failUpdates>0){this.failUpdates--;throw Error('Actor update failed');}
@@ -39,10 +43,12 @@ export class PathActor {
   }
   async setFlag(scope,key,value){return this.update({[`flags.${scope}.${key}`]:value});}
   async deleteEmbeddedDocuments(type,ids,opts={}) {
+    Object.assign(opts,{action:'delete',documentName:type,parent:this});
     const list=type==='Item'?this.items:this.effects;this.calls.push({type:'delete'+type,ids:[...ids],opts});
     for(const id of ids){const item=list.get(id);if(!item||type==='Item'&&!HookApi.call('preDeleteItem',item,opts))continue;list.splice(list.indexOf(item),1);}
   }
   async createEmbeddedDocuments(type,entries,opts={}) {
+    Object.assign(opts,{action:'create',documentName:type,parent:this});
     const list=type==='Item'?this.items:this.effects;this.calls.push({type:'create'+type,entries:clone(entries),opts});
     if(this.failCreates>0){this.failCreates--;if(entries[0])list.push(new Embedded(entries[0],this,type));throw Error('Embedded document creation failed');}
     const created=[];
@@ -81,7 +87,7 @@ export function pathWorld({install=true}={}) {
   function token(id,{linked=true}={}) {
     const scene=scenes[0]??{id:'map',tokens:collection()};if(!scenes.length)scenes.push(scene);
     const data={_id:id,texture:{src:'custom-before.png'},width:1,height:1,actorId:hero.id,actorLink:linked,x:200,y:300,elevation:5};
-    const t={...data,id,parent:scene,toObject(){return clone(data)},async update(patch){if(this.fail){this.fail=false;throw Error('Token update failed');}merge(this,patch);merge(data,patch);}};scene.tokens.push(t);return t;
+    const t={...data,id,parent:scene,toObject(){return clone(data)},async update(patch,opts={}){if(opts.parent&&opts.parent!==scene)throw Error('Token operation inherited the wrong parent');Object.assign(opts,{action:'update',documentName:'Token',parent:scene});if(this.fail){this.fail=false;throw Error('Token update failed');}merge(this,patch);merge(data,patch);}};scene.tokens.push(t);return t;
   }
   return {hero,source,actors,gm,owner,stranger,scenes,combats,users,messages,notices,refreshes,settings,controls,token,inventory:()=>hero.items.filter(i=>['weapon','container','consumable','equipment','loot','tool'].includes(i.type)).map(documentData)};
 }

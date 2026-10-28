@@ -4,6 +4,7 @@ import * as npcRules from "./npc-rules.mjs";
 import * as npcInitiative from "./npc-initiative.mjs";
 import * as partySetup from "./party-setup.mjs";
 import * as pathChanging from "./path-changing.mjs";
+import {renderSheetTemplate as renderTemplate,sheetTextEditor,lightConeSheetHost} from './sheet-compat.mjs';
 import {activeSummon as activePathSummon} from "./summon-lifecycle.mjs";
 import {openDocumentation,installDocumentationHelp} from './help-manual.mjs';
 import * as summoning from './ability-summons.mjs';
@@ -1945,7 +1946,7 @@ async function executeTechnique(actorId, requestingUserId) {
   state.techniqueSpendLock = true;
   try {
     await setTechniquePoints(currentTechniquePoints() - 1);
-    const body = await TextEditor.enrichHTML(config.techniqueText || "<em>No Technique description has been entered.</em>", {async: true, secrets: actor.isOwner});
+    const body = await sheetTextEditor().enrichHTML(config.techniqueText || "<em>No Technique description has been entered.</em>", {async: true, secrets: actor.isOwner});
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({actor}),
       content: `<article class="tsru-technique-chat"><h3><img src="${escapeHTML(config.techniqueButtonImage || actor.img || "icons/svg/lightning.svg")}" alt="">${escapeHTML(actor.name)} — Technique</h3><div>${body}</div></article>`
@@ -2240,7 +2241,7 @@ async function showTalentPopup(actor) {
   if(!stanceActionAllowed(actor,"talent"))return;
   const config = getVisualConfig(actor);
   const {trigger, overcap} = talentPointLimits(actor);
-  const body = await TextEditor.enrichHTML(config.talentText || "<em>No Talent description has been entered.</em>", {async:true,secrets:actor.isOwner,relativeTo:actor});
+  const body = await sheetTextEditor().enrichHTML(config.talentText || "<em>No Talent description has been entered.</em>", {async:true,secrets:actor.isOwner,relativeTo:actor});
   const content = `<section class="tsru-talent-dialog" data-actor-id="${actor.id}"><header><img src="${escapeHTML(config.talentIcon || actor.img || "icons/svg/star.svg")}" alt=""><div><strong>${escapeHTML(actor.name)} — Talent</strong><span data-talent-count>${currentTalentPoints(actor)}/${trigger}${overcap > trigger ? ` (overcap ${overcap})` : ""}</span></div></header><div class="tsru-talent-description">${body}</div><footer><button type="button" data-talent-popup-delta="-1"><i class="fas fa-minus"></i></button><button type="button" data-talent-popup-delta="1"><i class="fas fa-plus"></i></button></footer></section>`;
   const dialog = new Dialog({title:`${actor.name} — Talent`,content,buttons:{close:{icon:'<i class="fas fa-check"></i>',label:"Close"}},render:html => {
     html.find("[data-talent-popup-delta]").on("click", async event => {
@@ -3074,7 +3075,7 @@ async function injectLightConePanel(app, root, host) {
     const actorPathId = String(getConfig(actor).pathId || "");
     mismatch = Boolean(cone.pathId && actorPathId && cone.pathId !== actorPathId);
     path = getPaths().find(entry => entry.id === cone.pathId);
-    description = await TextEditor.enrichHTML(cone.description, {async: true, secrets: actor.isOwner});
+    description = await sheetTextEditor().enrichHTML(cone.description, {async: true, secrets: actor.isOwner});
   }
   if (root.attr("data-tsru-light-cone-render") !== renderKey) return;
   const panel = item ? $(`<article class="tsru-light-cone-card ${mismatch ? "path-mismatch" : ""}" data-tsru-light-cone data-item-uuid="${escapeHTML(item.uuid)}">
@@ -3084,60 +3085,35 @@ async function injectLightConePanel(app, root, host) {
   (host?.length ? host : root).append(panel);
 }
 
-function lightConeCommonContainer(elements, rootElement) {
-  const nodes = elements.filter(Boolean);
-  if (!nodes.length) return null;
-  let candidate = nodes[0].parentElement;
-  while (candidate && candidate !== rootElement) {
-    if (nodes.every(node => candidate.contains(node))) return candidate;
-    candidate = candidate.parentElement;
-  }
-  return null;
-}
-
+const lightConeHostWarnings=new WeakSet();
 function injectLightConeSheetPanel(app, html) {
-  const actor = app.actor ?? app.document;
+  const actor = actorControls.sheetActor(app);
   if (actor?.documentName !== "Actor" || actor.type !== "character") return;
+  if(pathChanging.isChangingPath(actor))return;
   const renderedRoot = html?.jquery ? html[0] : html;
   const appRoot = app.element?.jquery ? app.element[0] : app.element;
   const rootElement = appRoot ?? renderedRoot;
   if (!rootElement) return;
   const root = $(rootElement);
-  root.find("[data-tsru-light-cone]").remove();
-
   const identityIds = Array.from(actor.items ?? [])
     .filter(item => item.type === "race" || item.type === "background")
     .map(item => item.id);
-  const identityRows = identityIds.flatMap(id => root.find(`[data-item-id="${id}"], [data-document-id="${id}"], [data-entry-id="${id}"]`).toArray());
-  let hostElement = lightConeCommonContainer(identityRows, rootElement);
-
-  if (!hostElement && identityRows.length === 1) hostElement = identityRows[0].parentElement;
+  const hostElement=lightConeSheetHost(rootElement,identityIds);
   if (!hostElement) {
-    const identityControls = root.find("button, [role='button'], [data-action]").filter((_index, node) => /^(add|select)\s+(race|background)$/i.test(node.textContent?.replace(/\s+/g, " ").trim() || "")).toArray();
-    hostElement = lightConeCommonContainer(identityControls, rootElement);
-    if (!hostElement && identityControls.length === 1) hostElement = identityControls[0].parentElement;
-  }
-
-  if (!hostElement) {
-    const mainTab = root.find('.tab[data-tab="details"], section[data-tab="details"], .tab[data-tab="character"], section[data-tab="character"], [data-application-part="details"]').filter((_index, node) => !node.closest("[data-tsru-light-cone]")).first();
-    const rightColumn = mainTab.find(':scope > .right, :scope > [class*="right-column"], :scope > [class*="details-column"], :scope > :last-child').last();
-    if (rightColumn.length) hostElement = rightColumn[0];
-  }
-
-  const hostRect = hostElement?.getBoundingClientRect?.();
-  if (!hostElement || hostElement === rootElement || (hostRect?.width && hostRect.width > 520) || $(hostElement).is(".sheet-body, [data-application-part='body'], .tab")) {
-    console.warn(`${MODULE_ID} | Light Cone frame host was not found for ${actor.name}; refusing to place it over an arbitrary sheet tab.`);
+    if(!lightConeHostWarnings.has(rootElement))console.warn(`${MODULE_ID} | Light Cone identity column was not found for ${actor.name}.`);
+    lightConeHostWarnings.add(rootElement);
     return;
   }
+  lightConeHostWarnings.delete(rootElement);
   const host = $(hostElement).addClass("tsru-light-cone-sheet-host");
-  injectLightConePanel(app, root, host);
+  return injectLightConePanel(app, root, host);
 }
 
 async function postLightConeToChat(item, actor) {
   if (!item || !actor || !(game.user.isGM || actor.isOwner)) return;
   const cone = getLightConeData(item);
   const path = getPaths().find(entry => entry.id === cone.pathId);
-  const description = await TextEditor.enrichHTML(cone.description, {async: true, secrets: actor.isOwner});
+  const description = await sheetTextEditor().enrichHTML(cone.description, {async: true, secrets: actor.isOwner});
   await ChatMessage.create({
     speaker: ChatMessage.getSpeaker({actor}),
     content: `<section class="tsru-light-cone-chat"><header><img src="${escapeHTML(cone.image)}"><div><h3>${escapeHTML(item.name)}</h3><span>${escapeHTML(path?.name || "Any Path")} Light Cone</span></div></header><div class="tsru-light-cone-chat-description">${description || "<em>No description configured.</em>"}</div></section>`
@@ -4442,7 +4418,7 @@ function ultimateCompletionButton(actor) {
 async function postAbilityText(actor, kind, text, {combatantId = ""} = {}) {
   const description = String(text ?? "").trim();
   const content = description
-    ? await (foundry.applications.ux?.TextEditor?.implementation ?? TextEditor).enrichHTML(description, {async: true, secrets: game.user.isGM, relativeTo: actor})
+    ? await sheetTextEditor().enrichHTML(description, {async: true, secrets: game.user.isGM, relativeTo: actor})
     : "<em>No ability text has been configured.</em>";
   const labels = {skill: "Skill", ultimate: "Ultimate", elation: "Elation Action", talent: "Talent"};
   const icons = {skill: "fa-hand-sparkles", ultimate: "fa-burst", elation: "fa-masks-theater", talent: "fa-star"};
@@ -7435,7 +7411,7 @@ function activateConfigListeners(actor, tab, app) {
   tab.find(".tsru-drop-actor").on("drop.tsru-boss",event=>{
     event.preventDefault();
     const input=$(event.currentTarget).removeClass("is-dragover");
-    const data=TextEditor.getDragEventData(event.originalEvent??event);
+    const data=sheetTextEditor().getDragEventData(event.originalEvent??event);
     const uuid=String(data?.uuid || (data?.type==="Actor" && data?.id ? `Actor.${data.id}` : ""));
     if(!uuid)return ui.notifications.warn("Drop an Actor from the Actors directory into this field.");
     fromUuid(uuid).then(document=>{if(document?.documentName!=="Actor" || document.pack)return ui.notifications.warn("Drop a world Actor from the Actors directory, not a compendium entry.");input.val(document.uuid).trigger("change");});
@@ -7784,7 +7760,7 @@ function openEidolonEffectsBrowser(preselectedActor=null) {
     list.on("click","[data-print-eidolon]",async event=>{
       const button=event.currentTarget, actor=game.actors.get(button.dataset.actorId), slot=getEidolons(actor).slots[Number(button.dataset.eidolon)-1];
       if(!actor||!slot)return;
-      const description=await TextEditor.enrichHTML(String(slot.effect||"<em>No effect description configured.</em>"),{async:true,secrets:game.user.isGM||actor.isOwner});
+      const description=await sheetTextEditor().enrichHTML(String(slot.effect||"<em>No effect description configured.</em>"),{async:true,secrets:game.user.isGM||actor.isOwner});
       await ChatMessage.create({speaker:ChatMessage.getSpeaker({actor}),content:`<section class="tsru-eidolon-chat"><h3>${escapeHTML(actor.name)} — E${slot.number}: ${escapeHTML(slot.title)}</h3><p class="${slot.active?"active":"inactive"}">${slot.active?"Active":"Inactive"}</p><div>${description}</div></section>`});
     });
     render();
