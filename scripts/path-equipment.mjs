@@ -6,13 +6,13 @@ const options=()=>({render:false,keepId:true,tsruPathChange:true,tsruLightConeSe
 // imports reuse its provenance; charges, upgrades and deletions stay shared.
 export async function importPathLightCone(source,actor,createdIds=[]){
   const sourceItem=source.items?.get?.(source.getFlag(ID,'selectedLightConeItemId'));
-  if(!sourceItem||!isSharedInventory(sourceItem))return;
+  if(!sourceItem||!isSharedInventory(sourceItem))return '';
   const keys=new Set(identityKeys({...documentData(sourceItem),uuid:sourceItem.uuid}));
   let matches=Array.from(actor.items).filter(isSharedInventory).filter(item=>identityKeys({...documentData(item),uuid:item.uuid}).some(key=>keys.has(key)));
   const exact=matches.filter(item=>item.getFlag?.(ID,'pathLightConeSource')===sourceItem.uuid);
   if(exact.length===1)matches=exact;
   if(matches.length>1){const selected=matches.find(item=>item.id===actor.getFlag(ID,'selectedLightConeItemId'));if(selected)matches=[selected];else throw Error('Several shared Light Cones match '+sourceItem.name+'. Equip the desired copy on the destination character before importing.');}
-  if(matches.length)return;
+  if(matches.length)return matches[0].id;
   const data=documentData(sourceItem),id=foundry.utils.randomID();
   const rewritten=rewriteBuildReferences(data,{sourceUuid:source.uuid,targetUuid:actor.uuid,itemIds:new Map([[sourceItem.id,id]])});
   rewritten._id=id;delete rewritten.ownership;for(const effect of rewritten.effects??[])delete effect.ownership;
@@ -25,10 +25,11 @@ export async function importPathLightCone(source,actor,createdIds=[]){
   createdIds.push(id);
   const created=await actor.createEmbeddedDocuments('Item',[rewritten],options());
   if(created.length!==1||!actor.items.get(id))throw Error('The source Light Cone could not be imported.');
+  return id;
 }
 
 export async function applyPathLightCone(actor,selection){
-  // Old profiles did not record a cone. Reimport source once to populate it.
+  // An unavailable legacy source can retain the current selection.
   if(!selection)return;
   const wanted=actor.items.get(selection.itemId),next=wanted&&isSharedInventory(wanted)?wanted:null;
   const current=actor.getFlag(ID,'selectedLightConeItemId');

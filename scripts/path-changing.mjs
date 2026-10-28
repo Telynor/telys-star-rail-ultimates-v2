@@ -83,7 +83,28 @@ function refresh(actor) {
   refreshPathChangeWindows(actor);
 }
 
-async function switchPath(actor,catalog,profile) {
+async function preparePathCones(actor,catalog,profile){
+  const createdIds=[],active=catalog.profiles.find(p=>p.id===catalog.activeId);let outgoingCone=active?.preserveImportedCone?active.snapshot.lightCone:undefined;
+  try{
+    // Populate equipment metadata only. Reimporting a whole old template here
+    // would reset level-ups, spent resources and saved Eidolon progression.
+    const missing=[...new Set([active,profile])].filter(p=>p?.snapshot&&!p.snapshot.lightCone);
+    for(const entry of missing){
+      const source=resolveActor(entry.sourceActorUuid);
+      const selection=!entry.original&&worldCharacter(source)&&source!==actor
+        ?{itemId:await importPathLightCone(source,actor,createdIds)}:capturePathBuild(actor).lightCone;
+      entry.snapshot={...entry.snapshot,lightCone:selection};
+      if(entry===active){outgoingCone=selection;entry.preserveImportedCone=true;}
+    }
+    if(missing.length){catalog.revision++;await writeCatalog(actor,catalog);}
+    return outgoingCone;
+  }catch(error){
+    const added=createdIds.filter(id=>actor.items.get(id));if(added.length)await actor.deleteEmbeddedDocuments('Item',added,options());
+    throw error;
+  }
+}
+
+async function switchPath(actor,catalog,profile,{outgoingCone}={}) {
   assertSwitchAllowed(actor,catalog);
   const before=capturePathBuild(actor),incoming=materializePathBuild(profile.snapshot,actor,{randomID:()=>foundry.utils.randomID()});
   incoming.flags[ID]??={};incoming.flags[ID].ultimate??={};
@@ -92,6 +113,8 @@ async function switchPath(actor,catalog,profile) {
   const outgoing=catalog.profiles.find(entry=>entry.id===catalog.activeId);
   if(!outgoing)throw Error('The current Path is missing. Ask the GM to repair its configuration.');
   outgoing.snapshot=before;
+  if(outgoingCone)outgoing.snapshot={...before,lightCone:outgoingCone};
+  delete outgoing.preserveImportedCone;
   outgoing.pathId=before.flags[ID]?.ultimate?.pathId??'';
   outgoing.elementId=before.flags[ID]?.ultimate?.elementId??'';
   const transaction={...catalog,pending:{fromId:catalog.activeId,toId:profile.id,before,tokens:records,error:''}};
@@ -125,7 +148,12 @@ export async function applyPathRequest(action,payload={},user=game.user) {
     if(action==='switch') {
       const profile=catalog.profiles.find(p=>p.id===payload.profileId);
       if(!profile||!profile.enabled||!user.isGM&&!catalog.ownerEnabled)throw Error('This Path is not available for owner selection.');
-      if(profile.id!==catalog.activeId)await switchPath(actor,catalog,profile);
+      if(profile.id!==catalog.activeId){
+        assertSwitchAllowed(actor,catalog);
+        materializePathBuild(profile.snapshot,actor,{randomID:()=>foundry.utils.randomID()});
+        const outgoingCone=await preparePathCones(actor,catalog,profile);
+        await switchPath(actor,catalog,profile,{outgoingCone});
+      }
       return pathCatalogView(actor,context());
     }
     if(action==='recover') {

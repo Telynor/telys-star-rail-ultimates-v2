@@ -3044,7 +3044,7 @@
           "title": "Owners: Preview and change",
           "paragraphs": [
             "Once the GM imports an alternate build, the character’s owner can open Change Path from the sheet header. Select a card to preview its art, class, Path and Element, then press Change Path. Only this Actor’s owner or a GM can apply a build. The character keeps its Actor ID, ownership, name and party position.",
-            "Weapons, armor, tools, consumables, containers, other physical inventory, general equipment state, item charges and currency remain one live shared set. Light Cone selection and native attunement follow each Path; existing imported builds need Reimport source once to record their cone. Buying, spending or deleting inventory affects every Path. Classes, subclasses, races/backgrounds, feats, spells, ability scores, proficiencies, spell slots, HP, Energy, feature charges and Eidolon progression are saved per Path when leaving it and restored when returning. Switching does not refill a saved build."
+            "Weapons, armor, tools, consumables, containers, other physical inventory, general equipment state, item charges and currency remain one live shared set. Light Cone selection and native attunement follow each Path; older imported builds acquire their source cone assignment on the next Path change without resetting saved stats or progress. Buying, spending or deleting inventory affects every Path. Classes, subclasses, races/backgrounds, feats, spells, ability scores, proficiencies, spell slots, HP, Energy, feature charges and Eidolon progression are saved per Path when leaving it and restored when returning. Switching does not refill a saved build."
           ]
         },
         {

@@ -2,7 +2,7 @@
 
 ## Equipment by character Path (preview.30)
 
-Each build now saves its equipped Light Cone. Import includes the source sheet's selected cone once in the shared inventory, reusing a unique existing copy when available; other source gear stays excluded. Switching equips that Path's cone, removes the previous cone's selection/attunement, and changes its art and automation. Charges, upgrades, currency and all owned items remain shared. None is supported. Deleted cones stay deleted. For builds imported before preview.30, switch away and use **Reimport source** once to add their cone assignment.
+Each build now saves its equipped Light Cone. Import includes the source sheet's selected cone once in the shared inventory, reusing a unique existing copy when available; other source gear stays excluded. Switching equips that Path's cone, removes the previous cone's selection/attunement, and changes its art and automation. Charges, upgrades, currency and all owned items remain shared. None is supported. Deleted cones stay deleted. Builds imported before preview.30 automatically acquire their source cone assignment on the next Path change while preserving their saved stats, resources and Eidolon progress.
 
 Update **Planar Ornaments to 1.0.19** as well. In Planar Relics, choose **Path loadout** to assign a Sphere and Rope to each build. The equipped badges show the configured Path icons and names. Saved sets can coexist, but only the active Path's pieces grant main stats, substats, set bonuses, damage modifiers and party buffs. A relic assigned to both Paths keeps the same upgrades and rolls. Existing unassigned equipment belongs to the original Path until configured.
 

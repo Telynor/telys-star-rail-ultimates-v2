@@ -45,3 +45,18 @@ test('failed imports remove only the newly added cone and keep the original buil
 test('Planar generated bonus effects never become saved build effects or duplicate on a Path change',()=>{
  for(const key of ['statBonus','hsrBonus'])assert.equal(buildEffect({flags:{'telys-planar-ornaments':{[key]:true}}},'Actor.hero',new Set()),false);
 });
+test('old profiles acquire their source cone without replacing saved stats, resources or Eidolon progress',async()=>{
+ const w=await world(),catalog=structuredClone(pathCatalog(w.hero)),alt=catalog.profiles.find(p=>p.id===w.alternate);
+ for(const p of catalog.profiles)delete p.snapshot.lightCone;
+ alt.snapshot.system.attributes.hp.value=3;alt.snapshot.system.abilities.dex.value=20;alt.snapshot.flags[ID].eidolons.slots[0].title='Saved progress';
+ await w.hero.update({[`flags.${ID}.pathChanging`]:catalog});await switchTo(w,w.alternate);
+ assert.equal(w.hero.items.get(w.hero.getFlag(ID,'selectedLightConeItemId')).name,'Ice cone');assert.equal(w.hero.system.attributes.hp.value,3);assert.equal(w.hero.system.abilities.dex.value,20);assert.equal(w.hero.getFlag(ID,'eidolons').slots[0].title,'Saved progress');
+ assert.equal(w.hero.items.filter(i=>i.name==='Ice cone').length,1);
+});
+test('an already-active old Path remembers its source cone when leaving, while recovery keeps the actual prior equipment',async()=>{
+ const w=await world();await switchTo(w,w.alternate);const catalog=structuredClone(pathCatalog(w.hero));for(const p of catalog.profiles)delete p.snapshot.lightCone;
+ await w.hero.update({[`flags.${ID}.pathChanging`]:catalog,[`flags.${ID}.selectedLightConeItemId`]:'coneA','system.attributes.hp.value':9});
+ const token=w.token('linked');token.fail=true;await assert.rejects(switchTo(w,w.original),/previous Path was restored/);assert.equal(w.hero.getFlag(ID,'selectedLightConeItemId'),'coneA');
+ await switchTo(w,w.original);assert.equal(w.hero.getFlag(ID,'selectedLightConeItemId'),'coneA');await switchTo(w,w.alternate);
+ assert.equal(w.hero.items.get(w.hero.getFlag(ID,'selectedLightConeItemId')).name,'Ice cone');assert.equal(w.hero.system.attributes.hp.value,9);
+});
