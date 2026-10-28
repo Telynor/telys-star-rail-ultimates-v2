@@ -38,6 +38,14 @@ const assert=require('node:assert/strict'),{JSDOM}=require('jsdom'),fs=require('
   const {validateHelp}=await import('../scripts/help-data.mjs'),{describeHelp}=await import('../scripts/help-tooltips.mjs'),help=validateHelp(JSON.parse(await fs.readFile(path.join(__dirname,'../docs/manual.json'))),JSON.parse(await fs.readFile(path.join(__dirname,'../docs/controls.json'))));
   for(const node of document.querySelectorAll('.tsru-path-changer button,.tsru-path-changer select,.tsru-path-changer input,[data-actor-control="path-changer"]')){const meta=describeHelp(node,help);assert.ok(meta&&!meta.fallback,node.outerHTML);}
   await mod.openPathChanger(w.hero).close();game.user=w.gm;const manager=mod.openPathChanger(w.hero,{manage:true});await settle();for(const node of manager.element.querySelectorAll('button,select,input')){const meta=describeHelp(node,help);assert.ok(meta&&!meta.fallback,node.outerHTML);}
-  assert.ok(!w.notices.some(message=>/failed|error|could not/i.test(message)),JSON.stringify(w.notices));await manager.close();dom.window.close();
+  assert.ok(!w.notices.some(message=>/failed|error|could not/i.test(message)),JSON.stringify(w.notices));
+  // An old GM configuration draft must not hide recovery or send its revision.
+  await change('[data-path-config-row="'+alternate.id+'"] [data-path-field="name"]','Unsaved draft','input');
+  w.hero.failCreates=2;await assert.rejects(mod.applyPathRequest('switch',{actorId:w.hero.id,revision:pathCatalog(w.hero).revision,profileId:alternate.id},w.gm),/Restore previous Path/);await settle();
+  assert.ok(document.querySelector('[data-path-recover]'),'a stale GM window shows the durable recovery action');
+  await w.hero.update({['flags.'+ID+'.pathChanging.revision']:pathCatalog(w.hero).revision+1},{tsruPathChange:true});
+  document.querySelector('[data-path-recover]').click();await settle();
+  assert.equal(pathCatalog(w.hero).pending,null);assert.equal(w.hero.items.find(item=>item.type==='class').name,'Fighter');assert.equal(w.hero.items.get('arrows').system.quantity,7);
+  await manager.close();dom.window.close();
   console.log('PASS: actual owner header button and selector; GM Import from / Import to and source Actor drop; automatic Path/Element preview; editable artwork; stale revision reload; GM-coordinated owner switches; shared inventory quantities; class changes; authored help for every control.');
 })().catch(error=>{console.error(error);process.exitCode=1});

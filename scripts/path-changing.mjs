@@ -225,7 +225,13 @@ export function installPathChanging(api,callbacks={}) {
   game.socket.on?.(`module.${ID}`,message=>void handlePathSocket(message).catch(notify));
   for(const hook of ['renderActorSheet','renderCharacterActorSheet','renderApplicationV2'])Hooks.on(hook,bindPathChangerHeader);
   Hooks.on('updateActor',(actor,_changes,opts={})=>{
-    const previous=observed.get(actor),catalog=pathCatalog(actor);observed.set(actor,{activeId:catalog.activeId,pending:Boolean(catalog.pending)});
+    const previous=observed.get(actor),catalog=pathCatalog(actor);observed.set(actor,{activeId:catalog.activeId,pending:Boolean(catalog.pending),error:catalog.pending?.error});
+    if(opts.tsruPathChange&&isChangingPath(actor)) {
+      // Show the durable recovery state on every open client without rebuilding
+      // HUDs or sheets for each intermediate Item/Actor operation.
+      if(catalog.pending&&(!previous?.pending||previous.error!==catalog.pending.error))refreshPathChangeWindows(actor);
+      return;
+    }
     if(!opts.tsruPathChange||!isChangingPath(actor)){
       // Only the requesting GM runs switchPath's finally block. Other clients
       // must refresh their live HSR widgets after the durable commit arrives.
