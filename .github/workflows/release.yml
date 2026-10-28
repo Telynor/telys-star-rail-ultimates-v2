@@ -75,6 +75,7 @@ jobs:
           MEMOSPRITES_SOURCE_ROOT=.test-memosprites node tests/summon-settings-dom.cjs
           node tests/party-setup-dom.cjs
           node tests/path-changing-dom.cjs
+          node tests/path-hotbar-dom.cjs
           node tests/sheet-compat-dom.cjs
 
       - name: Test shared Party Setup with two Chromium clients

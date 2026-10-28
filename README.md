@@ -1,5 +1,11 @@
 # Tely's Star Rail Ultimates
 
+## Immediate Path artwork and owner hotbars (preview.31)
+
+Changing Paths now redraws the Actors sidebar portrait, open character sheets, linked map tokens, party HUD, detached Skill/Ultimate/Talent/Technique buttons, initiative artwork, and GM panels as soon as the saved build is active. Enhanced token artwork keeps the incoming Path's own normal image for later restoration. Ultimate splash assets follow the new build as well.
+
+The GM reads each character owner's hotbar, including inactive pages and offline owners, and refreshes that character's four Star Rail action macros in place. Their slots and macro identities stay the same; artwork, Ultimate name and action dispatch follow the active build. Ordinary and alternate Ultimate overlays immediately read that Path's saved Energy or counters, with current/maximum Energy in the tooltip. Unrelated macros and other characters' slots are preserved. No character reimport is needed.
+
 ## Equipment by character Path (preview.30)
 
 Each build now saves its equipped Light Cone. Import includes the source sheet's selected cone once in the shared inventory, reusing a unique existing copy when available; other source gear stays excluded. Switching equips that Path's cone, removes the previous cone's selection/attunement, and changes its art and automation. Charges, upgrades, currency and all owned items remain shared. None is supported. Deleted cones stay deleted. Builds imported before preview.30 automatically acquire their source cone assignment on the next Path change while preserving their saved stats, resources and Eidolon progress.
