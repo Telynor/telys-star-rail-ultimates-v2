@@ -92,9 +92,11 @@ window.ready=true;
     const reject=await owner.evaluate(async()=>{try{await game.modules.get(ID).api.pathChanging.request('import',w.hero,{revision:fixture.view().revision,sourceActorId:'source'});return 'accepted'}catch(error){return error.message}});assert.match(reject,/Only the GM/);
     // Existing pre-.30 imports gain only equipment metadata, retaining progress.
     await owner.locator('[data-path-choice="'+original+'"]').click();await owner.locator('[data-path-switch]').click();await owner.waitForFunction(()=>fixture.selectedCone()==='Hunt Light Cone');
+    await gm.waitForFunction(()=>!game.modules.get(ID).api.pathChanging.isChanging(w.hero));
     await gm.evaluate(async()=>{const catalog=structuredClone(w.hero.getFlag(ID,'pathChanging'));for(const p of catalog.profiles)delete p.snapshot.lightCone;const alt=catalog.profiles.find(p=>!p.original);alt.snapshot.system.abilities.dex.value=25;await w.hero.update({['flags.'+ID+'.pathChanging']:catalog});});
     await owner.locator('[data-path-choice="'+alternate+'"]').click();await owner.locator('[data-path-switch]').click();await owner.waitForFunction(()=>fixture.selectedCone()==='Ice Light Cone'&&w.hero.system.abilities.dex.value===25);
     assert.equal(await owner.evaluate(()=>w.hero.system.attributes.hp.value),9);assert.equal(await owner.evaluate(()=>w.hero.items.filter(i=>i.name==='Ice Light Cone').length),1);
+    await gm.waitForFunction(()=>!game.modules.get(ID).api.pathChanging.isChanging(w.hero));
     // Reopen a durable transaction left by preview.28 after its Item deletion.
     await gm.evaluate(async()=>{
       const rules=await import('/scripts/path-change-rules.mjs'),catalog=structuredClone(w.hero.getFlag(ID,'pathChanging')),before=rules.capturePathBuild(w.hero);
