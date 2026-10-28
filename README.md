@@ -1,5 +1,12 @@
 # Tely's Star Rail Ultimates
 
+## Equipment by character Path (preview.30)
+
+Each build now saves its equipped Light Cone. Import includes the source sheet's selected cone once in the shared inventory, reusing a unique existing copy when available; other source gear stays excluded. Switching equips that Path's cone, removes the previous cone's selection/attunement, and changes its art and automation. Charges, upgrades, currency and all owned items remain shared. None is supported. Deleted cones stay deleted. For builds imported before preview.30, switch away and use **Reimport source** once to add their cone assignment.
+
+Update **Planar Ornaments to 1.0.19** as well. In Planar Relics, choose **Path loadout** to assign a Sphere and Rope to each build. The equipped badges show the configured Path icons and names. Saved sets can coexist, but only the active Path's pieces grant main stats, substats, set bonuses, damage modifiers and party buffs. A relic assigned to both Paths keeps the same upgrades and rolls. Existing unassigned equipment belongs to the original Path until configured.
+
+
 ## Path switch recovery and character sheets (preview.29)
 
 Fixes preview.28's `Actor is not a valid embedded Document within the Actor Document` failure. Each Foundry database operation now receives its own options object, so an embedded Item or scene Token parent cannot leak into character updates, rollback, another character or later imports. If a switch is already interrupted, update and reload, open the affected character's **Change Path / Import Paths**, and click **Restore previous Path**. The existing saved build and linked token art are restored; no reimport is required. Shared inventory and currency are retained. An already-open GM window also shows recovery when its configuration draft is stale; recovery reads the live transaction revision.
@@ -12,7 +19,7 @@ The GM can open **Change Path / Import Paths** in a character sheet header or **
 
 Owners use the sheet’s **Change Path** button, preview a card and apply it. Builds include raw ability scores, proficiencies, class/subclass, background/race, features, spells, HSR abilities, alternate orbs, Eidolons, Memosprite settings, portraits and token art. Each build saves its own current HP, Energy, spell slots, feature charges and Eidolon progress when leaving it; returning does not refill it. The destination keeps its Actor ID, name, ownership, Main Party status and party position.
 
-**Inventory is one live shared collection**, including weapons, equipment, consumables, tools, containers, other inventory types, item quantities/charges, equipment/attunement state, selected Light Cone and currency. Source inventory is never imported. Item provenance maps feature references to unique matching destination gear; unavailable source inventory links are cleared and listed for GM configuration. No name-only inventory matching or source-sheet spending is used. Class grants, feature references, effect origins and owned-spell links are remapped to the destination.
+**Inventory is one live shared collection**, including weapons, equipment, consumables, tools, containers, other inventory types, item quantities/charges, general equipment state and currency. Only the equipped source Light Cone is included; other source inventory is excluded. Item provenance maps feature references to unique matching destination gear; unavailable source inventory links are cleared and listed for GM configuration. No name-only inventory matching or source-sheet spending is used. Class grants, feature references, effect origins and owned-spell links are remapped to the destination.
 
 A GM must be online to apply owner changes. Combat changes are off by default and configurable per character. Finish queued/resolving abilities and dismiss an active summon before switching. Linked map tokens receive the build’s artwork and dimensions while retaining placement and initiative; independent unlinked token Actors are retained. Concurrent stale requests are rejected. Failures restore the previous build; an interrupted change exposes **Restore previous Path** to the GM. Reimport source refreshes an inactive build from its source sheet.
 

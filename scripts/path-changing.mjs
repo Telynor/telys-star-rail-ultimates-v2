@@ -1,6 +1,7 @@
 import {PATH_MODULE as ID,pathCatalog,pathCatalogView,capturePathBuild,importPathBuild,materializePathBuild,buildActorPatch,buildEffect,isSharedInventory,documentData,profileFromBuild,safePathImage} from './path-change-rules.mjs';
 import {actorSheetControls,actorHeaderButton,sheetActor} from './actor-sheet-controls.mjs';
 import {openPathChangeWindow,refreshPathChangeWindows} from './path-changing-ui.mjs';
+import {importPathLightCone,applyPathLightCone} from './path-equipment.mjs';
 const queues=new Map(),pendingRequests=new Map(),changing=new Set();
 const observed=new WeakMap();
 let installed=false,registered=false,services={};
@@ -72,6 +73,7 @@ async function applyBuild(actor,snapshot) {
   // D&D5e class creation/deletion may assign originalClass or spellcasting.
   // Reapply source values after those callbacks without touching inventory.
   await actor.update(buildActorPatch(actor,snapshot),options());
+  await applyPathLightCone(actor,snapshot.lightCone);
   for(const item of inventory)if(!actor.items.get(item.id))throw Error('A shared inventory document was replaced during the Path change.');
 }
 function refresh(actor) {
@@ -133,7 +135,8 @@ export async function applyPathRequest(action,payload={},user=game.user) {
       finally {changing.delete(actor.uuid);refresh(actor);}
       return pathCatalogView(actor,context());
     }
-    let next=structuredClone(catalog);
+    let next=structuredClone(catalog);const createdIds=[];
+    try{
     if(action==='import') {
       const source=resolveActor(payload.sourceActorId);
       if(!worldCharacter(source)||source===actor)throw Error('Import from a different world character sheet.');
@@ -144,6 +147,7 @@ export async function applyPathRequest(action,payload={},user=game.user) {
         const original=profileFromBuild(capturePathBuild(actor),{...catalogs,id:foundry.utils.randomID(),name:undefined});
         original.original=true;original.sourceActorUuid=actor.uuid;next.activeId=original.id;next.profiles.push(original);
       }
+      await importPathLightCone(source,actor,createdIds);
       const snapshot=importPathBuild(source,actor,{randomID:()=>foundry.utils.randomID()}),profile=profileFromBuild(snapshot,{...catalogs,id:foundry.utils.randomID(),name:payload.name,previewImage:payload.previewImage});
       profile.sourceActorUuid=source.uuid;next.profiles.push(profile);
     }else if(action==='settings') {
@@ -158,6 +162,7 @@ export async function applyPathRequest(action,payload={},user=game.user) {
         if(profile.original||profile.id===next.activeId)throw Error('Switch to another Path before replacing an imported build. The original Path is saved from this character.');
         const source=resolveActor(profile.sourceActorUuid);
         if(!worldCharacter(source)||source===actor||isChangingPath(source))throw Error('The original source sheet is missing or currently changing Paths.');
+        await importPathLightCone(source,actor,createdIds);
         const snapshot=importPathBuild(source,actor,{randomID:()=>foundry.utils.randomID()});
         const imported=profileFromBuild(snapshot,{...context(),id:profile.id,name:profile.name,previewImage:profile.previewImage});
         Object.assign(profile,imported);
@@ -175,6 +180,11 @@ export async function applyPathRequest(action,payload={},user=game.user) {
     }else throw Error('Unknown Path changer action.');
     next.revision++;await writeCatalog(actor,next);refreshPathChangeWindows(actor);
     return pathCatalogView(actor,context());
+    }catch(error){
+      const added=createdIds.filter(id=>actor.items.get(id));
+      if(added.length)await actor.deleteEmbeddedDocuments('Item',added,options());
+      throw error;
+    }
   });
 }
 
