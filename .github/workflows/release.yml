@@ -59,7 +59,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Telynor/telys-planar-ornaments
-          ref: 6038d9ac4524cf4378dede8520dc2e7ea6c22d67
+          ref: 7c6e65a997dd31255c9b6b172fc4f0e4c6853b63
           path: .test-planar
           persist-credentials: false
 
