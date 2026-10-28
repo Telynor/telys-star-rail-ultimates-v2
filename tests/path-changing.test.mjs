@@ -114,6 +114,29 @@ test('failed rollback leaves a durable GM recovery action, guards edits and rest
 test('a failed initial catalog write performs no destructive feature changes',async()=>{
   const w=pathWorld(),alt=await imported(w),before=w.hero.toObject();w.hero.calls=[];w.hero.failUpdates=1;await assert.rejects(activate(w,alt.id),/Actor update failed/);assert.deepEqual(w.hero.toObject(),before);assert.ok(!w.hero.calls.some(call=>call.type.startsWith('delete')));
 });
+test('recovering a preview.28 switch interrupted after feature deletion restores the saved original build',async()=>{
+  const w=pathWorld(),token=w.token('linked'),alt=await imported(w),catalog=structuredClone(pathCatalog(w.hero)),before=capturePathBuild(w.hero),inventory=w.inventory();
+  const pending={fromId:catalog.activeId,toId:alt.id,before,tokens:[{sceneId:token.parent.id,tokenId:token.id,before:{texture:{src:'custom-before.png'},width:1,height:1}}],error:''};
+  await w.hero.update({[`flags.${ID}.pathChanging`]:{...catalog,pending}},{tsruPathChange:true});
+  await w.hero.deleteEmbeddedDocuments('Item',w.hero.items.filter(item=>!isSharedInventory(item)).map(item=>item.id),{tsruPathChange:true});
+  await w.hero.deleteEmbeddedDocuments('ActiveEffect',['effect'],{tsruPathChange:true});
+  assert.equal(w.hero.items.some(item=>item.type==='class'),false);assert.equal(isChangingPath(w.hero),true);
+  await applyPathRequest('recover',payload(w),w.gm);
+  assert.deepEqual(capturePathBuild(w.hero),before);assert.deepEqual(w.inventory(),inventory);assert.equal(pathCatalog(w.hero).pending,null);assert.equal(pathCatalog(w.hero).activeId,catalog.activeId);assert.equal(token.texture.src,'custom-before.png');
+  await activate(w,alt.id);await activate(w,catalog.activeId);assert.deepEqual(capturePathBuild(w.hero),before);
+  const calls=w.hero.calls.filter(call=>call.opts.tsruPathChange);
+  assert.equal(new Set(calls.map(call=>call.opts)).size,calls.length,'each database call owns its operation object');
+  assert.ok(calls.filter(call=>call.type==='update').every(call=>call.opts.parent===null&&call.opts.documentName==='Actor'));
+});
+test('simultaneous character switches and subsequent imports cannot inherit another Actor or token parent',async()=>{
+  const w=pathWorld(),heroInventory=w.inventory(),sourceInventory=w.source.items.filter(isSharedInventory).map(item=>item.toObject()),alt=await imported(w);w.token('linked');
+  await applyPathRequest('import',{actorId:w.source.id,revision:0,sourceActorId:w.hero.id},w.gm);
+  const sourceAlt=pathCatalog(w.source).profiles.find(p=>!p.original);
+  await Promise.all([activate(w,alt.id),applyPathRequest('switch',{actorId:w.source.id,revision:pathCatalog(w.source).revision,profileId:sourceAlt.id},w.gm)]);
+  assert.equal(w.hero.items.find(i=>i.type==='class').name,'Wizard');assert.equal(w.source.items.find(i=>i.type==='class').name,'Fighter');
+  assert.deepEqual(w.inventory(),heroInventory);assert.deepEqual(w.source.items.filter(isSharedInventory).map(item=>item.toObject()),sourceInventory);
+  await applyPathRequest('import',payload(w,{sourceActorId:w.source.id}),w.gm);assert.equal(pathCatalog(w.hero).profiles.length,3);
+});
 test('reference rewriting handles keyed grants and UUID links without changing unrelated compendium references',()=>{
   const data={old:'old.adv',origin:'Actor.source.Item.old',description:'@UUID[Actor.source.Item.old]{Feature}',compendium:'Compendium.spells.Item.old'};
   assert.deepEqual(rewriteBuildReferences(data,{sourceUuid:'Actor.source',targetUuid:'Actor.hero',itemIds:new Map([['old','new']])}),{new:'new.adv',origin:'Actor.hero.Item.new',description:'@UUID[Actor.hero.Item.new]{Feature}',compendium:'Compendium.spells.Item.old'});

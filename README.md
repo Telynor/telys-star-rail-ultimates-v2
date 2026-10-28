@@ -1,5 +1,11 @@
 # Tely's Star Rail Ultimates
 
+## Path switch recovery and character sheets (preview.29)
+
+Fixes preview.28's `Actor is not a valid embedded Document within the Actor Document` failure. Each Foundry database operation now receives its own options object, so an embedded Item or scene Token parent cannot leak into character updates, rollback, another character or later imports. If a switch is already interrupted, update and reload, open the affected character's **Change Path / Import Paths**, and click **Restore previous Path**. The existing saved build and linked token art are restored; no reimport is required. Shared inventory and currency are retained.
+
+Light Cone frames now use the native D&D5e Details identity column even on empty or localized sheets and when Species/Background also appear in inventory. Unknown layouts log their missing host once per sheet root. Character settings, Eidolons, Light Cone descriptions and Multitype use Foundry v14's namespaced template/text APIs.
+
 ## Character Path Changer with shared inventory (preview.28)
 
 The GM can open **Change Path / Import Paths** in a character sheet header or **Module Settings → Character Path Changer**. **Import from** chooses an existing character sheet; **Import to** selects the destination, defaulting to the selected character. The source sheet’s assigned HSR **Path and Element are detected automatically**. Import saves an alternate build and preserves the destination’s original build without immediately switching it. Configure each build’s name, art preview, Path/Element and owner availability.

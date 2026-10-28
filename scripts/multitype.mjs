@@ -1,5 +1,6 @@
 import {MODULE_ID as ID, multitypeMode, isTypeChanger, isMultitypeAttacks, resolveAttackElement, storedAttackContext, attackSource, attackElementPatch, collectionValues} from "./multitype-rules.mjs";
 import {actorSheetControls, actorHeaderButton} from "./actor-sheet-controls.mjs";
+import {renderSheetTemplate as renderTemplate} from './sheet-compat.mjs';
 import {midiWorkflow,midiDamageRolls} from "./midi-compat.mjs";
 export {midiWorkflow,midiDamageRolls} from "./midi-compat.mjs";
 export {multitypeMode, isTypeChanger, isMultitypeAttacks, resolveAttackElement} from "./multitype-rules.mjs";
