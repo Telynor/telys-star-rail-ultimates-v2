@@ -2,11 +2,40 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {pathWorld,ID,MEMO_MODULE,HookApi,collection} from './helpers/path-world.mjs';
 import {pathCatalog,capturePathBuild,importPathBuild,materializePathBuild,rewriteBuildReferences,buildActorPatch,pathCatalogView,isSharedInventory} from '../scripts/path-change-rules.mjs';
-import {applyPathRequest,requestPathChange,handlePathSocket,isChangingPath} from '../scripts/path-changing.mjs';
+import {applyPathRequest,requestPathChange,handlePathSocket,isChangingPath,installPathChanging} from '../scripts/path-changing.mjs';
 import {renderPathChanger} from '../scripts/path-changing-ui.mjs';
 const payload=(w,extra={})=>({actorId:w.hero.id,revision:pathCatalog(w.hero).revision,...extra});
 async function imported(w){await applyPathRequest('import',payload(w,{sourceActorId:w.source.id}),w.gm);return pathCatalog(w.hero).profiles.find(p=>!p.original);}
 const activate=(w,id,user=w.owner)=>applyPathRequest('switch',payload(w,{profileId:id}),user);
+
+test('sidebar artwork, open sheets and owner macro synchronization refresh only after a durable Path commit',async()=>{
+  const w=pathWorld(),alt=await imported(w),renders=[],sync=[];
+  for(const key of ['actors','combat','players'])ui[key]={render:()=>renders.push({key,img:w.hero.img,pending:isChangingPath(w.hero)})};
+  w.hero.apps.extra={render:()=>renders.push({key:'extra-sheet',img:w.hero.img,pending:isChangingPath(w.hero)})};
+  installPathChanging({}, {synchronizeMacros:async actor=>{await new Promise(setImmediate);sync.push(actor.img);}});
+  await activate(w,alt.id);
+  assert.equal(renders.length,4);assert.ok(renders.every(row=>row.img==='alt-portrait.png'&&!row.pending));
+  assert.deepEqual(sync,['alt-portrait.png'],'owner macros finish before the switch request resolves');
+});
+
+test('linked tokens use incoming enhanced artwork and its own normal art, including rollback and later Path switches',async()=>{
+  const w=pathWorld(),token=w.token('linked'),independent=w.token('independent',{linked:false});
+  await w.source.update({[`flags.${ID}.ultimate.enhancedStanceEnabled`]:true,[`flags.${ID}.ultimate.enhancedStanceActive`]:true,[`flags.${ID}.ultimate.enhancedTokenImage`]:'ice-enhanced.png'});
+  const alt=await imported(w),original=pathCatalog(w.hero).activeId;await activate(w,alt.id);
+  assert.equal(token.texture.src,'ice-enhanced.png');assert.equal(token.flags[ID].enhancedStanceOriginalToken.src,'alt-token.png');
+  assert.equal(independent.texture.src,'custom-before.png');
+  token.fail=true;await assert.rejects(activate(w,original),/previous Path was restored/);
+  assert.equal(token.texture.src,'ice-enhanced.png');assert.equal(token.flags[ID].enhancedStanceOriginalToken.src,'alt-token.png');
+  await activate(w,original);assert.equal(token.texture.src,'hero-token.png');assert.equal(token.flags[ID].enhancedStanceOriginalToken,undefined);
+  await activate(w,alt.id);assert.equal(token.texture.src,'ice-enhanced.png');
+});
+
+test('all imported action, HUD, cinematic and initiative artwork is live on the changed character',async()=>{
+  const w=pathWorld(),art={skillButtonImage:'skill.webp',ultimateButtonImage:'ult.webp',talentIcon:'talent.webp',techniqueButtonImage:'technique.webp',orbImage:'orb.webp',splashImage:'splash.webp',combatHudPortrait:'hud.webp',carouselImage:'initiative.webp',enhancedHudPortrait:'enhanced-hud.webp',enhancedSplashImage:'enhanced-splash.webp'};
+  await w.source.update({[`flags.${ID}.ultimate`]:art});const alt=await imported(w);await activate(w,alt.id);
+  for(const [key,value]of Object.entries(art))assert.equal(w.hero.getFlag(ID,'ultimate')[key],value,key);
+  assert.equal(w.hero.img,'alt-portrait.png');assert.equal(w.hero.prototypeToken.texture.src,'alt-token.png');
+});
 
 test('Import from / Import to read the source Path and Element without switching or importing its inventory',async()=>{
   const w=pathWorld(),before=w.hero.toObject(),source=w.source.toObject(),alt=await imported(w),catalog=pathCatalog(w.hero);

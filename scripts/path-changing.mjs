@@ -42,14 +42,24 @@ async function writeCatalog(actor,catalog) {
 }
 function tokenRecords(actor) {
   return Array.from(game.scenes??[]).flatMap(scene=>Array.from(scene.tokens??[])).filter(token=>token.actorId===actor.id&&token.actorLink)
-    .map(token=>({sceneId:token.parent.id,tokenId:token.id,before:Object.fromEntries(['texture','width','height','sight','light','detectionModes','bar1','bar2','ring','alpha','lockRotation','hexagonalShape'].filter(key=>Object.hasOwn(documentData(token),key)).map(key=>[key,documentData(token)[key]]))}));
+    .map(token=>{
+      const data=documentData(token),original=data.flags?.[ID]?.enhancedStanceOriginalToken;
+      const before=Object.fromEntries(['texture','width','height','sight','light','detectionModes','bar1','bar2','ring','alpha','lockRotation','hexagonalShape'].filter(key=>Object.hasOwn(data,key)).map(key=>[key,data[key]]));
+      before[`flags.${ID}.${original?'enhancedStanceOriginalToken':'-=enhancedStanceOriginalToken'}`]=original??null;
+      return {sceneId:token.parent.id,tokenId:token.id,before};
+    });
 }
 async function updateTokens(actor,snapshot,records,{restore=false}={}) {
   for(const record of records) {
     const token=game.scenes?.get?.(record.sceneId)?.tokens?.get?.(record.tokenId);
     if(!token||token.actorId!==actor.id||!token.actorLink)continue;
-    const patch=restore?record.before:{...snapshot.token};
-    if(!restore)patch.texture={...(patch.texture??{}),src:patch.texture?.src||snapshot.img};
+    const patch=structuredClone(restore?record.before:snapshot.token);
+    if(!restore){
+      const config=snapshot.flags?.[ID]?.ultimate??{},normal=patch.texture?.src||snapshot.img;
+      const enhanced=config.enhancedStanceEnabled&&config.enhancedStanceActive&&String(config.enhancedTokenImage||'').trim();
+      patch.texture={...(patch.texture??{}),src:enhanced||normal};
+      patch[`flags.${ID}.${enhanced?'enhancedStanceOriginalToken':'-=enhancedStanceOriginalToken'}`]=enhanced?{actorId:actor.id,src:normal}:null;
+    }
     await token.update(patch,options());
   }
 }
@@ -76,11 +86,17 @@ async function applyBuild(actor,snapshot) {
   await applyPathLightCone(actor,snapshot.lightCone);
   for(const item of inventory)if(!actor.items.get(item.id))throw Error('A shared inventory document was replaced during the Path change.');
 }
-function refresh(actor) {
-  services.refresh?.(actor);
-  actor.sheet?.render?.(false);
+async function refresh(actor) {
+  // Actor operations use render:false until the transaction is durable. Redraw
+  // every client once at commit, including core sidebars and open Actor apps.
+  for(const app of new Set([actor.sheet,...Object.values(actor.apps??{}),ui.actors,ui.combat,ui.players])) {
+    try{app?.render?.(false);}catch(error){console.error(`${ID} | Path artwork redraw failed`,error);}
+  }
+  try{services.refresh?.(actor);}catch(error){console.error(`${ID} | Path HUD redraw failed`,error);}
   Hooks.callAll('tsruPathChanged',actor);
   refreshPathChangeWindows(actor);
+  try{await services.synchronizeMacros?.(actor);}
+  catch(error){console.error(`${ID} | Path hotbar synchronization failed`,error);ui.notifications.warn('The Path changed, but some action macros could not be refreshed. Check their ownership and reopen the hotbar.');}
 }
 
 async function preparePathCones(actor,catalog,profile){
@@ -132,7 +148,7 @@ async function switchPath(actor,catalog,profile,{outgoingCone}={}) {
       throw Error('The Path change was interrupted and could not be fully restored. The GM must use Restore previous Path in the importer. Shared inventory was not replaced.');
     }
     throw Error(`Path change failed; the previous Path was restored. ${error.message}`);
-  }finally {changing.delete(actor.uuid);refresh(actor);}
+  }finally {changing.delete(actor.uuid);await refresh(actor);}
 }
 
 export async function applyPathRequest(action,payload={},user=game.user) {
@@ -160,7 +176,7 @@ export async function applyPathRequest(action,payload={},user=game.user) {
       if(!catalog.pending)throw Error('There is no interrupted Path change to restore.');
       changing.add(actor.uuid);
       try {const snapshot=materializePathBuild(catalog.pending.before,actor,{randomID:()=>foundry.utils.randomID()});await applyBuild(actor,snapshot);await updateTokens(actor,snapshot,catalog.pending.tokens??[],{restore:true});await writeCatalog(actor,{...catalog,activeId:catalog.pending.fromId,pending:null,revision:catalog.revision+1});}
-      finally {changing.delete(actor.uuid);refresh(actor);}
+      finally {changing.delete(actor.uuid);await refresh(actor);}
       return pathCatalogView(actor,context());
     }
     let next=structuredClone(catalog);const createdIds=[];
@@ -273,7 +289,7 @@ export function installPathChanging(api,callbacks={}) {
     if(!opts.tsruPathChange||!isChangingPath(actor)){
       // Only the requesting GM runs switchPath's finally block. Other clients
       // must refresh their live HSR widgets after the durable commit arrives.
-      if(opts.tsruPathChange&&previous&&(previous.pending||previous.activeId&&previous.activeId!==catalog.activeId))refresh(actor);
+      if(opts.tsruPathChange&&previous&&(previous.pending||previous.activeId&&previous.activeId!==catalog.activeId))void refresh(actor).catch(notify);
       else refreshPathChangeWindows(actor);
       for(const app of Object.values(actor.apps??{}))bindPathChangerHeader(app,app.element);
     }

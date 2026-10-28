@@ -5,6 +5,7 @@ import * as npcRules from "./npc-rules.mjs";
 import * as npcInitiative from "./npc-initiative.mjs";
 import * as partySetup from "./party-setup.mjs";
 import * as pathChanging from "./path-changing.mjs";
+import {actionMacroPresentation,actionMacroCommand,synchronizeActionMacros} from './action-macros.mjs';
 import {renderSheetTemplate as renderTemplate,sheetTextEditor,lightConeSheetHost} from './sheet-compat.mjs';
 import {activeSummon as activePathSummon} from "./summon-lifecycle.mjs";
 import {openDocumentation,installDocumentationHelp} from './help-manual.mjs';
@@ -1968,31 +1969,13 @@ function stanceActionAllowed(actor,action,{notify=true}={}){
   return ready;
 }
 function stanceMacroPresentation(actor,action){
-  const config=getVisualConfig(actor),enhanced=enhancedFormActive(actor),label={skill:"Skill",talent:"Talent",ultimate:config.ultimateName||"Ultimate"}[action];
-  const img=action==="skill"?config.skillButtonImage:action==="talent"?config.talentIcon:config.ultimateButtonImage||config.orbImage;
-  return {name:`${actor.name} — ${enhanced?"Enhanced ":""}${label}`,img:img||actor.img||"icons/svg/d20.svg"};
+  return actionMacroPresentation(actor,action,getVisualConfig(actor),enhancedFormActive(actor));
 }
 // Each actor/action has a single macro identity. Updating that macro changes only
 // its existing hotbar slots; unrelated macros and slot assignments are untouched.
-async function synchronizeStanceHotbarMacros(){
-  if(!game.user?.hotbar||!game.macros)return;
-  const entries=new Map();
-  for(const value of Object.values(game.user.hotbar)){
-    const macro=game.macros.get(typeof value==="string"?value:value?.id);
-    const action=macro?.getFlag(MODULE_ID,"action"),actor=game.actors.get(macro?.getFlag(MODULE_ID,"actorId"));
-    if(!actor||!macro.isOwner||!["skill","talent","ultimate"].includes(action))continue;
-    entries.set(macro.id,{macro,actor,action});
-  }
-  for(const {macro,actor,action} of entries.values()){
-    const display=stanceMacroPresentation(actor,action);
-    if(macro.name===display.name&&macro.img===display.img)continue;
-    if(!state.stanceMacroSync)state.stanceMacroSync=new Set();
-    if(state.stanceMacroSync.has(macro.id))continue;
-    state.stanceMacroSync.add(macro.id);
-    try{await macro.update({name:display.name,img:display.img});}
-    catch(error){console.error(`${MODULE_ID} | Could not refresh stance macro`,error);}
-    finally{state.stanceMacroSync.delete(macro.id);}
-  }
+async function synchronizeStanceHotbarMacros({actor,allOwners=false,replaceCommand=false}={}){
+  if(!game.user||!game.macros)return;
+  await synchronizeActionMacros({actor,users:allOwners&&isAuthority()?game.users:[game.user],presentation:stanceMacroPresentation,replaceCommand,isChanging:pathChanging.isChangingPath});
 }
 
 function activateStarRailActionDrag(element, actor, action) {
@@ -2020,13 +2003,12 @@ async function createStarRailActionMacro(data, slot) {
   if (!game.user.isGM && !actor.isOwner) { ui.notifications.error("You can only create action macros for characters you own."); return false; }
   let macro = game.macros.find(entry => entry.getFlag(MODULE_ID,"action") === data.action && entry.getFlag(MODULE_ID,"actorId") === actor.id && entry.isOwner);
   if (!macro) {
-    const method = {skill:"requestSkill",technique:"requestTechnique",ultimate:"requestUltimate",talent:"showTalentPopup"}[data.action];
-    const display=["skill","talent","ultimate"].includes(data.action)?stanceMacroPresentation(actor,data.action):{name:data.name,img:data.img || actor.img || "icons/svg/d20.svg"};
-    macro = await Macro.create({name:display.name,type:"script",img:display.img,command:`const actor = game.actors.get("${actor.id}");\nif (!actor) return ui.notifications.error("Character not found.");\nreturn game.modules.get("${MODULE_ID}")?.api?.${method}(actor);`,flags:{[MODULE_ID]:{action:data.action,actorId:actor.id}}});
+    const display=stanceMacroPresentation(actor,data.action);
+    macro = await Macro.create({name:display.name,type:"script",img:display.img,command:actionMacroCommand(actor,data.action),flags:{[MODULE_ID]:{action:data.action,actorId:actor.id}}});
   }
   await game.user.assignHotbarMacro(macro,slot);
   requestAnimationFrame(refreshUltimateHotbarMacros);
-  synchronizeStanceHotbarMacros();
+  await synchronizeStanceHotbarMacros();
   return false;
 }
 
@@ -2055,13 +2037,23 @@ function refreshUltimateHotbarMacros() {
     const isUltimate = action === "ultimate";
     const isSkill = action === "skill";
     const isTalent = action === "talent";
+    const actor = game.actors.get(macro?.getFlag(MODULE_ID, "actorId"));
+    if(actor&&pathChanging.isChangingPath(actor))continue;
+    // Paint from the committed Actor immediately, even while the GM's macro
+    // document updates are still travelling to this owner's client.
+    if(actor&&["skill","ultimate","talent","technique"].includes(action)){
+      const display=stanceMacroPresentation(actor,action),icon=slot.querySelector('img');
+      if(icon){if(icon.getAttribute('src')!==display.img)icon.setAttribute('src',display.img);icon.alt=display.name;}
+      const name=slot.querySelector('.macro-name');if(name)name.textContent=display.name;
+      slot.title=display.name;
+      if(slot.dataset.tooltip!==undefined)slot.dataset.tooltip=display.name;
+    }
     slot.classList.toggle("tsru-ultimate-macro", isUltimate);
     slot.classList.toggle("tsru-skill-macro", isSkill);
     slot.classList.toggle("tsru-talent-macro", isTalent);
     slot.querySelectorAll(":scope > .tsru-hotbar-energy-fill, :scope > .tsru-hotbar-energy-label, :scope > .tsru-hotbar-action-label").forEach(node => node.remove());
     if (isSkill || isTalent) {
       slot.classList.remove("has-energy", "is-ready");
-      const actor = game.actors.get(macro.getFlag(MODULE_ID, "actorId"));
       const label = document.createElement("span");
       label.className = "tsru-hotbar-action-label";
       label.textContent = isTalent ? "TALENT" : "SKILL";
@@ -2071,7 +2063,6 @@ function refreshUltimateHotbarMacros() {
       continue;
     }
     if (!isUltimate) { slot.classList.remove("has-energy", "is-ready"); continue; }
-    const actor = game.actors.get(macro.getFlag(MODULE_ID, "actorId"));
     if (!actor) continue;
     const display = ultimateMacroDisplay(actor);
     slot.style.setProperty("--tsru-hotbar-energy", `${display.percent}%`);
@@ -2086,9 +2077,40 @@ function refreshUltimateHotbarMacros() {
     const label = document.createElement("span");
     label.className = "tsru-hotbar-energy-label";
     label.textContent = display.alternate ? `${display.current}/${display.total}` : `${Math.round(display.percent)}%`;
-    label.setAttribute("aria-label", display.alternate ? `${actor.name} Ultimate counters: ${display.current}/${display.total} on` : `${actor.name} Ultimate Energy: ${Math.round(display.percent)}%`);
+    const description=display.alternate?`${actor.name} Ultimate counters: ${display.current}/${display.total} on`:`${actor.name} Ultimate Energy: ${display.current}/${display.total} (${Math.round(display.percent)}%)`;
+    label.setAttribute("aria-label", description);
+    slot.title=description;
+    if(slot.dataset.tooltip!==undefined)slot.dataset.tooltip=description;
     slot.append(fill, label);
   }
+}
+
+function refreshPathPresentation(actor) {
+  state.enhancedStanceSeen??=new Map();
+  state.enhancedStanceSeen.set(actor.id,enhancedFormActive(actor));
+  if(isAuthority()&&state.splashArtworkByActor){
+    state.splashArtworkByActor.set(actor.id,[getConfig(actor).splashImage,getConfig(actor).enhancedSplashImage].join('\n'));
+    queueSplashPreloadBroadcast();
+  }
+  refreshAllOrbs();
+  refreshSkillUI();
+  refreshTalentButtons();
+  refreshTechniqueButtons();
+  refreshResourceHuds();
+  refreshInitiativeCarousel();
+  refreshToughnessBars();
+  refreshPunchlineHUD();
+  refreshBossHud();
+  state.dmCombatMenu?.refresh();
+  state.gmPanel?.render(false);
+  for(const tab of document.querySelectorAll('.tsru-sheet-tab[data-alt-actor-id]'))if(tab.dataset.altActorId===actor.id){
+    syncAlternateOrbSheet(actor,tab);
+    tab.dispatchEvent(new Event('tsru-alternate-preview'));
+  }
+  // Render only this user's existing hotbar page. The documents are updated in
+  // place for every owner below, so no slot assignment or page is changed.
+  ui.hotbar?.render(false);
+  refreshUltimateHotbarMacros();
 }
 
 class TechniqueHud {
@@ -8359,7 +8381,8 @@ function registerApi() {
     getSelectedCharacter:selectedMainCharacter,
     isResolving:actor=>state.ultimateLocks.has(actor.id)||state.runningUltimates.has(actor.id)||state.skillLocks.has(actor.id)||state.abilityPlanning.has(actor.id)||hasQueuedUltimateRequest(actor.id),
     activeSummon:activePathSummon,
-    refresh:actor=>{refreshAllOrbs();refreshSkillUI();refreshResourceHuds();refreshCombatPartyHud();refreshInitiativeCarousel();refreshToughnessBars();refreshUltimateHotbarMacros();}
+    refresh:refreshPathPresentation,
+    synchronizeMacros:actor=>synchronizeStanceHotbarMacros({actor,allOwners:true,replaceCommand:true})
   });
 }
 
