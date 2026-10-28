@@ -13,7 +13,13 @@ const assert=require('node:assert/strict'),{JSDOM}=require('jsdom'),fs=require('
   const sheet={document:w.hero,actor:w.hero,element:document.querySelector('#character-sheet')};w.hero.apps.sheet=sheet;
   const settle=async()=>{for(let i=0;i<25;i++)await new Promise(setImmediate)};
   const change=async(selector,value,event='change')=>{const node=document.querySelector(selector);assert.ok(node,selector);if(node.type==='checkbox')node.checked=value;else node.value=value;node.dispatchEvent(new Event(event,{bubbles:true}));await settle();};
-  game.user=w.owner;mod.bindPathChangerHeader(sheet,sheet.element);assert.equal(document.querySelector('[data-actor-control="path-changer"]'),null);
+  game.user=w.owner;mod.bindPathChangerHeader(sheet,sheet.element);assert.equal(document.querySelector('[data-actor-control="path-changer"]').getAttribute('aria-label'),'Change Path');
+  document.querySelector('[data-actor-control="path-changer"]').click();await settle();
+  assert.equal(document.querySelector('[data-path-switch]').disabled,true);assert.match(document.querySelector('.tsru-path-choices').textContent,/GM has not added/);
+  const emptyOwner=mod.openPathChanger(w.hero);assert.deepEqual(emptyOwner.service.actors(),[]);
+  emptyOwner.service.actors=()=>{throw Error('Player selector requested import sources');};emptyOwner.reload();await emptyOwner.render();
+  assert.equal(document.querySelector('.tsru-path-importer,[data-path-import-from],[data-path-manage]'),null);
+  await emptyOwner.commit('import',{sourceActorId:w.source.id});assert.match(w.notices.pop(),/Only the GM/);assert.equal(w.messages.length,0);await emptyOwner.close();
   game.user=w.gm;mod.bindPathChangerHeader(sheet,sheet.element);mod.bindPathChangerHeader(sheet,sheet.element);assert.equal(document.querySelectorAll('[data-actor-control="path-changer"]').length,1);
   const itemSheet={document:{documentName:'Item'},actor:w.hero,element:document.createElement('section')};itemSheet.element.innerHTML='<header class="window-header"></header>';mod.bindPathChangerHeader(itemSheet,itemSheet.element);assert.equal(itemSheet.element.querySelector('[data-actor-control]'),null);
   document.querySelector('[data-actor-control="path-changer"]').click();await settle();document.querySelector('[data-path-manage]').click();await settle();
@@ -32,6 +38,7 @@ const assert=require('node:assert/strict'),{JSDOM}=require('jsdom'),fs=require('
     setImmediate(async()=>{game.user=w.gm;try{await mod.handlePathSocket(message);}finally{game.user=w.owner;for(const response of responses.splice(0))await mod.handlePathSocket(response);}});
   };
   document.querySelector('[data-actor-control="path-changer"]').click();await settle();assert.equal(document.querySelector('[data-path-import-from]'),null);assert.equal(document.querySelector('[data-path-manage]'),null);
+  assert.equal(document.querySelector('.tsru-path-importer,[data-path-config-row],[data-path-reimport],[data-path-remove],[data-path-save-settings],[data-path-import-drop]'),null,'GM management controls are absent from the player DOM');
   document.querySelector('[data-path-choice="'+alternate.id+'"]').click();await settle();assert.equal(document.querySelector('.tsru-path-art>img').getAttribute('src'),'custom-preview.webp');document.querySelector('[data-path-switch]').click();await settle();
   assert.equal(pathCatalog(w.hero).activeId,alternate.id);assert.equal(w.hero.system.abilities.dex.value,18);assert.equal(w.hero.items.get('arrows').system.quantity,30);
   await w.hero.items.get('arrows').update({'system.quantity':7});document.querySelector('[data-path-choice="'+original+'"]').click();await settle();document.querySelector('[data-path-switch]').click();await settle();assert.equal(w.hero.system.abilities.dex.value,12);assert.equal(w.hero.items.get('arrows').system.quantity,7);

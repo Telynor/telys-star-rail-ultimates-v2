@@ -1,5 +1,11 @@
 # Tely's Star Rail Ultimates
 
+## Player Path selector and GM-only importing (preview.32)
+
+Owners get a **Change Path** sheet control that opens only their character's selectable Paths, artwork preview and switch button. The control remains available before alternate builds are configured, with an empty-state message. Import, source/destination selectors, drag/drop importing, reimport, editing, removal, recovery and permissions controls are only rendered and bound for GMs. Player windows do not load the importer source-sheet list, and management requests are rejected on both the client and the authoritative GM.
+
+The GM retains **Change Path / Import Paths**, **Import / Configure**, and the restricted module-settings importer. Existing GM owner-access and combat permissions still apply.
+
 ## Immediate Path artwork and owner hotbars (preview.31)
 
 Changing Paths now redraws the Actors sidebar portrait, open character sheets, linked map tokens, party HUD, detached Skill/Ultimate/Talent/Technique buttons, initiative artwork, and GM panels as soon as the saved build is active. Enhanced token artwork keeps the incoming Path's own normal image for later restoration. Ultimate splash assets follow the new build as well.

@@ -234,6 +234,7 @@ export async function applyPathRequest(action,payload={},user=game.user) {
 
 export async function requestPathChange(action,actor,payload={}) {
   assertActor(actor,game.user);
+  if(action!=='switch'&&!game.user.isGM)throw Error('Only the GM can import or configure Paths.');
   if(authority())return applyPathRequest(action,{...payload,actorId:actor.id},game.user);
   const responder=gm();if(!responder)throw Error('A GM must be online to apply Path changes.');
   const requestId=foundry.utils.randomID();
@@ -254,7 +255,7 @@ export async function handlePathSocket(message) {
   game.socket.emit(`module.${ID}`,{type:'pathChangeResult',requestId:message.requestId,sourceUserId:game.user.id,targetUserId:message.sourceUserId,result,error});
 }
 
-function viewService() {return {context,view:actor=>pathCatalogView(actor,context()),actors:()=>Array.from(game.actors).filter(worldCharacter),request:requestPathChange};}
+function viewService() {return {context,view:actor=>pathCatalogView(actor,context()),actors:()=>game.user.isGM?Array.from(game.actors).filter(worldCharacter):[],request:requestPathChange};}
 export function openPathChanger(actor=selectedPathCharacter(),{manage=false}={}) {
   assertActor(actor,game.user);
   if(manage&&!game.user.isGM)throw Error('Only the GM can import Paths.');
@@ -264,7 +265,7 @@ export function bindPathChangerHeader(app,html) {
   const actor=sheetActor(app);
   if(!worldCharacter(actor)||!owned(actor,game.user))return;
   const catalog=pathCatalog(actor),group=actorSheetControls(app,html);if(!group)return;
-  if(!game.user.isGM&&(!catalog.ownerEnabled||catalog.profiles.filter(p=>p.enabled).length<2)) {group.querySelector('[data-actor-control="path-changer"]')?.remove();return;}
+  if(!game.user.isGM&&!catalog.ownerEnabled) {group.querySelector('[data-actor-control="path-changer"]')?.remove();return;}
   actorHeaderButton(group,{key:'path-changer',label:game.user.isGM?'Change Path / Import Paths':'Change Path',icon:'fas fa-route',order:15,onClick:()=>{try{openPathChanger(actor);}catch(error){notify(error);}}});
 }
 export function registerPathChangeSettings() {

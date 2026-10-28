@@ -5,9 +5,9 @@ const image=(url,alt='',className='')=>url?`<img class="${className}" src="${esc
 const options=(entries,current,empty)=>`${empty?`<option value="">${esc(empty)}</option>`:''}${entries.map(entry=>`<option value="${esc(entry.id)}" ${entry.id===current?'selected':''}>${esc(entry.name)}</option>`).join('')}`;
 function identity(profile) {return `<span class="tsru-path-identity">${image(profile.pathIcon)}<span>${esc(profile.pathName)}</span>${image(profile.elementIcon)}<span>${esc(profile.elementName)}</span></span>`;}
 
-export function renderPathChanger({actor,view,selectedId,sourceActorId,actors,context,isGM,manage=false,busy=false,stale=false,drafts=new Map()}) {
+export function renderPathChanger({actor,view,selectedId,sourceActorId,actors=[],context,isGM,manage=false,busy=false,stale=false,drafts=new Map()}) {
   const profiles=view.profiles.filter(profile=>isGM||profile.enabled),selected=profiles.find(profile=>profile.id===selectedId)??profiles.find(profile=>profile.id===view.activeId)??profiles[0];
-  const source=actors.find(entry=>entry.id===sourceActorId),sourceConfig=source?.getFlag?.(ID,'ultimate')??{},sourceDetails=pathLabels({pathId:sourceConfig.pathId,elementId:sourceConfig.elementId},context);
+  const source=isGM?actors.find(entry=>entry.id===sourceActorId):null,sourceConfig=source?.getFlag?.(ID,'ultimate')??{},sourceDetails=pathLabels({pathId:sourceConfig.pathId,elementId:sourceConfig.elementId},context);
   const sourceItems=Array.from(source?.items??[]),canSwitch=selected&&selected.id!==view.activeId&&selected.enabled&&!busy&&!stale&&!view.pending&&(isGM||view.ownerEnabled);
   const disabled=busy?'disabled':'';
   const manager=isGM?`<details class="tsru-path-importer" ${manage?'open':''}><summary>Import and configure Paths</summary><p>Import a build from a separate sheet. The destination keeps its live inventory and currency; the source sheet is untouched.</p>
@@ -25,12 +25,13 @@ export function renderPathChanger({actor,view,selectedId,sourceActorId,actors,co
 function makeWindowClass() {
   return class PathChangerApplication extends foundry.applications.api.ApplicationV2 {
     static DEFAULT_OPTIONS={classes:['tsru-path-changing-window'],window:{title:'Change Path',resizable:true},position:{width:1000,height:820}};
-    constructor(actor,service,{manage=false}={}) {super({id:`tsru-path-changing-${foundry.utils.randomID()}`});this.actor=actor;this.service=service;this.manage=manage;this.busy=false;this.drafts=new Map();this.reload();}
-    reload(view=this.service.view(this.actor)) {this.view=view;this.selectedId=view.activeId||view.profiles[0]?.id||'';this.stale=false;this.drafts.clear();this.sourceActorId??=this.service.actors().find(actor=>actor.id!==this.actor.id)?.id||'';}
-    async _renderHTML() {return renderPathChanger({actor:this.actor,view:this.view,selectedId:this.selectedId,sourceActorId:this.sourceActorId,actors:this.service.actors(),context:this.service.context(),isGM:game.user.isGM,manage:this.manage,busy:this.busy,stale:this.stale,drafts:this.drafts});}
+    constructor(actor,service,{manage=false}={}) {super({id:`tsru-path-changing-${foundry.utils.randomID()}`});this.actor=actor;this.service=service;this.manage=game.user.isGM&&manage;this.busy=false;this.drafts=new Map();this.reload();}
+    reload(view=this.service.view(this.actor)) {this.view=view;this.selectedId=view.activeId||view.profiles[0]?.id||'';this.stale=false;this.drafts.clear();if(game.user.isGM)this.sourceActorId??=this.service.actors().find(actor=>actor.id!==this.actor.id)?.id||'';else{this.sourceActorId='';this.manage=false;}}
+    async _renderHTML() {return renderPathChanger({actor:this.actor,view:this.view,selectedId:this.selectedId,sourceActorId:game.user.isGM?this.sourceActorId:'',actors:game.user.isGM?this.service.actors():[],context:this.service.context(),isGM:game.user.isGM,manage:this.manage,busy:this.busy,stale:this.stale,drafts:this.drafts});}
     _replaceHTML(html,content){content.innerHTML=html;}
     async commit(action,payload={}) {
       if(this.busy)return;
+      if(action!=='switch'&&!game.user.isGM){ui.notifications.error('Only the GM can import or configure Paths.');return;}
       // Recovery uses the live transaction even if an old configuration draft
       // was left open before another client changed the character's Path.
       if(action==='recover')this.reload();
@@ -54,11 +55,14 @@ function makeWindowClass() {
     }
     _onRender(context,opts) {
       super._onRender(context,opts);const root=this.element;
-      const details=root.querySelector('.tsru-path-importer');details?.addEventListener('toggle',()=>{if(details.isConnected)this.manage=details.open;});
-      root.querySelector('[data-path-manage]')?.addEventListener('click',()=>{this.manage=!this.manage;void this.render({force:false});});
       for(const button of root.querySelectorAll('[data-path-choice]'))button.addEventListener('click',()=>{this.selectedId=button.dataset.pathChoice;void this.render({force:false});});
       root.querySelector('[data-path-switch]')?.addEventListener('click',()=>void this.commit('switch',{profileId:this.selectedId}));
       root.querySelector('[data-path-reload]')?.addEventListener('click',()=>{this.reload();void this.render({force:false});});
+      // Player windows bind only their selector, switch and reload controls.
+      // No importer, drop target, editing or recovery handlers are installed.
+      if(!game.user.isGM)return;
+      const details=root.querySelector('.tsru-path-importer');details?.addEventListener('toggle',()=>{if(details.isConnected)this.manage=details.open;});
+      root.querySelector('[data-path-manage]')?.addEventListener('click',()=>{this.manage=!this.manage;void this.render({force:false});});
       root.querySelector('[data-path-recover]')?.addEventListener('click',()=>void this.commit('recover'));
       root.querySelector('[data-path-import-from]')?.addEventListener('change',event=>{this.sourceActorId=event.currentTarget.value;void this.render({force:false});});
       root.querySelector('[data-path-import-to]')?.addEventListener('change',event=>{
@@ -91,7 +95,7 @@ function makeWindowClass() {
   };
 }
 export function openPathChangeWindow(actor,service,opts={}) {
-  const existing=windows.get(actor.uuid);if(existing){if(opts.manage)existing.manage=true;existing.bringToFront();void existing.render({force:false});return existing;}
+  const existing=windows.get(actor.uuid);if(existing){if(opts.manage&&game.user.isGM)existing.manage=true;existing.bringToFront();void existing.render({force:false});return existing;}
   WindowClass??=makeWindowClass();const app=new WindowClass(actor,service,opts);windows.set(actor.uuid,app);void app.render({force:true});return app;
 }
 export function refreshPathChangeWindows(actor,opts={}) {for(const app of windows.values())if(!actor||app.actor.uuid===actor.uuid)app.refresh(opts);}

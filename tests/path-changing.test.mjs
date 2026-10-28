@@ -8,6 +8,22 @@ const payload=(w,extra={})=>({actorId:w.hero.id,revision:pathCatalog(w.hero).rev
 async function imported(w){await applyPathRequest('import',payload(w,{sourceActorId:w.source.id}),w.gm);return pathCatalog(w.hero).profiles.find(p=>!p.original);}
 const activate=(w,id,user=w.owner)=>applyPathRequest('switch',payload(w,{profileId:id}),user);
 
+test('player rendering contains only selectable Paths and never reads the GM source-sheet catalog',async()=>{
+  const w=pathWorld(),alt=await imported(w),view=pathCatalogView(w.hero,w.settings);
+  view.profiles.push({...view.profiles[1],id:'hidden',name:'GM hidden build',enabled:false});
+  const html=renderPathChanger({actor:w.hero,view,selectedId:alt.id,context:w.settings,isGM:false,manage:true,actors:{find(){throw Error('Player accessed source catalog');}}});
+  assert.match(html,/data-path-choice=/);assert.match(html,/data-path-switch/);
+  assert.doesNotMatch(html,/data-path-(?:manage|import|reimport|remove|save|field|browse|owner-enabled|in-combat|recover)|Import \/ Configure|Import from|Import to|GM hidden build/);
+  const gm=renderPathChanger({actor:w.hero,view,context:w.settings,isGM:true,manage:true,actors:w.actors});
+  assert.match(gm,/data-path-import-from/);assert.match(gm,/data-path-import-to/);assert.match(gm,/data-path-config-row/);
+});
+
+test('player clients reject every management action before emitting a GM request',async()=>{
+  const w=pathWorld();game.user=w.owner;
+  for(const action of ['import','update','settings','remove','reimport','recover'])await assert.rejects(requestPathChange(action,w.hero,{sourceActorId:w.source.id}),/Only the GM/);
+  assert.equal(w.messages.length,0);assert.equal(pathCatalog(w.hero).profiles.length,0);
+});
+
 test('sidebar artwork, open sheets and owner macro synchronization refresh only after a durable Path commit',async()=>{
   const w=pathWorld(),alt=await imported(w),renders=[],sync=[];
   for(const key of ['actors','combat','players'])ui[key]={render:()=>renders.push({key,img:w.hero.img,pending:isChangingPath(w.hero)})};
