@@ -156,9 +156,12 @@ export function normalizePartyArtwork(value){
     return {image:safePartyImage(image),x:clamp(entry.x,0,100,50),y:clamp(entry.y,0,100,100),scale:clamp(entry.scale,25,250,100),flip:entry.flip===true};
   });
 }
+export function normalizePartyShadow(value={}){value??={};return {enabled:value.enabled!==false,x:clamp(value.x,-100,200,50),y:clamp(value.y,-100,200,100),width:clamp(value.width,1,200,34),height:clamp(value.height,1,50,4),opacity:clamp(value.opacity,0,100,24),blur:clamp(value.blur,0,20,2)};}
+export function normalizePartyShadows(value){return Array.from({length:PARTY_SIZE},(_,i)=>normalizePartyShadow(value?.[i]));}
+export function normalizeOptionalArtwork(value={}){value??={};return {...normalizePartyArtwork([value])[0],x:clamp(value.x,-100,200,50),y:clamp(value.y,-100,200,100),scale:clamp(value.scale,25,500,100)};}
 export function partyArtworkFor(actor,index){
   const costume=outfitArt(actor,'team'+(index+1),globalThis.game?.settings?.get?.(PARTY_ID,'outfitLibrary')??{},characterConfig(actor));
-  const entry=costume??normalizePartyArtwork(actor?.getFlag?.(PARTY_ID,'partySetupArtwork'))[index]??normalizePartyArtwork()[0];
+  const entry=costume??(index===4?normalizeOptionalArtwork(actor?.getFlag?.(PARTY_ID,'optionalPartyArtwork')):normalizePartyArtwork(actor?.getFlag?.(PARTY_ID,'partySetupArtwork'))[index])??normalizePartyArtwork()[0];
   return {...entry,image:entry.image||characterConfig(actor).combatHudPortrait||actor?.img||'icons/svg/mystery-man.svg'};
 }
 

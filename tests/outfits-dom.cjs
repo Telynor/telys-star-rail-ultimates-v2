@@ -28,6 +28,8 @@ const assert=require('node:assert/strict'),{JSDOM}=require('jsdom');
  await change('[data-outfit-any-path]',true,'change');assert.equal(app.profile().pathKey,'*');
  await change('[data-outfit-art="team3"] [data-outfit-art-field="image"]','gala-team3.png');
  await change('[data-outfit-art="team3"] [data-outfit-art-field="scale"]',135);assert.match(document.querySelector('[data-outfit-stage="team3"] img').style.transform,/1.35/);
+ await change('[data-outfit-art="team3"] [data-outfit-shadow-field="x"]',43);assert.equal(app.profile().normal.art.team3.shadow.x,43);assert.match(document.querySelector('[data-outfit-art="team3"] [data-outfit-shadow-preview]').getAttribute('style'),/--party-shadow-x:43%/);
+ assert.equal(document.querySelector('[data-outfit-art="team5"] [data-outfit-shadow-field]'),null);
  document.querySelector('[data-outfit-save]').click();await settle();assert.equal(w.settings.outfitLibrary.outfits[0].name,'Evening gala');assert.equal(w.settings.outfitLibrary.outfits[0].profiles[0].normal.art.splash.scale,145);
  assert.equal(document.querySelector('[data-outfit-equip]:not([data-outfit-equip=""])').disabled,true);assert.match(document.querySelector('.tsru-outfit-choices').textContent,/Requires Gala ticket/);
  await app.close();game.user=w.owner;document.querySelector('[data-actor-control="outfits"]').click();await settle();assert.equal(document.querySelector('.tsru-outfit-builder,[data-outfit-manage],[data-outfit-save],[data-outfit-unlock-drop]'),null);

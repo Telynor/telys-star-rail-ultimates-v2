@@ -1,4 +1,4 @@
-import {PARTY_ID as ID,PARTY_PRESETS,normalizePartyPreset,partyMemberIds,unlockingItemDescriptor,normalizeUnlockingItem,normalizePartySetup,effectivePartySetup,partyIssues,planCharacterSelection,orderCombatPartyActors,normalizePartyArtwork,actorList,actorById,characterConfig} from './party-setup-rules.mjs';
+import {PARTY_ID as ID,PARTY_PRESETS,normalizePartyPreset,partyMemberIds,unlockingItemDescriptor,normalizeUnlockingItem,normalizePartySetup,effectivePartySetup,partyIssues,planCharacterSelection,orderCombatPartyActors,normalizePartyArtwork,normalizePartyShadows,normalizeOptionalArtwork,actorList,actorById,characterConfig} from './party-setup-rules.mjs';
 import {openPartySetupWindow,openPartyArtworkWindow,refreshPartySetupWindows} from './party-setup-ui.mjs';
 const SOCKET=`module.${ID}`,pending=new Map();
 let installed=false,settingsRegistered=false,mutationQueue=Promise.resolve(),services={};
@@ -85,10 +85,12 @@ export async function handlePartySetupSocket(message){
   try{state=await applyPartySetupRequest(message.action,message.payload,game.users.get(message.sourceUserId));}catch(cause){error=cause.message;}
   game.socket.emit(SOCKET,{type:'partySetupResult',requestId:message.requestId,sourceUserId:game.user.id,targetUserId:message.sourceUserId,state,error});
 }
-export async function savePartyArtwork(actor,artwork){
+export async function savePartyArtwork(actor,artwork,extras={}){
   if(!game.user.isGM)throw Error('Only the GM can configure party artwork.');
   if(actor?.type!=='character'||actorById(game.actors,actor.id)!==actor)throw Error('Choose a world character sheet.');
   await actor.setFlag(ID,'partySetupArtwork',normalizePartyArtwork(artwork));
+  if(extras.optional)await actor.setFlag(ID,'optionalPartyArtwork',normalizeOptionalArtwork(extras.optional));
+  if(extras.shadows)await actor.setFlag(ID,'partySetupShadows',normalizePartyShadows(extras.shadows));
 }
 export async function savePartyUnlockingItem(actor,item){
   if(!game.user.isGM)throw Error('Only the GM can configure an unlocking item.');
@@ -125,7 +127,7 @@ export function installPartySetup(moduleApi){
     if([`${ID}.paths`,`${ID}.elements`].includes(setting?.key))refreshPartySetupWindows({artworkOnly:true});
   });
   const changed=(changes,path)=>Object.keys(changes??{}).some(key=>key===path||key.startsWith(path+'.'))||path.split('.').reduce((value,key)=>value?.[key],changes)!==undefined;
-  Hooks.on('updateActor',(actor,changes={})=>{if(actor.type==='character'&&['name','img','system.details.level',`flags.${ID}.partySetupArtwork`,...['mainParty','partyGMOverride','trialCharacter','pathId','elementId','unlockingItem'].map(key=>`flags.${ID}.ultimate.${key}`)].some(path=>changed(changes,path)))refreshPartySetupWindows({artworkOnly:true});});
+  Hooks.on('updateActor',(actor,changes={})=>{if(actor.type==='character'&&['name','img','system.details.level',`flags.${ID}.partySetupArtwork`,`flags.${ID}.optionalPartyArtwork`,`flags.${ID}.partySetupShadows`,...['mainParty','partyGMOverride','trialCharacter','pathId','elementId','unlockingItem'].map(key=>`flags.${ID}.ultimate.${key}`)].some(path=>changed(changes,path)))refreshPartySetupWindows({artworkOnly:true});});
   for(const hook of ['createItem','updateItem','deleteItem'])Hooks.on(hook,item=>{if(item.parent?.type==='character')refreshPartySetupWindows({artworkOnly:true});});
   Hooks.on('deleteActor',()=>refreshPartySetupWindows());
   Hooks.on('tsruOutfitChanged',()=>refreshPartySetupWindows({artworkOnly:true}));
