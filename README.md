@@ -1,5 +1,13 @@
 # Tely's Star Rail Ultimates
 
+## Outfit artwork profiles (preview.36)
+
+The GM can associate a character's outfit with one Path or enable **Any Path for this character**. Any Path uses the same outfit artwork across Path switches, while uncustomized action icons continue to follow the active Path. Changing a character's profile to Any Path replaces that character's other profiles within the outfit.
+
+The builder fetches configured artwork into its inherited previews: phone pose, all four team-lineup positions, portrait, token, splash, combat HUD, boss HUD, initiative and Messenger. Image browsing/upload and image drops appear above each preview; dragging, zooming, numeric adjustments and flipping customize that slot. Empty slots continue to inherit their settings rather than copying dressed artwork into the underlying build.
+
+An outfit's unlock item must belong to the exact assigned character. Owners select the unlocked outfit from the sheet's **Outfits** control; **Path default** removes its artwork overrides. Removing the required item restores defaults, and clearing the selection prevents the outfit from reactivating when the item returns. No outfit changes stats, resources, equipment or saved default artwork.
+
 ## Outfit window opening on Foundry v14 (preview.35)
 
 Fixes the `Cannot set property form` error when opening Outfits or Outfit Builder. Artwork-form selection now uses a separate application field, leaving Foundry's read-only native `form` accessor intact. The DOM and two-client browser fixtures now enforce that getter so the opening failure is covered by regression checks.

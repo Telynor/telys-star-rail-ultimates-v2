@@ -73,11 +73,12 @@ export async function applyOutfitRequest(action,payload={},user=game.user){
     const state=outfitState(actor),key=activeOutfitPath(actor);
     if(Number(payload.revision)!==state.revision||payload.pathKey!==key)throw Error('The character changed. Reopen Outfits before equipping.');
     if(payload.outfitId){const outfit=library().outfits.find(o=>o.id===payload.outfitId),access=outfit&&outfitAvailability(outfit,actor,key);if(!access?.available)throw Error(access?.reason||'This outfit is no longer available.');}
+    const chosen=library().outfits.find(o=>o.id===payload.outfitId),universal=chosen&&outfitAvailability(chosen,actor,key).profile?.pathKey==='*';
     updating.add(actor.uuid);try{
-      await actor.update({[`flags.${ID}.outfits.selections.${key}`]:String(payload.outfitId||''),[`flags.${ID}.outfits.revision`]:state.revision+1},opts());
+      await actor.update({[`flags.${ID}.outfits.selections.*`]:universal?String(payload.outfitId):'',[`flags.${ID}.outfits.selections.${key}`]:universal?'':String(payload.outfitId||''),[`flags.${ID}.outfits.revision`]:state.revision+1},opts());
       if(outfitState(actor).revision!==state.revision+1)throw Error('The character is changing Paths. Reopen Outfits when it finishes.');
       await refresh(actor);
-    }catch(error){if(!isChanging(actor)){await actor.update({[`flags.${ID}.outfits.selections.${key}`]:state.selections[key]||''},opts());await refresh(actor);}throw error;}
+    }catch(error){if(!isChanging(actor)){await actor.update({[`flags.${ID}.outfits.selections.*`]:state.selections['*']||'',[`flags.${ID}.outfits.selections.${key}`]:state.selections[key]||''},opts());await refresh(actor);}throw error;}
     finally{updating.delete(actor.uuid);}
     return outfitView(actor);
   });
@@ -87,7 +88,7 @@ export async function applyOutfitRequest(action,payload={},user=game.user){
       const outfit=normalizeOutfit(payload.outfit);
       outfit.id=current.outfits.some(o=>o.id===outfit.id)?outfit.id:foundry.utils.randomID();
       if(!outfit.actorIds.length||outfit.actorIds.some(id=>!world(game.actors.get(id))))throw Error('Assign at least one world character to this outfit.');
-      const seen=new Set();for(const profile of outfit.profiles){const actor=game.actors.get(profile.actorId),key=profile.actorId+':'+profile.pathKey;if(!outfit.actorIds.includes(profile.actorId)||!world(actor)||!outfitPaths(actor).some(p=>p.key===profile.pathKey)||seen.has(key))throw Error('Choose a unique character and Path for each outfit profile.');seen.add(key);}
+      const seen=new Set();for(const profile of outfit.profiles){const actor=game.actors.get(profile.actorId),key=profile.actorId+':'+profile.pathKey;if(!outfit.actorIds.includes(profile.actorId)||!world(actor)||profile.pathKey!=='*'&&!outfitPaths(actor).some(p=>p.key===profile.pathKey)||seen.has(key))throw Error('Choose a unique character and Path for each outfit profile.');seen.add(key);}
       if(!outfit.profiles.length)throw Error('Create at least one Path artwork profile.');
       // Resolve the requirement on the GM instead of trusting client-supplied identity keys.
       if(payload.outfit?.unlockingItem){
@@ -120,7 +121,7 @@ export async function handleOutfitSocket(message){
   let result,error;try{result=await applyOutfitRequest(message.action,message.payload,game.users.get(message.sourceUserId));}catch(cause){error=cause.message;}
   game.socket.emit(`module.${ID}`,{type:'outfitResult',requestId:message.requestId,sourceUserId:game.user.id,targetUserId:message.sourceUserId,result,error});
 }
-export function outfitView(actor){const data=library(),key=activeOutfitPath(actor),state=outfitState(actor);return {revision:state.revision,libraryRevision:data.revision,pathKey:key,rememberedId:state.selections[key]||'',selectedId:selectedOutfit(actor,data)?.outfit.id||'',outfits:data.outfits.filter(o=>o.actorIds.includes(actor.id)&&o.profiles.some(p=>p.actorId===actor.id&&p.pathKey===key)).map(outfit=>({...outfit,...outfitAvailability(outfit,actor,key)}))};}
+export function outfitView(actor){const data=library(),key=activeOutfitPath(actor),state=outfitState(actor);return {revision:state.revision,libraryRevision:data.revision,pathKey:key,rememberedId:state.selections['*']||state.selections[key]||'',selectedId:selectedOutfit(actor,data)?.outfit.id||'',outfits:data.outfits.filter(o=>o.actorIds.includes(actor.id)&&o.profiles.some(p=>p.actorId===actor.id&&(p.pathKey===key||p.pathKey==='*'))).map(outfit=>({...outfit,...outfitAvailability(outfit,actor,key)}))};}
 export function openOutfits(actor=callbacks.getSelectedCharacter?.()??game.user.character??Array.from(game.actors).find(actor=>world(actor)&&owned(actor,game.user)),{manage=false}={}){
   if(!world(actor)||!owned(actor,game.user))throw Error('Choose a world character you own.');
   if(manage&&!game.user.isGM)throw Error('Only the GM can create outfits.');

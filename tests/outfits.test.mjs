@@ -95,3 +95,38 @@ test('tokens placed while wearing an outfit restore the Path baseline, including
   await equip(w,'');assert.equal(token.texture.src,enhanced?'path-enhanced-token.png':'hero-token.png');assert.equal(token.flags[ID].outfitOriginalTexture,undefined);
  }
 });
+
+test('Any Path profile stays equipped across switches, uses only the assigned inventory and restores each Path default',async()=>{
+ const w=world(),o=put(w,{unlockingItem:{uuid:'Compendium.gear.Item.arrows',name:'Gala ticket'}});o.profiles[0].pathKey='*';
+ await applyOutfitRequest('save',{revision:0,outfit:o},w.gm);
+ await equip(w);assert.equal(outfitState(w.hero).selections['*'],'gala');
+ await path(w,'import',{sourceActorId:'source'});await settle();const catalog=pathCatalog(w.hero),alt=catalog.profiles.find(p=>!p.original),original=catalog.activeId;
+ await path(w,'switch',{profileId:alt.id});await settle();assert.equal(w.hero.img,'gala-portrait.png');
+ assert.equal(selectedOutfit(w.hero,w.settings.outfitLibrary).profile.pathKey,'*');
+ await w.hero.items.get('arrows').update({'system.quantity':0});await settle();assert.equal(w.hero.img,'alt-portrait.png');
+ await w.hero.items.get('arrows').update({'system.quantity':1});await settle();assert.equal(w.hero.img,'gala-portrait.png');
+ await equip(w,'');assert.equal(w.hero.img,'alt-portrait.png');assert.equal(outfitState(w.hero).selections['*'],'');
+ await path(w,'switch',{profileId:original});await settle();assert.equal(w.hero.img,'hero.png');
+});
+test('four lineup slots inherit settings, override independently, refresh, and restore without changing original artwork',async()=>{
+ const {partyArtworkFor}=await import('../scripts/party-setup-rules.mjs');
+ const {inheritedOutfitArt}=await import('../scripts/outfits-ui.mjs');
+ const w=world(),original=Array.from({length:4},(_,i)=>({image:`base-${i}.png`,x:30+i,y:70+i,scale:110+i,flip:i===1}));
+ w.hero.flags[ID].partySetupArtwork=structuredClone(original);w.settings.hsrHubConfig={poseByActor:{hero:{image:'phone-base.png',x:40,y:60,scale:125}}};
+ const outfit=put(w);for(let i=0;i<4;i++)outfit.profiles[0].normal.art['team'+(i+1)]={image:`outfit-${i}.png`,x:40,y:80,scale:120,flip:true};
+ const p=(await import('../scripts/outfit-rules.mjs')).outfitPaths(w.hero)[0];
+ for(let i=0;i<4;i++)assert.deepEqual(inheritedOutfitArt(w.hero,p,'team'+(i+1)),original[i]);
+ assert.equal(inheritedOutfitArt(w.hero,p,'phone').image,'phone-base.png');
+ await equip(w);for(let i=0;i<4;i++)assert.equal(partyArtworkFor(w.hero,i).image,`outfit-${i}.png`);
+ assert.deepEqual(w.hero.getFlag(ID,'partySetupArtwork'),original);
+ await equip(w,'');for(let i=0;i<4;i++)assert.deepEqual(partyArtworkFor(w.hero,i),original[i]);
+ const html=renderOutfits({actor:w.hero,view:{outfits:[]},isGM:true,manage:true,draft:outfit,paths:[p],pathKey:'original'});
+ assert.match(html,/data-outfit-any-path/);for(let i=1;i<=4;i++)assert.match(html,new RegExp(`data-outfit-art="team${i}"`));
+ assert.ok(html.indexOf('data-outfit-art-field="image"')<html.indexOf('data-outfit-stage="phone"'));
+});
+
+ test('boss artwork and legacy Ultimate orb images are fetched from the selected Path settings',async()=>{
+ const {inheritedOutfitArt,inheritedOutfitIcon}=await import('../scripts/outfits-ui.mjs');const w=world(),p={img:'path.png',config:{bossHudPortrait:'boss.png',bossHudPortraitX:25,bossHudPortraitScale:140,orbImage:'legacy-orb.png'}};
+ assert.equal(inheritedOutfitArt(w.hero,p,'boss').image,'boss.png');assert.equal(inheritedOutfitArt(w.hero,p,'boss').scale,140);assert.equal(inheritedOutfitIcon(p,'ultimate'),'legacy-orb.png');
+ const o=put(w);o.profiles[0].normal.art.boss={image:'outfit-boss.png',x:30,y:60,scale:120};await equip(w);assert.equal(resolveOutfitConfig(w.hero,p.config).bossHudPortrait,'outfit-boss.png');
+ });

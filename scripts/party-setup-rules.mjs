@@ -1,3 +1,4 @@
+import {outfitArt} from './outfit-rules.mjs';
 export const PARTY_ID='telys-star-rail-ultimates';
 export const PARTY_SIZE=4;
 export const PARTY_PRESETS=6;
@@ -156,7 +157,8 @@ export function normalizePartyArtwork(value){
   });
 }
 export function partyArtworkFor(actor,index){
-  const entry=normalizePartyArtwork(actor?.getFlag?.(PARTY_ID,'partySetupArtwork'))[index]??normalizePartyArtwork()[0];
+  const costume=outfitArt(actor,'team'+(index+1),globalThis.game?.settings?.get?.(PARTY_ID,'outfitLibrary')??{},characterConfig(actor));
+  const entry=costume??normalizePartyArtwork(actor?.getFlag?.(PARTY_ID,'partySetupArtwork'))[index]??normalizePartyArtwork()[0];
   return {...entry,image:entry.image||characterConfig(actor).combatHudPortrait||actor?.img||'icons/svg/mystery-man.svg'};
 }
 

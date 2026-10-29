@@ -128,6 +128,8 @@ export function installPartySetup(moduleApi){
   Hooks.on('updateActor',(actor,changes={})=>{if(actor.type==='character'&&['name','img','system.details.level',`flags.${ID}.partySetupArtwork`,...['mainParty','partyGMOverride','trialCharacter','pathId','elementId','unlockingItem'].map(key=>`flags.${ID}.ultimate.${key}`)].some(path=>changed(changes,path)))refreshPartySetupWindows({artworkOnly:true});});
   for(const hook of ['createItem','updateItem','deleteItem'])Hooks.on(hook,item=>{if(item.parent?.type==='character')refreshPartySetupWindows({artworkOnly:true});});
   Hooks.on('deleteActor',()=>refreshPartySetupWindows());
+  Hooks.on('tsruOutfitChanged',()=>refreshPartySetupWindows({artworkOnly:true}));
+  Hooks.on('tsruPathChanged',()=>refreshPartySetupWindows({artworkOnly:true}));
   Hooks.on('createActor',()=>refreshPartySetupWindows({artworkOnly:true}));
   Hooks.on('updateUser',()=>refreshPartySetupWindows({artworkOnly:true}));
 }

@@ -1,6 +1,6 @@
 import {normalizeUnlockingItem,itemIdentityKeys} from './party-setup-rules.mjs';
 export const OUTFIT_ID='telys-star-rail-ultimates';
-export const ART_SLOTS=Object.freeze({phone:'Phone pose',splash:'Splash art',token:'Token art',portrait:'Portrait art',hud:'Combat HUD portrait',initiative:'Initiative portrait',messenger:'Messenger portrait'});
+export const ART_SLOTS=Object.freeze({phone:'Phone pose',team1:'Team lineup · position 1',team2:'Team lineup · position 2',team3:'Team lineup · position 3',team4:'Team lineup · position 4',splash:'Splash art',token:'Token art',portrait:'Portrait art',hud:'Combat HUD portrait',boss:'Boss HUD portrait',initiative:'Initiative portrait',messenger:'Messenger portrait'});
 export const ICON_SLOTS=Object.freeze({skill:'Skill',ultimate:'Ultimate',talent:'Talent',technique:'Technique'});
 export const isOutfitInventoryItem=item=>['weapon','equipment','consumable','tool','loot','container','backpack'].includes(item?.type);
 const text=value=>typeof value==='string'?value.trim():'';
@@ -15,19 +15,19 @@ export const outfitState=actor=>{const data=actor?.getFlag?.(OUTFIT_ID,'outfits'
 export function outfitPaths(actor,{paths=[]}={}){
   const catalog=actor?.getFlag?.(OUTFIT_ID,'pathChanging')??{},current=actor?.getFlag?.(OUTFIT_ID,'ultimate')??{},original=catalog.profiles?.find(p=>p.original);
   const profiles=catalog.profiles?.length?catalog.profiles:[{id:'',original:true,name:paths.find(p=>p.id===current.pathId)?.name||'Current Path'}];
-  return profiles.map(profile=>{const active=profile.id===catalog.activeId||!catalog.profiles?.length,config=active?current:profile.snapshot?.flags?.[OUTFIT_ID]?.ultimate??{};return {key:profile.original||profile===original?'original':profile.id,name:profile.name,active,enabled:profile.enabled!==false,config,img:active?outfitBaseAppearance(actor).img:profile.snapshot?.img||actor.img,texture:active?outfitBaseAppearance(actor).texture:profile.snapshot?.token?.texture??{}};});
+  return profiles.map(profile=>{const active=profile.id===catalog.activeId||!catalog.profiles?.length,config=active?current:profile.snapshot?.flags?.[OUTFIT_ID]?.ultimate??{};return {key:profile.original||profile===original?'original':profile.id,name:profile.name,active,enabled:profile.enabled!==false,config,flags:active?actor.flags?.[OUTFIT_ID]??{}:profile.snapshot?.flags?.[OUTFIT_ID]??{},img:active?outfitBaseAppearance(actor).img:profile.snapshot?.img||actor.img,texture:active?outfitBaseAppearance(actor).texture:profile.snapshot?.token?.texture??{}};});
 }
 export const activeOutfitPath=actor=>outfitPaths(actor).find(p=>p.active)?.key||'original';
 export const normalizeOutfitTexture=value=>({scaleX:1,scaleY:1,anchorX:.5,anchorY:.5,...structuredClone(value??{})});
 export function outfitBaseAppearance(actor){const saved=outfitState(actor).appearance;return saved&&saved.pathKey===activeOutfitPathRaw(actor)?{img:saved.img,texture:normalizeOutfitTexture(saved.texture)}:{img:actor?.img||'',texture:normalizeOutfitTexture(actor?.prototypeToken?.texture?.toObject?.()??actor?.prototypeToken?.texture)};}
 function activeOutfitPathRaw(actor){const c=actor?.getFlag?.(OUTFIT_ID,'pathChanging')??{};return c.profiles?.find(p=>p.id===c.activeId)?.original?'original':c.activeId||'original';}
 export function outfitAvailability(outfit,actor,pathKey=activeOutfitPathRaw(actor)){
-  const assigned=outfit.actorIds.includes(actor?.id),profile=outfit.profiles.find(p=>p.actorId===actor?.id&&p.pathKey===pathKey),item=outfit.unlockingItem;
+  const assigned=outfit.actorIds.includes(actor?.id),profile=outfit.profiles.find(p=>p.actorId===actor?.id&&p.pathKey===pathKey)??outfit.profiles.find(p=>p.actorId===actor?.id&&p.pathKey==='*'),item=outfit.unlockingItem;
   const unlocked=!item||Array.from(actor?.items??[]).some(owned=>isOutfitInventoryItem(owned)&&(owned.system?.quantity===undefined||Number(owned.system.quantity)>0)&&itemIdentityKeys({...owned.toObject?.(),...owned,uuid:owned.uuid}).some(key=>item.keys.includes(key)));
   return {assigned,profile,unlocked,available:assigned&&Boolean(profile)&&unlocked,reason:!assigned?'Not assigned to this character':!profile?'No profile for this Path':!unlocked?`Requires ${item.name} in this character’s inventory`:''};
 }
-export function selectedOutfit(actor,library){const pathKey=activeOutfitPathRaw(actor),id=outfitState(actor).selections[pathKey],outfit=normalizeOutfitLibrary(library).outfits.find(o=>o.id===id),access=outfit&&outfitAvailability(outfit,actor,pathKey);return access?.available?{outfit,profile:access.profile,pathKey}:null;}
-const artFields={splash:['splashImage','splash'],hud:['combatHudPortrait','combatHudPortrait'],initiative:['carouselImage','carouselImage'],messenger:['messagingPortrait','messagingPortrait']};
+export function selectedOutfit(actor,library){const pathKey=activeOutfitPathRaw(actor),id=outfitState(actor).selections['*']||outfitState(actor).selections[pathKey],outfit=normalizeOutfitLibrary(library).outfits.find(o=>o.id===id),access=outfit&&outfitAvailability(outfit,actor,pathKey);return access?.available?{outfit,profile:access.profile,pathKey}:null;}
+const artFields={boss:['bossHudPortrait','bossHudPortrait'],splash:['splashImage','splash'],hud:['combatHudPortrait','combatHudPortrait'],initiative:['carouselImage','carouselImage'],messenger:['messagingPortrait','messagingPortrait']};
 const iconFields={skill:'skillButtonImage',ultimate:'ultimateButtonImage',talent:'talentIcon',technique:'techniqueButtonImage'};
 const enhancedFields={splash:['enhancedSplashImage','enhancedSplash'],hud:['enhancedHudPortrait','enhancedHudPortrait'],initiative:['enhancedCarouselImage','enhancedCarouselImage']};
 const enhancedIcons={skill:'enhancedSkillButtonImage',ultimate:'enhancedUltimateButtonImage',talent:'enhancedTalentIcon',technique:'enhancedTechniqueButtonImage'};
