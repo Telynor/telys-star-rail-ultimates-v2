@@ -1,5 +1,9 @@
 # Tely's Star Rail Ultimates
 
+## Outfit window opening on Foundry v14 (preview.35)
+
+Fixes the `Cannot set property form` error when opening Outfits or Outfit Builder. Artwork-form selection now uses a separate application field, leaving Foundry's read-only native `form` accessor intact. The DOM and two-client browser fixtures now enforce that getter so the opening failure is covered by regression checks.
+
 ## Outfit token defaults (preview.34)
 
 Tokens placed while a costume is equipped now retain the underlying Path token artwork for restoration. Returning to Path default restores the correct normal or active enhanced image, including tokens spawned from the dressed prototype.
