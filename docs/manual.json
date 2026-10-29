@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "title": "Tely’s Star Rail Field Manual",
-  "version": "3.14.0-preview.22",
+  "version": "3.14.0-preview.33",
   "articles": [
     {
       "id": "overview",
@@ -3070,6 +3070,57 @@
             "With Planar Ornaments 1.0.19 or newer, use the Planar Relics Path loadout selector to equip a Sphere and Link Rope for each build. Badges show each assigned Path icon and name. Saved sets coexist, but only the active Path contributes main stats, substats, set bonuses, damage and party effects. Existing unassigned relics belong to the original build until configured."
           ]
         }
+      ]
+    },
+    {
+      "id": "outfits",
+      "group": "Character setup",
+      "title": "Character outfits and inventory unlocks",
+      "summary": "Create and assign cosmetic outfits with Path-specific artwork, enhanced forms and inventory requirements.",
+      "keywords": [
+        "outfit",
+        "wardrobe",
+        "costume",
+        "skin",
+        "phone pose",
+        "unlocking item",
+        "custom icons",
+        "artwork designer"
+      ],
+      "sections": [
+        {
+          "title": "Create and assign an outfit",
+          "paragraphs": [
+            "Open Outfits beside Planars and Change Path in a character sheet header. Owners see only the outfit selector. The GM opens Outfit Builder, creates a named outfit, chooses the characters who may wear it, and creates a profile for each character and Path. Changes remain drafts until Save outfit.",
+            "Choose a Path profile before editing its normal form. Enhanced state appears only when that Path enables Enhanced Stance; its artwork never turns the stance on or changes ability rules. Switch the form selector to edit enhanced artwork."
+          ]
+        },
+        {
+          "title": "Design the artwork",
+          "paragraphs": [
+            "Configure phone pose, splash art, token art, actor portrait, combat HUD portrait, initiative portrait and Messenger portrait. Browse, drop an image file or a Foundry document, drag the preview, scroll to zoom, adjust X/Y and Scale, or flip it. Inherit clears the override and uses the Path artwork. The phone preview renders the actual HSR Phone template against the character’s phone layout.",
+            "Skill, Ultimate, Talent and Technique icons use the corresponding Path and form settings. Check an individual Custom icon option to replace that icon for the outfit. Unchecking restores inheritance. Saving or equipping refreshes the owner’s action macros in their existing slots, as well as artwork across the UI."
+          ]
+        },
+        {
+          "title": "Require an inventory item",
+          "paragraphs": [
+            "Drop an inventory Item into Inventory unlock requirement or paste its UUID. The assigned character must own a matching copy with quantity above zero. Other party inventories and same-name items do not unlock it. Foundry provenance identifies copied world or compendium Items.",
+            "Losing the last copy locks the outfit and restores Path artwork. The selection is remembered and reactivates when the item returns. Clear removes the requirement. Profiles without a requirement are available to their assigned characters."
+          ]
+        },
+        {
+          "title": "Equip and restore",
+          "paragraphs": [
+            "Owners choose an available outfit and Equip, or choose Path default. A GM must be online to apply the change. Each Path remembers its own outfit. Original artwork stays separate from cosmetic selections, so switching Paths or importing builds does not bake costumes into saved character settings. Stats, resources, currency, equipment and initiative are preserved.",
+            "The builder requires GM permissions. Stale drafts require Reload before saving, so another GM’s changes or a changed Path cannot be overwritten accidentally."
+          ]
+        }
+      ],
+      "related": [
+        "path-changing",
+        "artwork",
+        "party"
       ]
     }
   ]

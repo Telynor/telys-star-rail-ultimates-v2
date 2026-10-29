@@ -26,6 +26,7 @@ function assertActor(actor,user) {
   if(!user||user.active===false||!owned(actor,user))throw Error('Only this character’s owner or the GM can change its Path.');
 }
 function assertSwitchAllowed(actor,catalog) {
+  if(services.isAppearanceUpdating?.(actor))throw Error('Wait for this character’s outfit artwork to finish updating before changing Paths.');
   if(services.isResolving?.(actor))throw Error('Finish this character’s resolving or queued ability before changing Paths.');
   if(services.activeSummon?.(actor))throw Error('Dismiss this character’s active summon before changing Paths.');
   const combat=Array.from(game.combats??[]).find(combat=>combat.started&&Array.from(combat.combatants??[]).some(c=>c.actor?.id===actor.id||c.actorId===actor.id));
@@ -46,6 +47,7 @@ function tokenRecords(actor) {
       const data=documentData(token),original=data.flags?.[ID]?.enhancedStanceOriginalToken;
       const before=Object.fromEntries(['texture','width','height','sight','light','detectionModes','bar1','bar2','ring','alpha','lockRotation','hexagonalShape'].filter(key=>Object.hasOwn(data,key)).map(key=>[key,data[key]]));
       before[`flags.${ID}.${original?'enhancedStanceOriginalToken':'-=enhancedStanceOriginalToken'}`]=original??null;
+      const outfit=data.flags?.[ID]?.outfitOriginalTexture;before[`flags.${ID}.${outfit?'outfitOriginalTexture':'-=outfitOriginalTexture'}`]=outfit??null;
       return {sceneId:token.parent.id,tokenId:token.id,before};
     });
 }
@@ -55,6 +57,7 @@ async function updateTokens(actor,snapshot,records,{restore=false}={}) {
     if(!token||token.actorId!==actor.id||!token.actorLink)continue;
     const patch=structuredClone(restore?record.before:snapshot.token);
     if(!restore){
+      patch[`flags.${ID}.-=outfitOriginalTexture`]=null;
       const config=snapshot.flags?.[ID]?.ultimate??{},normal=patch.texture?.src||snapshot.img;
       const enhanced=config.enhancedStanceEnabled&&config.enhancedStanceActive&&String(config.enhancedTokenImage||'').trim();
       patch.texture={...(patch.texture??{}),src:enhanced||normal};

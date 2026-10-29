@@ -276,6 +276,12 @@
       "selector": ".tsru-path-changer,[data-actor-control=\"path-changer\"]",
       "topic": "path-changing",
       "label": "Character Path Changer"
+    },
+    {
+      "id": "outfits",
+      "selector": ".tsru-outfits,[data-actor-control=\"outfits\"]",
+      "topic": "outfits",
+      "label": "Character Outfits"
     }
   ],
   "fields": [
@@ -9027,6 +9033,213 @@
       "label": "Restore previous Path",
       "description": "GM only: restore the durable previous build and map-token artwork after an interrupted change. Shared inventory is retained; successful recovery unlocks editing.",
       "topic": "path-changing"
+    },
+    {
+      "id": "outfits--0",
+      "kind": "action",
+      "scope": "outfits",
+      "selector": "[data-actor-control=\"outfits\"]",
+      "label": "Outfits",
+      "description": "Open this character’s outfit selector. Owners equip assigned, unlocked outfits; the GM also creates and configures them.",
+      "topic": "outfits"
+    },
+    {
+      "id": "outfits--1",
+      "kind": "action",
+      "scope": "outfits",
+      "selector": "[data-outfit-manage]",
+      "label": "Outfit Builder",
+      "description": "GM only. Open or close the builder for character assignments, Path profiles and artwork.",
+      "topic": "outfits"
+    },
+    {
+      "id": "outfits--2",
+      "kind": "action",
+      "scope": "outfits",
+      "selector": "[data-outfit-equip]",
+      "label": "Equip outfit",
+      "description": "Apply an assigned outfit for the current Path, or restore Path default artwork. An inventory requirement must be satisfied by this character. A GM must be online.",
+      "topic": "outfits"
+    },
+    {
+      "id": "outfits--3",
+      "kind": "action",
+      "scope": "outfits",
+      "selector": "[data-outfit-new]",
+      "label": "New outfit",
+      "description": "Create a draft outfit and original artwork profile for the editing character and Path.",
+      "topic": "outfits"
+    },
+    {
+      "id": "outfits--4",
+      "kind": "action",
+      "scope": "outfits",
+      "selector": "[data-outfit-library]",
+      "label": "Outfit library",
+      "description": "Choose a saved outfit for editing, including outfits assigned to other characters or Paths.",
+      "topic": "outfits"
+    },
+    {
+      "id": "outfits--5",
+      "kind": "action",
+      "scope": "outfits",
+      "selector": "[data-outfit-edit]",
+      "label": "Edit outfit",
+      "description": "Open this saved outfit in the GM builder.",
+      "topic": "outfits"
+    },
+    {
+      "id": "outfits--6",
+      "kind": "action",
+      "scope": "outfits",
+      "selector": "[data-outfit-name]",
+      "label": "Outfit name",
+      "description": "Name this outfit, up to 80 characters. Save outfit commits draft changes.",
+      "topic": "outfits"
+    },
+    {
+      "id": "outfits--7",
+      "kind": "action",
+      "scope": "outfits",
+      "selector": "[data-outfit-character]",
+      "label": "Editing character",
+      "description": "Choose the character whose Path artwork profiles to edit. Eligibility is configured separately below.",
+      "topic": "outfits"
+    },
+    {
+      "id": "outfits--8",
+      "kind": "action",
+      "scope": "outfits",
+      "selector": "[data-outfit-assignee]",
+      "label": "Eligible character",
+      "description": "Allow this character to wear this outfit. Unchecking removes its artwork profiles from the draft.",
+      "topic": "outfits"
+    },
+    {
+      "id": "outfits--9",
+      "kind": "action",
+      "scope": "outfits",
+      "selector": "[data-outfit-path]",
+      "label": "Path profile",
+      "description": "Choose which saved character Path to design. This does not switch the character’s active Path.",
+      "topic": "outfits"
+    },
+    {
+      "id": "outfits--10",
+      "kind": "action",
+      "scope": "outfits",
+      "selector": "[data-outfit-create-profile]",
+      "label": "Create Path profile",
+      "description": "Add normal and enhanced artwork profiles for this character and Path. Empty images and unchecked custom icons inherit that Path.",
+      "topic": "outfits"
+    },
+    {
+      "id": "outfits--11",
+      "kind": "action",
+      "scope": "outfits",
+      "selector": "[data-outfit-form]",
+      "label": "Outfit form",
+      "description": "Edit normal or enhanced cosmetics. Enhanced state is offered only when this Path enables Enhanced Stance.",
+      "topic": "outfits"
+    },
+    {
+      "id": "outfits--12",
+      "kind": "action",
+      "scope": "outfits",
+      "selector": "[data-outfit-art-field]",
+      "label": "Artwork transform",
+      "description": "Set the image path, horizontal and vertical position, scale percentage or flip for this artwork slot. Empty image paths inherit the Path.",
+      "topic": "outfits"
+    },
+    {
+      "id": "outfits--13",
+      "kind": "action",
+      "scope": "outfits",
+      "selector": "[data-outfit-stage]",
+      "label": "Artwork designer",
+      "description": "Drop an image file or Foundry document, drag artwork, or scroll to zoom. The phone preview uses the actual HSR Phone layout. Changes are drafts until saved.",
+      "topic": "outfits"
+    },
+    {
+      "id": "outfits--14",
+      "kind": "action",
+      "scope": "outfits",
+      "selector": "[data-outfit-browse],[data-outfit-icon-browse]",
+      "label": "Browse outfit image",
+      "description": "Choose or upload an image using Foundry storage so all clients can load it.",
+      "topic": "outfits"
+    },
+    {
+      "id": "outfits--15",
+      "kind": "action",
+      "scope": "outfits",
+      "selector": "[data-outfit-reset]",
+      "label": "Inherit Path artwork",
+      "description": "Clear this artwork override and its transform. The current Path supplies the preview and equipped appearance.",
+      "topic": "outfits"
+    },
+    {
+      "id": "outfits--16",
+      "kind": "action",
+      "scope": "outfits",
+      "selector": "[data-outfit-custom-icon]",
+      "label": "Custom ability icon",
+      "description": "Enable a custom icon for this ability and form. Unchecking uses its corresponding Path icon.",
+      "topic": "outfits"
+    },
+    {
+      "id": "outfits--17",
+      "kind": "action",
+      "scope": "outfits",
+      "selector": "[data-outfit-icon-image]",
+      "label": "Custom icon image",
+      "description": "Enter the image path for this ability’s custom icon. Enable its Custom icon checkbox first.",
+      "topic": "outfits"
+    },
+    {
+      "id": "outfits--18",
+      "kind": "action",
+      "scope": "outfits",
+      "selector": "[data-outfit-unlock-uuid],[data-outfit-unlock-drop]",
+      "label": "Inventory unlock requirement",
+      "description": "Drop a physical inventory Item or paste its UUID. This character must own a matching copy with positive quantity; matching uses provenance, never its name or another character’s inventory.",
+      "topic": "outfits"
+    },
+    {
+      "id": "outfits--19",
+      "kind": "action",
+      "scope": "outfits",
+      "selector": "[data-outfit-unlock-clear]",
+      "label": "Clear unlock requirement",
+      "description": "Remove the required inventory Item from the outfit draft. Assigned characters can then wear it without the Item.",
+      "topic": "outfits"
+    },
+    {
+      "id": "outfits--20",
+      "kind": "action",
+      "scope": "outfits",
+      "selector": "[data-outfit-save]",
+      "label": "Save outfit",
+      "description": "GM only. Commit the draft assignments, Path profiles, artwork and requirement. Equipped appearances refresh immediately.",
+      "topic": "outfits"
+    },
+    {
+      "id": "outfits--21",
+      "kind": "action",
+      "scope": "outfits",
+      "selector": "[data-outfit-delete]",
+      "label": "Delete outfit",
+      "description": "GM only. Confirm deletion. Characters wearing this outfit revert to their Path artwork.",
+      "topic": "outfits"
+    },
+    {
+      "id": "outfits--22",
+      "kind": "action",
+      "scope": "outfits",
+      "selector": "[data-outfit-reload]",
+      "label": "Reload outfits",
+      "description": "Discard the stale draft and load current outfit and character state before editing again.",
+      "topic": "outfits"
     }
   ]
 }

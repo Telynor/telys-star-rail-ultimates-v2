@@ -1,3 +1,4 @@
+import {resolveOutfitPhonePose,resolveOutfitConfig} from './outfits.mjs';
 const MODULE_ID = "telys-star-rail-ultimates";
 const SOCKET = `module.${MODULE_ID}`;
 
@@ -64,7 +65,7 @@ async function removeBattlePassFromPhones(){
 
 function hubPose(actor,config=hubConfig(),profileKey=""){
   const stored=config.poseByActor?.[profileKey||actor?.id]??{};
-  return {image:String(stored.image||actor?.img||"icons/svg/mystery-man.svg"),x:Number(stored.x??50),y:Number(stored.y??50),scale:Number(stored.scale??100),flip:Boolean(stored.flip)};
+  return resolveOutfitPhonePose(actor,{image:String(stored.image||actor?.img||"icons/svg/mystery-man.svg"),x:Number(stored.x??50),y:Number(stored.y??50),scale:Number(stored.scale??100),flip:Boolean(stored.flip)});
 }
 
 function hubProfileImage(actor){if(!actor)return "icons/svg/mystery-man.svg";let token=null;try{token=actor.getActiveTokens?.(true,true)?.[0]??actor.getActiveTokens?.()?.[0];}catch{}return String(token?.document?.texture?.src||token?.texture?.src||actor.prototypeToken?.texture?.src||actor.img||"icons/svg/mystery-man.svg");}
@@ -420,7 +421,7 @@ function openMessengerNotifications(){
   const rows=items.map(({thread,message})=>{const actor=game.actors.get(message.speakerActorId),portrait=messengerPortrait(actor);return `<button type="button" data-unread-thread="${esc(thread.id)}"><span class="tsru-notification-avatar"><img src="${esc(portrait.portrait)}" alt=""><i></i></span><span><strong>${esc(actor?.name||message.speakerName||thread.title)}</strong><small>${esc(message.text)}</small></span><i class="fas fa-chevron-right"></i></button>`}).join("");
   const dialog=new Dialog({title:"Incoming Message Notification",content:`<section class="tsru-messenger-notifications"><h2>Incoming Message Notification</h2><div>${rows}</div></section>`,buttons:{close:{label:"Close"}},render:html=>html.find("[data-unread-thread]").on("click",event=>{const app=new HSRMessenger();app.threadId=event.currentTarget.dataset.unreadThread;app.render(true);dialog.close();})},{width:520,height:"auto",resizable:true});dialog.render(true);
 }
-function messengerPortrait(actor){const config=actor?.getFlag(MODULE_ID,"ultimate")??{};return {portrait:String(config.messagingPortrait||actor?.img||"icons/svg/mystery-man.svg"),portraitX:Number(config.messagingPortraitX??50),portraitY:Number(config.messagingPortraitY??50),portraitScale:Number(config.messagingPortraitScale??100)};}
+function messengerPortrait(actor){const config=resolveOutfitConfig(actor,actor?.getFlag(MODULE_ID,"ultimate")??{});return {portrait:String(config.messagingPortrait||actor?.img||"icons/svg/mystery-man.svg"),portraitX:Number(config.messagingPortraitX??50),portraitY:Number(config.messagingPortraitY??50),portraitScale:Number(config.messagingPortraitScale??100),portraitFlip:Boolean(config.messagingPortraitFlip)};}
 function messengerActors(){return game.actors.filter(actor=>["character","npc"].includes(actor.type)).sort((a,b)=>a.name.localeCompare(b.name));}
 function messengerContactIds(){return new Set(game.settings.get(MODULE_ID,"hsrMessengerContacts")??[]);}
 function messengerPlayerOwners(actor){return actor?.type==="character"?game.users.filter(user=>!user.isGM&&actor.testUserPermission(user,"OWNER")):[];}
@@ -833,11 +834,21 @@ Hooks.once("ready",()=>{
     if(payload.notify&&payload.sourceUserId!==game.user.id){const q=quests().find(x=>x.id===payload.questId);if(q&&visibleQuest(q))ui.notifications.info(q.status==="complete"?`Mission Complete: ${q.title}`:`New Mission: ${q.title}`);}
   });
   const module=game.modules.get(MODULE_ID);module.api??={};
+  module.api.outfits??={};module.api.outfits.getPhonePreview=outfitPhonePreviewDocument;
   Object.assign(module.api, {openHub,openMessenger:()=>new HSRMessenger().render(true),openContactConfig:()=>new HSRContactConfig().render(true),openQuestLog,openQuestManager:()=>new QuestManager().render(true),openQuestSettings:()=>new QuestSettings().render(true),openPartySelector:()=>new PartyCharacterSelector().render(true),openPhoneDesigner:()=>{const app=new HSRHubConfig();app.actorId="__gm__";app.render(true);},openCheckKit:()=>showHubKit(api()?.getSelectedMainCharacter?.()),openSelectedSheet:()=>openHubActorSheet(api()?.getSelectedMainCharacter?.()),openSelectedInventory:()=>openHubActorSheet(api()?.getSelectedMainCharacter?.(),"inventory")});
   registerHubToolbarFallback();
 });
 
+async function outfitPhonePreviewDocument(actor,pose){
+    const app=new HSRHub();app.viewActorId=actor.id;const data=app.getData();data.pose=pose;data.gm=false;data.player=true;
+    const render=foundry.applications?.handlebars?.renderTemplate??globalThis.renderTemplate;
+    const content=await render(`modules/${MODULE_ID}/templates/hsr-hub.hbs`,data);
+    const styles=[...document.querySelectorAll('head link[rel="stylesheet"]')].map(link=>link.outerHTML).join('');
+    return `<!doctype html><html><head><meta charset="utf-8"><base href="${document.baseURI.replace(/"/g,'&quot;')}">${styles}<link rel="stylesheet" href="modules/${MODULE_ID}/styles/ultimates.css"><style>body{margin:0;background:transparent;font:14px Arial}.tsru-phone-hub{pointer-events:none}.tsru-phone-close{display:none}</style></head><body>${content}</body></html>`;
+}
+
 Hooks.on("getSceneControlButtons",consolidateToolbar);
+for(const hook of ['tsruOutfitChanged','tsruPathChanged'])Hooks.on(hook,()=>{refreshQuestWindows();for(const app of Object.values(ui.windows??{}))if(app.options?.id==='tsru-hsr-messenger')app.render(false);});
 Hooks.on("updateSetting", setting => {
   if (["questTypes", "questRarities", "quests", "questAllIcon"].some(key => setting?.key === `${MODULE_ID}.${key}`)) refreshQuestWindows();
   if(setting?.key===`${MODULE_ID}.hsrHubConfig`)for(const app of Object.values(ui.windows??{}))if(["tsru-hub","tsru-hub-config"].includes(app.options?.id))app.render(false);

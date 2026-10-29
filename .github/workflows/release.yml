@@ -76,6 +76,7 @@ jobs:
           node tests/party-setup-dom.cjs
           node tests/path-changing-dom.cjs
           node tests/path-hotbar-dom.cjs
+          node tests/outfits-dom.cjs
           node tests/sheet-compat-dom.cjs
 
       - name: Test shared Party Setup with two Chromium clients
@@ -85,6 +86,10 @@ jobs:
       - name: Test shared inventory Path changes with two Chromium clients
         timeout-minutes: 5
         run: PLANAR_SOURCE_ROOT=.test-planar node tests/path-changing-ui.cjs
+
+      - name: Test Outfits and inventory unlocks with two Chromium clients
+        timeout-minutes: 5
+        run: node tests/outfits-ui.cjs
 
       - name: Test existing module features in Chromium
         timeout-minutes: 10
@@ -137,6 +142,11 @@ jobs:
             party-setup-trial.png
             party-setup-gm-failure.png
             party-setup-player-failure.png
+            outfit-builder-smoke.png
+            outfit-player-smoke.png
+            outfit-compact-smoke.png
+            outfit-gm-failure.png
+            outfit-owner-failure.png
             path-changing-importer.png
             path-changing-selector.png
             path-changing-compact.png
