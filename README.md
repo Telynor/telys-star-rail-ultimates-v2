@@ -1,5 +1,9 @@
 # Tely's Star Rail Ultimates
 
+## Outfit token defaults (preview.34)
+
+Tokens placed while a costume is equipped now retain the underlying Path token artwork for restoration. Returning to Path default restores the correct normal or active enhanced image, including tokens spawned from the dressed prototype.
+
 ## Character Outfits (preview.33)
 
 Open **Outfits** in the character sheet header beside Planars and Change Path. The button uses the supplied outfit icon. Owners can equip their assigned, unlocked outfits or return to **Path default**. Only the GM sees **Outfit Builder** or the creation, assignment and editing controls. A GM must be online to apply owner changes.

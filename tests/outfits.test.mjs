@@ -88,3 +88,10 @@ test('an owner can clear a remembered locked outfit and stay on Path default aft
  const w=world();put(w,{unlockingItem:{uuid:'Compendium.gear.Item.arrows',name:'Gala ticket'}});await equip(w);await w.hero.items.get('arrows').update({'system.quantity':0});await settle();
  await equip(w,'');await w.hero.items.get('arrows').update({'system.quantity':1});await settle();assert.equal(w.hero.img,'hero.png');assert.equal(outfitState(w.hero).selections.original,'');
 });
+test('tokens placed while wearing an outfit restore the Path baseline, including an active enhanced stance',async()=>{
+ for(const enhanced of [false,true]){
+  const w=world();put(w);if(enhanced)await w.hero.update({[`flags.${ID}.ultimate.enhancedStanceEnabled`]:true,[`flags.${ID}.ultimate.enhancedStanceActive`]:true,[`flags.${ID}.ultimate.enhancedTokenImage`]:'path-enhanced-token.png'});await settle();await equip(w);
+  const token=w.token('new-token');await token.update({texture:structuredClone(w.hero.prototypeToken.texture)});await syncOutfitAppearance(w.hero);assert.equal(token.flags[ID].outfitOriginalTexture.texture.src,'hero-token.png');
+  await equip(w,'');assert.equal(token.texture.src,enhanced?'path-enhanced-token.png':'hero-token.png');assert.equal(token.flags[ID].outfitOriginalTexture,undefined);
+ }
+});
