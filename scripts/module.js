@@ -3521,7 +3521,7 @@ function openInitiativePortraitEditor(actor,{enhanced=false}={}){
   const prefix=enhanced?"enhancedCarouselImage":"carouselImage",editorKey=`${source?.uuid||source?.id}:${enhanced?"enhanced":"normal"}`;
   const existing=state.initiativePortraitEditors.get(editorKey);
   if(existing)return existing.bringToTop?.();
-  const config=getConfig(actor),colors=getInitiativeFrameColors();
+  const config=getConfig(actor,{outfit:false}),colors=getInitiativeFrameColors();
   const art={carouselImage:config[prefix]||"",carouselImageX:config[`${prefix}X`],carouselImageY:config[`${prefix}Y`],carouselImageScale:config[`${prefix}Scale`],carouselImageFlip:config[`${prefix}Flip`]};
   const allied=shared?npcRules.npcAllegiance(actor)==="ally":true;
   const fallbackImage=(enhanced?config.carouselImage:"")||source.img||"icons/svg/mystery-man.svg";
@@ -3586,7 +3586,7 @@ function openEnhancedArtworkEditor(actor,kind){
   const key=`${actor.id}:enhanced-${kind}`,previous=state.enhancedArtworkEditors?.get(key);
   if(previous)return previous.bringToTop?.();
   if(!state.enhancedArtworkEditors)state.enhancedArtworkEditors=new Map();
-  const config=getConfig(actor),hud=kind==="hud",prefix=hud?"enhancedHudPortrait":"enhancedSplash",normal=hud?"combatHudPortrait":"splash",imageKey=hud?prefix:`${prefix}Image`;
+  const config=getConfig(actor,{outfit:false}),hud=kind==="hud",prefix=hud?"enhancedHudPortrait":"enhancedSplash",normal=hud?"combatHudPortrait":"splash",imageKey=hud?prefix:`${prefix}Image`;
   const image=config[imageKey]||config[normal]||actor.img||"icons/svg/mystery-man.svg";
   const x=config[`${prefix}X`],y=config[`${prefix}Y`],scale=config[`${prefix}Scale`];
   const title=hud?"Enhanced Combat HUD Portrait":"Enhanced Ultimate Splash";

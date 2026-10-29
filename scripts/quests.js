@@ -843,7 +843,8 @@ async function outfitPhonePreviewDocument(actor,pose){
     const app=new HSRHub();app.viewActorId=actor.id;const data=app.getData();data.pose=pose;data.gm=false;data.player=true;
     const render=foundry.applications?.handlebars?.renderTemplate??globalThis.renderTemplate;
     const content=await render(`modules/${MODULE_ID}/templates/hsr-hub.hbs`,data);
-    return `<!doctype html><html><head><meta charset="utf-8"><base href="${document.baseURI.replace(/"/g,'&quot;')}"><link rel="stylesheet" href="modules/${MODULE_ID}/styles/ultimates.css"><style>body{margin:0;background:transparent;font:14px Arial}.tsru-phone-hub{pointer-events:none}.tsru-phone-close{display:none}</style></head><body>${content}</body></html>`;
+    const styles=[...document.querySelectorAll('head link[rel="stylesheet"]')].map(link=>link.outerHTML).join('');
+    return `<!doctype html><html><head><meta charset="utf-8"><base href="${document.baseURI.replace(/"/g,'&quot;')}">${styles}<link rel="stylesheet" href="modules/${MODULE_ID}/styles/ultimates.css"><style>body{margin:0;background:transparent;font:14px Arial}.tsru-phone-hub{pointer-events:none}.tsru-phone-close{display:none}</style></head><body>${content}</body></html>`;
 }
 
 Hooks.on("getSceneControlButtons",consolidateToolbar);
