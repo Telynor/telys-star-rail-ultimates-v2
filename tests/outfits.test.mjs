@@ -84,3 +84,7 @@ test('a failed token update restores the previous selection and artwork without 
 test('reconciling an already applied outfit makes no further actor writes',async()=>{
  const w=world();w.token('hero');put(w);await equip(w);const writes=w.hero.calls.length;await syncOutfitAppearance(w.hero);await syncOutfitAppearance(w.hero);assert.equal(w.hero.calls.length,writes);
 });
+test('an owner can clear a remembered locked outfit and stay on Path default after reacquiring the item',async()=>{
+ const w=world();put(w,{unlockingItem:{uuid:'Compendium.gear.Item.arrows',name:'Gala ticket'}});await equip(w);await w.hero.items.get('arrows').update({'system.quantity':0});await settle();
+ await equip(w,'');await w.hero.items.get('arrows').update({'system.quantity':1});await settle();assert.equal(w.hero.img,'hero.png');assert.equal(outfitState(w.hero).selections.original,'');
+});

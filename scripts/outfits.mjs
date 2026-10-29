@@ -117,7 +117,7 @@ export async function handleOutfitSocket(message){
   let result,error;try{result=await applyOutfitRequest(message.action,message.payload,game.users.get(message.sourceUserId));}catch(cause){error=cause.message;}
   game.socket.emit(`module.${ID}`,{type:'outfitResult',requestId:message.requestId,sourceUserId:game.user.id,targetUserId:message.sourceUserId,result,error});
 }
-export function outfitView(actor){const data=library(),key=activeOutfitPath(actor),state=outfitState(actor);return {revision:state.revision,libraryRevision:data.revision,pathKey:key,selectedId:selectedOutfit(actor,data)?.outfit.id||'',outfits:data.outfits.filter(o=>o.actorIds.includes(actor.id)&&o.profiles.some(p=>p.actorId===actor.id&&p.pathKey===key)).map(outfit=>({...outfit,...outfitAvailability(outfit,actor,key)}))};}
+export function outfitView(actor){const data=library(),key=activeOutfitPath(actor),state=outfitState(actor);return {revision:state.revision,libraryRevision:data.revision,pathKey:key,rememberedId:state.selections[key]||'',selectedId:selectedOutfit(actor,data)?.outfit.id||'',outfits:data.outfits.filter(o=>o.actorIds.includes(actor.id)&&o.profiles.some(p=>p.actorId===actor.id&&p.pathKey===key)).map(outfit=>({...outfit,...outfitAvailability(outfit,actor,key)}))};}
 export function openOutfits(actor=callbacks.getSelectedCharacter?.()??game.user.character??Array.from(game.actors).find(actor=>world(actor)&&owned(actor,game.user)),{manage=false}={}){
   if(!world(actor)||!owned(actor,game.user))throw Error('Choose a world character you own.');
   if(manage&&!game.user.isGM)throw Error('Only the GM can create outfits.');
