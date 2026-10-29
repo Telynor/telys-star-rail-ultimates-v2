@@ -9,3 +9,7 @@
 .tsru-outfit-stage.is-initiative{display:grid;place-items:center;min-height:190px;aspect-ratio:auto;padding:30px;background:radial-gradient(circle at 35% 50%,#173646,#07111a 72%)}
 .tsru-outfits .is-initiative .tsru-hsr-turn{display:block;position:relative;width:148px;height:58px;min-height:0;margin:0;padding:0;border:0;border-radius:0;background:transparent;color:#fff;text-align:left;pointer-events:none}
 .tsru-outfits .is-initiative .tsru-hsr-turn-card>small{color:#bdefff;font-size:9px}
+
+.tsru-outfit-stage.is-team5{width:200px;max-width:100%;height:337px;max-height:337px;aspect-ratio:auto;margin-inline:auto}.tsru-outfit-stage.is-team5>img{top:auto;bottom:35px;height:83%}
+
+.tsru-outfit-team-figure{position:absolute;left:0;width:100%;height:84%;bottom:10%}.tsru-outfit-team-figure>img{position:absolute;width:100%;height:100%;object-fit:contain;max-width:none;border:0;pointer-events:none}.tsru-outfit-team-figure [hidden]{display:none}.tsru-outfits .tsru-party-shadow-controls{padding:0 10px 12px}.tsru-outfits .tsru-party-shadow-controls .tsru-outfit-art-controls{flex-wrap:wrap}.tsru-outfits .tsru-party-shadow-controls label{min-width:48px}

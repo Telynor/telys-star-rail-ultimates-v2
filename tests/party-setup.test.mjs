@@ -113,7 +113,7 @@ test('player and GM markup expose four dropdowns, swaps, requirement status and 
 test('artwork editor has a separate file field and preview for every position and escapes character names',()=>{
   const w=fixture(),actor=w.actors.get('a');actor.name='<script>bad</script>';
   const html=renderPartyArtwork(actor,normalizePartyArtwork(),w.actors);
-  assert.equal((html.match(/data-party-art-field="image"/g)||[]).length,4);assert.equal((html.match(/data-party-art-browse=/g)||[]).length,4);assert.ok(!html.includes('<script>bad'));
+  assert.equal((html.match(/data-party-art-field="image"/g)||[]).length,5);assert.equal((html.match(/data-party-art-browse=/g)||[]).length,5);assert.ok(!html.includes('<script>bad'));
 });
 test('legacy player-owned party members remain protected before a shared main selection is recorded',()=>{
   const w=fixture(),ctx={...w.context,selections:{}};
@@ -190,7 +190,7 @@ test('nameplates layer the configured Element behind the sheet level and resolve
  const ctx={...w.context,paths:[{id:'custom-path-id',name:'Remembrance',icon:'path.webp'}],elements:[{id:'custom-element-id',name:'Ice',icon:'ice.webp'}]};
  const details=partyActorDetails(actor,ctx);assert.equal(details.level,12);assert.equal(details.pathName,'Remembrance');assert.equal(details.pathIcon,'path.webp');assert.equal(details.elementIcon,'ice.webp');
  const html=renderPartySetup(partySetupModel({state:w.state,context:ctx,user:w.gm}));assert.match(html,/tsru-party-level/);assert.match(html,/>TRIAL</);assert.match(html,/class="tsru-party-level"[^>]*><img class="tsru-party-element" src="ice.webp"[^>]*><span>12<\/span>/);assert.match(html,/src="path.webp"/);assert.ok(!html.includes('custom-path-id'));
- assert.equal((html.match(/data-party-preset=/g)||[]).length,6);assert.match(html,/Optional Character/);assert.match(html,/tsru-party-floor-shadow/);
+ assert.equal((html.match(/data-party-preset=/g)||[]).length,6);assert.match(html,/Optional Character/);assert.match(html,/tsru-party-ground-shadow/);
 });
 
 test('an item-unlocked character is available in every main position without sheet ownership',async()=>{
@@ -231,3 +231,12 @@ test('five-position dropdowns and swaps preserve both members and enforce trial 
  w.actors.get('e').flags[ID].ultimate.trialCharacter=true;assert.equal(partySetupModel({state:w.state,optionalActorId:'e',context:w.context,user:w.gm}).canSwap(4,2),false);
  assert.throws(()=>swapPartyPositions(w.state.slots,'e',0,5),/valid party positions/);assert.throws(()=>choosePartyPosition(w.state.slots,'e',5,'c'),/valid party position/);
 });
+
+ test('fifth-slot art and adjustable shadows are stored per character without overwriting the four poses',async()=>{
+ const w=fixture(),actor=w.actors.get('a'),art=normalizePartyArtwork([{image:'main.png'}]);
+ await savePartyArtwork(actor,art,{optional:{image:'optional.png',x:35,y:80,scale:180},shadows:[{enabled:false},{x:40,y:90,width:45,height:6,opacity:30,blur:3}]});
+ assert.equal(partyArtworkFor(actor,0).image,'main.png');assert.equal(partyArtworkFor(actor,4).image,'optional.png');assert.equal(partyArtworkFor(actor,4).scale,180);assert.equal(partyArtworkFor(w.actors.get('b'),4).image,'b.png');
+ const {normalizePartyShadows}=await import('../scripts/party-setup-rules.mjs');const shadows=normalizePartyShadows(actor.getFlag(ID,'partySetupShadows'));assert.equal(shadows[0].enabled,false);assert.equal(shadows[1].width,45);
+ actor.flags[ID].ultimate.trialCharacter=true;const model=partySetupModel({state:w.state,optionalActorId:'a',context:w.context,user:w.gm});const html=renderPartySetup(model),aside=html.slice(html.indexOf('<aside'),html.indexOf('</aside>'));assert.match(aside,/optional.png/);assert.doesNotMatch(aside,/ground-shadow|floor-shadow/);assert.match(aside,/Configure fifth-slot artwork/);
+ game.user=w.alice;await assert.rejects(savePartyArtwork(actor,art,{optional:{image:'forged.png'}}),/Only the GM/);assert.equal(partyArtworkFor(actor,4).image,'optional.png');
+ });

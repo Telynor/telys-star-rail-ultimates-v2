@@ -8743,7 +8743,7 @@
       "scope": "party-artwork",
       "selector": "[data-party-art-drop]",
       "label": "Drop position artwork",
-      "description": "Drop an uploaded image path or an Actor or Item to use its image in this specific position. Save artwork applies the four character variants.",
+      "description": "Drop an image file, uploaded path, Actor or Item. Drag artwork or the selected shadow, and scroll to scale the image. Save artwork applies the draft.",
       "topic": "party"
     },
     {
@@ -8752,7 +8752,7 @@
       "scope": "party-artwork",
       "selector": "[data-party-art-save]",
       "label": "Save character position artwork",
-      "description": "Save all four image paths, alignments, scales and flip settings for this character. Clients use the matching artwork when the character moves between party positions.",
+      "description": "GM only: save four main-slot artworks, independent fifth-slot artwork and main-slot shadow settings for this character.",
       "topic": "party"
     },
     {
@@ -9240,6 +9240,51 @@
       "label": "Reload outfits",
       "description": "Discard the stale draft and load current outfit and character state before editing again.",
       "topic": "outfits"
+    },
+    {
+      "id": "party-shadow-field",
+      "kind": "action",
+      "scope": "party-artwork",
+      "selector": "[data-party-shadow-field]",
+      "label": "Ground shadow",
+      "description": "GM only: enable, position, size, soften or fade this position’s ground shadow. Position 5 has no shadow.",
+      "topic": "party"
+    },
+    {
+      "id": "party-shadow-drag",
+      "kind": "action",
+      "scope": "party-artwork",
+      "selector": "[data-party-drag-target]",
+      "label": "Preview drag target",
+      "description": "Choose whether dragging moves the artwork or its ground shadow. Save artwork applies the draft.",
+      "topic": "party"
+    },
+    {
+      "id": "party-shadow-reset",
+      "kind": "action",
+      "scope": "party-artwork",
+      "selector": "[data-party-shadow-reset]",
+      "label": "Reset ground shadow",
+      "description": "Restore this position’s default ground-contact shadow settings.",
+      "topic": "party"
+    },
+    {
+      "id": "outfit-shadow-field",
+      "kind": "action",
+      "scope": "outfits",
+      "selector": "[data-outfit-shadow-field]",
+      "label": "Outfit ground shadow",
+      "description": "GM only: adjust this outfit’s main-position ground shadow. The optional fifth position never has a shadow.",
+      "topic": "party"
+    },
+    {
+      "id": "outfit-shadow-inherit",
+      "kind": "action",
+      "scope": "outfits",
+      "selector": "[data-outfit-shadow-inherit]",
+      "label": "Inherit ground shadow",
+      "description": "Clear the outfit shadow override and use the character’s configured main-slot shadow.",
+      "topic": "party"
     }
   ]
 }

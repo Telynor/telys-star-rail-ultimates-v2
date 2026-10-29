@@ -139,3 +139,10 @@ test('initiative outfit preview uses the tracker mask, Path frame preset and ful
  const html=outfitInitiativePreview(w.hero,p,art);assert.match(html,/tsru-initiative-art-mask/);assert.match(html,/tsru-hsr-turn-pointer/);assert.match(html,/has-custom-frame/);assert.match(html,/--turn-color:#fedcba/);assert.match(html,/--portrait-scale:8/);assert.match(html,/--portrait-flip:-1/);assert.match(html,/enhanced.png/);
  const outfit=normalizeOutfit({profiles:[{actorId:'hero',pathKey:'original',normal:{art:{initiative:art}}}]});assert.deepEqual(outfit.profiles[0].normal.art.initiative,art);
 });
+
+test('outfits override main-slot shadows and independent fifth-slot artwork while default restores the character settings',async()=>{
+ const {partyArtworkFor}=await import('../scripts/party-setup-rules.mjs');const w=world();w.hero.flags[ID].optionalPartyArtwork={image:'base-fifth.png',scale:90};
+ const o=put(w);o.profiles[0].normal.art.team1={image:'outfit-first.png',x:50,y:100,scale:100,shadow:{enabled:false,x:45,y:100,width:40,height:4,opacity:25,blur:2}};o.profiles[0].normal.art.team5={image:'outfit-fifth.png',x:30,y:80,scale:150};
+ await equip(w);assert.equal(partyArtworkFor(w.hero,0).shadow.enabled,false);assert.equal(partyArtworkFor(w.hero,4).image,'outfit-fifth.png');assert.equal(partyArtworkFor(w.hero,4).scale,150);assert.equal(partyArtworkFor(w.hero,4).shadow,undefined);
+ await equip(w,'');assert.equal(partyArtworkFor(w.hero,4).image,'base-fifth.png');assert.equal(w.hero.getFlag(ID,'optionalPartyArtwork').scale,90);
+});

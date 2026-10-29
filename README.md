@@ -1,5 +1,11 @@
 # Tely's Star Rail Ultimates
 
+## Party shadows and optional artwork (preview.38)
+
+Main positions use soft ground-contact shadows instead of reflected image silhouettes. GM-only **Configure slot artwork** provides per-character/per-position shadow visibility, X/Y position, width, height, opacity and blur controls, plus an artwork/shadow drag target. The Outfit Builder can override each main-position shadow or inherit the character's settings.
+
+Every character now has independent **Position 5 · Optional character** artwork with image upload/drop, dragging, wheel zoom, numeric X/Y/scale and flipping. A shortcut below the optional selector opens the GM editor. The optional panel clips its artwork at the boundary and never renders a shadow. Outfits also include a separate optional-position artwork slot; unequipping restores the character's fifth-slot settings. Existing four-position art is preserved.
+
 ## Outfit initiative preview (preview.37)
 
 The Outfit Builder previews initiative artwork inside the live tracker's card, with its clipped image layer, character name, initiative number, active-turn pointer/glow and Path frame color. Dragging, zooming and flipping update the same portrait variables used in combat; drag distances are measured against the card rather than the surrounding preview panel. Both normal and enhanced outfit artwork use this preview.
