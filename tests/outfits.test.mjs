@@ -21,11 +21,11 @@ test('inventory unlocks match identity and positive quantity on the assigned cha
  await assert.rejects(equip(w,'fake'),/Requires Shared arrows/);assert.equal(outfitState(w.hero).selections.original,undefined);
 });
 test('equipping refreshes actor and linked token artwork while keeping raw Path settings, resources and equipment intact; defaults restore exact art',async()=>{
- const w=world(),token=w.token('linked'),unlinked=w.token('unlinked',{linked:false}),inventory=w.inventory(),system=structuredClone(w.hero.system),raw=structuredClone(w.hero.getFlag(ID,'ultimate'));put(w);
+ const w=world(),token=w.token('linked'),unlinked=w.token('unlinked',{linked:false}),inventory=w.inventory(),system=structuredClone(w.hero.system),raw=structuredClone(w.hero.getFlag(ID,'ultimate'));put(w);const sameImage=w.token('existing-same-image');await sameImage.update({texture:{...w.hero.prototypeToken.texture,src:'gala-token.png',scaleX:2,scaleY:2}});
  await equip(w);assert.equal(w.hero.img,'gala-portrait.png');assert.equal(token.texture.src,'gala-token.png');assert.equal(token.texture.scaleX,1.2);assert.equal(token.texture.anchorX,.6);assert.equal(unlinked.texture.src,'custom-before.png');
  assert.equal(resolveOutfitConfig(w.hero,raw).splashImage,'gala-splash.png');assert.equal(resolveOutfitConfig(w.hero,raw).skillButtonImage,'gala-skill.png');assert.deepEqual(w.hero.getFlag(ID,'ultimate'),raw);assert.deepEqual(w.hero.system,system);assert.deepEqual(w.inventory(),inventory);
  const snapshot=capturePathBuild(w.hero);assert.equal(snapshot.img,'hero.png');assert.equal(snapshot.token.texture.src,'hero-token.png');assert.equal(snapshot.flags[ID].outfits,undefined);
- await equip(w,'');assert.equal(w.hero.img,'hero.png');assert.equal(w.hero.prototypeToken.texture.src,'hero-token.png');assert.equal(token.texture.src,'custom-before.png');assert.equal(token.texture.scaleX,1);assert.equal(token.flags[ID].outfitOriginalTexture,undefined);
+ await equip(w,'');assert.equal(w.hero.img,'hero.png');assert.equal(w.hero.prototypeToken.texture.src,'hero-token.png');assert.equal(token.texture.src,'custom-before.png');assert.equal(token.texture.scaleX,1);assert.equal(token.flags[ID].outfitOriginalTexture,undefined);assert.equal(sameImage.texture.src,'gala-token.png');assert.equal(sameImage.texture.scaleX,2);
 });
 test('normal and enhanced icons inherit their own Path until their individual custom checkboxes are enabled',async()=>{
  const w=world(),outfit=put(w),raw={skillButtonImage:'path-skill.png',ultimateButtonImage:'path-ult.png',talentIcon:'path-talent.png',techniqueButtonImage:'path-tech.png',enhancedStanceEnabled:true,enhancedStanceActive:true,enhancedSkillButtonImage:'path-enhanced-skill.png'};
@@ -87,4 +87,11 @@ test('reconciling an already applied outfit makes no further actor writes',async
 test('an owner can clear a remembered locked outfit and stay on Path default after reacquiring the item',async()=>{
  const w=world();put(w,{unlockingItem:{uuid:'Compendium.gear.Item.arrows',name:'Gala ticket'}});await equip(w);await w.hero.items.get('arrows').update({'system.quantity':0});await settle();
  await equip(w,'');await w.hero.items.get('arrows').update({'system.quantity':1});await settle();assert.equal(w.hero.img,'hero.png');assert.equal(outfitState(w.hero).selections.original,'');
+});
+test('tokens placed while wearing an outfit restore the Path baseline, including an active enhanced stance',async()=>{
+ for(const enhanced of [false,true]){
+  const w=world();put(w);if(enhanced)await w.hero.update({[`flags.${ID}.ultimate.enhancedStanceEnabled`]:true,[`flags.${ID}.ultimate.enhancedStanceActive`]:true,[`flags.${ID}.ultimate.enhancedTokenImage`]:'path-enhanced-token.png'});await settle();await equip(w);
+  const token=w.token('new-token');await token.update({texture:structuredClone(w.hero.prototypeToken.texture)});await syncOutfitAppearance(w.hero);assert.equal(token.flags[ID].outfitOriginalTexture.texture.src,'hero-token.png');
+  await equip(w,'');assert.equal(token.texture.src,enhanced?'path-enhanced-token.png':'hero-token.png');assert.equal(token.flags[ID].outfitOriginalTexture,undefined);
+ }
 });

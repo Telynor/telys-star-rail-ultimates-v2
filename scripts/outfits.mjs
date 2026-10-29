@@ -37,7 +37,10 @@ export async function syncOutfitAppearance(actor){
       if(token.actorId!==actor.id||!token.actorLink)continue;
       const saved=token.getFlag?.(ID,'outfitOriginalTexture')??token.flags?.[ID]?.outfitOriginalTexture;
       const current=token.texture?.toObject?.()??token.texture??{};
-      const original=normalizeOutfitTexture(saved?.pathKey===pathKey?saved.texture:token.getFlag?.(ID,'enhancedStanceOriginalToken')?.src?{...current,src:token.getFlag(ID,'enhancedStanceOriginalToken').src}:current);
+      let original=normalizeOutfitTexture(saved?.pathKey===pathKey?saved.texture:token.getFlag?.(ID,'enhancedStanceOriginalToken')?.src?{...current,src:token.getFlag(ID,'enhancedStanceOriginalToken').src}:current);
+      // Newly placed tokens inherit the dressed prototype. Their restore art
+      // must come from the saved Path baseline, not the outfit they spawned in.
+      if(!saved&&normalToken?.image&&same(original,texture))original=normalizeOutfitTexture(base.texture);
       const normal=outfitTexture(original,normalToken),next=selected?(enhanced?outfitTexture({...normal,src:config.enhancedTokenImage||normal.src},enhancedToken):normal):structuredClone(original);
       if(!selected&&enhanced&&config.enhancedTokenImage)next.src=config.enhancedTokenImage;
       const changes={};
