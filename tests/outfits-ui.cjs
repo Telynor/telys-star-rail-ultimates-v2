@@ -6,6 +6,7 @@ const root=path.resolve(__dirname,'..');
  const common=await fs.readFile(path.join(__dirname,'alternate-orb-ui.cjs'),'utf8'),box={require,__dirname};vm.createContext(box);vm.runInContext(common.slice(0,common.indexOf('(async()=>{'))+'\nthis.bootstrap=bootstrap;',box);
  const prefix=box.bootstrap.slice(0,box.bootstrap.indexOf('const alt=await'));
  const bootstrap=prefix+`
+window.Application=window.FormApplication;
 const foundation=foundry,baseUI=ui,helper=await import('/tests/helpers/path-world.mjs'),w=helper.pathWorld({install:false});window.w=w;
 window.foundry={...foundation,utils:{...foundation.utils,...foundry.utils}};window.ui=baseUI;Hooks.once=()=>{};
 foundry.applications.handlebars={renderTemplate:async(template,data)=>Handlebars.compile(await (await fetch('/'+template)).text())(data)};
