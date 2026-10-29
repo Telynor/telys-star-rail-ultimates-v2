@@ -5,6 +5,7 @@ import * as npcRules from "./npc-rules.mjs";
 import * as npcInitiative from "./npc-initiative.mjs";
 import * as partySetup from "./party-setup.mjs";
 import * as pathChanging from "./path-changing.mjs";
+import * as outfits from "./outfits.mjs";
 import {actionMacroPresentation,actionMacroCommand,synchronizeActionMacros} from './action-macros.mjs';
 import {renderSheetTemplate as renderTemplate,sheetTextEditor,lightConeSheetHost} from './sheet-compat.mjs';
 import {activeSummon as activePathSummon} from "./summon-lifecycle.mjs";
@@ -450,8 +451,9 @@ function normalizeUltimateContent(config) {
   return config;
 }
 
-function getConfig(actor) {
-  const stored = {...(actor?.getFlag(MODULE_ID, "ultimate") ?? {}), ...npcInitiative.sharedNpcInitiativeConfig(actor, game.actors)};
+function getConfig(actor,{outfit=true}={}) {
+  const raw={...(actor?.getFlag(MODULE_ID, "ultimate") ?? {}), ...npcInitiative.sharedNpcInitiativeConfig(actor, game.actors)};
+  const stored = outfit?outfits.resolveOutfitConfig(actor,raw):raw;
   const config = normalizeUltimateContent(foundry.utils.mergeObject(foundry.utils.deepClone(DEFAULT_CONFIG), stored, {
     inplace: false,
     insertKeys: true,
@@ -493,7 +495,7 @@ function getConfig(actor) {
 function getVisualConfig(actor) {
   const config=getConfig(actor);
   if(!config.enhancedStanceEnabled||!config.enhancedStanceActive)return config;
-  for(const [field,enhanced] of [["combatHudPortrait","enhancedHudPortrait"],["skillButtonImage","enhancedSkillButtonImage"],["skillText","enhancedSkillText"],["talentIcon","enhancedTalentIcon"],["talentText","enhancedTalentText"],["carouselImage","enhancedCarouselImage"]])if(config[enhanced])config[field]=config[enhanced];
+  for(const [field,enhanced] of [["combatHudPortrait","enhancedHudPortrait"],["skillButtonImage","enhancedSkillButtonImage"],["techniqueButtonImage","enhancedTechniqueButtonImage"],["skillText","enhancedSkillText"],["talentIcon","enhancedTalentIcon"],["talentText","enhancedTalentText"],["carouselImage","enhancedCarouselImage"]])if(config[enhanced])config[field]=config[enhanced];
   if(config.enhancedHudPortrait){for(const field of ["X","Y","Scale","Flip"])config[`combatHudPortrait${field}`]=config[`enhancedHudPortrait${field}`];}
   if(config.enhancedCarouselImage){for(const field of ["X","Y","Scale","Flip"])config[`carouselImage${field}`]=config[`enhancedCarouselImage${field}`];}
   if(config.enhancedUltimateEnabled){
@@ -631,6 +633,7 @@ function showBlowUpTatsuoButton(){
 // the actor prototype or another character's artwork.
 async function syncEnhancedTokenArtwork(actor){
   if(!isAuthority()||actor?.type!=="character")return;
+  if(await outfits.syncOutfitAppearance(actor))return;
   const config=getConfig(actor),image=String(config.enhancedTokenImage||"").trim();
   const enhanced=Boolean(config.enhancedStanceEnabled&&config.enhancedStanceActive&&image);
   for(const scene of game.scenes??[]){
@@ -7135,7 +7138,7 @@ async function injectUltimateTab(app, html) {
     return;
   }
   nav.append(`<a class="item control tsru-tab-control" data-action="tab" data-tab="tsru-ultimate" data-group="primary" data-tooltip="HSR Character Settings" aria-label="HSR Character Settings"><i class="fas fa-burst"></i><span class="tsru-tab-label">HSR Settings</span></a>`);
-  const config = getConfig(actor);
+  const config = getConfig(actor,{outfit:false});
   const elements = getElements().map(entry => ({...entry, selected: entry.id === config.elementId}));
   const paths = getPaths().map(entry => ({...entry, selected: entry.id === config.pathId}));
   const content = await renderTemplate(`modules/${MODULE_ID}/templates/ultimate-tab.hbs`, {
@@ -7192,7 +7195,7 @@ function addSheetConfigFallback(app, root, actor) {
 }
 
 async function openUltimateConfig(actor, sheetApp = null) {
-  const config = getConfig(actor);
+  const config = getConfig(actor,{outfit:false});
   const elements = getElements().map(entry => ({...entry, selected: entry.id === config.elementId}));
   const paths = getPaths().map(entry => ({...entry, selected: entry.id === config.pathId}));
   const content = await renderTemplate(`modules/${MODULE_ID}/templates/ultimate-tab.hbs`, {
@@ -8379,8 +8382,14 @@ function registerApi() {
   partySetup.installPartySetup(game.modules.get(MODULE_ID).api);
   pathChanging.installPathChanging(game.modules.get(MODULE_ID).api, {
     getSelectedCharacter:selectedMainCharacter,
+    isAppearanceUpdating:outfits.isUpdatingOutfit,
     isResolving:actor=>state.ultimateLocks.has(actor.id)||state.runningUltimates.has(actor.id)||state.skillLocks.has(actor.id)||state.abilityPlanning.has(actor.id)||hasQueuedUltimateRequest(actor.id),
     activeSummon:activePathSummon,
+    refresh:refreshPathPresentation,
+    synchronizeMacros:actor=>synchronizeStanceHotbarMacros({actor,allOwners:true,replaceCommand:true})
+  });
+  outfits.installOutfits(game.modules.get(MODULE_ID).api, {
+    getSelectedCharacter:selectedMainCharacter,
     refresh:refreshPathPresentation,
     synchronizeMacros:actor=>synchronizeStanceHotbarMacros({actor,allOwners:true,replaceCommand:true})
   });
@@ -8390,6 +8399,7 @@ Hooks.once("init", () => {
   registerSettings();
   partySetup.registerPartySetupSettings();
   pathChanging.registerPathChangeSettings();
+  outfits.registerOutfitSettings();
   Handlebars.registerHelper("add", (a, b) => Number(a) + Number(b));
   console.log(`${MODULE_ID} | Initialized`);
 });

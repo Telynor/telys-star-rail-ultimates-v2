@@ -1,10 +1,11 @@
+import {outfitBaseAppearance} from './outfit-rules.mjs';
 export const PATH_MODULE = 'telys-star-rail-ultimates';
 export const MEMO_MODULE = 'telys-memosprites';
 export const INVENTORY_TYPES = new Set(['weapon','equipment','consumable','tool','loot','container','backpack']);
 export const BUILD_ITEM_TYPES = new Set(['class','subclass','feat','spell','background','race']);
 export const BUILD_SCOPES = [PATH_MODULE,'dnd5e','midi-qol','dae',MEMO_MODULE];
 export const TOKEN_BUILD_FIELDS = ['texture','width','height','sight','light','detectionModes','bar1','bar2','ring','alpha','lockRotation','hexagonalShape'];
-export const SHARED_HSR_FLAGS = new Set(['pathChanging','pathChangeRecovery','unlockedCraftingRecipes','selectedLightConeItemId','lightConeAttunementState','lightConeRuntime','bossEncounter','bossPhaseSourceUuid','initiativePortraitSource']);
+export const SHARED_HSR_FLAGS = new Set(['outfits','pathChanging','pathChangeRecovery','unlockedCraftingRecipes','selectedLightConeItemId','lightConeAttunementState','lightConeRuntime','bossEncounter','bossPhaseSourceUuid','initiativePortraitSource']);
 export const SHARED_ULTIMATE_FIELDS = ['mainParty','partyGMOverride','receivesRewards','trialCharacter','unlockingItem'];
 const copy = value => structuredClone(value);
 const plain = value => value && typeof value === 'object' && !Array.isArray(value);
@@ -34,6 +35,7 @@ export function buildEffect(effect,actorUuid,inventoryIds) {const planar=effect?
 
 export function capturePathBuild(actor) {
   const data=documentData(actor),items=data.items??[],inventoryIds=new Set(items.filter(isSharedInventory).map(item=>item._id));
+  const appearance=outfitBaseAppearance(actor);data.img=appearance.img;data.prototypeToken??={};data.prototypeToken.texture=appearance.texture;
   const flags={};
   for(const scope of BUILD_SCOPES) {
     flags[scope]=copy(data.flags?.[scope]??{});
@@ -150,6 +152,7 @@ export function buildActorPatch(actor,snapshot) {
     const desired=copy(snapshot.flags?.[scope]??{}),before=current.flags?.[scope]??{};
     if(scope===PATH_MODULE) {
       for(const key of SHARED_HSR_FLAGS)if(Object.hasOwn(before,key))desired[key]=copy(before[key]);
+      if(desired.outfits)desired.outfits.appearance=null;
       desired.ultimate??={};
       for(const key of SHARED_ULTIMATE_FIELDS)if(Object.hasOwn(before.ultimate??{},key))desired.ultimate[key]=copy(before.ultimate[key]);
     }

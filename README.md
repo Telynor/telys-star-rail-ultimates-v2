@@ -1,5 +1,15 @@
 # Tely's Star Rail Ultimates
 
+## Character Outfits (preview.33)
+
+Open **Outfits** in the character sheet header beside Planars and Change Path. The button uses the supplied outfit icon. Owners can equip their assigned, unlocked outfits or return to **Path default**. Only the GM sees **Outfit Builder** or the creation, assignment and editing controls. A GM must be online to apply owner changes.
+
+The GM creates named outfits, chooses the characters who can wear them, and creates artwork profiles for their individual Paths. Each profile has normal artwork and, when that Path enables Enhanced Stance, an enhanced form. Configure phone pose, cinematic splash, token, actor portrait, combat HUD, initiative and Messenger artwork. Empty fields inherit the Path’s artwork. Skill, Ultimate, Talent and Technique icons inherit that form’s Path settings unless their separate **Custom … icon** boxes are checked. Enhanced cosmetics do not enable a stance or alter its ability rules.
+
+Previews support image-file and Foundry-document drops, file browsing, dragging, wheel zoom, numeric positioning/scaling and flipping. The phone preview renders the actual HSR Phone window with the character’s phone layout, so its artwork can be positioned against the phone. Profile edits are drafts until **Save outfit**. The selector remembers an outfit separately for each Path; switching, importing or returning to the default preserves the Path’s underlying artwork and all character stats, resources, inventory and equipment. Equipped artwork refreshes sheets, sidebars, linked tokens, phones, HUDs, initiative, cinematic playback and the owner’s action macros in their existing hotbar slots.
+
+Optionally drop an inventory Item into **Inventory unlock requirement**, or paste its UUID. Only the character’s own copy with positive quantity unlocks the outfit. Matching uses Foundry Item provenance, never an item name or another party member’s inventory. Losing the last copy relocks the outfit and restores Path artwork; reacquiring it reactivates the saved selection. Clearing the requirement makes the assigned outfit available without an item.
+
 ## Player Path selector and GM-only importing (preview.32)
 
 Owners get a **Change Path** sheet control that opens only their character's selectable Paths, artwork preview and switch button. The control remains available before alternate builds are configured, with an empty-state message. Import, source/destination selectors, drag/drop importing, reimport, editing, removal, recovery and permissions controls are only rendered and bound for GMs. Player windows do not load the importer source-sheet list, and management requests are rejected on both the client and the authoritative GM.

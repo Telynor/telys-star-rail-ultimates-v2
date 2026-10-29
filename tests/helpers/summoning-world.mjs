@@ -1,3 +1,4 @@
+import * as outfits from '../../scripts/outfits.mjs';
 import * as skillSpells from '../../scripts/ability-spells.mjs';
 import * as npcInitiative from "../../scripts/npc-initiative.mjs";
 import {readFile} from 'node:fs/promises';
@@ -34,7 +35,7 @@ export function world({mode='energy',quantity=1,config={},size=1}={}){
   const hookApi={on(name,fn){const list=hooks.get(name)??[];list.push(fn);hooks.set(name,list)},once(){},callAll(name,...args){for(const fn of hooks.get(name)??[])fn(...args)},call(name,...args){let ok=true;for(const fn of hooks.get(name)??[])if(fn(...args)===false)ok=false;return ok;}};
   const dice={total:7};class Roll{constructor(formula){this.formula=formula}async evaluate(){events.rolls++;this.total=dice.total;return this;}}
   Object.assign(globalThis,{game,ui,foundry,canvas,Hooks:hookApi,fromUuid:async uuid=>actors.find(actor=>actor.uuid===uuid),Roll});
-  const context=vm.createContext({skillSpells,game,ui,foundry,canvas,Roll,summoning,npcInitiative,structuredClone,energyAfterUpdate,...alternate,Hooks:hookApi,FormApplication:class{},
+  const context=vm.createContext({outfits,skillSpells,game,ui,foundry,canvas,Roll,summoning,npcInitiative,structuredClone,energyAfterUpdate,...alternate,Hooks:hookApi,FormApplication:class{},
     lightConeSkillCapacity:()=>0,handleLightConeEvent:async(type,detail)=>events.lightCone.push({type,detail}),
     console:{...console,error:(...args)=>events.errors.push(args.map(String).join(' '))},TextEditor:{enrichHTML:async text=>text},
     ChatMessage:{getSpeaker:({actor})=>({actor:actor.id}),create:async data=>{events.messages.push(data);return data}},
