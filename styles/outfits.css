@@ -4,3 +4,8 @@
 .tsru-splash-artboard img,.tsru-splash-artboard video{scale:var(--tsru-splash-flip,1) 1}.tsru-messenger-messages article>img{scale:var(--msg-flip,1) 1}
 
 .tsru-outfit-stage[class*="is-team"]{aspect-ratio:4/5;max-height:320px}.tsru-outfit-build-fields>label:has([data-outfit-any-path]){justify-content:center;flex-direction:row;align-items:center}.tsru-outfit-art-controls{padding-top:10px}
+
+/* Use the live carousel card and its clipping layer in outfit previews. */
+.tsru-outfit-stage.is-initiative{display:grid;place-items:center;min-height:190px;aspect-ratio:auto;padding:30px;background:radial-gradient(circle at 35% 50%,#173646,#07111a 72%)}
+.tsru-outfits .is-initiative .tsru-hsr-turn{display:block;position:relative;width:148px;height:58px;min-height:0;margin:0;padding:0;border:0;border-radius:0;background:transparent;color:#fff;text-align:left;pointer-events:none}
+.tsru-outfits .is-initiative .tsru-hsr-turn-card>small{color:#bdefff;font-size:9px}

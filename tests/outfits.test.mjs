@@ -130,3 +130,12 @@ test('four lineup slots inherit settings, override independently, refresh, and r
  assert.equal(inheritedOutfitArt(w.hero,p,'boss').image,'boss.png');assert.equal(inheritedOutfitArt(w.hero,p,'boss').scale,140);assert.equal(inheritedOutfitIcon(p,'ultimate'),'legacy-orb.png');
  const o=put(w);o.profiles[0].normal.art.boss={image:'outfit-boss.png',x:30,y:60,scale:120};await equip(w);assert.equal(resolveOutfitConfig(w.hero,p.config).bossHudPortrait,'outfit-boss.png');
  });
+
+test('initiative outfit preview uses the tracker mask, Path frame preset and full character-settings crop range',async()=>{
+ const {inheritedOutfitArt,outfitInitiativePreview}=await import('../scripts/outfits-ui.mjs');
+ const w=world();w.settings.initiativeFrameColors=[{id:'gold',color:'#fedcba'}];
+ const p={img:'base.png',config:{carouselFrameColorPreset:'gold',enhancedCarouselImage:'enhanced.png',enhancedCarouselImageScale:800,enhancedCarouselImageX:1100,enhancedCarouselImageY:-1100,enhancedCarouselImageFlip:true}};
+ const art=inheritedOutfitArt(w.hero,p,'initiative','enhanced');assert.equal(art.scale,800);assert.equal(art.x,1100);assert.equal(art.y,-1100);
+ const html=outfitInitiativePreview(w.hero,p,art);assert.match(html,/tsru-initiative-art-mask/);assert.match(html,/tsru-hsr-turn-pointer/);assert.match(html,/has-custom-frame/);assert.match(html,/--turn-color:#fedcba/);assert.match(html,/--portrait-scale:8/);assert.match(html,/--portrait-flip:-1/);assert.match(html,/enhanced.png/);
+ const outfit=normalizeOutfit({profiles:[{actorId:'hero',pathKey:'original',normal:{art:{initiative:art}}}]});assert.deepEqual(outfit.profiles[0].normal.art.initiative,art);
+});

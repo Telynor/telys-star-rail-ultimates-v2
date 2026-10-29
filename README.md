@@ -1,5 +1,9 @@
 # Tely's Star Rail Ultimates
 
+## Outfit initiative preview (preview.37)
+
+The Outfit Builder previews initiative artwork inside the live tracker's card, with its clipped image layer, character name, initiative number, active-turn pointer/glow and Path frame color. Dragging, zooming and flipping update the same portrait variables used in combat; drag distances are measured against the card rather than the surrounding preview panel. Both normal and enhanced outfit artwork use this preview.
+
 ## Outfit artwork profiles (preview.36)
 
 The GM can associate a character's outfit with one Path or enable **Any Path for this character**. Any Path uses the same outfit artwork across Path switches, while uncustomized action icons continue to follow the active Path. Changing a character's profile to Any Path replaces that character's other profiles within the outfit.
