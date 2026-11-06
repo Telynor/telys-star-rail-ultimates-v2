@@ -1,3 +1,4 @@
+import {createLightConePreparation} from './light-cone-preparation.mjs';
 import {
   number,
   hpRatio,
@@ -2086,16 +2087,14 @@ export function installLightCones(moduleApi) {
   const proto = CONFIG.Actor.documentClass.prototype;
   if (!proto._tsruConePrepare) {
     Object.defineProperty(proto, "_tsruConePrepare", { value: true });
-    const wrapper = function (original, ...args) {
-      const result = original(...args);
-      if (prepared(this)) for (const item of this.items ?? []) item.prepareFinalAttributes?.();
-      return result;
+    const lifecycle=createLightConePreparation(prepared);
+    const wrap=(target,name,path,wrapper)=>{
+      if(typeof target?.[name]!=="function")return;
+      if(globalThis.libWrapper?.register)libWrapper.register(ID,path,wrapper,"WRAPPER");
+      else {const original=target[name];target[name]=function(...args){return wrapper.call(this,original.bind(this),...args);};}
     };
-    if (globalThis.libWrapper?.register) libWrapper.register(ID, "CONFIG.Actor.documentClass.prototype.prepareData", wrapper, "WRAPPER");
-    else {
-      const original = proto.prepareData;
-      proto.prepareData = function (...args) { return wrapper.call(this, original.bind(this), ...args); };
-    }
+    wrap(proto,"prepareData","CONFIG.Actor.documentClass.prototype.prepareData",lifecycle.actor);
+    wrap(CONFIG.Item?.documentClass?.prototype,"prepareFinalAttributes","CONFIG.Item.documentClass.prototype.prepareFinalAttributes",lifecycle.item);
   }
   const registerCrit = () => Hooks.on("dnd5e.preRollAttackV2", rollCrit);
   if (game.modules.get("telys-planar-ornaments")?.active) {

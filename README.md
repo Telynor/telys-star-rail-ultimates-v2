@@ -356,3 +356,8 @@ Token movement skips global Toughness/HUD redraws. Toughness graphics are reused
 Run `node --test tests/visual-performance.test.mjs` for the deterministic preview.38 comparison. With 250 tokens and 250 movement events, the released path builds 62,500 bar containers and performs 7,843,750 combatant comparisons; the optimized movement path performs neither. A burst of 250 NPC HP changes shares one party/companion HUD pass. Changed Toughness or dimensions still rebuild the affected bar. These mocked-canvas work counts are not measured Foundry FPS.
 
 For live diagnostics, `game.modules.get("telys-star-rail-ultimates").api.performance.snapshot()` reports requests, flushes, executed/pending jobs, last/peak synchronous flush duration in milliseconds, and Toughness builds/reuses. `.performance.reset()` resets these counters. This covers this module’s queued drawing work, not total frame time, lighting, network latency, or other modules.
+
+
+### Duplicate weapon damage correction (preview.40)
+
+The Light Cone preparation integration no longer calls `Item.prepareFinalAttributes()` a second time. D&D5e inserts weapon base damage into its prepared activity during that method, so a repeated call could turn a normal `1d6 + 4` attack into two complete `1d6 + 4` damage components during combat. Light Cone actor bonuses now apply before the system’s existing item-finalization pass; actors without finalizing items still receive their bonuses. Legitimate additional damage parts remain intact. This corrects preparation in memory without editing saved weapon or activity definitions. After installing the correction, reload the world client to rebuild prepared data.

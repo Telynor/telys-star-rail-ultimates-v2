@@ -7,23 +7,30 @@ globalThis.ui={notifications:{error:message=>errors.push(message)}};
 globalThis.window={};globalThis.fetch=async()=>({json:async()=>[]});
 const gm={id:'gm',isGM:true,active:true};
 globalThis.game={user:gm,users:[gm],combat:null,combats:new Map(),modules:new Map(),settings:{get:()=>[]}};
+class Item {
+  constructor(actor){this.actor=actor;this.id='cone';this.type='loot';this.parts=[];}
+  getFlag(){return {enabled:true,catalogId:'21001',draftId:99,pathId:'nihility'};}
+  // Mirrors D&D5e's non-idempotent insertion of a weapon's base damage.
+  prepareFinalAttributes(){this.actor.itemPrepares++;this.parts.unshift({base:true,formula:'1d6 + 4'});this.seenSpeed=(this.actor.modern?this.actor.system.attributes.movement.speeds:this.actor.system.attributes.movement).walk;}
+}
 class Actor {
   constructor(id='hero',modern=false){
     this.uuid=`Actor.${id}`;this.id=id;this.documentName='Actor';this.type='character';this.effects=[];this.flags={ultimate:{pathId:'nihility'},selectedLightConeItemId:'cone'};this.modern=modern;this.resets=0;
-    this.items=[{id:'cone',type:'loot',getFlag:()=>({enabled:true,catalogId:'21001',draftId:99,pathId:'nihility'}),prepareFinalAttributes:()=>this.itemPrepares++}];this.items.get=id=>this.items.find(item=>item.id===id);this.itemPrepares=0;this.prepareData();
+    this.items=[new Item(this)];this.items.get=id=>this.items.find(item=>item.id===id);this.itemPrepares=0;this.prepareData();
   }
   prepareData(){
     const movement=this.modern?{speeds:{walk:30}}:{walk:30};
     if(this.modern)Object.defineProperty(movement,'walk',{get(){throw Error('Deprecated walk getter');},set(){throw Error('Deprecated walk setter');}});
     this.system={attributes:{hp:{value:20,max:20,temp:0},ac:{value:10},movement},abilities:this.modern?{con:{save:{value:5}}}:{},bonuses:{}};
     if(this.modern)this.system.rolls={attack:Object.fromEntries(['mwak','rwak','msak','rsak'].map(key=>[key,{bonus:''}]))};
+    for(const item of this.items){item.parts=[];item.prepareFinalAttributes();}
   }
   getFlag(_,key){return this.flags[key]}
   async setFlag(_,key,value){this.flags[key]=structuredClone(value)}
   async unsetFlag(_,key){delete this.flags[key];this.clears=(this.clears??0)+1}
   reset(){this.resets++;this.prepareData()}
 }
-globalThis.CONFIG={Actor:{documentClass:Actor},DND5E:{}};
+globalThis.CONFIG={Actor:{documentClass:Actor},Item:{documentClass:Item},DND5E:{}};
 const {installLightCones,handle,restoreInitiative,snapshot}=await import('../scripts/light-cones.mjs');
 const configReads=new Map();
 installLightCones({getConfig:a=>{configReads.set(a,(configReads.get(a)??0)+1);return a.getFlag(ID,'ultimate')??{}}});
@@ -69,7 +76,7 @@ test('D&D5e 5 and 6 speed bonuses use the correct field, reset without accumulat
     const {actor}=encounter('speed-'+modern,new Actor('hero',modern));
     for(let i=0;i<3;i++){actor.reset();assert.equal((modern?actor.system.attributes.movement.speeds:actor.system.attributes.movement).walk,45);}
     game.combat=null;actor.reset();assert.equal((modern?actor.system.attributes.movement.speeds:actor.system.attributes.movement).walk,30);assert.equal(actor._lightConeStats,undefined);
-    const before=actor.itemPrepares;actor.reset();assert.equal(actor.itemPrepares,before,'no item re-preparation outside combat');
+    const before=actor.itemPrepares;actor.reset();assert.equal(actor.itemPrepares,before+1,'only the system finalizes the item, even outside combat');
   }
 });
 test('initiative restoration is a no-op for a deleted encounter even if another combat is active',async()=>{
@@ -105,4 +112,16 @@ test('the real Light Cone preItemRoll handler accepts Midi 14.6 payloads and cha
   for(const hook of hooks.get('midi-qol.preItemRoll'))await hook(payload);
   assert.equal(updates.length,1);assert.equal(updates[0]['system.attributes.hp.value'],18);
   assert.equal(actor.flags[FLAG].buttonAction.category,'skill');
+});
+
+
+test('installed Light Cone wrappers preserve one native base-damage part and apply bonuses before item finalization',()=>{
+ for(const modern of [false,true]){
+  const {actor}=encounter('damage-'+modern,new Actor('weapon-'+modern,modern));
+  for(let i=0;i<5;i++){
+   const before=actor.itemPrepares;actor.reset();assert.equal(actor.itemPrepares,before+1);
+   assert.equal(actor.items[0].parts.length,1);assert.equal(actor.items[0].seenSpeed,45);
+  }
+  game.combat=null;actor.reset();assert.equal(actor.items[0].parts.length,1);assert.equal(actor.items[0].seenSpeed,30);
+ }
 });
