@@ -1,0 +1,43 @@
+// Released 04402a17 preview.38 drawing functions.
+function renderToughnessBar(token) {
+  token?.children?.filter?.(child => child.name === "tsru-toughness-bar").forEach(child => child.destroy({children: true}));
+  if (!token?.actor || !["npc","character"].includes(token.actor.type) || !game.combat?.combatants?.some(c => c.tokenId === token.document.id)) return;
+  const config = getToughness(token.actor, token.document);
+  if (!config.enabled) return;
+  const PIXIRef = globalThis.PIXI;
+  if (!PIXIRef?.Container || !PIXIRef?.Graphics) return;
+  const container = new PIXIRef.Container();
+  container.name = "tsru-toughness-bar";
+  container.eventMode = "none";
+  const graphics = new PIXIRef.Graphics();
+  const width = Math.max(54, token.w * .82);
+  const height = Math.max(7, Math.min(12, token.h * .055));
+  const x = (token.w - width) / 2;
+  const y = token.h - height - 15;
+  drawToughnessRect(graphics, x - 2, y - 2, width + 4, height + 4, 0x111318, .92, 3);
+  drawToughnessRect(graphics, x, y, width, height, 0x3c4149, 1, 2);
+  const fill = width * clamp(config.current / config.max, 0, 1);
+  if (fill > 0) drawToughnessRect(graphics, x, y, fill, height, 0xaeb4bd, 1, 2);
+  container.addChild(graphics);
+  const effectiveWeaknesses = effectiveToughnessWeaknesses(token);
+  const weaknessMode = toughnessWeaknessMode(token);
+  const visibleWeaknesses = weaknessMode === "none" ? [] : weaknessMode === "all" ? effectiveWeaknesses : game.user?.isGM
+    ? effectiveWeaknesses
+    : [...new Set([...config.discoveredWeaknesses.filter(id => effectiveWeaknesses.includes(id)), ...temporaryToughnessWeaknesses(token)])];
+  const weaknesses = getElements().filter(element => visibleWeaknesses.includes(element.id));
+  const dotSize = Math.max(7, Math.min(11, token.w * .055));
+  weaknesses.forEach((element, index) => {
+    const dot = new PIXIRef.Graphics();
+    const hex = Number.parseInt(String(element.readyColor || element.color || "#ffffff").replace("#", ""), 16) || 0xffffff;
+    const dx = x + index * (dotSize + 3);
+    if (typeof dot.circle === "function" && typeof dot.fill === "function") dot.circle(dx + dotSize / 2, y - dotSize / 2 - 4, dotSize / 2).fill({color: hex});
+    else { dot.beginFill(hex); dot.drawCircle(dx + dotSize / 2, y - dotSize / 2 - 4, dotSize / 2); dot.endFill(); }
+    container.addChild(dot);
+  });
+  token.addChild(container);
+}
+
+function refreshToughnessBars() {
+  for (const token of canvas?.tokens?.placeables ?? []) renderToughnessBar(token);
+  refreshBrokenTokenOverlays();
+}

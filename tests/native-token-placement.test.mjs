@@ -60,8 +60,9 @@ test('only the matching owner can cancel a native session and overlapping reques
 
 test('scene teardown cancels native placement and releases the preview session',async()=>{
   const w=setup(()=>new Promise(resolve=>{canvas.app.view.oncontextmenu=()=>resolve([])}));
+  const persistentHooks=(w.hooks.get('canvasTearDown')??[]).length;
   const pending=choose(w.a,w.wolf,w.options);await w.fire('canvasTearDown');
-  assert.equal(await pending,null);assert.equal((w.hooks.get('canvasTearDown')??[]).length,0);assert.equal(busy(),false);
+  assert.equal(await pending,null);assert.equal((w.hooks.get('canvasTearDown')??[]).length,persistentHooks);assert.equal(busy(),false);
 });
 
 test('missing native API and stale scenes fail before drawing or spending anything',async()=>{

@@ -146,3 +146,11 @@ test('outfits override main-slot shadows and independent fifth-slot artwork whil
  await equip(w);assert.equal(partyArtworkFor(w.hero,0).shadow.enabled,false);assert.equal(partyArtworkFor(w.hero,4).image,'outfit-fifth.png');assert.equal(partyArtworkFor(w.hero,4).scale,150);assert.equal(partyArtworkFor(w.hero,4).shadow,undefined);
  await equip(w,'');assert.equal(partyArtworkFor(w.hero,4).image,'base-fifth.png');assert.equal(w.hero.getFlag(ID,'optionalPartyArtwork').scale,90);
 });
+
+test('equipped costumes skip HP, Energy and item-charge updates but still react to losing an unlock item',async()=>{
+ const w=world();w.token('hero');put(w,{unlockingItem:{uuid:'Compendium.gear.Item.arrows',name:'Gala ticket'}});await equip(w);await settle();
+ let renders=0;w.hero.sheet={render(){renders++;}};
+ await w.hero.update({'system.attributes.hp.value':12});await w.hero.update({[`flags.${ID}.ultimate.current`]:42});await w.hero.items.get('arrows').update({'system.uses.spent':1,'_stats.modifiedTime':123});await settle();
+ assert.equal(renders,0);assert.equal(w.hero.img,'gala-portrait.png');
+ await w.hero.items.get('arrows').update({'system.quantity':0});await settle();assert.equal(w.hero.img,'hero.png');assert.ok(renders>0);
+});

@@ -1,3 +1,4 @@
+import {touchesVisualData} from './visual-refresh.mjs';
 import {OUTFIT_ID as ID,normalizeOutfitLibrary,normalizeOutfit,outfitState,outfitPaths,activeOutfitPath,outfitAvailability,selectedOutfit,outfitBaseAppearance,outfitArt,outfitTexture,outfitConfig,outfitPhonePose,normalizeOutfitTexture,isOutfitInventoryItem,outfitPortraitStyle} from './outfit-rules.mjs';
 import {unlockingItemDescriptor} from './party-setup-rules.mjs';
 import {actorSheetControls,actorHeaderButton,sheetActor} from './actor-sheet-controls.mjs';
@@ -6,7 +7,12 @@ const queues=new Map(),pending=new Map(),updating=new Set();let installed=false,
 export const isUpdatingOutfit=actor=>updating.has(actor?.uuid);
 const gm=()=>game.users.find(user=>user.isGM&&user.active);
 const authority=()=>game.user?.isGM&&gm()?.id===game.user.id;
-const library=()=>normalizeOutfitLibrary(game.settings.get(ID,'outfitLibrary'));
+let cachedLibrary=null;
+const invalidateOutfitLibrary=()=>{cachedLibrary=null;};
+const library=()=>{const raw=game.settings.get(ID,'outfitLibrary')??{};if(cachedLibrary?.raw===raw&&cachedLibrary.value.revision===(Number(raw.revision)||0)&&cachedLibrary.length===(raw.outfits?.length??0))return cachedLibrary.value;const value=normalizeOutfitLibrary(raw);cachedLibrary={raw,value,length:raw.outfits?.length??0};return value;};
+const appearanceFields=['enhancedStanceEnabled','enhancedStanceActive','enhancedTokenImage','pathId','elementId',...['splash','enhancedSplash','combatHudPortrait','enhancedHudPortrait','carouselImage','enhancedCarouselImage','messagingPortrait'].flatMap(prefix=>[prefix,prefix+'Image',prefix+'X',prefix+'Y',prefix+'Scale',prefix+'Flip']),'skillButtonImage','ultimateButtonImage','talentIcon','techniqueButtonImage','enhancedSkillButtonImage','enhancedUltimateButtonImage','enhancedTalentIcon','enhancedTechniqueButtonImage'];
+const appearanceRoots=['name','img','prototypeToken',...appearanceFields.map(field=>`flags.${ID}.ultimate.${field}`),`flags.${ID}.outfits`,`flags.${ID}.pathChanging`];
+const itemUnlockRoots=['system.quantity','_stats.compendiumSource','flags','type','name'];
 const world=actor=>actor?.documentName==='Actor'&&actor.type==='character'&&!actor.isToken&&game.actors.get(actor.id)===actor;
 const owned=(actor,user)=>Boolean(user&&(user.isGM||actor?.testUserPermission?.(user,'OWNER')));
 const notify=error=>ui.notifications.error(error.message??String(error));
@@ -64,6 +70,7 @@ async function refresh(actor){
   Hooks.callAll('tsruOutfitChanged',actor);refreshOutfitWindows(actor);
 }
 export async function applyOutfitRequest(action,payload={},user=game.user){
+  invalidateOutfitLibrary();
   if(!authority())throw Error('The active GM must apply outfit changes.');
   if(!user||user.active===false)throw Error('This user is not connected.');
   if(action!=='equip'&&!user.isGM)throw Error('Only the GM can create or configure outfits.');
@@ -143,9 +150,9 @@ export function installOutfits(api,services={}){
   game.socket.on?.(`module.${ID}`,message=>void handleOutfitSocket(message).catch(notify));
   for(const hook of ['renderActorSheet','renderCharacterActorSheet','renderApplicationV2'])Hooks.on(hook,(app,html)=>{bindOutfitHeader(app,html);const actor=sheetActor(app);if(world(actor))styleOutfitPortraits(actor,app.element?.[0]??app.element??html?.[0]??html);});
   Hooks.on('renderActorDirectory',(_app,html)=>{const root=html?.[0]??html;for(const actor of game.actors)if(world(actor))styleOutfitPortraits(actor,root);});
-  Hooks.on('tsruPathChanged',actor=>{void refresh(actor).catch(notify);});
-  Hooks.on('updateActor',(actor,_changes,options={})=>{if(!world(actor)||options.tsruPathChange)return;refreshOutfitWindows(actor);if(options.tsruOutfitChange){callbacks.refresh?.(actor);Hooks.callAll('tsruOutfitChanged',actor);}else if(selectedOutfit(actor,library())||outfitState(actor).appearance)void refresh(actor).catch(notify);});
-  for(const hook of ['createItem','updateItem','deleteItem'])Hooks.on(hook,item=>{if(world(item.parent)&&!isChanging(item.parent)){refreshOutfitWindows(item.parent);if(selectedOutfit(item.parent,library())||outfitState(item.parent).appearance)void refresh(item.parent).catch(notify);}});
-  Hooks.on('updateSetting',setting=>{if(setting?.key===`${ID}.outfitLibrary`){refreshOutfitWindows();for(const actor of game.actors)if(world(actor))void refresh(actor).catch(notify);}});
+  Hooks.on('tsruPathChanged',actor=>{invalidateOutfitLibrary();void refresh(actor).catch(notify);});
+  Hooks.on('updateActor',(actor,changes,options={})=>{if(!world(actor)||options.tsruPathChange)return;if(!options.tsruOutfitChange&&!touchesVisualData(changes,appearanceRoots))return;invalidateOutfitLibrary();refreshOutfitWindows(actor);if(options.tsruOutfitChange){callbacks.refresh?.(actor);Hooks.callAll('tsruOutfitChanged',actor);}else if(selectedOutfit(actor,library())||outfitState(actor).appearance)void refresh(actor).catch(notify);});
+  for(const hook of ['createItem','updateItem','deleteItem'])Hooks.on(hook,(item,changes)=>{if(hook==='updateItem'&&!touchesVisualData(changes,itemUnlockRoots))return;if(world(item.parent)&&!isChanging(item.parent)&&library().outfits.some(outfit=>outfit.actorIds.includes(item.parent.id)&&outfit.unlockingItem)){refreshOutfitWindows(item.parent);if(selectedOutfit(item.parent,library())||outfitState(item.parent).appearance)void refresh(item.parent).catch(notify);}});
+  Hooks.on('updateSetting',setting=>{if(setting?.key===`${ID}.outfitLibrary`){invalidateOutfitLibrary();refreshOutfitWindows();for(const actor of game.actors)if(world(actor))void refresh(actor).catch(notify);}});
   Hooks.on('deleteActor',actor=>refreshOutfitWindows(actor,{deleted:true}));
 }

@@ -346,3 +346,13 @@ In HSR Settings → Abilities → Skill, enable **Casts spell?**, then flip **Sp
 Update Memosprites to **1.3.2** as well. Full token footprints must clear lighting barriers at selection and creation. Character, ability and native spell summons temporarily use their exact token HP and colored artwork on the summoner’s companion HUD. At zero HP or token/scene removal, the HP arc hides and saved portrait/default settings return. Companion summoning supports all Paths. Search the illustrated field manual for **Spell known**, **Other**, **compendium**, **Cannot Fit** or **live summon HP** for detailed setup and tooltips.
 
 Preview.20 also preserves the shared SP balance when one character cancels a spell while another character’s Skill payment is still being saved.
+
+## Busy-scene performance
+
+Token movement skips global Toughness/HUD redraws. Toughness graphics are reused until their values, geometry, visibility or weakness colors change; combat membership is indexed once per refresh. Actor changes update bars for that actor’s tokens. HP-only changes refresh party/companion HP and boss HP without rebuilding unrelated orbs or the initiative carousel. Outfit reconciliation responds to appearance and unlock changes rather than ordinary HP/Energy updates. The combat menu computes only its visible tab, and unchanged HUD markup retains its DOM nodes.
+
+**Configure Settings → Tely’s Star Rail Ultimates → Combat HUD refresh interval (ms)** controls a per-client visual queue. Default: **50 ms**; try **100 ms** on slower clients. Range: 16–250 ms. Bursts of actor/combatant updates share visual refreshes. Damage, resource accounting, document writes and turn rules remain immediate. Scene teardown cancels queued drawing work.
+
+Run `node --test tests/visual-performance.test.mjs` for the deterministic preview.38 comparison. With 250 tokens and 250 movement events, the released path builds 62,500 bar containers and performs 7,843,750 combatant comparisons; the optimized movement path performs neither. A burst of 250 NPC HP changes shares one party/companion HUD pass. Changed Toughness or dimensions still rebuild the affected bar. These mocked-canvas work counts are not measured Foundry FPS.
+
+For live diagnostics, `game.modules.get("telys-star-rail-ultimates").api.performance.snapshot()` reports requests, flushes, executed/pending jobs, last/peak synchronous flush duration in milliseconds, and Toughness builds/reuses. `.performance.reset()` resets these counters. This covers this module’s queued drawing work, not total frame time, lighting, network latency, or other modules.

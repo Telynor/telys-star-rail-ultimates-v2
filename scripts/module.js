@@ -1,3 +1,4 @@
+import * as visualRefresh from "./visual-refresh.mjs";
 import {lightConeAttunementUpdate} from "./light-cone-equipment.mjs";
 import * as multitype from "./multitype.mjs";
 import * as actorControls from "./actor-sheet-controls.mjs";
@@ -21,6 +22,51 @@ import {alternateUltimateCharge, syncAlternateOrbSheet, getAlternateOrb, getAlte
 const MODULE_ID = "telys-star-rail-ultimates";
 const SOCKET = `module.${MODULE_ID}`;
 const HSR_RECIPE_CATALOG_VERSION = "4.5.0";
+
+const dirtyVisualActors=new Map(),dirtyVisualTokens=new Map();
+let allToughnessDirty=false;
+const toughnessBarCache=new WeakMap();
+const visualRenderStats={toughnessBuilds:0,toughnessReuses:0};
+const visualRefreshQueue=visualRefresh.createVisualRefreshQueue({
+ schedule:(fn,ms)=>window.setTimeout(fn,ms),cancel:id=>window.clearTimeout(id),
+ delay:()=>game.settings.get(MODULE_ID,"visualRefreshInterval")??50,
+ onError:error=>console.error(`${MODULE_ID} | Visual refresh failed`,error)
+});
+const queueVisualRefresh=(key,fn)=>visualRefreshQueue.request(key,fn);
+function queueToughnessRefresh(token){
+ if(token)dirtyVisualTokens.set(token.document?.uuid||token.id,token);else allToughnessDirty=true;
+ queueVisualRefresh("toughness",()=>{
+  const tokens=allToughnessDirty?Array.from(canvas?.tokens?.placeables??[]):[...dirtyVisualTokens.values()].filter(token=>!token.destroyed);
+  allToughnessDirty=false;dirtyVisualTokens.clear();refreshToughnessBars(tokens);
+ });
+}
+function queueActorVisualRefresh(actor,changes={}){
+ const key=actor.uuid||actor.id,previous=dirtyVisualActors.get(key),hpOnly=visualRefresh.changesOnlyWithin(changes,['system.attributes.hp']);
+ dirtyVisualActors.set(key,{actor,full:previous?.full||!hpOnly});
+ queueVisualRefresh("actor-visuals",()=>{
+  const entries=[...dirtyVisualActors.values()];dirtyVisualActors.clear();
+  const ids=new Set(entries.filter(entry=>entry.full).map(({actor})=>actor.uuid||actor.id));
+  if(ids.size){const tokens=Array.from(canvas?.tokens?.placeables??[]).filter(token=>ids.has(token.actor?.uuid||token.actor?.id));if(tokens.length)refreshToughnessBars(tokens);}
+  const full=entries.some(entry=>entry.full),characters=entries.some(({actor})=>actor.type==='character');
+  if(full){for(const {actor} of entries){refreshOrb(actor);refreshTalentCounter(actor);}refreshUltimateHotbarMacros();refreshPunchlineHUD();refreshInitiativeCarousel();}
+  if(full||characters){refreshSkillUI();refreshResourceHuds();state.gmPanel?.refreshLiveValues();}
+  // NPCs may be live summons whose HP arc is on the party HUD.
+  refreshCombatPartyHud();
+  if(full||entries.some(({actor})=>actor.getFlag?.(MODULE_ID,'ultimate')?.isBoss))refreshBossHud();
+  state.dmCombatMenu?.refresh();
+ });
+}
+function queueTokenVisualRefresh(token,changes){
+ if(visualRefresh.isTokenMovementOnly(changes))return;
+ const object=token?.object??canvas?.tokens?.get?.(token?.id);
+ if(object)queueToughnessRefresh(object);else queueToughnessRefresh();
+ queueVisualRefresh("token-huds",()=>{refreshResourceHuds();refreshCombatPartyHud();refreshBossHud();refreshInitiativeCarousel();state.gmPanel?.render(false);});
+}
+function queueCombatVisualRefresh(){
+ queueToughnessRefresh();
+ queueVisualRefresh("combat-visuals",()=>{refreshCombatPartyHud();refreshBossHud();refreshInitiativeCarousel();state.bossPhaseControl?.render();state.gmPanel?.render(false);});
+}
+function clearQueuedVisualRefreshes(){visualRefreshQueue.clear();dirtyVisualActors.clear();dirtyVisualTokens.clear();allToughnessDirty=false;}
 
 const DEFAULT_PATHS = Object.freeze([
   {id:"abundance",name:"Abundance",icon:`modules/${MODULE_ID}/assets/paths/Path_Abundance.png`,color:"#e5c878"},
@@ -3675,7 +3721,7 @@ class HsrInitiativeCarousel {
     this.element.classList.toggle("is-length-resizable",config.allowLengthResize);
     this.element.classList.toggle("has-gm-controls",game.user.isGM);
     const gmControls=game.user.isGM?`<nav class="tsru-hsr-carousel-gm-controls" aria-label="Combat controls"><button type="button" data-carousel-control="previous-turn" title="Previous turn" aria-label="Previous turn"><i class="fas fa-step-backward"></i></button><button type="button" data-carousel-control="next-turn" title="Next turn" aria-label="Next turn"><i class="fas fa-step-forward"></i></button><button type="button" class="is-danger" data-carousel-control="end-combat" title="End combat" aria-label="End combat"><i class="fas fa-flag-checkered"></i></button></nav>`:"";
-    this.element.innerHTML=`<span class="tsru-hsr-carousel-drag" title="Move initiative carousel vertically"><i class="fas fa-grip-lines"></i></span><div class="tsru-hsr-carousel-viewport"><div class="tsru-hsr-carousel-list">${rows.join("")}</div></div>${gmControls}${config.allowLengthResize?'<span class="tsru-hsr-carousel-resize" title="Resize carousel width and length"></span>':""}`;
+    visualRefresh.replaceMarkupIfChanged(this.element,`<span class="tsru-hsr-carousel-drag" title="Move initiative carousel vertically"><i class="fas fa-grip-lines"></i></span><div class="tsru-hsr-carousel-viewport"><div class="tsru-hsr-carousel-list">${rows.join("")}</div></div>${gmControls}${config.allowLengthResize?'<span class="tsru-hsr-carousel-resize" title="Resize carousel width and length"></span>':""}`);
     this.element.querySelector(".tsru-hsr-carousel-viewport").scrollTop=this.scrollTop;
     dockSceneControlsBesideCarousel(this.element);
     return this;
@@ -3714,7 +3760,7 @@ class BossHud {
     if(!bosses.length)return this.destroy();
     if(!this.element){this.element=document.createElement("section");this.element.className="tsru-boss-hud";document.body.appendChild(this.element);this.attachBelowInterfaceUi();const layout=game.settings.get(MODULE_ID,"bossHudLayout")||{};this.element.style.left=`${layout.x??Math.max(20,(innerWidth-920)/2)}px`;this.element.style.top=`${clamp(Number(layout.y??54),0,innerHeight-40)}px`;this.element.addEventListener("pointerdown",event=>{const handle=event.target.closest(".tsru-boss-drag");if(!handle)return;event.preventDefault();const rect=this.element.getBoundingClientRect();this.drag={dx:event.clientX-rect.left,dy:event.clientY-rect.top};handle.setPointerCapture(event.pointerId);});this.element.addEventListener("pointermove",event=>{if(!this.drag)return;this.element.style.left=`${clamp(event.clientX-this.drag.dx,0,innerWidth-80)}px`;this.element.style.top=`${clamp(event.clientY-this.drag.dy,0,innerHeight-40)}px`;});this.element.addEventListener("pointerup",async event=>{if(!this.drag)return;this.drag=null;this.userMoved=true;const rect=this.element.getBoundingClientRect();await game.settings.set(MODULE_ID,"bossHudLayout",{x:Math.round(rect.left),y:Math.round(rect.top)});});}
     this.attachBelowInterfaceUi();
-    this.element.innerHTML=bosses.map(({combatant,encounter})=>{
+    visualRefresh.replaceMarkupIfChanged(this.element,bosses.map(({combatant,encounter})=>{
       const actor=combatant.actor;
       const design=encounter.bossConfig || getConfig(actor);
       const hp=actor?.system?.attributes?.hp ?? {};
@@ -3725,7 +3771,7 @@ class BossHud {
       const portrait=bossPortraitConfig(actor);
       const weaknesses=toughness.enabled?getElements().filter(element=>effectiveToughnessWeaknesses(actor).includes(element.id)).map(element=>`<img src="${escapeHTML(element.icon||"icons/svg/aura.svg")}" title="${escapeHTML(element.name)}">`).join(""):"";
       return `<article class="tsru-boss-entry" data-combatant-id="${combatant.id}" style="--boss-width:${design.bossHudWidth}px;--boss-health-h:${design.bossHudHealthHeight}px;--boss-toughness-h:${design.bossHudToughnessHeight}px;--boss-portrait-x:${portrait.x}%;--boss-portrait-y:${portrait.y}%;--boss-portrait-scale:${portrait.scale/100}"><div class="tsru-boss-drag" title="Move boss bar"><i class="fas fa-grip-lines"></i></div><div class="tsru-boss-portrait"><img src="${escapeHTML(portrait.image)}" alt="${escapeHTML(actor?.name||combatant.name)}"></div><div class="tsru-boss-main"><header><span class="tsru-boss-phases">${orbs}</span><strong>${escapeHTML(actor?.name||combatant.name)}</strong><span class="tsru-boss-weaknesses">${weaknesses}</span></header><div class="tsru-boss-health" style="--boss-hp:${percent}%"><i></i><span>${Math.round(percent)}%</span></div>${toughness.enabled?`<div class="tsru-boss-toughness" style="--boss-toughness:${toughnessPercent}%"><i></i></div>`:""}</div></article>`;
-    }).join("");
+    }).join(""));
     return this;
   }
   destroy(){this.element?.remove();this.element=null;if(state.bossHud===this)state.bossHud=null;}
@@ -3999,11 +4045,11 @@ class CombatPartyHud {
     }
     if (layout.minimized) {
       this.element.classList.add("is-minimized");
-      this.element.innerHTML = '<button type="button" class="tsru-combat-hud-expand" data-tsru-hud-control="expand"><i class="fas fa-users"></i> Party HUD</button>';
+      visualRefresh.replaceMarkupIfChanged(this.element,'<button type="button" class="tsru-combat-hud-expand" data-tsru-hud-control="expand"><i class="fas fa-users"></i> Party HUD</button>');
       return this;
     }
     this.element.classList.remove("is-minimized");
-    this.element.innerHTML = `<header class="tsru-combat-party-controls"><span class="tsru-combat-party-drag" data-tsru-hud-drag title="Drag combat party HUD"><i class="fas fa-grip-lines"></i></span><button type="button" data-tsru-party-setup title="Open shared Party Setup" aria-label="Party Setup"><i class="fas fa-users"></i> Party Setup</button><button type="button" data-tsru-hud-control="smaller" title="Make HUD smaller"><i class="fas fa-minus"></i></button><span>${Math.round(layout.scale * 100)}%</span><button type="button" data-tsru-hud-control="larger" title="Make HUD larger"><i class="fas fa-plus"></i></button><button type="button" data-tsru-hud-control="minimize" title="Minimize party HUD"><i class="fas fa-window-minimize"></i></button></header><div class="tsru-combat-party-line">${actors.map(actor => {
+    if(!visualRefresh.replaceMarkupIfChanged(this.element,`<header class="tsru-combat-party-controls"><span class="tsru-combat-party-drag" data-tsru-hud-drag title="Drag combat party HUD"><i class="fas fa-grip-lines"></i></span><button type="button" data-tsru-party-setup title="Open shared Party Setup" aria-label="Party Setup"><i class="fas fa-users"></i> Party Setup</button><button type="button" data-tsru-hud-control="smaller" title="Make HUD smaller"><i class="fas fa-minus"></i></button><span>${Math.round(layout.scale * 100)}%</span><button type="button" data-tsru-hud-control="larger" title="Make HUD larger"><i class="fas fa-plus"></i></button><button type="button" data-tsru-hud-control="minimize" title="Minimize party HUD"><i class="fas fa-window-minimize"></i></button></header><div class="tsru-combat-party-line">${actors.map(actor => {
       const config = getVisualConfig(actor);
       const hp = actor.system?.attributes?.hp ?? {};
       const hpValue = Math.max(0, Number(hp.value) || 0);
@@ -4024,7 +4070,7 @@ class CombatPartyHud {
         ${combatHudTalentMarkup(actor, config)}
         <div class="tsru-combat-party-ultimate-wrap ${ready ? "is-ready" : ""}">${config.trialCharacter ? '<b class="tsru-combat-party-trial">Trial</b>' : ""}<button type="button" data-tsru-party-ultimate data-actor-id="${actor.id}" class="${ready ? "is-ready" : "is-unavailable"} ${owned ? "" : "is-locked"} ${charge.alternate ? "is-alternate" : ""}" ${charge.alternate && (!owned || !ready) ? "disabled" : ""} aria-disabled="${!owned || !ready}" title="${owned ? (ready ? "Activate Ultimate" : "Ultimate is not ready; drag it to the hotbar to create its macro") : "Only this character's owner can activate their Ultimate"}">${charge.alternate ? renderAlternateOrb(getAlternateOrb(actor, alternateUltimateForm(config)), getAlternateOrbStates(actor, alternateUltimateForm(config))) : `<span class="tsru-hud-orb-fill"></span><img src="${escapeHTML(config.ultimateButtonImage || config.orbImage || actor.img || "icons/svg/mystery-man.svg")}" alt="">`}${config.showHudPercent ? `<strong>${charge.alternate ? `${charge.current}/${charge.total}` : `${Math.round(energyPercent)}%`}</strong>` : ""}</button></div>
       </article>`;
-    }).join("")}</div>`;
+    }).join("")}</div>`))return this;
     for (const button of this.element.querySelectorAll("[data-tsru-party-ultimate]")) {
       const actor = game.actors.get(button.dataset.actorId);
       if (actor && (game.user.isGM || actor.isOwner)) activateStarRailActionDrag(button, actor, "ultimate");
@@ -5727,8 +5773,9 @@ function removeBrokenTokenOverlay(token) {
 async function renderBrokenTokenOverlay(token) {
   if(!token?.actor)return;
   const image=String(getBreakFonts().brokenOverlayImage||"").trim();
-  const broken=getToughness(token.actor,token.document).enabled&&getToughness(token.actor,token.document).current<=0;
-  if(!image||!broken){removeBrokenTokenOverlay(token);return;}
+  if(!image){removeBrokenTokenOverlay(token);return;}
+  const toughness=getToughness(token.actor,token.document),broken=toughness.enabled&&toughness.current<=0;
+  if(!broken){removeBrokenTokenOverlay(token);return;}
   const existing=token.__tsruBrokenOverlay;
   if(existing?.__tsruSource===image){existing.width=token.w;existing.height=token.h;return;}
   if(token.__tsruBrokenOverlayLoading===image)return;
@@ -5743,7 +5790,7 @@ async function renderBrokenTokenOverlay(token) {
   }catch(error){console.warn(MODULE_ID+" | Could not load broken-token overlay",error);}finally{if(token.__tsruBrokenOverlayLoading===image)delete token.__tsruBrokenOverlayLoading;}
 }
 
-function refreshBrokenTokenOverlays(){for(const token of canvas?.tokens?.placeables??[])renderBrokenTokenOverlay(token);}
+function refreshBrokenTokenOverlays(tokens=canvas?.tokens?.placeables??[]){for(const token of tokens)renderBrokenTokenOverlay(token);}
 
 async function applyWeaknessBreakDamage(attacker, target, {superBreak = false, attackElement = null} = {}) {
   const config = getConfig(attacker);
@@ -6672,12 +6719,12 @@ class DMCombatMenu extends FormApplication {
   getData() {
     if (!game.user.isGM) return {};
     const tabs=[{id:"ultimates",label:"Alt Ultimates",icon:"fas fa-burst"},{id:"talents",label:"Talents",icon:"fas fa-star"},{id:"weaknesses",label:"Weaknesses",icon:"fas fa-shield-halved"},{id:"elements",label:"Element Change",icon:"fas fa-shuffle"},{id:"stances",label:"Stances",icon:"fas fa-arrows-rotate"},{id:"phases",label:"Phases",icon:"fas fa-layer-group"},{id:"dot",label:"DoT & Cones",icon:"fas fa-hourglass-half"}].map(tab=>({...tab,active:this.tab===tab.id}));
-    const talentGroups=combatTalentGroups();
-    const enemies=(canvas?.tokens?.placeables??[]).filter(token=>token.actor?.type==="npc"&&npcRules.npcAllegiance(token.actor,token.document)!=="ally").map(token=>{const target=token.document,permanent=getToughness(token.actor).weaknesses,active=effectiveToughnessWeaknesses(target),mode=toughnessWeaknessMode(target);return {uuid:target.uuid,name:token.name||token.actor.name,image:token.actor.img,locked:Boolean(target.getFlag(MODULE_ID,"miniWeaknessLocked")),modeLabel:mode==="all"?"All active":mode==="none"?"None active":"",elements:getElements().map(element=>({...element,permanent:permanent.includes(element.id),active:active.includes(element.id)}))};});
-    const stances=game.actors.filter(actor=>actor.type==="character"&&getConfig(actor).enhancedStanceEnabled).sort((a,b)=>a.name.localeCompare(b.name)).map(actor=>({id:actor.id,name:actor.name,image:actor.img,active:getConfig(actor).enhancedStanceActive}));
-    const bosses=new BossPhaseControl().bosses().map(({combatant,encounter,totalPhases,name})=>({id:combatant.id,name,image:combatant.actor?.img||combatant.img,current:encounter.currentPhase,total:totalPhases,phases:Array.from({length:totalPhases},(_,index)=>({number:index+1,active:encounter.currentPhase===index+1}))}));
-    const alternateActors=game.actors.filter(actor=>actor.type==="character"&&usesAlternateUltimate(getConfig(actor))).sort((a,b)=>a.name.localeCompare(b.name)).map(actor=>({name:actor.name,controls:alternateOrbControls(actor)}));
-    return {tabs,elementActors:multitype.elementChangeRows(),elementsTab:this.tab==="elements",alternateActors,ultimatesTab:this.tab==="ultimates",talentGroups,enemies,stances,bosses,talentsTab:this.tab==="talents",weaknessesTab:this.tab==="weaknesses",stancesTab:this.tab==="stances",dotTab:this.tab==="dot",phasesTab:this.tab==="phases",punchline:currentPunchline(),skillPoints:currentSkillPoints(),hasCombat:Boolean(game.combat?.started)};
+    const talentGroups=this.tab==="talents"?(combatTalentGroups()):[];
+    const enemies=this.tab==="weaknesses"?((canvas?.tokens?.placeables??[]).filter(token=>token.actor?.type==="npc"&&npcRules.npcAllegiance(token.actor,token.document)!=="ally").map(token=>{const target=token.document,permanent=getToughness(token.actor).weaknesses,active=effectiveToughnessWeaknesses(target),mode=toughnessWeaknessMode(target);return {uuid:target.uuid,name:token.name||token.actor.name,image:token.actor.img,locked:Boolean(target.getFlag(MODULE_ID,"miniWeaknessLocked")),modeLabel:mode==="all"?"All active":mode==="none"?"None active":"",elements:getElements().map(element=>({...element,permanent:permanent.includes(element.id),active:active.includes(element.id)}))};})):[];
+    const stances=this.tab==="stances"?(game.actors.filter(actor=>actor.type==="character"&&getConfig(actor).enhancedStanceEnabled).sort((a,b)=>a.name.localeCompare(b.name)).map(actor=>({id:actor.id,name:actor.name,image:actor.img,active:getConfig(actor).enhancedStanceActive}))):[];
+    const bosses=this.tab==="phases"?(new BossPhaseControl().bosses().map(({combatant,encounter,totalPhases,name})=>({id:combatant.id,name,image:combatant.actor?.img||combatant.img,current:encounter.currentPhase,total:totalPhases,phases:Array.from({length:totalPhases},(_,index)=>({number:index+1,active:encounter.currentPhase===index+1}))}))):[];
+    const alternateActors=this.tab==="ultimates"?(game.actors.filter(actor=>actor.type==="character"&&usesAlternateUltimate(getConfig(actor))).sort((a,b)=>a.name.localeCompare(b.name)).map(actor=>({name:actor.name,controls:alternateOrbControls(actor)}))):[];
+    return {tabs,elementActors:this.tab==="elements"?multitype.elementChangeRows():[],elementsTab:this.tab==="elements",alternateActors,ultimatesTab:this.tab==="ultimates",talentGroups,enemies,stances,bosses,talentsTab:this.tab==="talents",weaknessesTab:this.tab==="weaknesses",stancesTab:this.tab==="stances",dotTab:this.tab==="dot",phasesTab:this.tab==="phases",punchline:currentPunchline(),skillPoints:currentSkillPoints(),hasCombat:Boolean(game.combat?.started)};
   }
   refresh() { if (!this.rendered) return; const scroll=this.element?.find?.("[data-dm-scroll]")?.[0]; if(scroll)this.scrollPositions[this.tab]=scroll.scrollTop; this.render(false); }
   activateListeners(html) {
@@ -7017,6 +7064,7 @@ class BlowUpTatsuoConfig extends FormApplication {
 
 function registerSettings() {
   game.settings.registerMenu(MODULE_ID,"splashPreloadMenu",{name:"Preload Splash Artwork",label:"Preload Splash Artwork",hint:"Download all configured normal and enhanced splash art to connected players' browsers before playback.",icon:"fas fa-images",type:SplashPreloadMenu,restricted:true});
+  game.settings.register(MODULE_ID,"visualRefreshInterval",{name:"Combat HUD refresh interval (ms)",hint:"Client-side visual batching. Higher values reduce work in busy combats. Combat calculations and document updates remain immediate.",scope:"client",config:true,type:Number,default:50,range:{min:16,max:250,step:1}});
   game.settings.register(MODULE_ID,"blowUpTatsuo",{scope:"world",config:false,type:Object,default:foundry.utils.deepClone(DEFAULT_BLOW_UP_TATSUO)});
   game.settings.registerMenu(MODULE_ID,"blowUpTatsuoMenu",{name:"Blow Up Tatsuo",label:"Configure and Blow Up Tatsuo",hint:"Choose a player and preview the animation over all character tokens they own.",icon:"fas fa-bomb",type:BlowUpTatsuoConfig,restricted:true});
   game.settings.register(MODULE_ID, "elements", {scope: "world", config: false, type: Array, default: []});
@@ -8153,11 +8201,22 @@ function drawToughnessRect(graphics, x, y, width, height, color, alpha = 1, radi
   }
 }
 
-function renderToughnessBar(token) {
-  token?.children?.filter?.(child => child.name === "tsru-toughness-bar").forEach(child => child.destroy({children: true}));
-  if (!token?.actor || !["npc","character"].includes(token.actor.type) || !game.combat?.combatants?.some(c => c.tokenId === token.document.id)) return;
+function renderToughnessBar(token,combatTokenIds=null) {
+  const existing=token?.children?.find?.(child=>child.name==="tsru-toughness-bar");
+  const remove=()=>{existing?.destroy?.({children:true});if(token)toughnessBarCache.delete(token);};
+  if (!token?.actor || !["npc","character"].includes(token.actor.type) || !(combatTokenIds?combatTokenIds.has(token.document.id):game.combat?.combatants?.some(c => c.tokenId === token.document.id))) {remove();return;}
   const config = getToughness(token.actor, token.document);
-  if (!config.enabled) return;
+  if (!config.enabled) {remove();return;}
+  const effectiveWeaknesses = effectiveToughnessWeaknesses(token);
+  const weaknessMode = toughnessWeaknessMode(token);
+  const visibleWeaknesses = weaknessMode === "none" ? [] : weaknessMode === "all" ? effectiveWeaknesses : game.user?.isGM
+    ? effectiveWeaknesses
+    : [...new Set([...config.discoveredWeaknesses.filter(id => effectiveWeaknesses.includes(id)), ...temporaryToughnessWeaknesses(token)])];
+  const weaknesses = getElements().filter(element => visibleWeaknesses.includes(element.id));
+  const signature=JSON.stringify([token.w,token.h,config.current,config.max,weaknesses.map(element=>[element.id,element.readyColor||element.color||"#ffffff"])]);
+  const cached=toughnessBarCache.get(token);
+  if(existing&&!existing.destroyed&&cached?.container===existing&&cached.signature===signature){visualRenderStats.toughnessReuses++;return;}
+  remove();
   const PIXIRef = globalThis.PIXI;
   if (!PIXIRef?.Container || !PIXIRef?.Graphics) return;
   const container = new PIXIRef.Container();
@@ -8173,12 +8232,6 @@ function renderToughnessBar(token) {
   const fill = width * clamp(config.current / config.max, 0, 1);
   if (fill > 0) drawToughnessRect(graphics, x, y, fill, height, 0xaeb4bd, 1, 2);
   container.addChild(graphics);
-  const effectiveWeaknesses = effectiveToughnessWeaknesses(token);
-  const weaknessMode = toughnessWeaknessMode(token);
-  const visibleWeaknesses = weaknessMode === "none" ? [] : weaknessMode === "all" ? effectiveWeaknesses : game.user?.isGM
-    ? effectiveWeaknesses
-    : [...new Set([...config.discoveredWeaknesses.filter(id => effectiveWeaknesses.includes(id)), ...temporaryToughnessWeaknesses(token)])];
-  const weaknesses = getElements().filter(element => visibleWeaknesses.includes(element.id));
   const dotSize = Math.max(7, Math.min(11, token.w * .055));
   weaknesses.forEach((element, index) => {
     const dot = new PIXIRef.Graphics();
@@ -8189,11 +8242,13 @@ function renderToughnessBar(token) {
     container.addChild(dot);
   });
   token.addChild(container);
+  toughnessBarCache.set(token,{signature,container});visualRenderStats.toughnessBuilds++;
 }
 
-function refreshToughnessBars() {
-  for (const token of canvas?.tokens?.placeables ?? []) renderToughnessBar(token);
-  refreshBrokenTokenOverlays();
+function refreshToughnessBars(tokens=canvas?.tokens?.placeables??[]) {
+  const combatTokenIds=new Set(Array.from(game.combat?.combatants??[],entry=>entry.tokenId??entry.token?.id));
+  for(const token of tokens)renderToughnessBar(token,combatTokenIds);
+  refreshBrokenTokenOverlays(tokens);
 }
 
 function injectToughnessHeaderButton(app, html) {
@@ -8380,6 +8435,7 @@ function registerApi() {
     },
     showUltimateUI: () => showCombatPartyHud({notify: false})
   };
+  game.modules.get(MODULE_ID).api.performance={snapshot:()=>({...visualRefreshQueue.snapshot(),...visualRenderStats}),flush:()=>visualRefreshQueue.flush(),reset:()=>{visualRefreshQueue.reset();visualRenderStats.toughnessBuilds=0;visualRenderStats.toughnessReuses=0;}};
   partySetup.installPartySetup(game.modules.get(MODULE_ID).api);
   pathChanging.installPathChanging(game.modules.get(MODULE_ID).api, {
     getSelectedCharacter:selectedMainCharacter,
@@ -8443,6 +8499,7 @@ Hooks.once("ready", async () => {
 Hooks.on("dnd5e.prepareSheetContext", prepareLightConeAttunementContext);
 
 Hooks.on("canvasReady", installDamageScrollingTextOverride);
+Hooks.on("canvasTearDown",clearQueuedVisualRefreshes);
 
 Hooks.on("preCreateActor", actor => {
   if (actor.type !== "character" || foundry.utils.hasProperty(actor._source, `flags.${MODULE_ID}.eidolons`)) return;
@@ -8637,13 +8694,13 @@ Hooks.on("tsruEnergyChanged", (actor, before, after, reason) => dispatchTalentEv
 Hooks.on("tsruPunchlineChanged", value => { state.gmPanel?.refreshLiveValues(); dispatchTalentEvent("punchlineChanged", {value}); });
 Hooks.on("tsruPunchlineChanged", () => state.dmCombatMenu?.refresh());
 Hooks.on("tsruSkillPointsChanged", () => state.dmCombatMenu?.refresh());
-Hooks.on("updateCombat", () => state.dmCombatMenu?.refresh());
-Hooks.on("createCombatant", () => state.dmCombatMenu?.refresh());
-Hooks.on("deleteCombatant", () => state.dmCombatMenu?.refresh());
-Hooks.on("updateToken", () => state.dmCombatMenu?.refresh());
-Hooks.on("createToken", () => state.dmCombatMenu?.refresh());
-Hooks.on("deleteToken", () => state.dmCombatMenu?.refresh());
-Hooks.on("updateCombatant", () => state.dmCombatMenu?.refresh());
+Hooks.on("updateCombat", () => queueVisualRefresh("dm-menu",()=>state.dmCombatMenu?.refresh()));
+Hooks.on("createCombatant", () => queueVisualRefresh("dm-menu",()=>state.dmCombatMenu?.refresh()));
+Hooks.on("deleteCombatant", () => queueVisualRefresh("dm-menu",()=>state.dmCombatMenu?.refresh()));
+Hooks.on("updateToken", (_token,changes) => {if(!visualRefresh.isTokenMovementOnly(changes))queueVisualRefresh("dm-menu",()=>state.dmCombatMenu?.refresh());});
+Hooks.on("createToken", () => queueVisualRefresh("dm-menu",()=>state.dmCombatMenu?.refresh()));
+Hooks.on("deleteToken", () => queueVisualRefresh("dm-menu",()=>state.dmCombatMenu?.refresh()));
+Hooks.on("updateCombatant", () => queueVisualRefresh("dm-menu",()=>state.dmCombatMenu?.refresh()));
 Hooks.on("tsruSkillPointsChanged", value => { state.gmPanel?.refreshLiveValues(); dispatchTalentEvent("skillPointsChanged", {value}); });
 Hooks.on("tsruTalentPointsChanged", (actor, before, after) => { refreshTalentCounter(actor); dispatchTalentEvent("talentPointsChanged", {sourceActor: actor, before, after, amount: after - before}); });
 Hooks.on("preUpdateActor", (actor, changes, options={}) => {
@@ -8666,12 +8723,7 @@ Hooks.on("updateActor", (actor, changes, options) => {
     const images=[getConfig(actor).splashImage,getConfig(actor).enhancedSplashImage].join("\n");
     if(images!==state.splashArtworkByActor.get(actor.id)){state.splashArtworkByActor.set(actor.id,images);queueSplashPreloadBroadcast();}
   }
-  state.dmCombatMenu?.refresh();
-  refreshOrb(actor);
-  refreshSkillUI();
-  refreshTalentCounter(actor);
-  refreshResourceHuds();
-  refreshToughnessBars();
+  queueActorVisualRefresh(actor,changes);
   const expandedChanges=foundry.utils.expandObject(changes);
   const enhancedChanges=foundry.utils.getProperty(expandedChanges,`flags.${MODULE_ID}.ultimate`);
   state.enhancedStanceSeen??=new Map();
@@ -8681,18 +8733,12 @@ Hooks.on("updateActor", (actor, changes, options) => {
   state.enhancedStanceSeen.set(actor.id,active);
   const transition=stanceChanged?playEnhancedTokenTransition(actor,active):Promise.resolve();
   if(enhancedChanges&&["enhancedStanceEnabled","enhancedStanceActive","enhancedTokenImage"].some(key=>Object.hasOwn(enhancedChanges,key)))queueEnhancedTokenArtwork(actor,transition);
-  if(enhancedChanges && ["enhancedStanceEnabled","enhancedStanceActive","enhancedUltimateEnabled","enhancedAlternateUltimateEnabled","alternateUltimateEnabled","multitypeEnabled","multitypeMode","elementId"].some(key=>Object.hasOwn(enhancedChanges,key)))state.gmPanel?.render(false);
-  else state.gmPanel?.refreshLiveValues();
-  refreshCombatPartyHud();
-  refreshUltimateHotbarMacros();
+  if(enhancedChanges && ["enhancedStanceEnabled","enhancedStanceActive","enhancedUltimateEnabled","enhancedAlternateUltimateEnabled","alternateUltimateEnabled","multitypeEnabled","multitypeMode","elementId"].some(key=>Object.hasOwn(enhancedChanges,key)))queueVisualRefresh("gm-panel",()=>state.gmPanel?.render(false));
   for (const tab of document.querySelectorAll(".tsru-sheet-tab[data-alt-actor-id]")) {
     if (tab.dataset.altActorId !== actor.id) continue;
     syncAlternateOrbSheet(actor, tab);
     tab.dispatchEvent(new Event("tsru-alternate-preview"));
   }
-  refreshPunchlineHUD();
-  refreshBossHud();
-  refreshInitiativeCarousel();
   if(isAuthority()&&!options?.tsruBossTransition&&foundry.utils.hasProperty(expandedChanges,"system.attributes.hp.value"))handleBossPhaseDefeat(actor).catch(error=>console.error(`${MODULE_ID} | Boss phase check failed`,error));
   const talentChanges = foundry.utils.getProperty(changes, `flags.${MODULE_ID}.ultimate`);
   if (isAuthority() && actor.type === "character" && talentChanges && (
@@ -8725,7 +8771,7 @@ Hooks.on("updateActor", (actor, changes, options) => {
     reconcileUltimateLock(actor.id);
   }
 });
-Hooks.on("updateToken", token => { refreshToughnessBars(); refreshResourceHuds(); refreshCombatPartyHud(); refreshBossHud(); refreshInitiativeCarousel(); if(isAuthority()&&token.actor)handleBossPhaseDefeat(token.actor).catch(error=>console.error(`${MODULE_ID} | Boss token phase check failed`,error)); state.gmPanel?.render(false); });
+Hooks.on("updateToken", (token,changes) => {queueTokenVisualRefresh(token,changes);});
 Hooks.on("targetToken", user => { if (user.id === game.user.id) state.gmPanel?.refreshTargetHighlights(); });
 Hooks.on("controlToken", () => state.gmPanel?.refreshTargetHighlights());
 Hooks.on("createActor",actor=>{if(isAuthority()&&state.splashArtworkByActor){state.splashArtworkByActor.set(actor.id,[getConfig(actor).splashImage,getConfig(actor).enhancedSplashImage].join("\n"));queueSplashPreloadBroadcast();}});
@@ -8886,20 +8932,14 @@ Hooks.on("updateCombat", async combat => {
 });
 
 Hooks.on("updateCombatant", async (combatant, changed) => {
-  refreshCombatPartyHud();
-  refreshBossHud();
-  refreshInitiativeCarousel();
-  state.bossPhaseControl?.render();
+  queueCombatVisualRefresh();
   if(isAuthority())await ensureBossEncounter(combatant);
   if (!isAuthority() || isAhaCombatant(combatant) || isElationActionCombatant(combatant) || isTalentTurnCombatant(combatant) || !("initiative" in changed)) return;
   await maybeEnsureAhaCombatant(combatant.parent);
 });
 
 Hooks.on("createCombatant", combatant => {
-  state.gmPanel?.render(false);
-  window.setTimeout(refreshToughnessBars, 150);
-  window.setTimeout(refreshCombatPartyHud, 150);
-  window.setTimeout(refreshInitiativeCarousel,150);
+  queueCombatVisualRefresh();
   window.setTimeout(()=>ensureBossEncounter(combatant).catch(error=>console.error(`${MODULE_ID} | Boss combatant initialization failed`,error)),100);
   if (isAhaCombatant(combatant) || isElationActionCombatant(combatant) || isTalentTurnCombatant(combatant)) return;
   window.setTimeout(() => maybeEnsureAhaCombatant(combatant.parent), 100);
@@ -8934,10 +8974,7 @@ Hooks.on("combatStart", async combat => {
   }, 100);
 });
 Hooks.on("deleteCombatant", combatant => {
-  refreshCombatPartyHud();
-  refreshBossHud();
-  refreshInitiativeCarousel();
-  state.bossPhaseControl?.render();
+  queueCombatVisualRefresh();
   const tracked = state.lastCombatTurns.get(combatant.parent?.id);
   if (tracked?.id === combatant.id) state.lastCombatTurns.set(combatant.parent.id, combatTurnSnapshot(combatant.parent));
   state.gmPanel?.render(false);
@@ -8949,8 +8986,6 @@ Hooks.on("deleteCombatant", combatant => {
     state.pendingElationActions.delete(combatant.id);
     state.activeElationActions.delete(combatant.id);
   }
-  window.setTimeout(refreshToughnessBars, 100);
-  window.setTimeout(refreshCombatPartyHud, 100);
   window.setTimeout(() => {
     refreshPunchlineHUD();
     if (isAuthority() && combatant.parent) maybeEnsureAhaCombatant(combatant.parent);

@@ -1,3 +1,4 @@
+import * as visualRefresh from "../../scripts/visual-refresh.mjs";
 import * as outfits from '../../scripts/outfits.mjs';
 import * as skillSpells from '../../scripts/ability-spells.mjs';
 import * as npcInitiative from "../../scripts/npc-initiative.mjs";
@@ -35,7 +36,7 @@ export function world({mode='energy',quantity=1,config={},size=1}={}){
   const hookApi={on(name,fn){const list=hooks.get(name)??[];list.push(fn);hooks.set(name,list)},once(){},callAll(name,...args){for(const fn of hooks.get(name)??[])fn(...args)},call(name,...args){let ok=true;for(const fn of hooks.get(name)??[])if(fn(...args)===false)ok=false;return ok;}};
   const dice={total:7};class Roll{constructor(formula){this.formula=formula}async evaluate(){events.rolls++;this.total=dice.total;return this;}}
   Object.assign(globalThis,{game,ui,foundry,canvas,Hooks:hookApi,fromUuid:async uuid=>actors.find(actor=>actor.uuid===uuid),Roll});
-  const context=vm.createContext({outfits,skillSpells,game,ui,foundry,canvas,Roll,summoning,npcInitiative,structuredClone,energyAfterUpdate,...alternate,Hooks:hookApi,FormApplication:class{},
+  const context=vm.createContext({visualRefresh,outfits,skillSpells,game,ui,foundry,canvas,Roll,summoning,npcInitiative,structuredClone,energyAfterUpdate,...alternate,Hooks:hookApi,FormApplication:class{},
     lightConeSkillCapacity:()=>0,handleLightConeEvent:async(type,detail)=>events.lightCone.push({type,detail}),
     console:{...console,error:(...args)=>events.errors.push(args.map(String).join(' '))},TextEditor:{enrichHTML:async text=>text},
     ChatMessage:{getSpeaker:({actor})=>({actor:actor.id}),create:async data=>{events.messages.push(data);return data}},
@@ -43,6 +44,7 @@ export function world({mode='energy',quantity=1,config={},size=1}={}){
     window:{setTimeout:(fn,delay)=>{const id=++seq;timers.set(id,{fn,delay});return id},clearTimeout:id=>timers.delete(id)},setTimeout,clearTimeout});
   vm.runInContext(sheetCompat.replace(/^export /gm,'')+'\nconst renderTemplate=renderSheetTemplate;\n'+source.replace(/^import .*;\n/gm,'')+'\nglobalThis.api={requestUltimate,executeUltimate,requestSkill,executeSkill,onSocket,processUltimateQueue,completeUltimate,refundSummoningUltimate,reconcileUltimateLock,finishSpellSkill,runSkillSpell,state,getConfig};',context);
   context.events=events;
+  vm.runInContext('globalThis.savedVisuals={refreshToughnessBars,renderToughnessBar,queueActorVisualRefresh,queueTokenVisualRefresh,queueCombatVisualRefresh,clearQueuedVisualRefreshes,visualRefreshQueue,visualRenderStats,DMCombatMenu};',context);
   vm.runInContext('refreshOrb=()=>{};broadcastUltimateSplash=actor=>events.splashes.push(actor.id);dispatchTalentEvent=async(type)=>events.talent.push(type);refreshToughnessBars=()=>{};refreshResourceHuds=()=>{};refreshCombatPartyHud=()=>{};refreshPunchlineHUD=()=>{};refreshSkillUI=()=>{};refreshBossHud=()=>{};refreshInitiativeCarousel=()=>{};refreshTalentCounter=()=>{};',context);
   alternate.configureAlternateUltimates({isResolving:actor=>context.api.state.ultimateLocks.has(actor.id)});
   const plan={sceneId:scene.id,casterTokenId:caster.id,choiceId:'wolf',positions:Array.from({length:quantity},(_,i)=>({x:500+i*size*100,y:400}))};

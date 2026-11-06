@@ -1,3 +1,4 @@
+import * as visualRefresh from "../scripts/visual-refresh.mjs";
 import * as outfits from '../scripts/outfits.mjs';
 import * as skillSpells from '../scripts/ability-spells.mjs';
 import * as npcInitiative from "../scripts/npc-initiative.mjs";
@@ -46,7 +47,7 @@ async function setup({type="character",mode="attacks",enabled=true,synthetic=fal
   Object.assign(globalThis,{game,canvas,Hooks,foundry,fromUuid,ui:{notifications:{info:m=>notices.push(m),warn:m=>notices.push(m),error:m=>notices.push(m)}}});
   const multitype=await import("../scripts/multitype.mjs?case="+(++caseId));
   multitype.installMultitype();
-  const context=vm.createContext({outfits,skillSpells,game,canvas,Hooks,foundry,fromUuid,Actor,multitype,npcRules,actorControls,npcInitiative,structuredClone,console,
+  const context=vm.createContext({visualRefresh,outfits,skillSpells,game,canvas,Hooks,foundry,fromUuid,Actor,multitype,npcRules,actorControls,npcInitiative,structuredClone,console,
     FormApplication:class{},ui:globalThis.ui,document:{querySelectorAll:()=>[]},
     window:{setTimeout(){},clearTimeout(){}},setTimeout(){},clearTimeout(){}});
   vm.runInContext(source.replace(/^import .*;\n/gm,"")+'\nglobalThis.api={applyToughnessDamage,processDnd5eDamageRolls,processCoreAttackMessage,processAppliedDamage,processMidiWorkflow,onSocket,state,getConfig,getToughness,saveUltimateConfigFromTab};',context);
