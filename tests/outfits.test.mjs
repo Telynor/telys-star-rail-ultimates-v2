@@ -156,15 +156,19 @@ test('equipped costumes skip HP, Energy and item-charge updates but still react 
 });
 
 
-test('assigned outfits remain visible on other Paths without bypassing equip restrictions',async()=>{
+test('wardrobe lists matching and All Paths outfits, including inventory-locked outfits',async()=>{
  const w=world();put(w);put(w,{id:'other',actorIds:['source'],profiles:[]});
+ const shared=put(w,{id:'shared',unlockingItem:{uuid:'Item.ticket',name:'Shared ticket'}});
+ shared.profiles[0].pathKey='*';
  await path(w,'import',{sourceActorId:'source'});await settle();
  const catalog=pathCatalog(w.hero),alt=catalog.profiles.find(p=>!p.original);
  await path(w,'switch',{profileId:alt.id});await settle();
  const view=outfitView(w.hero);
- assert.deepEqual(view.outfits.map(o=>o.id),['gala']);
+ assert.deepEqual(view.outfits.map(o=>o.id),['shared']);
  assert.equal(view.outfits[0].available,false);
- assert.match(renderOutfits({actor:w.hero,view,paths:[{key:alt.id,active:true}],pathKey:alt.id}),/No profile for this Path/);
+ const html=renderOutfits({actor:w.hero,view,paths:[{key:alt.id,active:true}],pathKey:alt.id});
+ assert.doesNotMatch(html,/No profile for this Path/);
+ assert.match(html,/Requires Shared ticket/);
  await assert.rejects(equip(w),/No profile for this Path/);
  await path(w,'switch',{profileId:catalog.activeId});await settle();
  assert.equal(outfitView(w.hero).outfits[0].available,true);
