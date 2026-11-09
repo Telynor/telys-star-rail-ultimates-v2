@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {pathWorld,ID,HookApi,collection} from './helpers/path-world.mjs';
 import {normalizeOutfit,normalizeOutfitLibrary,outfitAvailability,outfitState,activeOutfitPath,outfitConfig,outfitPhonePose,selectedOutfit} from '../scripts/outfit-rules.mjs';
-import {installOutfits,applyOutfitRequest,requestOutfitChange,handleOutfitSocket,syncOutfitAppearance,resolveOutfitConfig} from '../scripts/outfits.mjs';
+import {installOutfits,applyOutfitRequest,requestOutfitChange,handleOutfitSocket,syncOutfitAppearance,resolveOutfitConfig,outfitView} from '../scripts/outfits.mjs';
 import {applyPathRequest} from '../scripts/path-changing.mjs';
 import {pathCatalog,capturePathBuild} from '../scripts/path-change-rules.mjs';
 import {renderOutfits} from '../scripts/outfits-ui.mjs';
@@ -153,4 +153,19 @@ test('equipped costumes skip HP, Energy and item-charge updates but still react 
  await w.hero.update({'system.attributes.hp.value':12});await w.hero.update({[`flags.${ID}.ultimate.current`]:42});await w.hero.items.get('arrows').update({'system.uses.spent':1,'_stats.modifiedTime':123});await settle();
  assert.equal(renders,0);assert.equal(w.hero.img,'gala-portrait.png');
  await w.hero.items.get('arrows').update({'system.quantity':0});await settle();assert.equal(w.hero.img,'hero.png');assert.ok(renders>0);
+});
+
+
+test('assigned outfits remain visible on other Paths without bypassing equip restrictions',async()=>{
+ const w=world();put(w);put(w,{id:'other',actorIds:['source'],profiles:[]});
+ await path(w,'import',{sourceActorId:'source'});await settle();
+ const catalog=pathCatalog(w.hero),alt=catalog.profiles.find(p=>!p.original);
+ await path(w,'switch',{profileId:alt.id});await settle();
+ const view=outfitView(w.hero);
+ assert.deepEqual(view.outfits.map(o=>o.id),['gala']);
+ assert.equal(view.outfits[0].available,false);
+ assert.match(renderOutfits({actor:w.hero,view,paths:[{key:alt.id,active:true}],pathKey:alt.id}),/No profile for this Path/);
+ await assert.rejects(equip(w),/No profile for this Path/);
+ await path(w,'switch',{profileId:catalog.activeId});await settle();
+ assert.equal(outfitView(w.hero).outfits[0].available,true);
 });
