@@ -8456,6 +8456,7 @@ Hooks.once("init", () => {
   registerSettings();
   partySetup.registerPartySetupSettings();
   pathChanging.registerPathChangeSettings();
+  outfits.registerOutfitItemType();
   outfits.registerOutfitSettings();
   Handlebars.registerHelper("add", (a, b) => Number(a) + Number(b));
   console.log(`${MODULE_ID} | Initialized`);

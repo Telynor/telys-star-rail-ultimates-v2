@@ -1,7 +1,7 @@
-import {outfitBaseAppearance} from './outfit-rules.mjs';
+import {outfitBaseAppearance,OUTFIT_ITEM_TYPE} from './outfit-rules.mjs';
 export const PATH_MODULE = 'telys-star-rail-ultimates';
 export const MEMO_MODULE = 'telys-memosprites';
-export const INVENTORY_TYPES = new Set(['weapon','equipment','consumable','tool','loot','container','backpack']);
+export const INVENTORY_TYPES = new Set(['weapon','equipment','consumable','tool','loot','container','backpack',OUTFIT_ITEM_TYPE]);
 export const BUILD_ITEM_TYPES = new Set(['class','subclass','feat','spell','background','race']);
 export const BUILD_SCOPES = [PATH_MODULE,'dnd5e','midi-qol','dae',MEMO_MODULE];
 export const TOKEN_BUILD_FIELDS = ['texture','width','height','sight','light','detectionModes','bar1','bar2','ring','alpha','lockRotation','hexagonalShape'];

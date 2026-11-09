@@ -20,12 +20,40 @@ export function normalizePartySetup(value={}){
 export const partyMemberIds=(state,slots=state.slots,optionalActorId=state.optionalActorId)=>[...slots,optionalActorId].filter(Boolean);
 export function normalizeUnlockingItem(value){
   if(!value||typeof value!=='object'||!/^Item\.[^.]+$|^Actor\.[^.]+\.Item\.[^.]+$|^Compendium\.[^\s]+$/.test(text(value.uuid)))return null;
-  return {uuid:text(value.uuid),name:text(value.name).slice(0,200)||'Unlocking item',img:safePartyImage(value.img),keys:[...new Set([text(value.uuid),...(Array.isArray(value.keys)?value.keys:[]).map(text)])].filter(Boolean).slice(0,12)};
+  return {uuid:text(value.uuid),name:text(value.name).slice(0,200)||'Unlocking item',img:safePartyImage(value.img),keys:[...new Set([text(value.uuid),...(Array.isArray(value.keys)?value.keys:[]).map(text)].map(canonicalItemUuid))].filter(Boolean).slice(0,12)};
 }
-export function itemIdentityKeys(item){
-  return [...new Set([item?.uuid,item?._stats?.compendiumSource,item?._stats?.duplicateSource,item?.flags?.core?.sourceId,item?.flags?.dnd5e?.sourceId,item?.flags?.[PARTY_ID]?.partyUnlockKey].filter(value=>typeof value==='string'&&value))];
+function canonicalItemUuid(value){
+  // Older compendium drag data omitted the embedded document type segment.
+  return value.replace(/^(Compendium\.[^.]+\.[^.]+)\.([^.]+)$/,'$1.Item.$2');
 }
-export function unlockingItemDescriptor(item){return normalizeUnlockingItem({uuid:item?.uuid,name:item?.name,img:item?.img,keys:itemIdentityKeys(item)});}
+export function itemIdentityKeys(item,{followSources=false}={}){
+  const keys=new Set(),visited=new Set();
+  const visit=(document,depth)=>{
+    if(!document||visited.has(document)||depth>4)return;
+    visited.add(document);
+    const source=document._stats&&document.flags?document:document.toObject?.()??document;
+    const stats=document._stats??source._stats;
+    const flags=document.flags??source.flags;
+    const ids=[document.uuid,stats?.compendiumSource,stats?.duplicateSource,
+      flags?.core?.sourceId,flags?.dnd5e?.sourceId,flags?.[PARTY_ID]?.partyUnlockKey];
+    for(const id of ids){
+      if(typeof id!=='string'||!id)continue;
+      const canonical=canonicalItemUuid(id);
+      if(keys.has(canonical))continue;
+      keys.add(canonical);
+      if(followSources&&id!==document.uuid&&/^(?:Actor\.[^.]+\.)?Item\.[^.]+$/.test(id)){
+        let origin;
+        try{origin=globalThis.fromUuidSync?.(id);}catch{continue;}
+        if(origin?.documentName==='Item')visit(origin,depth+1);
+      }
+    }
+  };
+  visit(item,0);
+  return [...keys];
+}
+export function unlockingItemDescriptor(item){
+  return normalizeUnlockingItem({uuid:item?.uuid,name:item?.name,img:item?.img,keys:itemIdentityKeys(item,{followSources:true})});
+}
 export function partyInventoryKeys(state,context){
   const members=state.configured?new Set(partyMemberIds(state)):null,keys=new Set();
   for(const actor of actorList(context.actors))if(actor.type==='character'&&characterConfig(actor).mainParty&&(!members||members.has(actor.id)))for(const item of actorList(actor.items)){

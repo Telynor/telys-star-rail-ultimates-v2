@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {pathWorld,ID,HookApi,collection} from './helpers/path-world.mjs';
-import {normalizeOutfit,normalizeOutfitLibrary,outfitAvailability,outfitState,activeOutfitPath,outfitConfig,outfitPhonePose,selectedOutfit} from '../scripts/outfit-rules.mjs';
+import {OUTFIT_ITEM_TYPE,normalizeOutfit,normalizeOutfitLibrary,outfitAvailability,outfitState,activeOutfitPath,outfitConfig,outfitPhonePose,selectedOutfit} from '../scripts/outfit-rules.mjs';
 import {installOutfits,applyOutfitRequest,requestOutfitChange,handleOutfitSocket,syncOutfitAppearance,resolveOutfitConfig,outfitView} from '../scripts/outfits.mjs';
 import {applyPathRequest} from '../scripts/path-changing.mjs';
 import {pathCatalog,capturePathBuild} from '../scripts/path-change-rules.mjs';
@@ -168,4 +168,35 @@ test('assigned outfits remain visible on other Paths without bypassing equip res
  await assert.rejects(equip(w),/No profile for this Path/);
  await path(w,'switch',{profileId:catalog.activeId});await settle();
  assert.equal(outfitView(w.hero).outfits[0].available,true);
+});
+
+
+test('Outfit items unlock by legacy compendium identity and remain in inventory across a Path switch',async()=>{
+ const w=world(),outfit=put(w,{unlockingItem:{uuid:'Compendium.world.wardrobe.gala',name:'Gala permit'}});
+ outfit.profiles[0].pathKey='*';
+ await w.hero.createEmbeddedDocuments('Item',[{
+  _id:'permit',name:'Renamed Gala permit',type:OUTFIT_ITEM_TYPE,system:{quantity:1},
+  _stats:{compendiumSource:'Compendium.world.wardrobe.Item.gala'}
+ }]);
+ assert.equal(outfitAvailability(outfit,w.hero).available,true);
+ await path(w,'import',{sourceActorId:'source'});
+ const alt=pathCatalog(w.hero).profiles.find(p=>!p.original);
+ await path(w,'switch',{profileId:alt.id});await settle();
+ assert.equal(w.hero.items.get('permit').type,OUTFIT_ITEM_TYPE);
+ assert.equal(outfitAvailability(outfit,w.hero).available,true);
+ await equip(w);
+ assert.equal(w.hero.img,'gala-portrait.png');
+});
+
+test('an inventory copy can unlock an outfit through an intermediate source item',()=>{
+ const w=world(),outfit=put(w,{unlockingItem:{uuid:'Item.original',name:'Gala permit'}});
+ const original=globalThis.fromUuidSync;
+ globalThis.fromUuidSync=id=>id==='Item.intermediate'?{
+  uuid:id,documentName:'Item',_stats:{duplicateSource:'Item.original'}
+ }:null;
+ try{
+  const actor={id:'hero',items:[{uuid:'Actor.hero.Item.copy',type:'loot',
+   toObject:()=>({_stats:{duplicateSource:'Item.intermediate'}}),system:{quantity:1}}]};
+  assert.equal(outfitAvailability(outfit,actor).available,true);
+ }finally{globalThis.fromUuidSync=original;}
 });

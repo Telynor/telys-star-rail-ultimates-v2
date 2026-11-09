@@ -1,5 +1,5 @@
 import {touchesVisualData} from './visual-refresh.mjs';
-import {OUTFIT_ID as ID,normalizeOutfitLibrary,normalizeOutfit,outfitState,outfitPaths,activeOutfitPath,outfitAvailability,selectedOutfit,outfitBaseAppearance,outfitArt,outfitTexture,outfitConfig,outfitPhonePose,normalizeOutfitTexture,isOutfitInventoryItem,outfitPortraitStyle} from './outfit-rules.mjs';
+import {OUTFIT_ID as ID,OUTFIT_ITEM_TYPE,normalizeOutfitLibrary,normalizeOutfit,outfitState,outfitPaths,activeOutfitPath,outfitAvailability,selectedOutfit,outfitBaseAppearance,outfitArt,outfitTexture,outfitConfig,outfitPhonePose,normalizeOutfitTexture,isOutfitInventoryItem,outfitPortraitStyle} from './outfit-rules.mjs';
 import {unlockingItemDescriptor} from './party-setup-rules.mjs';
 import {actorSheetControls,actorHeaderButton,sheetActor} from './actor-sheet-controls.mjs';
 import {openOutfitWindow,refreshOutfitWindows} from './outfits-ui.mjs';
@@ -12,7 +12,7 @@ const invalidateOutfitLibrary=()=>{cachedLibrary=null;};
 const library=()=>{const raw=game.settings.get(ID,'outfitLibrary')??{};if(cachedLibrary?.raw===raw&&cachedLibrary.value.revision===(Number(raw.revision)||0)&&cachedLibrary.length===(raw.outfits?.length??0))return cachedLibrary.value;const value=normalizeOutfitLibrary(raw);cachedLibrary={raw,value,length:raw.outfits?.length??0};return value;};
 const appearanceFields=['enhancedStanceEnabled','enhancedStanceActive','enhancedTokenImage','pathId','elementId',...['splash','enhancedSplash','combatHudPortrait','enhancedHudPortrait','carouselImage','enhancedCarouselImage','messagingPortrait'].flatMap(prefix=>[prefix,prefix+'Image',prefix+'X',prefix+'Y',prefix+'Scale',prefix+'Flip']),'skillButtonImage','ultimateButtonImage','talentIcon','techniqueButtonImage','enhancedSkillButtonImage','enhancedUltimateButtonImage','enhancedTalentIcon','enhancedTechniqueButtonImage'];
 const appearanceRoots=['name','img','prototypeToken',...appearanceFields.map(field=>`flags.${ID}.ultimate.${field}`),`flags.${ID}.outfits`,`flags.${ID}.pathChanging`];
-const itemUnlockRoots=['system.quantity','_stats.compendiumSource','flags','type','name'];
+const itemUnlockRoots=['system.quantity','_stats.compendiumSource','_stats.duplicateSource','flags','type','name'];
 const world=actor=>actor?.documentName==='Actor'&&actor.type==='character'&&!actor.isToken&&game.actors.get(actor.id)===actor;
 const owned=(actor,user)=>Boolean(user&&(user.isGM||actor?.testUserPermission?.(user,'OWNER')));
 const notify=error=>ui.notifications.error(error.message??String(error));
@@ -142,6 +142,19 @@ export function styleOutfitPortraits(actor,root=globalThis.document){
     if(art){if(!img.dataset.outfitPortraitStyle)img.dataset.outfitPortraitStyle=JSON.stringify(Object.fromEntries(['objectFit','objectPosition','objectViewBox','scale'].map(key=>[key,img.style[key]||''])));Object.assign(img.style,outfitPortraitStyle(art));}
     else if(img.dataset.outfitPortraitStyle){Object.assign(img.style,JSON.parse(img.dataset.outfitPortraitStyle));delete img.dataset.outfitPortraitStyle;}
   }
+}
+export function registerOutfitItemType(){
+  const config=globalThis.CONFIG?.Item;
+  const LootData=config?.dataModels?.loot;
+  if(!LootData)return;
+  class OutfitData extends LootData {
+    static get inventorySection(){
+      return {...super.inventorySection,id:'outfits',label:'Outfits',groups:{type:OUTFIT_ITEM_TYPE}};
+    }
+  }
+  config.dataModels[OUTFIT_ITEM_TYPE]=OutfitData;
+  config.typeLabels[OUTFIT_ITEM_TYPE]='Outfit';
+  (config.typeIcons??={})[OUTFIT_ITEM_TYPE]='fa-solid fa-shirt';
 }
 export function registerOutfitSettings(){if(registered)return;registered=true;game.settings.register(ID,'outfitLibrary',{scope:'world',config:false,type:Object,default:{schema:1,revision:0,outfits:[]}});class OutfitMenu extends FormApplication{render(){try{openOutfits(undefined,{manage:true});}catch(error){notify(error);}return this;}}game.settings.registerMenu(ID,'outfits',{name:'Character Outfits',label:'Outfit Builder',hint:'Create outfits, assign characters and Path artwork, and require an inventory item to unlock them.',icon:'fas fa-shirt',type:OutfitMenu,restricted:true});}
 export function installOutfits(api,services={}){

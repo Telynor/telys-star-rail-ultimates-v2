@@ -2,7 +2,8 @@ import {normalizeUnlockingItem,itemIdentityKeys,normalizePartyShadow} from './pa
 export const OUTFIT_ID='telys-star-rail-ultimates';
 export const ART_SLOTS=Object.freeze({phone:'Phone pose',team1:'Team lineup · position 1',team2:'Team lineup · position 2',team3:'Team lineup · position 3',team4:'Team lineup · position 4',team5:'Team lineup · optional position 5',splash:'Splash art',token:'Token art',portrait:'Portrait art',hud:'Combat HUD portrait',boss:'Boss HUD portrait',initiative:'Initiative portrait',messenger:'Messenger portrait'});
 export const ICON_SLOTS=Object.freeze({skill:'Skill',ultimate:'Ultimate',talent:'Talent',technique:'Technique'});
-export const isOutfitInventoryItem=item=>['weapon','equipment','consumable','tool','loot','container','backpack'].includes(item?.type);
+export const OUTFIT_ITEM_TYPE='telys-star-rail-ultimates.outfit';
+export const isOutfitInventoryItem=item=>['weapon','equipment','consumable','tool','loot','container','backpack',OUTFIT_ITEM_TYPE].includes(item?.type);
 const text=value=>typeof value==='string'?value.trim():'';
 const clamp=(value,min,max,fallback)=>Number.isFinite(Number(value))?Math.max(min,Math.min(max,Number(value))):fallback;
 export const safeOutfitImage=value=>/^(?:javascript|vbscript|data(?!:image\/))\s*:/i.test(text(value))?'':text(value);
@@ -24,7 +25,7 @@ export function outfitBaseAppearance(actor){const saved=outfitState(actor).appea
 function activeOutfitPathRaw(actor){const c=actor?.getFlag?.(OUTFIT_ID,'pathChanging')??{};return c.profiles?.find(p=>p.id===c.activeId)?.original?'original':c.activeId||'original';}
 export function outfitAvailability(outfit,actor,pathKey=activeOutfitPathRaw(actor)){
   const assigned=outfit.actorIds.includes(actor?.id),profile=outfit.profiles.find(p=>p.actorId===actor?.id&&p.pathKey===pathKey)??outfit.profiles.find(p=>p.actorId===actor?.id&&p.pathKey==='*'),item=outfit.unlockingItem;
-  const unlocked=!item||Array.from(actor?.items??[]).some(owned=>isOutfitInventoryItem(owned)&&(owned.system?.quantity===undefined||Number(owned.system.quantity)>0)&&itemIdentityKeys({...owned.toObject?.(),...owned,uuid:owned.uuid}).some(key=>item.keys.includes(key)));
+  const unlocked=!item||Array.from(actor?.items??[]).some(owned=>isOutfitInventoryItem(owned)&&(owned.system?.quantity===undefined||Number(owned.system.quantity)>0)&&itemIdentityKeys(owned,{followSources:true}).some(key=>item.keys.includes(key)));
   return {assigned,profile,unlocked,available:assigned&&Boolean(profile)&&unlocked,reason:!assigned?'Not assigned to this character':!profile?'No profile for this Path':!unlocked?`Requires ${item.name} in this character’s inventory`:''};
 }
 export function selectedOutfit(actor,library){const pathKey=activeOutfitPathRaw(actor),id=outfitState(actor).selections['*']||outfitState(actor).selections[pathKey],outfit=normalizeOutfitLibrary(library).outfits.find(o=>o.id===id),access=outfit&&outfitAvailability(outfit,actor,pathKey);return access?.available?{outfit,profile:access.profile,pathKey}:null;}
