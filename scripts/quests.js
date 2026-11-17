@@ -1,3 +1,4 @@
+import {grantInventoryReward} from "./reward-inventory.mjs";
 import {resolveOutfitPhonePose,resolveOutfitConfig} from './outfits.mjs';
 const MODULE_ID = "telys-star-rail-ultimates";
 const SOCKET = `module.${MODULE_ID}`;
@@ -237,19 +238,17 @@ async function grantReward(actor, reward, quantity) {
   if (!actor || quantity < 1) return;
   const {doc, data} = await rewardData(reward);
   if (!doc || !data) throw new Error(`Reward item “${reward.name}” can no longer be found.`);
-  const existing = actor.items.find(item => item.name === doc.name && item.type === doc.type);
-  const quantityPath = foundry.utils.hasProperty(data, "system.quantity") ? "system.quantity" : null;
-  if (existing && quantityPath) {
-    const current = Number(foundry.utils.getProperty(existing, quantityPath)) || 0;
-    await existing.update({[quantityPath]: current + quantity});
-  } else {
-    delete data._id;
-    if (quantityPath) foundry.utils.setProperty(data, quantityPath, quantity);
-    await actor.createEmbeddedDocuments("Item", [data]);
-  }
+  await grantInventoryReward(actor, doc, quantity);
 }
 
-async function distributeRewards(questId) {
+let missionRewards = Promise.resolve();
+function distributeRewards(questId) {
+  const next = missionRewards.then(() => distributeMissionRewards(questId));
+  missionRewards = next.catch(() => {});
+  return next;
+}
+
+async function distributeMissionRewards(questId) {
   if (!game.user.isGM) return;
   const all = quests();
   const quest = all.find(q => q.id === questId);
@@ -260,7 +259,7 @@ async function distributeRewards(questId) {
   });
   if (!recipients.length) return ui.notifications.warn("No selected quest recipients are eligible. Select characters on the mission; GMPCs also need Receives Rewards enabled.");
   for (const reward of quest.rewards ?? []) {
-    const total = Math.max(1, Number(reward.quantity) || 1);
+    const total = Math.max(1, Math.trunc(Number(reward.quantity)) || 1);
     if (quest.rewardMode === "copy") {
       for (const actor of recipients) await grantReward(actor, reward, total);
     } else {
